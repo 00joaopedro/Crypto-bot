@@ -47,6 +47,11 @@ export class GeminiRiskFilter {
       },
     });
 
-    return decisionSchema.parse(JSON.parse(interaction.output_text));
+    const textOutput = interaction.outputs?.find((output) => output.type === "text");
+    if (!textOutput || typeof textOutput.text !== "string") {
+      throw new Error("Gemini returned no text output");
+    }
+
+    return decisionSchema.parse(JSON.parse(textOutput.text));
   }
 }
