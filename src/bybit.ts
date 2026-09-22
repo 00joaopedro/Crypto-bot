@@ -20,16 +20,16 @@ export class BybitMarketData {
     const now = Date.now();
 
     return rows
-      .filter((row) => row[0] + FIFTEEN_MINUTES_MS <= now)
-      .slice(-limit)
       .map((row) => ({
-        timestamp: row[0],
+        timestamp: requiredNumber(row[0], "timestamp"),
         open: requiredNumber(row[1], "open"),
         high: requiredNumber(row[2], "high"),
         low: requiredNumber(row[3], "low"),
         close: requiredNumber(row[4], "close"),
         volume: requiredNumber(row[5], "volume"),
-      }));
+      }))
+      .filter((candle) => candle.timestamp + FIFTEEN_MINUTES_MS <= now)
+      .slice(-limit);
   }
 
   async close(): Promise<void> {
