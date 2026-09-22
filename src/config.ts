@@ -15,7 +15,7 @@ const schema = z
     LOOP_DELAY_MS: z.coerce.number().int().min(10_000).default(60_000),
     GEMINI_ENABLED: booleanString,
     GEMINI_API_KEY: z.string().optional(),
-    GEMINI_MODEL: z.string().min(1).default("gemini-3.8-flash"),
+    GEMINI_MODEL: z.string().min(1).default("gemini-flash-latest"),
     MIN_AI_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.82),
   })
   .superRefine((value, ctx) => {
