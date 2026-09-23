@@ -4,6 +4,7 @@ import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
+import { OkxDemoDiagnostics } from "./okx-demo.js";
 import { PaperTrader } from "./paper-trader.js";
 
 async function sleep(
@@ -33,10 +34,26 @@ async function main(): Promise<void> {
   process.once("SIGTERM", stop);
 
   const market = new PublicMarketData(config.MARKET_DATA_PROVIDER);
+  const okxDemo =
+    config.EXECUTION_PROVIDER === "okx-demo"
+      ? new OkxDemoDiagnostics(
+          {
+            apiKey: config.OKX_API_KEY!,
+            secretKey: config.OKX_SECRET_KEY!,
+            passphrase: config.OKX_PASSPHRASE!,
+          },
+          config.SYMBOL,
+        )
+      : undefined;
 
   try {
     await initializeWithBackoff(market, shutdownController.signal);
     if (stopping) return;
+
+    if (okxDemo) {
+      await initializeOkxDemoWithBackoff(okxDemo, shutdownController.signal);
+      if (stopping) return;
+    }
 
     const ai = config.GEMINI_ENABLED
       ? new GeminiRiskFilter(config.GEMINI_API_KEY!, config.GEMINI_MODEL)
@@ -63,6 +80,8 @@ async function main(): Promise<void> {
         event: "bot_started",
         environment: config.ENVIRONMENT,
         executionMode: "PAPER",
+        executionProvider: config.EXECUTION_PROVIDER,
+        liveTradingEnabled: config.LIVE_TRADING_ENABLED,
         marketDataProvider: config.MARKET_DATA_PROVIDER,
         symbol: config.SYMBOL,
         timeframe: config.TIMEFRAME,
@@ -95,7 +114,41 @@ async function main(): Promise<void> {
       }
     }
   } finally {
-    await market.close();
+    await Promise.all([market.close(), okxDemo?.close()]);
+  }
+}
+
+async function initializeOkxDemoWithBackoff(
+  okxDemo: OkxDemoDiagnostics,
+  signal: AbortSignal,
+): Promise<void> {
+  let delayMs = 15_000;
+
+  while (!signal.aborted) {
+    try {
+      const status = await okxDemo.initialize();
+      console.log(JSON.stringify({ event: "okx_demo_connected", ...status }));
+      console.log(
+        JSON.stringify({
+          event: "execution_disabled",
+          provider: "okx-demo",
+          reason: "read_only_connectivity_stage",
+        }),
+      );
+      return;
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: "okx_demo_initialization_failed",
+          provider: "okx-demo",
+          retryInMs: delayMs,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+
+      if (!(await sleep(delayMs, signal))) return;
+      delayMs = Math.min(delayMs * 2, 5 * 60_000);
+    }
   }
 }
 
