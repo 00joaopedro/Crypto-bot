@@ -1,15 +1,32 @@
+import { setTimeout as delay } from "node:timers/promises";
+
 import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
 
-const sleep = (milliseconds: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+async function sleep(
+  milliseconds: number,
+  signal: AbortSignal,
+): Promise<boolean> {
+  try {
+    await delay(milliseconds, undefined, { signal });
+    return true;
+  } catch (error) {
+    if (signal.aborted && error instanceof Error && error.name === "AbortError") {
+      return false;
+    }
+
+    throw error;
+  }
+}
 
 async function main(): Promise<void> {
   let stopping = false;
+  const shutdownController = new AbortController();
   const stop = () => {
     stopping = true;
+    shutdownController.abort();
   };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
@@ -17,7 +34,7 @@ async function main(): Promise<void> {
   const market = new PublicMarketData(config.MARKET_DATA_PROVIDER);
 
   try {
-    await initializeWithBackoff(market, () => stopping);
+    await initializeWithBackoff(market, shutdownController.signal);
     if (stopping) return;
 
     const ai = config.GEMINI_ENABLED
@@ -31,25 +48,32 @@ async function main(): Promise<void> {
       ...(ai ? { ai } : {}),
     });
 
-    console.log(JSON.stringify({
-      event: "bot_started",
-      environment: config.ENVIRONMENT,
-      marketDataProvider: config.MARKET_DATA_PROVIDER,
-      symbol: config.SYMBOL,
-      timeframe: config.TIMEFRAME,
-      aiEnabled: config.GEMINI_ENABLED,
-    }));
+    console.log(
+      JSON.stringify({
+        event: "bot_started",
+        environment: config.ENVIRONMENT,
+        marketDataProvider: config.MARKET_DATA_PROVIDER,
+        symbol: config.SYMBOL,
+        timeframe: config.TIMEFRAME,
+        aiEnabled: config.GEMINI_ENABLED,
+      }),
+    );
 
     while (!stopping) {
       try {
         await bot.runCycle();
       } catch (error) {
-        console.error(JSON.stringify({
-          event: "cycle_failed",
-          error: error instanceof Error ? error.message : String(error),
-        }));
+        console.error(
+          JSON.stringify({
+            event: "cycle_failed",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
       }
-      if (!stopping) await sleep(config.LOOP_DELAY_MS);
+
+      if (!stopping) {
+        await sleep(config.LOOP_DELAY_MS, shutdownController.signal);
+      }
     }
   } finally {
     await market.close();
@@ -58,31 +82,39 @@ async function main(): Promise<void> {
 
 async function initializeWithBackoff(
   market: PublicMarketData,
-  isStopping: () => boolean,
+  signal: AbortSignal,
 ): Promise<void> {
   let delayMs = 15_000;
 
-  while (!isStopping()) {
+  while (!signal.aborted) {
     try {
       await market.initialize();
       return;
     } catch (error) {
-      console.error(JSON.stringify({
-        event: "market_initialization_failed",
-        provider: market.provider,
-        retryInMs: delayMs,
-        error: error instanceof Error ? error.message : String(error),
-      }));
-      await sleep(delayMs);
+      console.error(
+        JSON.stringify({
+          event: "market_initialization_failed",
+          provider: market.provider,
+          retryInMs: delayMs,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+
+      if (!(await sleep(delayMs, signal))) {
+        return;
+      }
+
       delayMs = Math.min(delayMs * 2, 5 * 60_000);
     }
   }
 }
 
 main().catch((error) => {
-  console.error(JSON.stringify({
-    event: "fatal_error",
-    error: error instanceof Error ? error.message : String(error),
-  }));
+  console.error(
+    JSON.stringify({
+      event: "fatal_error",
+      error: error instanceof Error ? error.message : String(error),
+    }),
+  );
   process.exitCode = 1;
 });
