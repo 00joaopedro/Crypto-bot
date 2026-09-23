@@ -10,6 +10,11 @@ const schema = z
   .object({
     ENVIRONMENT: z.literal("LOG_ONLY").default("LOG_ONLY"),
     MARKET_DATA_PROVIDER: z.enum(["kraken", "bybit-testnet"]).default("kraken"),
+    EXECUTION_PROVIDER: z.enum(["disabled", "okx-demo"]).default("disabled"),
+    LIVE_TRADING_ENABLED: z.literal("false").default("false").transform(() => false),
+    OKX_API_KEY: z.string().optional(),
+    OKX_SECRET_KEY: z.string().optional(),
+    OKX_PASSPHRASE: z.string().optional(),
     SYMBOL: z.string().min(3).default("BTC/USDT"),
     TIMEFRAME: z.literal("15m").default("15m"),
     CANDLE_LIMIT: z.coerce.number().int().min(50).max(1000).default(100),
@@ -39,6 +44,21 @@ const schema = z
         path: ["PAPER_TRADE_SIZE_USDT"],
         message: "PAPER_TRADE_SIZE_USDT cannot exceed PAPER_INITIAL_BALANCE_USDT",
       });
+    }
+    if (value.EXECUTION_PROVIDER === "okx-demo") {
+      for (const key of [
+        "OKX_API_KEY",
+        "OKX_SECRET_KEY",
+        "OKX_PASSPHRASE",
+      ] as const) {
+        if (!value[key]?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: `${key} is required when EXECUTION_PROVIDER=okx-demo`,
+          });
+        }
+      }
     }
   });
 
