@@ -2,27 +2,28 @@
 
 Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 
-> Aviso: software experimental, não é recomendação financeira. Este marco aceita somente `LOG_ONLY`; nenhuma ordem é enviada.
+> Aviso: software experimental, não é recomendação financeira. Este marco executa apenas paper trading; nenhuma ordem é enviada à corretora.
 
 ## Arquitetura atual
 
-1. Busca candles públicos de 15 minutos via CCXT.
-2. Usa Kraken como fonte padrão de candles, evitando o bloqueio regional da Bybit na Railway.
-3. Descarta o candle ainda aberto.
-4. Calcula EMA 9, EMA 21 e RSI 14 em código determinístico.
-5. Gera sinal somente em cruzamento novo da EMA 9 acima da EMA 21, com RSI entre 45 e 70.
-6. Opcionalmente consulta o Gemini com saída JSON estruturada.
-7. Registra a decisão e mantém a execução financeira desativada.
+1. Busca candles públicos fechados de 15 minutos via CCXT.
+2. Usa Kraken como fonte padrão, evitando o bloqueio regional da Bybit na Railway.
+3. Calcula EMA 9, EMA 21 e RSI 14 de forma determinística.
+4. Gera compra somente em novo cruzamento da EMA 9 acima da EMA 21, com RSI entre 45 e 70.
+5. Usa o Gemini opcionalmente como filtro de risco com saída JSON estruturada.
+6. Simula entrada Spot com taxa e slippage.
+7. Simula Stop-Loss e Take-Profit usando máxima e mínima dos candles fechados.
+8. Emite logs de abertura, fechamento, P&L, patrimônio, drawdown e benchmark buy-and-hold.
 
-A fonte pública de candles não define onde uma futura ordem será executada. A execução Bybit permanece planejada, mas precisará rodar em infraestrutura localizada em uma jurisdição compatível.
+A fonte dos candles não define a futura corretora de execução. A execução Bybit continua planejada, mas precisa de infraestrutura localizada em região aceita pela Bybit.
 
-A IA é apenas um filtro: ela nunca cria o sinal, define tamanho, stop-loss ou take-profit. Falhas da IA bloqueiam a aprovação.
+A IA não cria sinais, não define tamanho da posição e não altera regras de risco. Falha da IA bloqueia a compra.
 
 ## Requisitos
 
 - Node.js 22+
-- Uma chave Gemini somente se `GEMINI_ENABLED=true`
-- Nenhuma chave de corretora é necessária no modo atual
+- chave Gemini apenas se `GEMINI_ENABLED=true`
+- nenhuma chave de corretora é usada no modo atual
 
 ## Uso local
 
@@ -36,39 +37,39 @@ No Windows PowerShell, copie manualmente `.env.example` para `.env` caso `cp` n�
 
 ## Deploy na Railway
 
-O `Dockerfile` multiestágio instala as dependências de desenvolvimento somente durante a compilação, executa `npm run build` e copia apenas o JavaScript compilado e as dependências de produção para a imagem final.
+A Railway detecta o `Dockerfile`. O bot é um worker contínuo e não precisa de domínio público.
 
-A Railway detecta o `Dockerfile` automaticamente. O processo do bot é um worker contínuo e não precisa de domínio público nem de porta HTTP.
-
-Variáveis mínimas:
+Variáveis principais:
 
 - `ENVIRONMENT=LOG_ONLY`
 - `MARKET_DATA_PROVIDER=kraken`
-- `GEMINI_ENABLED=false` para iniciar sem IA; ou `true` junto com `GEMINI_API_KEY`
-- `GEMINI_MODEL=gemini-flash-latest` quando a IA estiver ativa
+- `GEMINI_ENABLED=true` junto com `GEMINI_API_KEY`
+- `PAPER_INITIAL_BALANCE_USDT=1000`
+- `PAPER_TRADE_SIZE_USDT=100`
+- `PAPER_FEE_RATE=0.001` (0,10%)
+- `PAPER_SLIPPAGE_RATE=0.0005` (0,05%)
+- `PAPER_STOP_LOSS_RATE=0.01` (1%)
+- `PAPER_TAKE_PROFIT_RATE=0.02` (2%)
 
-As chaves Bybit podem permanecer cadastradas, mas não são lidas nem usadas no modo atual.
+Consulte [`.env.example`](.env.example) para a lista completa.
 
-Se o provedor de dados estiver temporariamente indisponível, o processo permanece ativo e tenta novamente com espera crescente, evitando reinicializações contínuas.
+## Eventos de log
 
-## Segurança deliberada
+- `bot_started`: configuração efetiva, sem segredos;
+- `decision`: sinal, decisão da IA e aprovação;
+- `paper_trade_opened`: entrada, quantidade, taxa, Stop-Loss e Take-Profit;
+- `paper_trade_closed`: saída, motivo, taxas e P&L líquido;
+- `paper_portfolio_snapshot`: patrimônio, P&L, drawdown, win rate e comparação buy-and-hold;
+- `cycle_skipped`: o candle fechado já foi processado.
 
-- `ENVIRONMENT` só aceita `LOG_ONLY`.
-- Não há modo `LIVE`.
-- Não há código de criação de ordem neste marco.
-- A mesma vela fechada não é reprocessada enquanto o processo permanece ativo.
-- Segredos e arquivos `.env` são ignorados pelo Git.
+Se Stop-Loss e Take-Profit forem tocados no mesmo candle, o simulador escolhe Stop-Loss, pois candles OHLC não revelam qual nível foi atingido primeiro. Essa regra evita resultados artificialmente otimistas.
 
-## Próximo marco
+## Limitações deliberadas
 
-A execução Bybit será adicionada em PR separado e hospedada em região compatível, incluindo:
+- nenhuma ordem é enviada à Bybit;
+- a carteira fica em memória e reinicia após um novo deploy;
+- logs ainda não são um histórico persistente;
+- os resultados não garantem desempenho futuro;
+- a comparação começa no primeiro candle processado após o processo iniciar.
 
-- chave idempotente por candle/símbolo;
-- persistência para resistir a reinícios;
-- consulta de saldo e limites do mercado;
-- arredondamento explícito com `amountToPrecision` e `priceToPrecision`;
-- compra Spot limit com TP/SL anexado conforme API V5;
-- confirmação do preenchimento da ordem;
-- kill switch, limite de perda e limite de exposição.
-
-Ordens Spot market não serão tratadas como se oferecessem automaticamente o mesmo TP/SL anexado disponível para Spot limit.
+Persistência PostgreSQL e painel serão adicionados em marcos separados. Antes de habilitar Bybit Testnet serão necessários idempotência persistente, consulta de saldo e mercado, precisão de quantidade/preço, confirmação de preenchimento, kill switch e limites de exposição/perda.
