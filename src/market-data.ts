@@ -1,4 +1,4 @@
-import ccxt from "ccxt";
+import ccxt, { type Exchange } from "ccxt";
 import type { Candle } from "./types.js";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
@@ -6,7 +6,7 @@ const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 export type MarketDataProvider = "kraken" | "bybit-testnet";
 
 export class PublicMarketData {
-  private readonly exchange: ccxt.Exchange;
+  private readonly exchange: Exchange;
 
   constructor(readonly provider: MarketDataProvider) {
     this.exchange =

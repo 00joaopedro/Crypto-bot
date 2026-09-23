@@ -1,4 +1,4 @@
-import type { BybitMarketData } from "./bybit.js";
+import type { PublicMarketData } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
 import { evaluateStrategy } from "./strategy.js";
 import type { AiDecision } from "./types.js";
@@ -14,7 +14,7 @@ export class TradingBot {
   private lastProcessedCandle: number | undefined;
 
   constructor(
-    private readonly market: BybitMarketData,
+    private readonly market: PublicMarketData,
     private readonly options: BotOptions,
   ) {}
 
@@ -24,7 +24,7 @@ export class TradingBot {
       this.options.candleLimit,
     );
     const latest = candles.at(-1);
-    if (!latest) throw new Error("Bybit returned no closed candles");
+    if (!latest) throw new Error("Market data provider returned no closed candles");
 
     if (latest.timestamp === this.lastProcessedCandle) {
       console.log(JSON.stringify({ event: "cycle_skipped", reason: "candle_already_processed" }));
