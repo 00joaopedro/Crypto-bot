@@ -130,16 +130,26 @@ export class OkxDemoExecutor {
       };
     }
 
-    const [regularOrders, protectiveOrders] = await Promise.all([
+    const [regularOrders, conditionalOrders, ocoOrders] = await Promise.all([
       this.exchange.fetchOpenOrders(this.options.symbol),
       this.exchange.fetchOpenOrders(
         this.options.symbol,
         undefined,
         100,
-        { trigger: true, ordType: "conditional,oco" },
+        { trigger: true, ordType: "conditional" },
+      ),
+      this.exchange.fetchOpenOrders(
+        this.options.symbol,
+        undefined,
+        100,
+        { trigger: true, ordType: "oco" },
       ),
     ]);
-    if (regularOrders.length > 0 || protectiveOrders.length > 0) {
+    if (
+      regularOrders.length > 0 ||
+      conditionalOrders.length > 0 ||
+      ocoOrders.length > 0
+    ) {
       return {
         status: "SKIPPED",
         reason: "existing_open_order",

@@ -144,6 +144,7 @@ describe("OkxDemoExecutor", () => {
       fetchOpenOrders: vi
         .fn()
         .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ id: "protective-order" }]),
     });
     const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
@@ -156,6 +157,20 @@ describe("OkxDemoExecutor", () => {
       reason: "existing_open_order",
     });
     expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+    expect(exchange.fetchOpenOrders).toHaveBeenNthCalledWith(
+      2,
+      "BTC/USDT",
+      undefined,
+      100,
+      { trigger: true, ordType: "conditional" },
+    );
+    expect(exchange.fetchOpenOrders).toHaveBeenNthCalledWith(
+      3,
+      "BTC/USDT",
+      undefined,
+      100,
+      { trigger: true, ordType: "oco" },
+    );
   });
 
   it("rejects non-Spot symbols before reading the balance", async () => {
