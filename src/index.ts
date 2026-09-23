@@ -4,6 +4,7 @@ import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
+import { PaperTrader } from "./paper-trader.js";
 
 async function sleep(
   milliseconds: number,
@@ -40,11 +41,20 @@ async function main(): Promise<void> {
     const ai = config.GEMINI_ENABLED
       ? new GeminiRiskFilter(config.GEMINI_API_KEY!, config.GEMINI_MODEL)
       : undefined;
+    const paperTrader = new PaperTrader({
+      initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
+      tradeSizeUsdt: config.PAPER_TRADE_SIZE_USDT,
+      feeRate: config.PAPER_FEE_RATE,
+      slippageRate: config.PAPER_SLIPPAGE_RATE,
+      stopLossRate: config.PAPER_STOP_LOSS_RATE,
+      takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+    });
 
     const bot = new TradingBot(market, {
       symbol: config.SYMBOL,
       candleLimit: config.CANDLE_LIMIT,
       minimumConfidence: config.MIN_AI_CONFIDENCE,
+      paperTrader,
       ...(ai ? { ai } : {}),
     });
 
@@ -52,10 +62,19 @@ async function main(): Promise<void> {
       JSON.stringify({
         event: "bot_started",
         environment: config.ENVIRONMENT,
+        executionMode: "PAPER",
         marketDataProvider: config.MARKET_DATA_PROVIDER,
         symbol: config.SYMBOL,
         timeframe: config.TIMEFRAME,
         aiEnabled: config.GEMINI_ENABLED,
+        paperTrading: {
+          initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
+          tradeSizeUsdt: config.PAPER_TRADE_SIZE_USDT,
+          feeRate: config.PAPER_FEE_RATE,
+          slippageRate: config.PAPER_SLIPPAGE_RATE,
+          stopLossRate: config.PAPER_STOP_LOSS_RATE,
+          takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+        },
       }),
     );
 
