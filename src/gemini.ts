@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, type GenerateContentParameters } from "@google/genai";
 import { z } from "zod";
 import type { AiDecision, QuantSignal } from "./types.js";
 
@@ -20,13 +20,16 @@ const responseSchema = {
 } as const;
 
 export class GeminiRiskFilter {
-  private readonly client: GoogleGenAI;
+  private readonly generateContent: GeminiGenerateContent;
 
   constructor(
     apiKey: string,
     private readonly model: string,
+    generateContent?: GeminiGenerateContent,
   ) {
-    this.client = new GoogleGenAI({ apiKey });
+    const client = new GoogleGenAI({ apiKey });
+    this.generateContent = generateContent ??
+      ((parameters) => client.models.generateContent(parameters));
   }
 
   async evaluate(signal: QuantSignal): Promise<AiDecision> {
@@ -37,21 +40,24 @@ export class GeminiRiskFilter {
       JSON.stringify(signal),
     ].join("\n");
 
-    const interaction = await this.client.interactions.create({
+    const response = await this.generateContent({
       model: this.model,
-      input: prompt,
-      response_format: {
-        type: "text",
-        mime_type: "application/json",
-        schema: responseSchema,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema: responseSchema,
+        temperature: 0,
       },
     });
 
-    const textOutput = interaction.outputs?.find((output) => output.type === "text");
-    if (!textOutput || typeof textOutput.text !== "string") {
+    if (typeof response.text !== "string") {
       throw new Error("Gemini returned no text output");
     }
 
-    return decisionSchema.parse(JSON.parse(textOutput.text));
+    return decisionSchema.parse(JSON.parse(response.text));
   }
 }
+
+export type GeminiGenerateContent = (
+  parameters: GenerateContentParameters,
+) => Promise<{ readonly text: string | undefined }>;
