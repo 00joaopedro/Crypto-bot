@@ -31,6 +31,20 @@ npm run dev
 
 No Windows PowerShell, copie manualmente `.env.example` para `.env` caso `cp` não esteja disponível.
 
+## Deploy na Railway
+
+O `Dockerfile` multiestágio instala as dependências de desenvolvimento somente durante a compilação, executa `npm run build` e copia apenas o JavaScript compilado e as dependências de produção para a imagem final.
+
+A Railway detecta o `Dockerfile` automaticamente. O processo do bot é um worker contínuo e não precisa de domínio público nem de porta HTTP.
+
+Variáveis mínimas para este marco:
+
+- `ENVIRONMENT=LOG_ONLY`
+- `GEMINI_ENABLED=false` para iniciar sem IA; ou `true` junto com `GEMINI_API_KEY`
+- `GEMINI_MODEL=gemini-flash-latest` quando a IA estiver ativa
+
+As chaves Bybit podem permanecer cadastradas, mas não são lidas nem usadas no modo atual.
+
 ## Variáveis
 
 Consulte [`.env.example`](.env.example). O modelo Gemini é configurável porque os nomes e a disponibilidade mudam com o tempo.
