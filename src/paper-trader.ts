@@ -160,7 +160,11 @@ export class PaperTrader {
     const reason = stopTouched ? "STOP_LOSS" : "TAKE_PROFIT";
     const targetPrice =
       reason === "STOP_LOSS" ? position.stopLossPrice : position.takeProfitPrice;
-    const exitPrice = targetPrice * (1 - this.options.slippageRate);
+    const availablePrice =
+      reason === "STOP_LOSS" && candle.open < position.stopLossPrice
+        ? candle.open
+        : targetPrice;
+    const exitPrice = availablePrice * (1 - this.options.slippageRate);
     const grossProceeds = position.quantity * exitPrice;
     const exitFee = grossProceeds * this.options.feeRate;
     const netProceeds = grossProceeds - exitFee;
