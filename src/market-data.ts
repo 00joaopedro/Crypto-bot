@@ -3,15 +3,26 @@ import type { Candle } from "./types.js";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 
-export class BybitMarketData {
-  private readonly exchange = new ccxt.bybit({
-    enableRateLimit: true,
-    options: { defaultType: "spot" },
-  });
+export type MarketDataProvider = "kraken" | "bybit-testnet";
+
+export class PublicMarketData {
+  private readonly exchange: ccxt.Exchange;
+
+  constructor(readonly provider: MarketDataProvider) {
+    this.exchange =
+      provider === "kraken"
+        ? new ccxt.kraken({ enableRateLimit: true })
+        : new ccxt.bybit({
+            enableRateLimit: true,
+            options: { defaultType: "spot" },
+          });
+  }
 
   async initialize(): Promise<void> {
-    // Public Testnet market data. This must be the first call after construction.
-    this.exchange.setSandboxMode(true);
+    if (this.provider === "bybit-testnet") {
+      // CCXT requires sandbox mode to be the first call after construction.
+      this.exchange.setSandboxMode(true);
+    }
     await this.exchange.loadMarkets();
   }
 
@@ -39,7 +50,7 @@ export class BybitMarketData {
 
 function requiredNumber(value: number | undefined, field: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`Invalid ${field} value returned by Bybit`);
+    throw new Error(`Invalid ${field} value returned by market data provider`);
   }
   return value;
 }

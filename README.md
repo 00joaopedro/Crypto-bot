@@ -1,17 +1,20 @@
 # Crypto Bot
 
-Bot experimental de negociação **Spot** para Bybit, escrito em Node.js + TypeScript.
+Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 
 > Aviso: software experimental, não é recomendação financeira. Este marco aceita somente `LOG_ONLY`; nenhuma ordem é enviada.
 
 ## Arquitetura atual
 
-1. Busca candles públicos de 15 minutos na Bybit Testnet via CCXT.
-2. Descarta o candle ainda aberto.
-3. Calcula EMA 9, EMA 21 e RSI 14 em código determinístico.
-4. Gera sinal somente em cruzamento novo da EMA 9 acima da EMA 21, com RSI entre 45 e 70.
-5. Opcionalmente consulta o Gemini com saída JSON estruturada.
-6. Registra a decisão e mantém a execução financeira desativada.
+1. Busca candles públicos de 15 minutos via CCXT.
+2. Usa Kraken como fonte padrão de candles, evitando o bloqueio regional da Bybit na Railway.
+3. Descarta o candle ainda aberto.
+4. Calcula EMA 9, EMA 21 e RSI 14 em código determinístico.
+5. Gera sinal somente em cruzamento novo da EMA 9 acima da EMA 21, com RSI entre 45 e 70.
+6. Opcionalmente consulta o Gemini com saída JSON estruturada.
+7. Registra a decisão e mantém a execução financeira desativada.
+
+A fonte pública de candles não define onde uma futura ordem será executada. A execução Bybit permanece planejada, mas precisará rodar em infraestrutura localizada em uma jurisdição compatível.
 
 A IA é apenas um filtro: ela nunca cria o sinal, define tamanho, stop-loss ou take-profit. Falhas da IA bloqueiam a aprovação.
 
@@ -19,7 +22,7 @@ A IA é apenas um filtro: ela nunca cria o sinal, define tamanho, stop-loss ou t
 
 - Node.js 22+
 - Uma chave Gemini somente se `GEMINI_ENABLED=true`
-- Nenhuma chave Bybit é necessária para o modo atual
+- Nenhuma chave de corretora é necessária no modo atual
 
 ## Uso local
 
@@ -37,17 +40,16 @@ O `Dockerfile` multiestágio instala as dependências de desenvolvimento somente
 
 A Railway detecta o `Dockerfile` automaticamente. O processo do bot é um worker contínuo e não precisa de domínio público nem de porta HTTP.
 
-Variáveis mínimas para este marco:
+Variáveis mínimas:
 
 - `ENVIRONMENT=LOG_ONLY`
+- `MARKET_DATA_PROVIDER=kraken`
 - `GEMINI_ENABLED=false` para iniciar sem IA; ou `true` junto com `GEMINI_API_KEY`
 - `GEMINI_MODEL=gemini-flash-latest` quando a IA estiver ativa
 
 As chaves Bybit podem permanecer cadastradas, mas não são lidas nem usadas no modo atual.
 
-## Variáveis
-
-Consulte [`.env.example`](.env.example). O modelo Gemini é configurável porque os nomes e a disponibilidade mudam com o tempo.
+Se o provedor de dados estiver temporariamente indisponível, o processo permanece ativo e tenta novamente com espera crescente, evitando reinicializações contínuas.
 
 ## Segurança deliberada
 
@@ -59,7 +61,7 @@ Consulte [`.env.example`](.env.example). O modelo Gemini é configurável porque
 
 ## Próximo marco
 
-A execução Bybit Testnet será adicionada em PR separado, incluindo:
+A execução Bybit será adicionada em PR separado e hospedada em região compatível, incluindo:
 
 - chave idempotente por candle/símbolo;
 - persistência para resistir a reinícios;
