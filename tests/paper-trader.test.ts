@@ -16,9 +16,10 @@ const candle = (
   close: number,
   low = close,
   high = close,
+  open = close,
 ): Candle => ({
   timestamp,
-  open: close,
+  open,
   high,
   low,
   close,
@@ -59,6 +60,31 @@ describe("PaperTrader", () => {
     expect(closed.snapshot.losses).toBe(1);
     expect(closed.snapshot.realizedPnlUsdt).toBeLessThan(0);
     expect(closed.snapshot.maxDrawdownPercent).toBeGreaterThan(0);
+  });
+
+  it("fills a stop-loss gap from the lower candle open before slippage", () => {
+    const trader = new PaperTrader(options);
+    const opened = trader.processCandle(candle(1, 100), true);
+    const openEvent = opened.events[0];
+    if (!openEvent || openEvent.type !== "OPENED") {
+      throw new Error("Expected the paper position to open");
+    }
+
+    const gapOpen = 95;
+    const closed = trader.processCandle(
+      candle(2, 96, 94, 97, gapOpen),
+      false,
+    );
+    const closeEvent = closed.events[0];
+    if (!closeEvent || closeEvent.type !== "CLOSED") {
+      throw new Error("Expected the paper position to close");
+    }
+
+    expect(closeEvent.reason).toBe("STOP_LOSS");
+    expect(closeEvent.exitPrice).toBeCloseTo(
+      gapOpen * (1 - options.slippageRate),
+    );
+    expect(closeEvent.exitPrice).toBeLessThan(openEvent.stopLossPrice);
   });
 
   it("tracks buy-and-hold independently from the strategy portfolio", () => {
