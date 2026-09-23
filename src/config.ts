@@ -8,10 +8,14 @@ const booleanString = z
 
 const schema = z
   .object({
-    ENVIRONMENT: z.literal("LOG_ONLY").default("LOG_ONLY"),
+    ENVIRONMENT: z.enum(["LOG_ONLY", "DEMO"]).default("LOG_ONLY"),
     MARKET_DATA_PROVIDER: z.enum(["kraken", "bybit-testnet"]).default("kraken"),
     EXECUTION_PROVIDER: z.enum(["disabled", "okx-demo"]).default("disabled"),
     LIVE_TRADING_ENABLED: z.literal("false").default("false").transform(() => false),
+    OKX_DEMO_TRADING_ENABLED: booleanString,
+    OKX_DEMO_ORDER_SIZE_USDT: z.coerce.number().positive().max(100).default(10),
+    OKX_DEMO_STOP_LOSS_RATE: z.coerce.number().gt(0).lt(1).default(0.01),
+    OKX_DEMO_TAKE_PROFIT_RATE: z.coerce.number().gt(0).lt(1).default(0.02),
     OKX_API_KEY: z.string().optional(),
     OKX_SECRET_KEY: z.string().optional(),
     OKX_PASSPHRASE: z.string().optional(),
@@ -58,6 +62,23 @@ const schema = z
             message: `${key} is required when EXECUTION_PROVIDER=okx-demo`,
           });
         }
+      }
+    }
+    if (value.OKX_DEMO_TRADING_ENABLED) {
+      if (value.ENVIRONMENT !== "DEMO") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["ENVIRONMENT"],
+          message: "ENVIRONMENT must be DEMO when OKX_DEMO_TRADING_ENABLED=true",
+        });
+      }
+      if (value.EXECUTION_PROVIDER !== "okx-demo") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["EXECUTION_PROVIDER"],
+          message:
+            "EXECUTION_PROVIDER must be okx-demo when OKX_DEMO_TRADING_ENABLED=true",
+        });
       }
     }
   });

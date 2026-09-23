@@ -1,6 +1,7 @@
 import type { PublicMarketData } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
 import type { PaperCycleResult, PaperTrader } from "./paper-trader.js";
+import type { OkxDemoExecutor } from "./okx-demo.js";
 import { evaluateStrategy } from "./strategy.js";
 import type { AiDecision, Candle } from "./types.js";
 
@@ -9,6 +10,7 @@ type BotOptions = {
   candleLimit: number;
   minimumConfidence: number;
   paperTrader: PaperTrader;
+  demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy">;
   ai?: GeminiRiskFilter;
 };
 
@@ -92,15 +94,44 @@ export class TradingBot {
     );
     this.lastProcessedCandle = currentCandle.timestamp;
 
+    if (approved && this.options.demoExecutor) {
+      try {
+        const demoResult = await this.options.demoExecutor.executeApprovedBuy({
+          candleTimestamp: currentCandle.timestamp,
+        });
+        console.log(
+          JSON.stringify({
+            event:
+              demoResult.status === "PLACED"
+                ? "okx_demo_order_submitted"
+                : "okx_demo_order_skipped",
+            symbol: this.options.symbol,
+            result: demoResult,
+          }),
+        );
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            event: "okx_demo_order_failed",
+            symbol: this.options.symbol,
+            candleTimestamp: currentCandle.timestamp,
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
+    }
+
     console.log(
       JSON.stringify({
         event: "decision",
-        mode: "PAPER",
+        mode: this.options.demoExecutor ? "PAPER_WITH_OKX_DEMO" : "PAPER",
         symbol: this.options.symbol,
         signal,
         aiDecision,
         approved,
-        execution: "simulated",
+        execution: this.options.demoExecutor
+          ? "paper_with_optional_okx_demo"
+          : "simulated",
       }),
     );
 
