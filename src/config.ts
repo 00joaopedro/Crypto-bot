@@ -9,6 +9,7 @@ const booleanString = z
 const schema = z
   .object({
     ENVIRONMENT: z.literal("LOG_ONLY").default("LOG_ONLY"),
+    MARKET_DATA_PROVIDER: z.enum(["kraken", "bybit-testnet"]).default("kraken"),
     SYMBOL: z.string().min(3).default("BTC/USDT"),
     TIMEFRAME: z.literal("15m").default("15m"),
     CANDLE_LIMIT: z.coerce.number().int().min(50).max(1000).default(100),
