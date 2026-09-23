@@ -1,8 +1,8 @@
 import type { PublicMarketData } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
-import type { PaperTrader } from "./paper-trader.js";
+import type { PaperCycleResult, PaperTrader } from "./paper-trader.js";
 import { evaluateStrategy } from "./strategy.js";
-import type { AiDecision } from "./types.js";
+import type { AiDecision, Candle } from "./types.js";
 
 type BotOptions = {
   symbol: string;
@@ -28,7 +28,14 @@ export class TradingBot {
     const latest = candles.at(-1);
     if (!latest) throw new Error("Market data provider returned no closed candles");
 
-    if (latest.timestamp === this.lastProcessedCandle) {
+    const unseenCandles =
+      this.lastProcessedCandle === undefined
+        ? [latest]
+        : candles.filter(
+            (candle) => candle.timestamp > this.lastProcessedCandle!,
+          );
+
+    if (unseenCandles.length === 0) {
       console.log(
         JSON.stringify({
           event: "cycle_skipped",
@@ -38,8 +45,19 @@ export class TradingBot {
       return;
     }
 
-    const signal = evaluateStrategy(candles);
-    this.lastProcessedCandle = latest.timestamp;
+    // Replayed candles can close an existing position, but cannot create a
+    // retrospective entry. Approval is calculated only for the newest candle.
+    for (const candle of unseenCandles.slice(0, -1)) {
+      const paperResult = this.options.paperTrader.processCandle(candle, false);
+      this.logPaperResult(candle, paperResult, true);
+      this.lastProcessedCandle = candle.timestamp;
+    }
+
+    const currentCandle = unseenCandles.at(-1)!;
+    const currentIndex = candles.findIndex(
+      (candle) => candle.timestamp === currentCandle.timestamp,
+    );
+    const signal = evaluateStrategy(candles.slice(0, currentIndex + 1));
 
     let aiDecision: AiDecision = {
       approve: false,
@@ -68,7 +86,11 @@ export class TradingBot {
       aiDecision.approve &&
       aiDecision.confidence >= this.options.minimumConfidence;
 
-    const paperResult = this.options.paperTrader.processCandle(latest, approved);
+    const paperResult = this.options.paperTrader.processCandle(
+      currentCandle,
+      approved,
+    );
+    this.lastProcessedCandle = currentCandle.timestamp;
 
     console.log(
       JSON.stringify({
@@ -82,7 +104,15 @@ export class TradingBot {
       }),
     );
 
-    for (const event of paperResult.events) {
+    this.logPaperResult(currentCandle, paperResult, false);
+  }
+
+  private logPaperResult(
+    candle: Candle,
+    result: PaperCycleResult,
+    replayed: boolean,
+  ): void {
+    for (const event of result.events) {
       console.log(
         JSON.stringify({
           event:
@@ -90,6 +120,7 @@ export class TradingBot {
               ? "paper_trade_opened"
               : "paper_trade_closed",
           symbol: this.options.symbol,
+          replayed,
           trade: event,
         }),
       );
@@ -99,7 +130,9 @@ export class TradingBot {
       JSON.stringify({
         event: "paper_portfolio_snapshot",
         symbol: this.options.symbol,
-        portfolio: paperResult.snapshot,
+        candleTimestamp: candle.timestamp,
+        replayed,
+        portfolio: result.snapshot,
       }),
     );
   }
