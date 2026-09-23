@@ -2,7 +2,7 @@
 
 Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 
-> Aviso: software experimental, não é recomendação financeira. Este marco executa apenas paper trading; a integração OKX Demo faz somente verificações autenticadas de leitura e nenhuma ordem é enviada à corretora.
+> Aviso: software experimental, não é recomendação financeira. Ordens externas são limitadas tecnicamente ao ambiente OKX Demo com saldo virtual. Não existe modo de negociação real neste código.
 
 ## Arquitetura atual
 
@@ -11,11 +11,12 @@ Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 3. Calcula EMA 9, EMA 21 e RSI 14 de forma determinística.
 4. Gera compra somente em novo cruzamento da EMA 9 acima da EMA 21, com RSI entre 45 e 70.
 5. Usa o Gemini opcionalmente como filtro de risco com saída JSON estruturada.
-6. Simula entrada Spot com taxa e slippage.
-7. Simula Stop-Loss e Take-Profit usando máxima e mínima dos candles fechados.
-8. Emite logs de abertura, fechamento, P&L, patrimônio, drawdown e benchmark buy-and-hold.
+6. Mantém uma carteira paper com taxa, slippage, Stop-Loss e Take-Profit.
+7. Quando as duas travas Demo estão habilitadas, envia uma compra Spot virtual à OKX com TP/SL anexados.
+8. Bloqueia duplicidade por candle e novas entradas quando existem ordens abertas no par.
+9. Emite logs de abertura, fechamento, P&L, patrimônio, drawdown e benchmark buy-and-hold.
 
-A fonte dos candles não define a futura corretora de execução. A OKX Demo pode ser habilitada como diagnóstico autenticado separado, sem alterar o paper trading.
+A fonte dos candles não define a corretora de execução. Kraken fornece os candles e a OKX Demo recebe apenas ordens virtuais aprovadas pelas regras quantitativas e pelo filtro de IA.
 
 A IA não cria sinais, não define tamanho da posição e não altera regras de risco. Falha da IA bloqueia a compra.
 
@@ -23,8 +24,7 @@ A IA não cria sinais, não define tamanho da posição e não altera regras de 
 
 - Node.js 22+
 - chave Gemini apenas se `GEMINI_ENABLED=true`
-- nenhuma chave de corretora é usada no modo atual
-- para o diagnóstico opcional da OKX Demo: chave, secret e passphrase criados no ambiente simulado
+- para a OKX Demo: chave, secret e passphrase criados dentro de Trading simulado
 
 ## Uso local
 
@@ -42,9 +42,9 @@ A Railway detecta o `Dockerfile`. O bot é um worker contínuo e não precisa de
 
 Variáveis principais:
 
-- `ENVIRONMENT=LOG_ONLY`
+- `ENVIRONMENT=LOG_ONLY` mantém somente paper trading
 - `MARKET_DATA_PROVIDER=kraken`
-- `EXECUTION_PROVIDER=okx-demo` para validar autenticação e saldo Demo
+- `EXECUTION_PROVIDER=okx-demo`
 - `LIVE_TRADING_ENABLED=false` (único valor aceito neste marco)
 - `OKX_API_KEY`, `OKX_SECRET_KEY` e `OKX_PASSPHRASE`
 - `GEMINI_ENABLED=true` junto com `GEMINI_API_KEY`
@@ -55,13 +55,27 @@ Variáveis principais:
 - `PAPER_STOP_LOSS_RATE=0.01` (1%)
 - `PAPER_TAKE_PROFIT_RATE=0.02` (2%)
 
+Para autorizar ordens com saldo virtual, use o duplo opt-in:
+
+- `ENVIRONMENT=DEMO`
+- `OKX_DEMO_TRADING_ENABLED=true`
+- `OKX_DEMO_ORDER_SIZE_USDT=10`
+- `OKX_DEMO_STOP_LOSS_RATE=0.01`
+- `OKX_DEMO_TAKE_PROFIT_RATE=0.02`
+
+Mesmo em `DEMO`, `LIVE_TRADING_ENABLED` deve permanecer `false`; qualquer outro valor impede a inicialização.
+
 Consulte [`.env.example`](.env.example) para a lista completa.
 
 ## Eventos de log
 
 - `bot_started`: configuração efetiva, sem segredos;
 - `okx_demo_connected`: mercados e saldo Demo foram consultados com sucesso;
-- `execution_disabled`: confirma que a integração OKX está sem envio de ordens;
+- `okx_demo_execution_armed`: as duas travas Demo foram habilitadas;
+- `execution_disabled`: a integração OKX continua somente leitura;
+- `okx_demo_order_submitted`: ordem virtual aceita, com IDs e dados de preenchimento disponíveis;
+- `okx_demo_order_skipped`: compra bloqueada por duplicidade, saldo ou ordem aberta;
+- `okx_demo_order_failed`: falha fechada; o erro é registrado e não há nova tentativa no mesmo candle;
 - `decision`: sinal, decisão da IA e aprovação;
 - `paper_trade_opened`: entrada, quantidade, taxa, Stop-Loss e Take-Profit;
 - `paper_trade_closed`: saída, motivo, taxas e P&L líquido;
@@ -72,7 +86,9 @@ Se Stop-Loss e Take-Profit forem tocados no mesmo candle, o simulador escolhe St
 
 ## Limitações deliberadas
 
-- nenhuma ordem é enviada à OKX ou à Bybit;
+- não há persistência local de posição; a proteção contra reinício consulta a OKX por ID determinístico e ordens abertas;
+- a idempotência persistente será reforçada pelo PostgreSQL no próximo marco;
+- não existe execução em conta real;
 - a carteira fica em memória e reinicia após um novo deploy;
 - logs ainda não são um histórico persistente;
 - os resultados não garantem desempenho futuro;

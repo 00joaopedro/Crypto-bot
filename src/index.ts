@@ -4,7 +4,7 @@ import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
-import { OkxDemoDiagnostics } from "./okx-demo.js";
+import { OkxDemoExecutor } from "./okx-demo.js";
 import { PaperTrader } from "./paper-trader.js";
 
 async function sleep(
@@ -36,13 +36,19 @@ async function main(): Promise<void> {
   const market = new PublicMarketData(config.MARKET_DATA_PROVIDER);
   const okxDemo =
     config.EXECUTION_PROVIDER === "okx-demo"
-      ? new OkxDemoDiagnostics(
+      ? new OkxDemoExecutor(
           {
             apiKey: config.OKX_API_KEY!,
             secretKey: config.OKX_SECRET_KEY!,
             passphrase: config.OKX_PASSPHRASE!,
           },
-          config.SYMBOL,
+          {
+            symbol: config.SYMBOL,
+            tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
+            orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
+            stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
+            takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
+          },
         )
       : undefined;
 
@@ -72,6 +78,7 @@ async function main(): Promise<void> {
       candleLimit: config.CANDLE_LIMIT,
       minimumConfidence: config.MIN_AI_CONFIDENCE,
       paperTrader,
+      ...(okxDemo ? { demoExecutor: okxDemo } : {}),
       ...(ai ? { ai } : {}),
     });
 
@@ -79,9 +86,12 @@ async function main(): Promise<void> {
       JSON.stringify({
         event: "bot_started",
         environment: config.ENVIRONMENT,
-        executionMode: "PAPER",
+        executionMode: config.OKX_DEMO_TRADING_ENABLED
+          ? "PAPER_AND_OKX_DEMO"
+          : "PAPER",
         executionProvider: config.EXECUTION_PROVIDER,
         liveTradingEnabled: config.LIVE_TRADING_ENABLED,
+        okxDemoTradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
         marketDataProvider: config.MARKET_DATA_PROVIDER,
         symbol: config.SYMBOL,
         timeframe: config.TIMEFRAME,
@@ -119,7 +129,7 @@ async function main(): Promise<void> {
 }
 
 async function initializeOkxDemoWithBackoff(
-  okxDemo: OkxDemoDiagnostics,
+  okxDemo: OkxDemoExecutor,
   signal: AbortSignal,
 ): Promise<void> {
   let delayMs = 15_000;
@@ -129,11 +139,21 @@ async function initializeOkxDemoWithBackoff(
       const status = await okxDemo.initialize();
       console.log(JSON.stringify({ event: "okx_demo_connected", ...status }));
       console.log(
-        JSON.stringify({
-          event: "execution_disabled",
-          provider: "okx-demo",
-          reason: "read_only_connectivity_stage",
-        }),
+        JSON.stringify(
+          status.orderExecutionEnabled
+            ? {
+                event: "okx_demo_execution_armed",
+                provider: "okx-demo",
+                orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
+                stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
+                takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
+              }
+            : {
+                event: "execution_disabled",
+                provider: "okx-demo",
+                reason: "OKX_DEMO_TRADING_ENABLED=false",
+              },
+        ),
       );
       return;
     } catch (error) {
