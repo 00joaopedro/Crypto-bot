@@ -68,7 +68,7 @@ export class TradingBot {
       this.options.symbol,
       this.options.candleLimit,
     );
-    await this.recordServiceStatus("market-data", "ok");
+    await this.recordServiceStatus(`market-data-${this.market.active}`, "ok");
     const latest = candles.at(-1);
     if (!latest) throw new Error("Market data provider returned no closed candles");
 

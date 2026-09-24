@@ -48,7 +48,8 @@ A Railway detecta o `Dockerfile`. O mesmo serviço mantém o worker e serve o pa
 Variáveis principais:
 
 - `ENVIRONMENT=LOG_ONLY` mantém somente paper trading
-- `MARKET_DATA_PROVIDER=kraken`
+- `MARKET_DATA_PROVIDER=okx` (candles públicos da OKX, alinhados à execução Demo)
+- `MARKET_DATA_FALLBACK_PROVIDER=kraken` (fallback opcional quando a OKX estiver indisponível)
 - `EXECUTION_PROVIDER=okx-demo`
 - `LIVE_TRADING_ENABLED=false` (único valor aceito neste marco)
 - `OKX_API_KEY`, `OKX_SECRET_KEY` e `OKX_PASSPHRASE`
