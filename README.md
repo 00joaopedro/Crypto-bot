@@ -14,6 +14,7 @@ Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 6. Usa o Gemini opcionalmente como filtro de risco com saída JSON estruturada.
 7. Mantém uma carteira paper com taxa, slippage, Stop-Loss e Take-Profit.
 8. Quando as duas travas Demo estão habilitadas, envia uma compra Spot virtual à OKX com TP/SL anexados.
+9. Pode classificar uma lista de pares em cada candle fechado e só considera o melhor sinal elegível para a execução do par configurado. A carteira multiativos será uma etapa posterior.
 8. Bloqueia duplicidade por candle e novas entradas quando existem ordens abertas no par.
 9. Emite logs de abertura, fechamento, P&L, patrimônio, drawdown e benchmark buy-and-hold.
 10. Persiste decisões, snapshots, operações e estado da carteira no PostgreSQL.
