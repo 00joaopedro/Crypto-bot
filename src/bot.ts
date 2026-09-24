@@ -5,6 +5,7 @@ import type { OkxDemoExecutor } from "./okx-demo.js";
 import type { BotPersistence } from "./persistence.js";
 import { evaluateStrategy } from "./strategy.js";
 import { rankSignals, type RankedSignal } from "./signal-ranking.js";
+import { averageTrueRange } from "./indicators.js";
 import type { AiDecision, Candle } from "./types.js";
 import type { EmailTradeAlert } from "./email-alerts.js";
 
@@ -22,6 +23,11 @@ type BotOptions = {
   maxTradesPerInterval?: number;
   tradeIntervalMinutes?: number;
   demoOrderSizeUsdt?: number;
+  atrPeriod?: number;
+  atrStopMultiplier?: number;
+  atrTakeProfitMultiplier?: number;
+  atrMinStopRate?: number;
+  atrMaxStopRate?: number;
   maxExposurePercent?: number;
   riskPerTradePercent?: number;
   maxDailyLossPercent?: number;
@@ -125,6 +131,7 @@ export class TradingBot {
       (candle) => candle.timestamp === currentCandle.timestamp,
     );
     const signalCandles = candles.slice(0, currentIndex + 1);
+    const exitRates = this.calculateVolatilityExitRates(signalCandles, currentCandle.close);
     const signal = this.options.minimumSignalScore === undefined
       ? evaluateStrategy(signalCandles)
       : evaluateStrategy(signalCandles, {
@@ -164,7 +171,7 @@ export class TradingBot {
       aiDecision.confidence >= this.options.minimumConfidence &&
       currentSymbolSelected;
 
-    const riskBlock = approved ? this.riskBlockReason() : undefined;
+    const riskBlock = approved ? this.riskBlockReason(exitRates) : undefined;
     if (riskBlock) {
       approved = false;
       console.log(JSON.stringify({
@@ -179,6 +186,7 @@ export class TradingBot {
     const paperResult = this.options.paperTrader.processCandle(
       currentCandle,
       approved,
+      exitRates,
     );
     try {
       await this.options.persistence?.recordCycle({
@@ -261,6 +269,7 @@ export class TradingBot {
         } else {
           const demoResult = await this.options.demoExecutor.executeApprovedBuy({
             candleTimestamp: currentCandle.timestamp,
+            ...exitRates,
           });
           try {
             await this.options.persistence?.recordDemoOrder(
@@ -406,7 +415,15 @@ export class TradingBot {
     }
   }
 
-  private riskBlockReason(): string | undefined {
+  private calculateVolatilityExitRates(candles: Candle[], referencePrice: number): { stopLossRate: number; takeProfitRate: number } {
+    const atr = averageTrueRange(candles, this.options.atrPeriod ?? 14);
+    const volatilityRate = atr > 0 ? atr / referencePrice : this.options.paperTrader.stopLossRate;
+    const stopLossRate = Math.min(this.options.atrMaxStopRate ?? 0.03, Math.max(this.options.atrMinStopRate ?? 0.005, volatilityRate * (this.options.atrStopMultiplier ?? 1.5)));
+    const takeProfitRate = Math.min(0.5, Math.max(stopLossRate, volatilityRate * (this.options.atrTakeProfitMultiplier ?? 3)));
+    return { stopLossRate, takeProfitRate };
+  }
+
+  private riskBlockReason(exitRates: { stopLossRate: number; takeProfitRate: number }): string | undefined {
     const traderState = this.options.paperTrader.exportState();
     if (traderState.position) return "position_already_open";
     const balance = Math.max(traderState.peakEquityUsdt, traderState.cashUsdt);
@@ -417,7 +434,7 @@ export class TradingBot {
       return "max_exposure_percent";
     }
     if (this.options.riskPerTradePercent !== undefined) {
-      const estimatedRisk = tradeSize * this.options.paperTrader.stopLossRate;
+      const estimatedRisk = tradeSize * exitRates.stopLossRate;
       if (estimatedRisk / balance > this.options.riskPerTradePercent) return "risk_per_trade_percent";
     }
     return undefined;
