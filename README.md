@@ -69,6 +69,9 @@ Variáveis principais:
 - `DYNAMIC_UNIVERSE_SIZE=10` (quantidade máxima de pares classificados por candle)
 - `MARKET_MIN_QUOTE_VOLUME_USDT=1000000` (liquidez mínima do par)
 - `MARKET_MAX_SPREAD_PERCENT=1` (spread máximo aceito)
+- `UNIVERSE_SWITCH_COOLDOWN_MINUTES=60` (tempo mínimo entre rotações)
+- `UNIVERSE_SWITCH_MIN_SCORE_ADVANTAGE=1` (vantagem mínima para substituir um par)
+- `UNIVERSE_MAX_REPLACEMENTS=2` (máximo de substituições por candle)
 - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
 - `DATABASE_CONNECTION_TIMEOUT_MS=10000`
 - `DASHBOARD_PASSWORD`: senha exclusiva do painel

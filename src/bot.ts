@@ -18,6 +18,9 @@ type BotOptions = {
   dynamicUniverseSize?: number;
   marketMinQuoteVolumeUsdt?: number;
   marketMaxSpreadPercent?: number;
+  universeSwitchCooldownMinutes?: number;
+  universeSwitchMinScoreAdvantage?: number;
+  universeMaxReplacements?: number;
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy">;
   ai?: GeminiRiskFilter;
@@ -47,6 +50,8 @@ export class TradingBot {
   private dailyDate = new Date().toISOString().slice(0, 10);
   private dailyStartEquity: number | undefined;
   private readonly lastEntryAtBySymbol = new Map<string, number>();
+  private activeUniverse: string[] = [];
+  private lastUniverseSwitchAt = 0;
 
   constructor(
     private readonly market: PublicMarketData,
@@ -420,9 +425,14 @@ export class TradingBot {
     }
     const configuredSymbols = [this.options.symbol, ...(this.options.signalScanSymbols ?? [])];
     const universeSize = this.options.dynamicUniverseSize ?? 10;
+    const discoveredUniverse = [...new Set([
+      ...configuredSymbols,
+      ...dynamicSymbols,
+    ])];
     const symbols = [...new Set([
       ...configuredSymbols,
-      ...dynamicSymbols.slice(0, Math.max(0, universeSize - new Set(configuredSymbols).size)),
+      ...this.activeUniverse,
+      ...discoveredUniverse,
     ])];
     const candidates: Array<{ symbol: string; candles: Candle[] }> = [
       { symbol: this.options.symbol, candles: currentCandles },
@@ -454,7 +464,68 @@ export class TradingBot {
       }
     }
 
-    return rankSignals(candidates, this.options.minimumSignalScore);
+    const ranked = rankSignals(candidates, this.options.minimumSignalScore);
+    const activeSymbols = await this.updateUniverse(ranked, configuredSymbols, currentCandles.at(-1)?.timestamp ?? Date.now(), universeSize);
+    return ranked.filter((candidate) => activeSymbols.has(candidate.symbol));
+  }
+
+  private async updateUniverse(
+    ranked: RankedSignal[],
+    configuredSymbols: string[],
+    candleTimestamp: number,
+    universeSize: number,
+  ): Promise<Set<string>> {
+    const configured = new Set(configuredSymbols);
+    if (this.activeUniverse.length === 0) {
+      this.activeUniverse = ranked.slice(0, universeSize).map((candidate) => candidate.symbol);
+      for (const symbol of configuredSymbols) {
+        if (!this.activeUniverse.includes(symbol)) this.activeUniverse.push(symbol);
+      }
+      this.activeUniverse = this.activeUniverse.slice(0, Math.max(universeSize, configured.size));
+      this.lastUniverseSwitchAt = candleTimestamp;
+      return new Set(this.activeUniverse);
+    }
+
+    const cooldownMs = (this.options.universeSwitchCooldownMinutes ?? 60) * 60_000;
+    if (candleTimestamp - this.lastUniverseSwitchAt < cooldownMs) return new Set(this.activeUniverse);
+
+    const bySymbol = new Map(ranked.map((candidate) => [candidate.symbol, candidate]));
+    const outside = ranked
+      .filter((candidate) => !this.activeUniverse.includes(candidate.symbol))
+      .sort((left, right) => right.signal.score - left.signal.score);
+    let replacements = 0;
+    const minAdvantage = this.options.universeSwitchMinScoreAdvantage ?? 1;
+    const maxReplacements = this.options.universeMaxReplacements ?? 2;
+    while (replacements < maxReplacements && outside.length > 0) {
+      const weakest = this.activeUniverse
+        .filter((symbol) => !configured.has(symbol))
+        .map((symbol) => bySymbol.get(symbol))
+        .filter((candidate): candidate is RankedSignal => Boolean(candidate))
+        .sort((left, right) => left.signal.score - right.signal.score)[0];
+      const strongest = outside[0];
+      if (!weakest || !strongest || strongest.signal.score < weakest.signal.score + minAdvantage) break;
+      this.activeUniverse = this.activeUniverse.filter((symbol) => symbol !== weakest.symbol);
+      this.activeUniverse.push(strongest.symbol);
+      outside.shift();
+      replacements += 1;
+    }
+    if (replacements > 0) {
+      this.lastUniverseSwitchAt = candleTimestamp;
+      const details = {
+        reason: "stronger_signal_replaced_weaker_pair",
+        replacements,
+        activeSymbols: this.activeUniverse,
+        minScoreAdvantage: minAdvantage,
+      };
+      console.log(JSON.stringify({ event: "universe_switched", ...details }));
+      await this.options.persistence?.recordOperationalEvent({
+        eventType: "UNIVERSE_SWITCHED",
+        severity: "INFO",
+        symbol: this.options.symbol,
+        details,
+      });
+    }
+    return new Set(this.activeUniverse);
   }
 
   private async updateDailyRiskBaseline(equity: number): Promise<void> {
