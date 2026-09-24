@@ -11,6 +11,7 @@ type BotOptions = {
   symbol: string;
   candleLimit: number;
   minimumConfidence: number;
+  minimumSignalScore?: number;
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy">;
   ai?: GeminiRiskFilter;
@@ -95,7 +96,12 @@ export class TradingBot {
     const currentIndex = candles.findIndex(
       (candle) => candle.timestamp === currentCandle.timestamp,
     );
-    const signal = evaluateStrategy(candles.slice(0, currentIndex + 1));
+    const signalCandles = candles.slice(0, currentIndex + 1);
+    const signal = this.options.minimumSignalScore === undefined
+      ? evaluateStrategy(signalCandles)
+      : evaluateStrategy(signalCandles, {
+          minimumScore: this.options.minimumSignalScore,
+        });
 
     let aiDecision: AiDecision = {
       approve: false,
@@ -155,7 +161,8 @@ export class TradingBot {
     }
     this.lastProcessedCandle = currentCandle.timestamp;
 
-    if (approved && this.options.demoExecutor) {
+    const paperOpened = paperResult.events.some((event) => event.type === "OPENED");
+    if (approved && this.options.demoExecutor && paperOpened) {
       try {
         const intervalLimitReached = Boolean(
           this.options.persistence &&
@@ -263,6 +270,17 @@ export class TradingBot {
         });
         await this.recordServiceStatus("okx-demo", "unhealthy", error);
       }
+    }
+
+    if (approved && this.options.demoExecutor && !paperOpened) {
+      console.log(
+        JSON.stringify({
+          event: "okx_demo_order_skipped",
+          symbol: this.options.symbol,
+          reason: "paper_position_not_opened",
+          paperEvents: paperResult.events.map((event) => event.type),
+        }),
+      );
     }
 
     console.log(

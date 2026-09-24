@@ -16,8 +16,28 @@ describe("strategy", () => {
     expect(() => evaluateStrategy([candle(1, 0)])).toThrow(/50/);
   });
 
-  it("holds when there is no fresh crossover", () => {
-    const candles = Array.from({ length: 60 }, (_, index) => candle(100 + index, index));
+  it("holds when the score does not confirm a directional trend", () => {
+    const candles = Array.from({ length: 60 }, (_, index) => candle(100, index));
     expect(evaluateStrategy(candles).action).toBe("HOLD");
+  });
+
+  it("exposes an explainable score and can enter an established trend", () => {
+    const candles = Array.from({ length: 60 }, (_, index) => ({
+      ...candle(100 + index * 0.2, index),
+      high: 100 + index * 0.2 + 0.3,
+      low: 100 + index * 0.2 - 0.3,
+      volume: index === 59 ? 2 : 1,
+    }));
+    const signal = evaluateStrategy(candles, { minimumScore: 4 });
+    expect(signal.scoreBreakdown).toEqual(expect.objectContaining({
+      trend: expect.any(Number),
+      rsi: expect.any(Number),
+      volume: expect.any(Number),
+      momentum: expect.any(Number),
+      volatility: expect.any(Number),
+      stopDistance: expect.any(Number),
+    }));
+    expect(signal.score).toBeGreaterThanOrEqual(0);
+    expect(signal.scoreThreshold).toBe(4);
   });
 });

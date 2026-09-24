@@ -14,6 +14,13 @@ const signal: QuantSignal = {
   previousEma9: 84_388.5,
   previousEma21: 84_409.95,
   rsi14: 54.2,
+  score: 6,
+  scoreThreshold: 5,
+  scoreBreakdown: { trend: 2, rsi: 2, volume: 1, momentum: 1, volatility: 0, stopDistance: 0 },
+  volumeRatio: 1,
+  momentumPercent: 1,
+  volatilityPercent: 0,
+  stopDistancePercent: 0,
   reason: "EMA9 crossed above EMA21",
 };
 

@@ -42,6 +42,13 @@ integration("PostgresPersistence", () => {
       previousEma9: 100,
       previousEma21: 100,
       rsi14: 50,
+      score: 5,
+      scoreThreshold: 5,
+      scoreBreakdown: { trend: 1, rsi: 2, volume: 1, momentum: 1, volatility: 0, stopDistance: 0 },
+      volumeRatio: 1,
+      momentumPercent: 1,
+      volatilityPercent: 0,
+      stopDistancePercent: 0,
       reason: "integration test",
     };
     const trader = new PaperTrader({

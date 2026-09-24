@@ -8,11 +8,12 @@ Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 
 1. Busca candles públicos fechados de 15 minutos via CCXT.
 2. Usa Kraken como fonte padrão, evitando o bloqueio regional da Bybit na Railway.
-3. Calcula EMA 9, EMA 21 e RSI 14 de forma determinística.
-4. Gera compra somente em novo cruzamento da EMA 9 acima da EMA 21, com RSI entre 45 e 70.
-5. Usa o Gemini opcionalmente como filtro de risco com saída JSON estruturada.
-6. Mantém uma carteira paper com taxa, slippage, Stop-Loss e Take-Profit.
-7. Quando as duas travas Demo estão habilitadas, envia uma compra Spot virtual à OKX com TP/SL anexados.
+3. Calcula EMA 9, EMA 21, RSI 14, volume, momentum e volatilidade de forma determinística.
+4. Gera um score de entrada (1–8) com tendência, RSI, volume, momentum, volatilidade e distância estimada do stop. A EMA ainda precisa apontar para cima, mas não é necessário um cruzamento em um único candle.
+5. O score é submetido ao filtro de IA quando ele está habilitado; a IA continua sendo uma barreira adicional e uma falha permanece fail-closed.
+6. Usa o Gemini opcionalmente como filtro de risco com saída JSON estruturada.
+7. Mantém uma carteira paper com taxa, slippage, Stop-Loss e Take-Profit.
+8. Quando as duas travas Demo estão habilitadas, envia uma compra Spot virtual à OKX com TP/SL anexados.
 8. Bloqueia duplicidade por candle e novas entradas quando existem ordens abertas no par.
 9. Emite logs de abertura, fechamento, P&L, patrimônio, drawdown e benchmark buy-and-hold.
 10. Persiste decisões, snapshots, operações e estado da carteira no PostgreSQL.
