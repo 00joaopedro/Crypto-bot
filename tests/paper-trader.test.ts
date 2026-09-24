@@ -132,4 +132,17 @@ describe("PaperTrader", () => {
       "Invalid paper trader trade counters",
     );
   });
+
+  it("rejects a persisted position with a required field missing", () => {
+    const trader = new PaperTrader(options);
+    trader.processCandle(candle(1, 100), true);
+    const state = trader.exportState();
+    const corruptedPosition = { ...state.position } as Record<string, unknown>;
+    delete corruptedPosition.quantity;
+    state.position = corruptedPosition as typeof state.position;
+
+    expect(() => new PaperTrader(options, state)).toThrow(
+      "Invalid paper trader position field: quantity",
+    );
+  });
 });

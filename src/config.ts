@@ -6,6 +6,12 @@ const booleanString = z
   .default("false")
   .transform((value) => value === "true");
 
+const optionalUrl = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+}, z.string().url().optional());
+
 const schema = z
   .object({
     ENVIRONMENT: z.enum(["LOG_ONLY", "DEMO"]).default("LOG_ONLY"),
@@ -23,7 +29,7 @@ const schema = z
     TIMEFRAME: z.literal("15m").default("15m"),
     CANDLE_LIMIT: z.coerce.number().int().min(50).max(1000).default(100),
     LOOP_DELAY_MS: z.coerce.number().int().min(10_000).default(60_000),
-    DATABASE_URL: z.string().url().optional(),
+    DATABASE_URL: optionalUrl,
     DATABASE_CONNECTION_TIMEOUT_MS: z.coerce
       .number()
       .int()
@@ -98,4 +104,8 @@ const schema = z
     }
   });
 
-export const config = schema.parse(process.env);
+export function parseConfig(environment: NodeJS.ProcessEnv): z.infer<typeof schema> {
+  return schema.parse(environment);
+}
+
+export const config = parseConfig(process.env);

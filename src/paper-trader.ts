@@ -334,7 +334,17 @@ function assertPaperTraderState(state: PaperTraderState): void {
   }
 
   if (state.position) {
-    for (const [field, value] of Object.entries(state.position)) {
+    const positionFields = [
+      "entryTimestamp",
+      "entryPrice",
+      "quantity",
+      "entryNotional",
+      "entryFee",
+      "stopLossPrice",
+      "takeProfitPrice",
+    ] as const;
+    for (const field of positionFields) {
+      const value = state.position[field];
       const minimum = field === "entryTimestamp" ? 0 : Number.MIN_VALUE;
       if (
         typeof value !== "number" ||
