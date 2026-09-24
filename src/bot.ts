@@ -494,7 +494,8 @@ export class TradingBot {
       }
     }
 
-    const ranked = rankSignals(candidates, this.options.minimumSignalScore);
+    const blockedSymbols = new Set(this.options.tradeManager?.activePositions.map((position) => position.symbol));
+    const ranked = rankSignals(candidates, this.options.minimumSignalScore, blockedSymbols);
     const activeSymbols = await this.updateUniverse(ranked, configuredSymbols, currentCandles.at(-1)?.timestamp ?? Date.now(), universeSize);
     return ranked.filter((candidate) => activeSymbols.has(candidate.symbol));
   }
