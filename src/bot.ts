@@ -5,6 +5,7 @@ import type { OkxDemoExecutor } from "./okx-demo.js";
 import type { BotPersistence } from "./persistence.js";
 import { evaluateStrategy } from "./strategy.js";
 import type { AiDecision, Candle } from "./types.js";
+import type { EmailTradeAlert } from "./email-alerts.js";
 
 type BotOptions = {
   symbol: string;
@@ -17,6 +18,7 @@ type BotOptions = {
   initialLastProcessedCandle?: number;
   maxTradesPerInterval?: number;
   tradeIntervalMinutes?: number;
+  emailAlerts?: EmailTradeAlert;
 };
 
 export class TradingBot {
@@ -113,6 +115,9 @@ export class TradingBot {
             error: error instanceof Error ? error.message : String(error),
           }),
         );
+          await this.recordOperationalEvent("AI_ERROR", "ERROR", {
+            error: error instanceof Error ? error.message : String(error),
+          });
       }
     }
 
@@ -202,6 +207,10 @@ export class TradingBot {
                 error: error instanceof Error ? error.message : String(error),
               }),
             );
+            await this.recordOperationalEvent("DATABASE_ERROR", "ERROR", {
+              operation: "record_demo_order",
+              error: error instanceof Error ? error.message : String(error),
+            });
           }
           console.log(
             JSON.stringify({
@@ -242,6 +251,9 @@ export class TradingBot {
             error: message,
           }),
         );
+        await this.recordOperationalEvent("OKX_ORDER_ERROR", "ERROR", {
+          error: message,
+        });
       }
     }
 
@@ -260,6 +272,29 @@ export class TradingBot {
     );
 
     this.logPaperResult(currentCandle, paperResult, false);
+    if (this.options.emailAlerts) {
+      for (const trade of paperResult.events) {
+        try {
+          if (trade.type === "OPENED") {
+            await this.options.emailAlerts.sendOpened(this.options.symbol, trade);
+          } else {
+            await this.options.emailAlerts.sendClosed(this.options.symbol, trade);
+          }
+          console.log(JSON.stringify({
+            event: "trade_email_alert_sent",
+            symbol: this.options.symbol,
+            tradeType: trade.type,
+          }));
+        } catch (error) {
+          console.error(JSON.stringify({
+            event: "trade_email_alert_failed",
+            symbol: this.options.symbol,
+            tradeType: trade.type,
+            error: error instanceof Error ? error.message : String(error),
+          }));
+        }
+      }
+    }
   }
 
   private logPaperResult(
@@ -290,5 +325,25 @@ export class TradingBot {
         portfolio: result.snapshot,
       }),
     );
+  }
+
+  private async recordOperationalEvent(
+    eventType: string,
+    severity: "INFO" | "WARN" | "ERROR",
+    details: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.options.persistence?.recordOperationalEvent({
+        eventType,
+        severity,
+        symbol: this.options.symbol,
+        details,
+      });
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "operational_event_persist_failed",
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    }
   }
 }

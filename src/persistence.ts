@@ -46,6 +46,15 @@ export type DashboardData = {
   snapshots: Array<Record<string, unknown>>;
   trades: Array<Record<string, unknown>>;
   orders: Array<Record<string, unknown>>;
+  metrics: Record<string, unknown>;
+  health: Record<string, unknown>;
+};
+
+export type OperationalEvent = {
+  eventType: string;
+  severity: "INFO" | "WARN" | "ERROR";
+  symbol?: string;
+  details?: Record<string, unknown>;
 };
 
 export interface BotPersistence {
@@ -63,6 +72,7 @@ export interface BotPersistence {
     error: string,
   ): Promise<void>;
   canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean>;
+  recordOperationalEvent(event: OperationalEvent): Promise<void>;
 }
 
 type StateRow = {
@@ -203,6 +213,11 @@ export class PostgresPersistence implements BotPersistence {
          VALUES ('BOT_PAUSE_CHANGED', $1, $2::jsonb)`,
         [actor, JSON.stringify({ paused })],
       );
+      await client.query(
+        `INSERT INTO operational_events (event_type, severity, details)
+         VALUES ('BOT_PAUSED', 'WARN', $1::jsonb)`,
+        [JSON.stringify({ paused, actor })],
+      );
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");
@@ -258,8 +273,13 @@ export class PostgresPersistence implements BotPersistence {
       );
       await client.query(
         `INSERT INTO audit_events (event_type, actor, details)
-         VALUES ('TRADING_SETTINGS_CHANGED', $1, $2::jsonb)`,
+        VALUES ('TRADING_SETTINGS_CHANGED', $1, $2::jsonb)`,
         [actor, JSON.stringify(settings)],
+      );
+      await client.query(
+        `INSERT INTO operational_events (event_type, severity, symbol, details)
+         VALUES ('TRADING_SETTINGS_CHANGED', 'INFO', $1, $2::jsonb)`,
+        [settings.symbol, JSON.stringify({ actor, settings })],
       );
       await client.query("COMMIT");
     } catch (error) {
@@ -280,9 +300,17 @@ export class PostgresPersistence implements BotPersistence {
     return Number(result.rows[0]?.count ?? 0) < maxTrades;
   }
 
+  async recordOperationalEvent(event: OperationalEvent): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO operational_events (event_type, severity, symbol, details)
+       VALUES ($1, $2, $3, $4::jsonb)`,
+      [event.eventType, event.severity, event.symbol ?? null, JSON.stringify(event.details ?? {})],
+    );
+  }
+
   async getDashboardData(limit = 40): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
-    const [control, decision, snapshot, snapshots, trades, orders] = await Promise.all([
+    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents] = await Promise.all([
       this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
@@ -310,7 +338,43 @@ export class PostgresPersistence implements BotPersistence {
          FROM demo_orders WHERE symbol = $1 ORDER BY created_at DESC LIMIT $2`,
         [settings.symbol, limit],
       ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT COUNT(*)::int AS decisions,
+                COUNT(*) FILTER (WHERE approved)::int AS approved,
+                COUNT(*) FILTER (WHERE NOT approved)::int AS rejected
+         FROM decisions WHERE symbol = $1`,
+        [settings.symbol],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT COUNT(*) FILTER (WHERE event_type = 'OPENED')::int AS entries,
+                COUNT(*) FILTER (WHERE event_type = 'CLOSED')::int AS exits,
+                COUNT(*) FILTER (WHERE event_type = 'CLOSED' AND (trade->>'netPnlUsdt')::double precision > 0)::int AS wins,
+                COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED'), 0)::double precision AS net_pnl
+         FROM paper_trades WHERE symbol = $1`,
+        [settings.symbol],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT COUNT(*) FILTER (WHERE severity = 'ERROR')::int AS errors,
+                MAX(created_at) AS last_event_at
+         FROM operational_events`,
+      ),
+      this.pool.query<{ service: string; status: string }>(
+        `SELECT DISTINCT ON (details->>'service')
+                details->>'service' AS service, details->>'status' AS status
+         FROM operational_events
+         WHERE event_type = 'SERVICE_STATUS'
+         ORDER BY details->>'service', created_at DESC`,
+      ),
     ]);
+    const decisionRow = decisionMetrics.rows[0] ?? {};
+    const tradeRow = tradeMetrics.rows[0] ?? {};
+    const eventRow = eventMetrics.rows[0] ?? {};
+    const latestSnapshot = snapshot.rows[0]?.snapshot as Record<string, unknown> | undefined;
+    const closedTrades = Number(latestSnapshot?.closedTrades ?? tradeRow.exits ?? 0);
+    const wins = Number(latestSnapshot?.wins ?? tradeRow.wins ?? 0);
+    const latestCycleAt = snapshot.rows[0]?.created_at ?? null;
+    const health = Object.fromEntries(serviceEvents.rows.map((row) => [row.service, row.status]));
+    health.postgresql ??= "ok";
     return {
       paused: control.rows[0]?.paused ?? true,
       settings,
@@ -319,6 +383,28 @@ export class PostgresPersistence implements BotPersistence {
       snapshots: snapshots.rows.reverse(),
       trades: trades.rows,
       orders: orders.rows,
+      metrics: {
+        decisions: Number(decisionRow.decisions ?? 0),
+        approvedDecisions: Number(decisionRow.approved ?? 0),
+        rejectedDecisions: Number(decisionRow.rejected ?? 0),
+        entries: Number(tradeRow.entries ?? 0),
+        exits: Number(tradeRow.exits ?? 0),
+        closedTrades,
+        wins,
+        losses: Math.max(0, closedTrades - wins),
+        winRate: closedTrades ? (wins / closedTrades) * 100 : 0,
+        netPnlUsdt: Number(tradeRow.net_pnl ?? latestSnapshot?.realizedPnlUsdt ?? 0),
+        feesUsdt: Number(latestSnapshot?.totalFeesUsdt ?? 0),
+        currentDrawdownPercent: Number(latestSnapshot?.currentDrawdownPercent ?? 0),
+        maxDrawdownPercent: Number(latestSnapshot?.maxDrawdownPercent ?? 0),
+        lastCycleAt: latestCycleAt,
+        secondsSinceLastCycle: latestCycleAt ? Math.max(0, (Date.now() - new Date(String(latestCycleAt)).getTime()) / 1000) : null,
+        buyAndHoldReturnPercent: Number(latestSnapshot?.buyAndHoldReturnPercent ?? 0),
+        strategyReturnPercent: Number(latestSnapshot?.strategyReturnPercent ?? 0),
+        excessReturnVsBuyAndHoldPercent: Number(latestSnapshot?.excessReturnVsBuyAndHoldPercent ?? 0),
+        errorCount: Number(eventRow.errors ?? 0),
+      },
+      health: { ...health, lastOperationalEventAt: eventRow.last_event_at ?? null },
     };
   }
 
