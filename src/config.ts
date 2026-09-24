@@ -69,12 +69,15 @@ const schema = z
     ATR_TAKE_PROFIT_MULTIPLIER: z.coerce.number().gt(0).max(20).default(3),
     ATR_MIN_STOP_RATE: z.coerce.number().gt(0).lt(1).default(0.005),
     ATR_MAX_STOP_RATE: z.coerce.number().gt(0).lt(1).default(0.03),
-    RISK_MAX_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(1).default(0.25),
-    MAX_CONCURRENT_POSITIONS: z.coerce.number().int().min(1).max(10).default(2),
-    RISK_PER_TRADE_PERCENT: z.coerce.number().gt(0).max(0.1).default(0.01),
+    // Initial safety profile: no more than two simultaneous positions and
+    // 20–30% aggregate exposure. Enforce the envelope at startup so a
+    // dashboard or Railway edit cannot silently widen it.
+    RISK_MAX_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(0.3).default(0.25),
+    MAX_CONCURRENT_POSITIONS: z.coerce.number().int().min(1).max(2).default(2),
+    RISK_PER_TRADE_PERCENT: z.coerce.number().gt(0).max(0.01).default(0.01),
     RISK_MAX_DAILY_LOSS_PERCENT: z.coerce.number().gt(0).max(1).default(0.03),
     RISK_MAX_DRAWDOWN_PERCENT: z.coerce.number().gt(0).max(1).default(0.1),
-    RISK_MAX_TRADES_PER_HOUR: z.coerce.number().int().min(1).max(100).default(3),
+    RISK_MAX_TRADES_PER_HOUR: z.coerce.number().int().min(1).max(5).default(3),
     ENTRY_COOLDOWN_MINUTES: z.coerce.number().int().min(0).max(10_080).default(60),
     EMAIL_ALERTS_ENABLED: booleanString,
     RESEND_API_KEY: z.string().optional(),
