@@ -14,9 +14,11 @@ export class ExecutionQueue {
     const run = this.tail.then(async () => {
       const waitMs = Math.max(0, this.minimumIntervalMs - (Date.now() - this.lastExecutionAt));
       if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
-      const result = await this.executor.executeApprovedBuy(request);
+      // Start the rate-limit window before invoking the provider. Rejected
+      // requests must consume the slot as well, otherwise retries can burst
+      // immediately after a transient exchange/network failure.
       this.lastExecutionAt = Date.now();
-      return result;
+      return this.executor.executeApprovedBuy(request);
     });
     this.tail = run.then(() => undefined, () => undefined);
     return run;
