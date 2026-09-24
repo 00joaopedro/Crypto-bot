@@ -115,8 +115,10 @@ export class TradingBot {
       }));
     }
     const selectedEligibleSymbol = ranking.find((candidate) => candidate.eligible)?.symbol;
-    const currentSymbolSelected =
-      selectedEligibleSymbol === undefined || selectedEligibleSymbol === this.options.symbol;
+    // No eligible candidate means no entry is allowed. In particular, a BUY
+    // signal with insufficient market quality must not fall through merely
+    // because the ranking has no selected symbol.
+    const currentSymbolSelected = selectedEligibleSymbol === this.options.symbol;
 
     // Replayed candles can close an existing position, but cannot create a
     // retrospective entry. Approval is calculated only for the newest candle.
@@ -494,7 +496,8 @@ export class TradingBot {
       }
     }
 
-    const ranked = rankSignals(candidates, this.options.minimumSignalScore);
+    const blockedSymbols = new Set(this.options.tradeManager?.activePositions.map((position) => position.symbol));
+    const ranked = rankSignals(candidates, this.options.minimumSignalScore, blockedSymbols);
     const activeSymbols = await this.updateUniverse(ranked, configuredSymbols, currentCandles.at(-1)?.timestamp ?? Date.now(), universeSize);
     return ranked.filter((candidate) => activeSymbols.has(candidate.symbol));
   }
