@@ -57,7 +57,7 @@ async function main(): Promise<void> {
     symbol: config.SYMBOL,
     orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
     paperTradeSizeUsdt: null,
-    maxTrades: 1,
+    maxTrades: config.RISK_MAX_TRADES_PER_HOUR,
     intervalMinutes: 60,
   };
 
@@ -203,6 +203,11 @@ async function main(): Promise<void> {
           : {}),
         maxTradesPerInterval: settings.maxTrades,
         tradeIntervalMinutes: settings.intervalMinutes,
+        demoOrderSizeUsdt: settings.orderSizeUsdt,
+        maxExposurePercent: config.RISK_MAX_EXPOSURE_PERCENT,
+        riskPerTradePercent: config.RISK_PER_TRADE_PERCENT,
+        maxDailyLossPercent: config.RISK_MAX_DAILY_LOSS_PERCENT,
+        maxDrawdownPercent: config.RISK_MAX_DRAWDOWN_PERCENT,
         signalScanSymbols: signalScanSymbolsFor(settings.symbol),
         ...(emailAlerts ? { emailAlerts } : {}),
       });

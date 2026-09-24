@@ -21,12 +21,19 @@ type BotOptions = {
   initialLastProcessedCandle?: number;
   maxTradesPerInterval?: number;
   tradeIntervalMinutes?: number;
+  demoOrderSizeUsdt?: number;
+  maxExposurePercent?: number;
+  riskPerTradePercent?: number;
+  maxDailyLossPercent?: number;
+  maxDrawdownPercent?: number;
   emailAlerts?: EmailTradeAlert;
 };
 
 export class TradingBot {
   private lastProcessedCandle: number | undefined;
   private demoExecutionBlocked = false;
+  private dailyDate = new Date().toISOString().slice(0, 10);
+  private dailyStartEquity: number | undefined;
 
   constructor(
     private readonly market: PublicMarketData,
@@ -151,11 +158,22 @@ export class TradingBot {
       }
     }
 
-    const approved =
+    let approved =
       signal.action === "BUY" &&
       aiDecision.approve &&
       aiDecision.confidence >= this.options.minimumConfidence &&
       currentSymbolSelected;
+
+    const riskBlock = approved ? this.riskBlockReason() : undefined;
+    if (riskBlock) {
+      approved = false;
+      console.log(JSON.stringify({
+        event: "trade_blocked_by_risk",
+        symbol: this.options.symbol,
+        reason: riskBlock,
+      }));
+      await this.recordOperationalEvent("RISK_LIMIT", "WARN", { reason: riskBlock });
+    }
 
     const previousState = this.options.paperTrader.exportState();
     const paperResult = this.options.paperTrader.processCandle(
@@ -182,6 +200,25 @@ export class TradingBot {
       throw error;
     }
     this.lastProcessedCandle = currentCandle.timestamp;
+
+    await this.updateDailyRiskBaseline(paperResult.snapshot.equityUsdt);
+    const dailyLossPercent = this.dailyStartEquity
+      ? Math.max(0, (this.dailyStartEquity - paperResult.snapshot.equityUsdt) / this.dailyStartEquity)
+      : 0;
+    if (
+      this.options.persistence &&
+      ((this.options.maxDrawdownPercent !== undefined &&
+        paperResult.snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent * 100) ||
+        (this.options.maxDailyLossPercent !== undefined && dailyLossPercent >= this.options.maxDailyLossPercent))
+    ) {
+      await this.options.persistence.setPaused(true, "system:risk_limit");
+      console.log(JSON.stringify({
+        event: "risk_pause_triggered",
+        symbol: this.options.symbol,
+        currentDrawdownPercent: paperResult.snapshot.currentDrawdownPercent,
+        dailyLossPercent,
+      }));
+    }
 
     const paperOpened = paperResult.events.some((event) => event.type === "OPENED");
     if (approved && this.options.demoExecutor && paperOpened) {
@@ -357,6 +394,33 @@ export class TradingBot {
     }
 
     return rankSignals(candidates, this.options.minimumSignalScore);
+  }
+
+  private async updateDailyRiskBaseline(equity: number): Promise<void> {
+    const date = new Date().toISOString().slice(0, 10);
+    if (date !== this.dailyDate) {
+      this.dailyDate = date;
+      this.dailyStartEquity = await this.options.persistence?.getDailyStartEquity?.(this.options.symbol) ?? equity;
+    } else {
+      this.dailyStartEquity ??= await this.options.persistence?.getDailyStartEquity?.(this.options.symbol) ?? equity;
+    }
+  }
+
+  private riskBlockReason(): string | undefined {
+    const traderState = this.options.paperTrader.exportState();
+    if (traderState.position) return "position_already_open";
+    const balance = Math.max(traderState.peakEquityUsdt, traderState.cashUsdt);
+    const tradeSize = this.options.demoExecutor && this.options.demoOrderSizeUsdt !== undefined
+      ? this.options.demoOrderSizeUsdt
+      : this.options.paperTrader.tradeSizeUsdt;
+    if (this.options.maxExposurePercent !== undefined && tradeSize / balance > this.options.maxExposurePercent) {
+      return "max_exposure_percent";
+    }
+    if (this.options.riskPerTradePercent !== undefined) {
+      const estimatedRisk = tradeSize * this.options.paperTrader.stopLossRate;
+      if (estimatedRisk / balance > this.options.riskPerTradePercent) return "risk_per_trade_percent";
+    }
+    return undefined;
   }
 
   private logPaperResult(

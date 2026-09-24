@@ -73,6 +73,7 @@ export interface BotPersistence {
   ): Promise<void>;
   canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean>;
   recordOperationalEvent(event: OperationalEvent): Promise<void>;
+  getDailyStartEquity?(symbol: string): Promise<number | undefined>;
 }
 
 type StateRow = {
@@ -306,6 +307,17 @@ export class PostgresPersistence implements BotPersistence {
        VALUES ($1, $2, $3, $4::jsonb)`,
       [event.eventType, event.severity, event.symbol ?? null, JSON.stringify(event.details ?? {})],
     );
+  }
+
+  async getDailyStartEquity(symbol: string): Promise<number | undefined> {
+    const result = await this.pool.query<{ equity_usdt: number }>(
+      `SELECT equity_usdt FROM portfolio_snapshots
+       WHERE symbol = $1 AND created_at >= date_trunc('day', NOW())
+       ORDER BY created_at ASC LIMIT 1`,
+      [symbol],
+    );
+    const equity = result.rows[0]?.equity_usdt;
+    return equity === undefined ? undefined : Number(equity);
   }
 
   async getDashboardData(limit = 40): Promise<DashboardData> {
