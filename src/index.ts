@@ -223,6 +223,9 @@ async function main(): Promise<void> {
         dynamicUniverseSize: config.DYNAMIC_UNIVERSE_SIZE,
         marketMinQuoteVolumeUsdt: config.MARKET_MIN_QUOTE_VOLUME_USDT,
         marketMaxSpreadPercent: config.MARKET_MAX_SPREAD_PERCENT,
+        universeSwitchCooldownMinutes: config.UNIVERSE_SWITCH_COOLDOWN_MINUTES,
+        universeSwitchMinScoreAdvantage: config.UNIVERSE_SWITCH_MIN_SCORE_ADVANTAGE,
+        universeMaxReplacements: config.UNIVERSE_MAX_REPLACEMENTS,
         ...(emailAlerts ? { emailAlerts } : {}),
       });
     };
