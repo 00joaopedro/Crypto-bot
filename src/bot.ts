@@ -477,11 +477,11 @@ export class TradingBot {
   ): Promise<Set<string>> {
     const configured = new Set(configuredSymbols);
     if (this.activeUniverse.length === 0) {
-      this.activeUniverse = ranked.slice(0, universeSize).map((candidate) => candidate.symbol);
-      for (const symbol of configuredSymbols) {
-        if (!this.activeUniverse.includes(symbol)) this.activeUniverse.push(symbol);
-      }
-      this.activeUniverse = this.activeUniverse.slice(0, Math.max(universeSize, configured.size));
+      const rankedSymbols = ranked.map((candidate) => candidate.symbol);
+      this.activeUniverse = [...new Set([
+        ...configuredSymbols,
+        ...rankedSymbols.filter((symbol) => !configured.has(symbol)).slice(0, universeSize),
+      ])];
       this.lastUniverseSwitchAt = candleTimestamp;
       return new Set(this.activeUniverse);
     }
@@ -496,6 +496,13 @@ export class TradingBot {
     let replacements = 0;
     const minAdvantage = this.options.universeSwitchMinScoreAdvantage ?? 1;
     const maxReplacements = this.options.universeMaxReplacements ?? 2;
+    const unavailable = this.activeUniverse.filter(
+      (symbol) => !configured.has(symbol) && !bySymbol.has(symbol),
+    );
+    for (const symbol of unavailable.slice(0, maxReplacements)) {
+      this.activeUniverse = this.activeUniverse.filter((active) => active !== symbol);
+      replacements += 1;
+    }
     while (replacements < maxReplacements && outside.length > 0) {
       const weakest = this.activeUniverse
         .filter((symbol) => !configured.has(symbol))
