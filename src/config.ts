@@ -73,6 +73,20 @@ const schema = z
     EMAIL_ALERT_TO: optionalTrimmedString,
   })
   .superRefine((value, ctx) => {
+    if (value.ATR_PERIOD > value.CANDLE_LIMIT) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ATR_PERIOD"],
+        message: "ATR_PERIOD cannot exceed CANDLE_LIMIT",
+      });
+    }
+    if (value.ATR_MIN_STOP_RATE > value.ATR_MAX_STOP_RATE) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ATR_MIN_STOP_RATE"],
+        message: "ATR_MIN_STOP_RATE cannot exceed ATR_MAX_STOP_RATE",
+      });
+    }
     if (value.GEMINI_ENABLED && !value.GEMINI_API_KEY) {
       ctx.addIssue({
         code: "custom",

@@ -28,6 +28,8 @@ type BotOptions = {
   atrTakeProfitMultiplier?: number;
   atrMinStopRate?: number;
   atrMaxStopRate?: number;
+  fallbackStopLossRate?: number;
+  fallbackTakeProfitRate?: number;
   maxExposurePercent?: number;
   riskPerTradePercent?: number;
   maxDailyLossPercent?: number;
@@ -417,6 +419,12 @@ export class TradingBot {
 
   private calculateVolatilityExitRates(candles: Candle[], referencePrice: number): { stopLossRate: number; takeProfitRate: number } {
     const atr = averageTrueRange(candles, this.options.atrPeriod ?? 14);
+    if (atr <= 0) {
+      return {
+        stopLossRate: this.options.fallbackStopLossRate ?? this.options.paperTrader.stopLossRate,
+        takeProfitRate: this.options.fallbackTakeProfitRate ?? 0.02,
+      };
+    }
     const volatilityRate = atr > 0 ? atr / referencePrice : this.options.paperTrader.stopLossRate;
     const stopLossRate = Math.min(this.options.atrMaxStopRate ?? 0.03, Math.max(this.options.atrMinStopRate ?? 0.005, volatilityRate * (this.options.atrStopMultiplier ?? 1.5)));
     const takeProfitRate = Math.min(0.5, Math.max(stopLossRate, volatilityRate * (this.options.atrTakeProfitMultiplier ?? 3)));
