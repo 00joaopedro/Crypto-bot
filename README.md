@@ -61,6 +61,7 @@ Variáveis principais:
 - `PAPER_STOP_LOSS_RATE=0.01` (1%)
 - `PAPER_TAKE_PROFIT_RATE=0.02` (2%)
 - `RISK_MAX_EXPOSURE_PERCENT=0.25` (exposição máxima de 25% do patrimônio)
+- `MAX_CONCURRENT_POSITIONS=2` (limite central de posições simultâneas)
 - `RISK_PER_TRADE_PERCENT=0.01` (risco estimado máximo de 1% por operação)
 - `RISK_MAX_DAILY_LOSS_PERCENT=0.03` (pausa ao perder 3% no dia)
 - `RISK_MAX_DRAWDOWN_PERCENT=0.10` (pausa ao atingir 10% de drawdown)
