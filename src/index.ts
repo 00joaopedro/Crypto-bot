@@ -38,7 +38,10 @@ async function main(): Promise<void> {
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
 
-  const market = new PublicMarketData(config.MARKET_DATA_PROVIDER);
+  const market = new PublicMarketData(
+    config.MARKET_DATA_PROVIDER,
+    config.MARKET_DATA_FALLBACK_PROVIDER === "none" ? undefined : config.MARKET_DATA_FALLBACK_PROVIDER,
+  );
   const persistence = config.DATABASE_URL
     ? new PostgresPersistence(
         config.DATABASE_URL,
@@ -109,7 +112,7 @@ async function main(): Promise<void> {
     await persistence?.recordOperationalEvent({
       eventType: "SERVICE_STATUS",
       severity: "INFO",
-      details: { service: config.MARKET_DATA_PROVIDER, status: "ok" },
+      details: { service: `market-data-${market.active}`, status: "ok", provider: market.active },
     });
 
     okxDemo =

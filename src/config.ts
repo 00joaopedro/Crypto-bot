@@ -21,7 +21,8 @@ const optionalTrimmedString = z.preprocess((value) => {
 const schema = z
   .object({
     ENVIRONMENT: z.enum(["LOG_ONLY", "DEMO"]).default("LOG_ONLY"),
-    MARKET_DATA_PROVIDER: z.enum(["kraken", "bybit-testnet"]).default("kraken"),
+    MARKET_DATA_PROVIDER: z.enum(["okx", "kraken", "bybit-testnet"]).default("okx"),
+    MARKET_DATA_FALLBACK_PROVIDER: z.enum(["none", "okx", "kraken", "bybit-testnet"]).default("kraken"),
     EXECUTION_PROVIDER: z.enum(["disabled", "okx-demo"]).default("disabled"),
     LIVE_TRADING_ENABLED: z.literal("false").default("false").transform(() => false),
     OKX_DEMO_TRADING_ENABLED: booleanString,
