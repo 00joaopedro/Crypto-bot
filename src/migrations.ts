@@ -119,4 +119,13 @@ export const migrations: readonly Migration[] = [
         ON demo_orders (created_at DESC);
     `,
   },
+  {
+    version: 3,
+    name: "paper_trade_size_override",
+    sql: `
+      ALTER TABLE dashboard_settings
+        ADD COLUMN paper_trade_size_usdt DOUBLE PRECISION
+        CHECK (paper_trade_size_usdt IS NULL OR (paper_trade_size_usdt > 0 AND paper_trade_size_usdt <= 100));
+    `,
+  },
 ] as const;

@@ -21,6 +21,7 @@ type BotOptions = {
 
 export class TradingBot {
   private lastProcessedCandle: number | undefined;
+  private demoExecutionBlocked = false;
 
   constructor(
     private readonly market: PublicMarketData,
@@ -31,6 +32,7 @@ export class TradingBot {
 
   async runCycle(): Promise<void> {
     if (
+      this.demoExecutionBlocked ||
       this.options.persistence &&
       (await this.options.persistence.isPaused())
     ) {
@@ -103,8 +105,9 @@ export class TradingBot {
     if (signal.action === "BUY" && this.options.ai) {
       try {
         aiDecision = await this.options.ai.evaluate(signal);
-      } catch (error) {
-        console.error(
+        } catch (error) {
+          this.demoExecutionBlocked = true;
+          console.error(
           JSON.stringify({
             event: "ai_filter_failed_closed",
             error: error instanceof Error ? error.message : String(error),
@@ -164,6 +167,22 @@ export class TradingBot {
               intervalMinutes: this.options.tradeIntervalMinutes,
             }),
           );
+          try {
+            await this.options.persistence?.setPaused(
+              true,
+              "system:demo_order_persistence_failure",
+            );
+          } catch (pauseError) {
+            console.error(
+              JSON.stringify({
+                event: "kill_switch_write_failed",
+                error:
+                  pauseError instanceof Error
+                    ? pauseError.message
+                    : String(pauseError),
+              }),
+            );
+          }
         } else {
           const demoResult = await this.options.demoExecutor.executeApprovedBuy({
             candleTimestamp: currentCandle.timestamp,

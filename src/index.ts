@@ -50,6 +50,7 @@ async function main(): Promise<void> {
   let tradingSettings: DashboardSettings = {
     symbol: config.SYMBOL,
     orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
+    paperTradeSizeUsdt: null,
     maxTrades: 1,
     intervalMinutes: 60,
   };
@@ -148,7 +149,8 @@ async function main(): Promise<void> {
     const paperTrader = new PaperTrader(
       {
         initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
-        tradeSizeUsdt: tradingSettings.orderSizeUsdt,
+        tradeSizeUsdt:
+          tradingSettings.paperTradeSizeUsdt ?? config.PAPER_TRADE_SIZE_USDT,
         feeRate: config.PAPER_FEE_RATE,
         slippageRate: config.PAPER_SLIPPAGE_RATE,
         stopLossRate: config.PAPER_STOP_LOSS_RATE,
@@ -189,7 +191,8 @@ async function main(): Promise<void> {
         persistenceEnabled: Boolean(persistence),
         paperTrading: {
           initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
-          tradeSizeUsdt: tradingSettings.orderSizeUsdt,
+          tradeSizeUsdt:
+            tradingSettings.paperTradeSizeUsdt ?? config.PAPER_TRADE_SIZE_USDT,
           feeRate: config.PAPER_FEE_RATE,
           slippageRate: config.PAPER_SLIPPAGE_RATE,
           stopLossRate: config.PAPER_STOP_LOSS_RATE,

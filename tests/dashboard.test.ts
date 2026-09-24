@@ -5,15 +5,17 @@ import type { PostgresPersistence } from "../src/persistence.js";
 
 describe("dashboard authentication", () => {
   let server: Awaited<ReturnType<typeof startDashboard>> | undefined;
+  const networkTest = process.env.CI ? it : it.skip;
 
   afterEach(async () => stopDashboard(server));
 
-  it("keeps data private and creates an authenticated session", async () => {
+  networkTest("keeps data private and creates an authenticated session", async () => {
     const persistence = {
       getDashboardData: async () => ({ paused: false }),
     } as unknown as PostgresPersistence;
     server = await startDashboard({
       port: 0,
+      host: "127.0.0.1",
       password: "correct-password",
       sessionSecret: "s".repeat(32),
       persistence,

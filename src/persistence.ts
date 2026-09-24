@@ -33,6 +33,7 @@ export type RecoveryState = {
 export type DashboardSettings = {
   symbol: string;
   orderSizeUsdt: number;
+  paperTradeSizeUsdt?: number | null;
   maxTrades: number;
   intervalMinutes: number;
 };
@@ -49,6 +50,7 @@ export type DashboardData = {
 
 export interface BotPersistence {
   isPaused(): Promise<boolean>;
+  setPaused(paused: boolean, actor: string): Promise<void>;
   recordCycle(cycle: PersistedCycle): Promise<void>;
   recordDemoOrder(
     symbol: string,
@@ -225,10 +227,11 @@ export class PostgresPersistence implements BotPersistence {
     const result = await this.pool.query<{
       symbol: string;
       order_size_usdt: number;
+      paper_trade_size_usdt: number | null;
       max_trades: number;
       interval_minutes: number;
     }>(
-      `SELECT symbol, order_size_usdt, max_trades, interval_minutes
+      `SELECT symbol, order_size_usdt, paper_trade_size_usdt, max_trades, interval_minutes
        FROM dashboard_settings WHERE id = 1`,
     );
     const row = result.rows[0];
@@ -236,6 +239,7 @@ export class PostgresPersistence implements BotPersistence {
     return {
       symbol: row.symbol,
       orderSizeUsdt: Number(row.order_size_usdt),
+      paperTradeSizeUsdt: row.paper_trade_size_usdt === null ? null : Number(row.paper_trade_size_usdt),
       maxTrades: row.max_trades,
       intervalMinutes: row.interval_minutes,
     };

@@ -14,6 +14,7 @@ const settingsSchema = z.object({
 
 type DashboardOptions = {
   port: number;
+  host?: string;
   password: string;
   sessionSecret: string;
   persistence: PostgresPersistence;
@@ -28,7 +29,6 @@ const assets = new Map<string, { file: string; type: string }>([
 ]);
 
 export async function startDashboard(options: DashboardOptions): Promise<Server> {
-  const failedLogins = new Map<string, { count: number; resetAt: number }>();
   const server = createServer(async (request, response) => {
     setSecurityHeaders(response);
     try {
@@ -44,20 +44,13 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         return json(response, 200, { status: "ok" });
       }
       if (request.method === "POST" && url.pathname === "/api/login") {
-        const ip = request.socket.remoteAddress ?? "unknown";
-        const attempt = failedLogins.get(ip);
-        if (attempt && attempt.resetAt > Date.now() && attempt.count >= 5) {
-          return json(response, 429, { error: "Muitas tentativas. Aguarde 15 minutos." });
-        }
         const body = await readJson(request);
         if (!secureEqual(String(body.password ?? ""), options.password)) {
-          failedLogins.set(ip, {
-            count: attempt && attempt.resetAt > Date.now() ? attempt.count + 1 : 1,
-            resetAt: Date.now() + 15 * 60_000,
-          });
+          // Apply a small per-request penalty without using the shared Railway
+          // proxy address as a global lockout bucket.
+          await new Promise((resolve) => setTimeout(resolve, 250));
           return json(response, 401, { error: "Senha inválida." });
         }
-        failedLogins.delete(ip);
         response.setHeader("set-cookie", createSessionCookie(options.sessionSecret));
         return json(response, 200, { ok: true });
       }
@@ -103,7 +96,7 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
 
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
-    server.listen(options.port, "0.0.0.0", () => {
+    server.listen(options.port, options.host ?? "0.0.0.0", () => {
       server.off("error", reject);
       resolve();
     });
