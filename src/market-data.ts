@@ -7,6 +7,7 @@ export type MarketDataProvider = "okx" | "kraken" | "bybit-testnet";
 
 export class PublicMarketData {
   private readonly exchanges = new Map<MarketDataProvider, Exchange>();
+  private readonly initializedProviders = new Set<MarketDataProvider>();
   private activeProvider: MarketDataProvider;
 
   constructor(readonly provider: MarketDataProvider, readonly fallbackProvider?: MarketDataProvider) {
@@ -22,20 +23,37 @@ export class PublicMarketData {
   }
 
   async initialize(): Promise<void> {
+    let initialized = 0;
+    let lastError: unknown;
     for (const [provider, exchange] of this.exchanges) {
-      if (provider === "bybit-testnet") exchange.setSandboxMode(true);
-      await retry(`loadMarkets:${provider}`, () => exchange.loadMarkets());
+      try {
+        await this.initializeProvider(provider, exchange);
+        initialized += 1;
+      } catch (error) {
+        lastError = error;
+        console.error(JSON.stringify({
+          event: "market_data_provider_unavailable",
+          provider,
+          error: error instanceof Error ? error.message : String(error),
+        }));
+      }
+    }
+    if (initialized === 0) throw new Error(`No market data provider available: ${String(lastError)}`);
+    if (!this.initializedProviders.has(this.provider)) {
+      const firstAvailable = [...this.initializedProviders][0];
+      if (firstAvailable) this.activeProvider = firstAvailable;
     }
   }
 
   async fetchClosedCandles(symbol: string, limit: number): Promise<Candle[]> {
-    const providers = [this.activeProvider, ...this.exchanges.keys()].filter(
+    const providers = [this.provider, this.activeProvider, ...this.exchanges.keys()].filter(
       (value, index, all) => all.indexOf(value) === index,
     );
     let lastError: unknown;
     for (const provider of providers) {
       const exchange = this.exchanges.get(provider)!;
       try {
+        if (!this.initializedProviders.has(provider)) await this.initializeProvider(provider, exchange);
         const rows = await retry(`fetchOHLCV:${provider}`, () =>
           exchange.fetchOHLCV(symbol, "15m", undefined, limit + 1),
         );
@@ -69,6 +87,13 @@ export class PublicMarketData {
 
   async close(): Promise<void> {
     await Promise.all([...this.exchanges.values()].map((exchange) => exchange.close()));
+  }
+
+  private async initializeProvider(provider: MarketDataProvider, exchange: Exchange): Promise<void> {
+    if (this.initializedProviders.has(provider)) return;
+    if (provider === "bybit-testnet") exchange.setSandboxMode(true);
+    await retry(`loadMarkets:${provider}`, () => exchange.loadMarkets());
+    this.initializedProviders.add(provider);
   }
 }
 
