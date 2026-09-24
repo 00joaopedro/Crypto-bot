@@ -21,6 +21,7 @@ type BotOptions = {
   initialLastProcessedCandle?: number;
   maxTradesPerInterval?: number;
   tradeIntervalMinutes?: number;
+  demoOrderSizeUsdt?: number;
   maxExposurePercent?: number;
   riskPerTradePercent?: number;
   maxDailyLossPercent?: number;
@@ -200,14 +201,14 @@ export class TradingBot {
     }
     this.lastProcessedCandle = currentCandle.timestamp;
 
-    this.updateDailyRiskBaseline(paperResult.snapshot.equityUsdt);
+    await this.updateDailyRiskBaseline(paperResult.snapshot.equityUsdt);
     const dailyLossPercent = this.dailyStartEquity
       ? Math.max(0, (this.dailyStartEquity - paperResult.snapshot.equityUsdt) / this.dailyStartEquity)
       : 0;
     if (
       this.options.persistence &&
       ((this.options.maxDrawdownPercent !== undefined &&
-        paperResult.snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent) ||
+        paperResult.snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent * 100) ||
         (this.options.maxDailyLossPercent !== undefined && dailyLossPercent >= this.options.maxDailyLossPercent))
     ) {
       await this.options.persistence.setPaused(true, "system:risk_limit");
@@ -395,13 +396,13 @@ export class TradingBot {
     return rankSignals(candidates, this.options.minimumSignalScore);
   }
 
-  private updateDailyRiskBaseline(equity: number): void {
+  private async updateDailyRiskBaseline(equity: number): Promise<void> {
     const date = new Date().toISOString().slice(0, 10);
     if (date !== this.dailyDate) {
       this.dailyDate = date;
-      this.dailyStartEquity = equity;
+      this.dailyStartEquity = await this.options.persistence?.getDailyStartEquity?.(this.options.symbol) ?? equity;
     } else {
-      this.dailyStartEquity ??= equity;
+      this.dailyStartEquity ??= await this.options.persistence?.getDailyStartEquity?.(this.options.symbol) ?? equity;
     }
   }
 
@@ -409,7 +410,9 @@ export class TradingBot {
     const traderState = this.options.paperTrader.exportState();
     if (traderState.position) return "position_already_open";
     const balance = Math.max(traderState.peakEquityUsdt, traderState.cashUsdt);
-    const tradeSize = this.options.paperTrader.tradeSizeUsdt;
+    const tradeSize = this.options.demoExecutor && this.options.demoOrderSizeUsdt !== undefined
+      ? this.options.demoOrderSizeUsdt
+      : this.options.paperTrader.tradeSizeUsdt;
     if (this.options.maxExposurePercent !== undefined && tradeSize / balance > this.options.maxExposurePercent) {
       return "max_exposure_percent";
     }

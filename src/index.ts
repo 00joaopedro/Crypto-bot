@@ -203,6 +203,7 @@ async function main(): Promise<void> {
           : {}),
         maxTradesPerInterval: settings.maxTrades,
         tradeIntervalMinutes: settings.intervalMinutes,
+        demoOrderSizeUsdt: settings.orderSizeUsdt,
         maxExposurePercent: config.RISK_MAX_EXPOSURE_PERCENT,
         riskPerTradePercent: config.RISK_PER_TRADE_PERCENT,
         maxDailyLossPercent: config.RISK_MAX_DAILY_LOSS_PERCENT,
