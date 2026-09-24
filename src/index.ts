@@ -162,6 +162,15 @@ async function main(): Promise<void> {
         status: config.GEMINI_ENABLED ? "configured" : "disabled",
       },
     });
+    const marketSymbols = new Set(market.listSpotSymbols());
+    const executionSymbols = okxDemo?.listSpotSymbols() ?? [...marketSymbols];
+    const scanSymbols = config.SIGNAL_SCAN_SYMBOLS
+      .split(",")
+      .map((symbol) => symbol.trim().toUpperCase())
+      .filter((symbol) => marketSymbols.has(symbol) && executionSymbols.includes(symbol));
+    const signalScanSymbolsFor = (symbol: string): string[] => [
+      ...new Set([symbol, ...scanSymbols]),
+    ];
     const createBot = (
       settings: DashboardSettings,
       state: Awaited<ReturnType<PostgresPersistence["loadRecoveryState"]>>,
@@ -194,6 +203,7 @@ async function main(): Promise<void> {
           : {}),
         maxTradesPerInterval: settings.maxTrades,
         tradeIntervalMinutes: settings.intervalMinutes,
+        signalScanSymbols: signalScanSymbolsFor(settings.symbol),
         ...(emailAlerts ? { emailAlerts } : {}),
       });
     };
@@ -233,8 +243,6 @@ async function main(): Promise<void> {
       config.DASHBOARD_PASSWORD &&
       config.DASHBOARD_SESSION_SECRET
     ) {
-      const marketSymbols = new Set(market.listSpotSymbols());
-      const executionSymbols = okxDemo?.listSpotSymbols() ?? [...marketSymbols];
       const supportedSymbols = executionSymbols.filter((symbol) =>
         marketSymbols.has(symbol),
       );

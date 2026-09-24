@@ -4,6 +4,7 @@ import type { PaperCycleResult, PaperTrader } from "./paper-trader.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
 import type { BotPersistence } from "./persistence.js";
 import { evaluateStrategy } from "./strategy.js";
+import { rankSignals, type RankedSignal } from "./signal-ranking.js";
 import type { AiDecision, Candle } from "./types.js";
 import type { EmailTradeAlert } from "./email-alerts.js";
 
@@ -12,6 +13,7 @@ type BotOptions = {
   candleLimit: number;
   minimumConfidence: number;
   minimumSignalScore?: number;
+  signalScanSymbols?: string[];
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy">;
   ai?: GeminiRiskFilter;
@@ -70,6 +72,25 @@ export class TradingBot {
       return;
     }
 
+    const ranking = await this.scanSignals(candles);
+    if (ranking.length > 0) {
+      console.log(JSON.stringify({
+        event: "signal_ranking",
+        candleTimestamp: latest.timestamp,
+        selected: ranking[0],
+        candidates: ranking.map((candidate) => ({
+          rank: candidate.rank,
+          symbol: candidate.symbol,
+          action: candidate.signal.action,
+          score: candidate.signal.score,
+          eligible: candidate.eligible,
+        })),
+      }));
+    }
+    const selectedEligibleSymbol = ranking.find((candidate) => candidate.eligible)?.symbol;
+    const currentSymbolSelected =
+      selectedEligibleSymbol === undefined || selectedEligibleSymbol === this.options.symbol;
+
     // Replayed candles can close an existing position, but cannot create a
     // retrospective entry. Approval is calculated only for the newest candle.
     for (const candle of unseenCandles.slice(0, -1)) {
@@ -112,7 +133,7 @@ export class TradingBot {
           : "AI filter is not called for HOLD signals",
     };
 
-    if (signal.action === "BUY" && this.options.ai) {
+    if (signal.action === "BUY" && currentSymbolSelected && this.options.ai) {
       try {
         aiDecision = await this.options.ai.evaluate(signal);
       } catch (error) {
@@ -133,7 +154,8 @@ export class TradingBot {
     const approved =
       signal.action === "BUY" &&
       aiDecision.approve &&
-      aiDecision.confidence >= this.options.minimumConfidence;
+      aiDecision.confidence >= this.options.minimumConfidence &&
+      currentSymbolSelected;
 
     const previousState = this.options.paperTrader.exportState();
     const paperResult = this.options.paperTrader.processCandle(
@@ -291,6 +313,7 @@ export class TradingBot {
         signal,
         aiDecision,
         approved,
+        selectedSignalSymbol: selectedEligibleSymbol ?? null,
         execution: this.options.demoExecutor
           ? "paper_with_optional_okx_demo"
           : "simulated",
@@ -299,6 +322,41 @@ export class TradingBot {
 
     this.logPaperResult(currentCandle, paperResult, false);
     await this.sendTradeAlerts(paperResult.events, false);
+  }
+
+  private async scanSignals(currentCandles: Candle[]): Promise<RankedSignal[]> {
+    const symbols = [...new Set(this.options.signalScanSymbols ?? [this.options.symbol])];
+    const candidates: Array<{ symbol: string; candles: Candle[] }> = [
+      { symbol: this.options.symbol, candles: currentCandles },
+    ];
+
+    for (const symbol of symbols) {
+      if (symbol === this.options.symbol) continue;
+      try {
+        const targetTimestamp = currentCandles.at(-1)?.timestamp;
+        const candles = await this.market.fetchClosedCandles(
+          symbol,
+          this.options.candleLimit + 5,
+        );
+        const targetIndex = targetTimestamp === undefined
+          ? -1
+          : candles.findIndex((candle) => candle.timestamp === targetTimestamp);
+        if (targetIndex >= 0) {
+          const alignedCandles = candles.slice(0, targetIndex + 1);
+          if (alignedCandles.length >= 50) {
+            candidates.push({ symbol, candles: alignedCandles });
+          }
+        }
+      } catch (error) {
+        console.error(JSON.stringify({
+          event: "signal_scan_failed",
+          symbol,
+          error: error instanceof Error ? error.message : String(error),
+        }));
+      }
+    }
+
+    return rankSignals(candidates, this.options.minimumSignalScore);
   }
 
   private logPaperResult(
