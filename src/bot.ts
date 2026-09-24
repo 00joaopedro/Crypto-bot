@@ -161,7 +161,8 @@ export class TradingBot {
     }
     this.lastProcessedCandle = currentCandle.timestamp;
 
-    if (approved && this.options.demoExecutor) {
+    const paperOpened = paperResult.events.some((event) => event.type === "OPENED");
+    if (approved && this.options.demoExecutor && paperOpened) {
       try {
         const intervalLimitReached = Boolean(
           this.options.persistence &&
@@ -269,6 +270,17 @@ export class TradingBot {
         });
         await this.recordServiceStatus("okx-demo", "unhealthy", error);
       }
+    }
+
+    if (approved && this.options.demoExecutor && !paperOpened) {
+      console.log(
+        JSON.stringify({
+          event: "okx_demo_order_skipped",
+          symbol: this.options.symbol,
+          reason: "paper_position_not_opened",
+          paperEvents: paperResult.events.map((event) => event.type),
+        }),
+      );
     }
 
     console.log(

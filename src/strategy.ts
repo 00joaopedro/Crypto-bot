@@ -48,6 +48,18 @@ export function evaluateStrategy(
   const volatility = volatilityPercent >= 0.1 && volatilityPercent <= 5 ? 1 : 0;
   const stopDistance = stopDistancePercent >= 0.3 && stopDistancePercent <= 3 ? 1 : 0;
   const score = trend + rsiScore + volume + momentum + volatility + stopDistance;
+  const scoreBreakdown = {
+    trend,
+    rsi: rsiScore,
+    volume,
+    momentum,
+    volatility,
+    stopDistance,
+  };
+  const contributingChecks = Object.entries(scoreBreakdown)
+    .filter(([, points]) => points > 0)
+    .map(([check]) => check)
+    .join(", ");
 
   // The EMA direction remains mandatory, but an exact one-candle crossover is
   // no longer required. The score and AI filter still control selectivity.
@@ -64,20 +76,13 @@ export function evaluateStrategy(
     rsi14: currentRsi,
     score,
     scoreThreshold: minimumScore,
-    scoreBreakdown: {
-      trend,
-      rsi: rsiScore,
-      volume,
-      momentum,
-      volatility,
-      stopDistance,
-    },
+    scoreBreakdown,
     volumeRatio,
     momentumPercent,
     volatilityPercent,
     stopDistancePercent,
     reason: action === "BUY"
-      ? `Signal score ${score}/8: trend, momentum and risk checks passed`
+      ? `Signal score ${score}/8; contributing checks: ${contributingChecks || "none"}`
       : `Signal score ${score}/8 below threshold ${minimumScore} or trend not confirmed`,
   };
 }
