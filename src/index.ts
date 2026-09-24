@@ -11,6 +11,7 @@ import { OkxDemoExecutor } from "./okx-demo.js";
 import { PaperTrader } from "./paper-trader.js";
 import { PostgresPersistence } from "./persistence.js";
 import type { DashboardSettings } from "./persistence.js";
+import { CentralTradeManager } from "./trade-manager.js";
 
 async function sleep(
   milliseconds: number,
@@ -56,6 +57,10 @@ async function main(): Promise<void> {
   let activeCycle: Promise<void> | undefined;
   let reconfigurationRequested = false;
   let reconfigurationPromise: Promise<void> | undefined;
+  const tradeManager = new CentralTradeManager({
+    maxConcurrentPositions: config.MAX_CONCURRENT_POSITIONS,
+    maxExposurePercent: config.RISK_MAX_EXPOSURE_PERCENT,
+  });
   let tradingSettings: DashboardSettings = {
     symbol: config.SYMBOL,
     orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
@@ -179,6 +184,13 @@ async function main(): Promise<void> {
       state: Awaited<ReturnType<PostgresPersistence["loadRecoveryState"]>>,
       demoExecutor: OkxDemoExecutor | undefined,
     ): TradingBot => {
+      if (state?.paperState.position) {
+        tradeManager.restorePositions([{
+          symbol: settings.symbol,
+          notionalUsdt: state.paperState.position.entryNotional,
+          openedAt: state.paperState.position.entryTimestamp,
+        }]);
+      }
       const paperTrader = new PaperTrader(
         {
           initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
@@ -219,6 +231,7 @@ async function main(): Promise<void> {
         riskPerTradePercent: config.RISK_PER_TRADE_PERCENT,
         maxDailyLossPercent: config.RISK_MAX_DAILY_LOSS_PERCENT,
         maxDrawdownPercent: config.RISK_MAX_DRAWDOWN_PERCENT,
+        tradeManager,
         signalScanSymbols: signalScanSymbolsFor(settings.symbol),
         dynamicUniverseSize: config.DYNAMIC_UNIVERSE_SIZE,
         marketMinQuoteVolumeUsdt: config.MARKET_MIN_QUOTE_VOLUME_USDT,

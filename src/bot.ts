@@ -8,6 +8,7 @@ import { rankSignals, type RankedSignal } from "./signal-ranking.js";
 import { averageTrueRange } from "./indicators.js";
 import type { AiDecision, Candle } from "./types.js";
 import type { EmailTradeAlert } from "./email-alerts.js";
+import type { CentralTradeManager } from "./trade-manager.js";
 
 type BotOptions = {
   symbol: string;
@@ -41,6 +42,7 @@ type BotOptions = {
   riskPerTradePercent?: number;
   maxDailyLossPercent?: number;
   maxDrawdownPercent?: number;
+  tradeManager?: CentralTradeManager;
   emailAlerts?: EmailTradeAlert;
 };
 
@@ -121,6 +123,9 @@ export class TradingBot {
     for (const candle of unseenCandles.slice(0, -1)) {
       const previousState = this.options.paperTrader.exportState();
       const paperResult = this.options.paperTrader.processCandle(candle, false);
+      if (paperResult.events.some((event) => event.type === "CLOSED")) {
+        this.options.tradeManager?.recordExit(this.options.symbol);
+      }
       try {
         await this.options.persistence?.recordCycle({
           symbol: this.options.symbol,
@@ -205,7 +210,18 @@ export class TradingBot {
       currentSymbolSelected &&
       !cooldownBlocked;
 
-    const riskBlock = approved ? this.riskBlockReason(exitRates) : undefined;
+    const managerBlock = approved && this.options.tradeManager
+      ? this.options.tradeManager.canEnter(
+          this.options.symbol,
+          this.options.demoExecutor
+            ? this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt
+            : this.options.paperTrader.tradeSizeUsdt,
+          this.paperEquityEstimate(),
+        ).reason
+      : undefined;
+    const riskBlock = approved
+      ? managerBlock ?? this.riskBlockReason(exitRates)
+      : undefined;
     if (riskBlock) {
       approved = false;
       console.log(JSON.stringify({
@@ -243,6 +259,16 @@ export class TradingBot {
     }
     if (paperResult.events.some((event) => event.type === "OPENED")) {
       this.lastEntryAtBySymbol.set(this.options.symbol, currentCandle.timestamp);
+      this.options.tradeManager?.recordEntry({
+        symbol: this.options.symbol,
+        notionalUsdt: this.options.demoExecutor
+          ? this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt
+          : this.options.paperTrader.tradeSizeUsdt,
+        openedAt: currentCandle.timestamp,
+      });
+    }
+    if (paperResult.events.some((event) => event.type === "CLOSED")) {
+      this.options.tradeManager?.recordExit(this.options.symbol);
     }
     this.lastProcessedCandle = currentCandle.timestamp;
 
@@ -405,6 +431,10 @@ export class TradingBot {
 
     this.logPaperResult(currentCandle, paperResult, false);
     await this.sendTradeAlerts(paperResult.events, false);
+  }
+
+  private paperEquityEstimate(): number {
+    return this.options.paperTrader.exportState().cashUsdt;
   }
 
   private async scanSignals(currentCandles: Candle[]): Promise<RankedSignal[]> {
