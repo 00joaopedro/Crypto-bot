@@ -115,8 +115,10 @@ export class TradingBot {
       }));
     }
     const selectedEligibleSymbol = ranking.find((candidate) => candidate.eligible)?.symbol;
-    const currentSymbolSelected =
-      selectedEligibleSymbol === undefined || selectedEligibleSymbol === this.options.symbol;
+    // No eligible candidate means no entry is allowed. In particular, a BUY
+    // signal with insufficient market quality must not fall through merely
+    // because the ranking has no selected symbol.
+    const currentSymbolSelected = selectedEligibleSymbol === this.options.symbol;
 
     // Replayed candles can close an existing position, but cannot create a
     // retrospective entry. Approval is calculated only for the newest candle.
