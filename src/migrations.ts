@@ -128,4 +128,22 @@ export const migrations: readonly Migration[] = [
         CHECK (paper_trade_size_usdt IS NULL OR (paper_trade_size_usdt > 0 AND paper_trade_size_usdt <= 100));
     `,
   },
+  {
+    version: 4,
+    name: "operational_events",
+    sql: `
+      CREATE TABLE operational_events (
+        id BIGSERIAL PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        severity TEXT NOT NULL CHECK (severity IN ('INFO', 'WARN', 'ERROR')),
+        symbol TEXT,
+        details JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX operational_events_created_at_idx
+        ON operational_events (created_at DESC);
+      CREATE INDEX operational_events_type_idx
+        ON operational_events (event_type, created_at DESC);
+    `,
+  },
 ] as const;

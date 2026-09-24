@@ -55,6 +55,10 @@ const schema = z
     PAPER_SLIPPAGE_RATE: z.coerce.number().min(0).max(0.1).default(0.0005),
     PAPER_STOP_LOSS_RATE: z.coerce.number().gt(0).lt(1).default(0.01),
     PAPER_TAKE_PROFIT_RATE: z.coerce.number().gt(0).lt(1).default(0.02),
+    EMAIL_ALERTS_ENABLED: booleanString,
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: optionalTrimmedString,
+    EMAIL_ALERT_TO: optionalTrimmedString,
   })
   .superRefine((value, ctx) => {
     if (value.GEMINI_ENABLED && !value.GEMINI_API_KEY) {
@@ -130,6 +134,17 @@ const schema = z
         message:
           "DASHBOARD_PASSWORD is required when a session secret is configured",
       });
+    }
+    if (value.EMAIL_ALERTS_ENABLED) {
+      for (const key of ["RESEND_API_KEY", "EMAIL_FROM", "EMAIL_ALERT_TO"] as const) {
+        if (!value[key]?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: `${key} is required when EMAIL_ALERTS_ENABLED=true`,
+          });
+        }
+      }
     }
   });
 

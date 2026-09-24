@@ -4,6 +4,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
+import { EmailTradeAlert } from "./email-alerts.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
 import { OkxDemoExecutor } from "./okx-demo.js";
@@ -89,12 +90,27 @@ async function main(): Promise<void> {
             : { restored: false },
         }),
       );
+      await persistence.recordOperationalEvent({
+        eventType: "SERVICE_STATUS",
+        severity: "INFO",
+        details: { service: "postgresql", status: "ok" },
+      });
+      await persistence.recordOperationalEvent({
+        eventType: "SERVICE_RESTARTED",
+        severity: "INFO",
+        details: { reason: "process_started" },
+      });
     } else {
       console.log(JSON.stringify({ event: "persistence_disabled" }));
     }
 
     await initializeWithBackoff(market, shutdownController.signal);
     if (stopping) return;
+    await persistence?.recordOperationalEvent({
+      eventType: "SERVICE_STATUS",
+      severity: "INFO",
+      details: { service: config.MARKET_DATA_PROVIDER, status: "ok" },
+    });
 
     okxDemo =
       config.EXECUTION_PROVIDER === "okx-demo"
@@ -121,11 +137,31 @@ async function main(): Promise<void> {
         shutdownController.signal,
       );
       if (stopping) return;
+      await persistence?.recordOperationalEvent({
+        eventType: "SERVICE_STATUS",
+        severity: "INFO",
+        details: { service: "okx-demo", status: "ok" },
+      });
     }
 
     const ai = config.GEMINI_ENABLED
       ? new GeminiRiskFilter(config.GEMINI_API_KEY!, config.GEMINI_MODEL)
       : undefined;
+    const emailAlerts = config.EMAIL_ALERTS_ENABLED
+      ? new EmailTradeAlert({
+          apiKey: config.RESEND_API_KEY!,
+          from: config.EMAIL_FROM!,
+          to: config.EMAIL_ALERT_TO!,
+        })
+      : undefined;
+    await persistence?.recordOperationalEvent({
+      eventType: "SERVICE_STATUS",
+      severity: "INFO",
+      details: {
+        service: "gemini",
+        status: config.GEMINI_ENABLED ? "configured" : "disabled",
+      },
+    });
     const createBot = (
       settings: DashboardSettings,
       state: Awaited<ReturnType<PostgresPersistence["loadRecoveryState"]>>,
@@ -157,6 +193,7 @@ async function main(): Promise<void> {
           : {}),
         maxTradesPerInterval: settings.maxTrades,
         tradeIntervalMinutes: settings.intervalMinutes,
+        ...(emailAlerts ? { emailAlerts } : {}),
       });
     };
 
@@ -298,12 +335,40 @@ async function main(): Promise<void> {
           }
         }
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         console.error(
           JSON.stringify({
             event: "cycle_failed",
-            error: error instanceof Error ? error.message : String(error),
+            error: message,
           }),
         );
+        await persistence?.recordOperationalEvent({
+          eventType: message.includes("no closed candles") ? "CANDLES_MISSING" : "CYCLE_ERROR",
+          severity: "ERROR",
+          symbol: tradingSettings.symbol,
+          details: { error: message },
+        }).catch((persistError) => {
+          console.error(JSON.stringify({
+            event: "operational_event_persist_failed",
+            error: persistError instanceof Error ? persistError.message : String(persistError),
+          }));
+        });
+        if (message.includes("no closed candles") || message.toLowerCase().includes("market")) {
+          await persistence?.recordOperationalEvent({
+            eventType: "SERVICE_STATUS",
+            severity: "ERROR",
+            details: {
+              service: config.MARKET_DATA_PROVIDER,
+              status: "unhealthy",
+              error: message,
+            },
+          }).catch((persistError) => {
+            console.error(JSON.stringify({
+              event: "operational_event_persist_failed",
+              error: persistError instanceof Error ? persistError.message : String(persistError),
+            }));
+          });
+        }
       }
 
       if (!stopping) {
