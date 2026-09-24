@@ -48,6 +48,7 @@ export class TradingBot {
       this.options.symbol,
       this.options.candleLimit,
     );
+    await this.recordServiceStatus("market-data", "ok");
     const latest = candles.at(-1);
     if (!latest) throw new Error("Market data provider returned no closed candles");
 
@@ -86,6 +87,7 @@ export class TradingBot {
         throw error;
       }
       this.logPaperResult(candle, paperResult, true);
+      await this.sendTradeAlerts(paperResult.events, true);
       this.lastProcessedCandle = candle.timestamp;
     }
 
@@ -107,17 +109,18 @@ export class TradingBot {
     if (signal.action === "BUY" && this.options.ai) {
       try {
         aiDecision = await this.options.ai.evaluate(signal);
-        } catch (error) {
-          this.demoExecutionBlocked = true;
-          console.error(
+      } catch (error) {
+        this.demoExecutionBlocked = true;
+        console.error(
           JSON.stringify({
             event: "ai_filter_failed_closed",
             error: error instanceof Error ? error.message : String(error),
           }),
         );
-          await this.recordOperationalEvent("AI_ERROR", "ERROR", {
-            error: error instanceof Error ? error.message : String(error),
-          });
+        await this.recordOperationalEvent("AI_ERROR", "ERROR", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        await this.recordServiceStatus("gemini", "unhealthy", error);
       }
     }
 
@@ -145,6 +148,7 @@ export class TradingBot {
           approved,
         },
       });
+      await this.recordServiceStatus("postgresql", "ok");
     } catch (error) {
       this.options.paperTrader.restoreState(previousState);
       throw error;
@@ -198,6 +202,7 @@ export class TradingBot {
               currentCandle.timestamp,
               demoResult,
             );
+            await this.recordServiceStatus("postgresql", "ok");
           } catch (error) {
             console.error(
               JSON.stringify({
@@ -211,6 +216,7 @@ export class TradingBot {
               operation: "record_demo_order",
               error: error instanceof Error ? error.message : String(error),
             });
+            await this.recordServiceStatus("postgresql", "unhealthy", error);
           }
           console.log(
             JSON.stringify({
@@ -222,6 +228,7 @@ export class TradingBot {
               result: demoResult,
             }),
           );
+          await this.recordServiceStatus("okx-demo", "ok");
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -254,6 +261,7 @@ export class TradingBot {
         await this.recordOperationalEvent("OKX_ORDER_ERROR", "ERROR", {
           error: message,
         });
+        await this.recordServiceStatus("okx-demo", "unhealthy", error);
       }
     }
 
@@ -272,29 +280,7 @@ export class TradingBot {
     );
 
     this.logPaperResult(currentCandle, paperResult, false);
-    if (this.options.emailAlerts) {
-      for (const trade of paperResult.events) {
-        try {
-          if (trade.type === "OPENED") {
-            await this.options.emailAlerts.sendOpened(this.options.symbol, trade);
-          } else {
-            await this.options.emailAlerts.sendClosed(this.options.symbol, trade);
-          }
-          console.log(JSON.stringify({
-            event: "trade_email_alert_sent",
-            symbol: this.options.symbol,
-            tradeType: trade.type,
-          }));
-        } catch (error) {
-          console.error(JSON.stringify({
-            event: "trade_email_alert_failed",
-            symbol: this.options.symbol,
-            tradeType: trade.type,
-            error: error instanceof Error ? error.message : String(error),
-          }));
-        }
-      }
-    }
+    await this.sendTradeAlerts(paperResult.events, false);
   }
 
   private logPaperResult(
@@ -332,8 +318,10 @@ export class TradingBot {
     severity: "INFO" | "WARN" | "ERROR",
     details: Record<string, unknown>,
   ): Promise<void> {
+    const record = this.options.persistence?.recordOperationalEvent;
+    if (typeof record !== "function") return;
     try {
-      await this.options.persistence?.recordOperationalEvent({
+      await record.call(this.options.persistence, {
         eventType,
         severity,
         symbol: this.options.symbol,
@@ -343,6 +331,62 @@ export class TradingBot {
       console.error(JSON.stringify({
         event: "operational_event_persist_failed",
         error: error instanceof Error ? error.message : String(error),
+      }));
+    }
+  }
+
+  private async sendTradeAlerts(
+    events: PaperCycleResult["events"],
+    replayed: boolean,
+  ): Promise<void> {
+    if (!this.options.emailAlerts) return;
+    for (const trade of events) {
+      try {
+        if (trade.type === "OPENED") {
+          await this.options.emailAlerts.sendOpened(this.options.symbol, trade);
+        } else {
+          await this.options.emailAlerts.sendClosed(this.options.symbol, trade);
+        }
+        console.log(JSON.stringify({
+          event: "trade_email_alert_sent",
+          symbol: this.options.symbol,
+          tradeType: trade.type,
+          replayed,
+        }));
+      } catch (error) {
+        console.error(JSON.stringify({
+          event: "trade_email_alert_failed",
+          symbol: this.options.symbol,
+          tradeType: trade.type,
+          replayed,
+          error: error instanceof Error ? error.message : String(error),
+        }));
+      }
+    }
+  }
+
+  private async recordServiceStatus(
+    service: string,
+    status: "ok" | "unhealthy" | "disabled" | "configured",
+    error?: unknown,
+  ): Promise<void> {
+    const record = this.options.persistence?.recordOperationalEvent;
+    if (typeof record !== "function") return;
+    try {
+      await record.call(this.options.persistence, {
+        eventType: "SERVICE_STATUS",
+        severity: status === "unhealthy" ? "ERROR" : "INFO",
+        symbol: this.options.symbol,
+        details: {
+          service,
+          status,
+          ...(error ? { error: error instanceof Error ? error.message : String(error) } : {}),
+        },
+      });
+    } catch (persistError) {
+      console.error(JSON.stringify({
+        event: "operational_event_persist_failed",
+        error: persistError instanceof Error ? persistError.message : String(persistError),
       }));
     }
   }

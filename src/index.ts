@@ -353,6 +353,22 @@ async function main(): Promise<void> {
             error: persistError instanceof Error ? persistError.message : String(persistError),
           }));
         });
+        if (message.includes("no closed candles") || message.toLowerCase().includes("market")) {
+          await persistence?.recordOperationalEvent({
+            eventType: "SERVICE_STATUS",
+            severity: "ERROR",
+            details: {
+              service: config.MARKET_DATA_PROVIDER,
+              status: "unhealthy",
+              error: message,
+            },
+          }).catch((persistError) => {
+            console.error(JSON.stringify({
+              event: "operational_event_persist_failed",
+              error: persistError instanceof Error ? persistError.message : String(persistError),
+            }));
+          });
+        }
       }
 
       if (!stopping) {
