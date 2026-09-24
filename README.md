@@ -59,6 +59,11 @@ Variáveis principais:
 - `PAPER_SLIPPAGE_RATE=0.0005` (0,05%)
 - `PAPER_STOP_LOSS_RATE=0.01` (1%)
 - `PAPER_TAKE_PROFIT_RATE=0.02` (2%)
+- `RISK_MAX_EXPOSURE_PERCENT=0.25` (exposição máxima de 25% do patrimônio)
+- `RISK_PER_TRADE_PERCENT=0.01` (risco estimado máximo de 1% por operação)
+- `RISK_MAX_DAILY_LOSS_PERCENT=0.03` (pausa ao perder 3% no dia)
+- `RISK_MAX_DRAWDOWN_PERCENT=0.10` (pausa ao atingir 10% de drawdown)
+- `RISK_MAX_TRADES_PER_HOUR=3` (referência operacional; o limite efetivo por intervalo é ajustável no painel)
 - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
 - `DATABASE_CONNECTION_TIMEOUT_MS=10000`
 - `DASHBOARD_PASSWORD`: senha exclusiva do painel
