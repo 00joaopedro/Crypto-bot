@@ -133,7 +133,7 @@ export class TradingBot {
           : "AI filter is not called for HOLD signals",
     };
 
-    if (signal.action === "BUY" && this.options.ai) {
+    if (signal.action === "BUY" && currentSymbolSelected && this.options.ai) {
       try {
         aiDecision = await this.options.ai.evaluate(signal);
       } catch (error) {
@@ -333,12 +333,19 @@ export class TradingBot {
     for (const symbol of symbols) {
       if (symbol === this.options.symbol) continue;
       try {
-        const candles = await this.market.fetchClosedCandles(symbol, this.options.candleLimit);
-        if (
-          candles.length >= 50 &&
-          candles.at(-1)?.timestamp === currentCandles.at(-1)?.timestamp
-        ) {
-          candidates.push({ symbol, candles });
+        const targetTimestamp = currentCandles.at(-1)?.timestamp;
+        const candles = await this.market.fetchClosedCandles(
+          symbol,
+          this.options.candleLimit + 5,
+        );
+        const targetIndex = targetTimestamp === undefined
+          ? -1
+          : candles.findIndex((candle) => candle.timestamp === targetTimestamp);
+        if (targetIndex >= 0) {
+          const alignedCandles = candles.slice(0, targetIndex + 1);
+          if (alignedCandles.length >= 50) {
+            candidates.push({ symbol, candles: alignedCandles });
+          }
         }
       } catch (error) {
         console.error(JSON.stringify({
