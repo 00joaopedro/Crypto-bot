@@ -109,4 +109,27 @@ describe("PaperTrader", () => {
     expect(result.events[0]?.type).toBe("CLOSED");
     expect(result.snapshot.positionQuantity).toBe(0);
   });
+
+  it("restores the complete portfolio state after a restart", () => {
+    const original = new PaperTrader(options);
+    original.processCandle(candle(1, 100), false);
+    original.processCandle(candle(2, 101), true);
+
+    const restored = new PaperTrader(options, original.exportState());
+    expect(restored.exportState()).toEqual(original.exportState());
+
+    const next = candle(3, 103, 102, 104);
+    expect(restored.processCandle(next, false)).toEqual(
+      original.processCandle(next, false),
+    );
+  });
+
+  it("rejects corrupted persisted state", () => {
+    const state = new PaperTrader(options).exportState();
+    state.closedTrades = 1;
+
+    expect(() => new PaperTrader(options, state)).toThrow(
+      "Invalid paper trader trade counters",
+    );
+  });
 });

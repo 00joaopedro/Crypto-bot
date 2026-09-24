@@ -9,7 +9,7 @@ export type PaperTraderOptions = {
   takeProfitRate: number;
 };
 
-type Position = {
+export type PaperPosition = {
   entryTimestamp: number;
   entryPrice: number;
   quantity: number;
@@ -17,6 +17,20 @@ type Position = {
   entryFee: number;
   stopLossPrice: number;
   takeProfitPrice: number;
+};
+
+export type PaperTraderState = {
+  version: 1;
+  cashUsdt: number;
+  position: PaperPosition | null;
+  realizedPnlUsdt: number;
+  totalFeesUsdt: number;
+  closedTrades: number;
+  wins: number;
+  losses: number;
+  peakEquityUsdt: number;
+  maxDrawdownPercent: number;
+  benchmarkStartPrice: number | null;
 };
 
 export type PaperTradeOpened = {
@@ -73,7 +87,7 @@ export type PaperCycleResult = {
 
 export class PaperTrader {
   private cashUsdt: number;
-  private position: Position | undefined;
+  private position: PaperPosition | undefined;
   private realizedPnlUsdt = 0;
   private totalFeesUsdt = 0;
   private closedTrades = 0;
@@ -83,7 +97,10 @@ export class PaperTrader {
   private maxDrawdownPercent = 0;
   private benchmarkStartPrice: number | undefined;
 
-  constructor(private readonly options: PaperTraderOptions) {
+  constructor(
+    private readonly options: PaperTraderOptions,
+    restoredState?: PaperTraderState,
+  ) {
     assertPositive(options.initialBalanceUsdt, "initialBalanceUsdt");
     assertPositive(options.tradeSizeUsdt, "tradeSizeUsdt");
     assertRate(options.feeRate, "feeRate");
@@ -93,6 +110,37 @@ export class PaperTrader {
 
     this.cashUsdt = options.initialBalanceUsdt;
     this.peakEquityUsdt = options.initialBalanceUsdt;
+    if (restoredState) this.restoreState(restoredState);
+  }
+
+  exportState(): PaperTraderState {
+    return {
+      version: 1,
+      cashUsdt: this.cashUsdt,
+      position: this.position ? { ...this.position } : null,
+      realizedPnlUsdt: this.realizedPnlUsdt,
+      totalFeesUsdt: this.totalFeesUsdt,
+      closedTrades: this.closedTrades,
+      wins: this.wins,
+      losses: this.losses,
+      peakEquityUsdt: this.peakEquityUsdt,
+      maxDrawdownPercent: this.maxDrawdownPercent,
+      benchmarkStartPrice: this.benchmarkStartPrice ?? null,
+    };
+  }
+
+  restoreState(state: PaperTraderState): void {
+    assertPaperTraderState(state);
+    this.cashUsdt = state.cashUsdt;
+    this.position = state.position ? { ...state.position } : undefined;
+    this.realizedPnlUsdt = state.realizedPnlUsdt;
+    this.totalFeesUsdt = state.totalFeesUsdt;
+    this.closedTrades = state.closedTrades;
+    this.wins = state.wins;
+    this.losses = state.losses;
+    this.peakEquityUsdt = state.peakEquityUsdt;
+    this.maxDrawdownPercent = state.maxDrawdownPercent;
+    this.benchmarkStartPrice = state.benchmarkStartPrice ?? undefined;
   }
 
   processCandle(candle: Candle, buyApproved: boolean): PaperCycleResult {
@@ -121,7 +169,7 @@ export class PaperTrader {
     const entryPrice = candle.close * (1 + this.options.slippageRate);
     const quantity = entryNotional / entryPrice;
     const entryFee = entryNotional * this.options.feeRate;
-    const position: Position = {
+    const position: PaperPosition = {
       entryTimestamp: candle.timestamp,
       entryPrice,
       quantity,
@@ -252,6 +300,59 @@ export class PaperTrader {
         strategyReturn - buyAndHoldReturn,
       ),
     };
+  }
+}
+
+function assertPaperTraderState(state: PaperTraderState): void {
+  if (state.version !== 1) {
+    throw new Error("Unsupported paper trader state version");
+  }
+
+  for (const [field, value] of Object.entries({
+    cashUsdt: state.cashUsdt,
+    totalFeesUsdt: state.totalFeesUsdt,
+    closedTrades: state.closedTrades,
+    wins: state.wins,
+    losses: state.losses,
+    peakEquityUsdt: state.peakEquityUsdt,
+    maxDrawdownPercent: state.maxDrawdownPercent,
+  })) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+      throw new Error(`Invalid paper trader state field: ${field}`);
+    }
+  }
+
+  if (!Number.isFinite(state.realizedPnlUsdt)) {
+    throw new Error("Invalid paper trader state field: realizedPnlUsdt");
+  }
+
+  if (
+    state.benchmarkStartPrice !== null &&
+    (!Number.isFinite(state.benchmarkStartPrice) || state.benchmarkStartPrice <= 0)
+  ) {
+    throw new Error("Invalid paper trader benchmarkStartPrice");
+  }
+
+  if (state.position) {
+    for (const [field, value] of Object.entries(state.position)) {
+      const minimum = field === "entryTimestamp" ? 0 : Number.MIN_VALUE;
+      if (
+        typeof value !== "number" ||
+        !Number.isFinite(value) ||
+        value < minimum
+      ) {
+        throw new Error(`Invalid paper trader position field: ${field}`);
+      }
+    }
+  }
+
+  if (
+    !Number.isInteger(state.closedTrades) ||
+    !Number.isInteger(state.wins) ||
+    !Number.isInteger(state.losses) ||
+    state.wins + state.losses !== state.closedTrades
+  ) {
+    throw new Error("Invalid paper trader trade counters");
   }
 }
 

@@ -15,6 +15,9 @@ Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 7. Quando as duas travas Demo estão habilitadas, envia uma compra Spot virtual à OKX com TP/SL anexados.
 8. Bloqueia duplicidade por candle e novas entradas quando existem ordens abertas no par.
 9. Emite logs de abertura, fechamento, P&L, patrimônio, drawdown e benchmark buy-and-hold.
+10. Persiste decisões, snapshots, operações e estado da carteira no PostgreSQL.
+11. Restaura o último candle e a carteira paper após reinícios da Railway.
+12. Consulta um kill switch persistente antes de acessar o mercado ou executar ordens.
 
 A fonte dos candles não define a corretora de execução. Kraken fornece os candles e a OKX Demo recebe apenas ordens virtuais aprovadas pelas regras quantitativas e pelo filtro de IA.
 
@@ -54,6 +57,8 @@ Variáveis principais:
 - `PAPER_SLIPPAGE_RATE=0.0005` (0,05%)
 - `PAPER_STOP_LOSS_RATE=0.01` (1%)
 - `PAPER_TAKE_PROFIT_RATE=0.02` (2%)
+- `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+- `DATABASE_CONNECTION_TIMEOUT_MS=10000`
 
 Para autorizar ordens com saldo virtual, use o duplo opt-in:
 
@@ -64,12 +69,41 @@ Para autorizar ordens com saldo virtual, use o duplo opt-in:
 - `OKX_DEMO_TAKE_PROFIT_RATE=0.02`
 
 Mesmo em `DEMO`, `LIVE_TRADING_ENABLED` deve permanecer `false`; qualquer outro valor impede a inicialização.
+`DATABASE_URL` também é obrigatória quando `OKX_DEMO_TRADING_ENABLED=true`.
+
+Use uma variável de referência da Railway para `DATABASE_URL`; não copie a URL
+real para o repositório. O processo aplica migrations versionadas e idempotentes
+ao iniciar. Enquanto o PostgreSQL não estiver disponível, a inicialização tenta
+novamente com backoff e nenhuma ordem Demo é enviada.
+
+## Persistência PostgreSQL
+
+O primeiro migration cria:
+
+- `bot_runs`: início, encerramento e configuração não secreta de cada processo;
+- `decisions`: sinal quantitativo, decisão da IA e aprovação por candle;
+- `portfolio_snapshots`: P&L, patrimônio, drawdown e benchmark;
+- `paper_trades`: entradas e saídas paper;
+- `paper_trader_state`: checkpoint usado para recuperação após restart;
+- `demo_orders`: resultado das tentativas de ordem OKX Demo;
+- `bot_control`: kill switch persistente para o futuro painel;
+- `audit_events`: trilha de auditoria reservada para alterações do painel.
+
+Cada ciclo grava snapshot, eventos e checkpoint em uma única transação. Se essa
+transação falhar, o estado em memória volta ao checkpoint anterior e ordens Demo
+não são executadas naquele ciclo. A proteção de duplicidade da OKX continua
+ativa como uma segunda camada.
 
 Consulte [`.env.example`](.env.example) para a lista completa.
 
 ## Eventos de log
 
 - `bot_started`: configuração efetiva, sem segredos;
+- `database_connected`: migrations concluídas e estado restaurado, quando existir;
+- `database_initialization_failed`: conexão/migration falhou e será repetida;
+- `database_write_failed`: escrita auxiliar falhou sem expor credenciais;
+- `database_write_failed_after_order`: a ordem foi enviada, mas seu resultado não pôde ser persistido;
+- `persistence_disabled`: execução LOG_ONLY sem `DATABASE_URL`;
 - `okx_demo_connected`: mercados e saldo Demo foram consultados com sucesso;
 - `okx_demo_execution_armed`: as duas travas Demo foram habilitadas;
 - `execution_disabled`: a integração OKX continua somente leitura;
@@ -86,12 +120,12 @@ Se Stop-Loss e Take-Profit forem tocados no mesmo candle, o simulador escolhe St
 
 ## Limitações deliberadas
 
-- não há persistência local de posição; a proteção contra reinício consulta a OKX por ID determinístico e ordens abertas;
-- a idempotência persistente será reforçada pelo PostgreSQL no próximo marco;
 - não existe execução em conta real;
-- a carteira fica em memória e reinicia após um novo deploy;
-- logs ainda não são um histórico persistente;
 - os resultados não garantem desempenho futuro;
-- a comparação começa no primeiro candle processado após o processo iniciar.
+- o histórico começa a ser acumulado somente após o deploy deste marco;
+- o painel web e a autenticação dos controles ainda não fazem parte deste marco.
 
-Persistência PostgreSQL e painel serão adicionados em marcos separados. Antes de habilitar Bybit Testnet serão necessários idempotência persistente, consulta de saldo e mercado, precisão de quantidade/preço, confirmação de preenchimento, kill switch e limites de exposição/perda.
+O painel será adicionado no próximo marco, consumindo as tabelas persistentes.
+Antes de habilitar qualquer conta real ainda serão necessários autenticação forte
+do painel, confirmação/reconciliação de preenchimentos, limites de exposição e
+perda diária e uma etapa de validação prolongada em ambiente Demo.
