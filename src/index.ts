@@ -47,6 +47,8 @@ async function main(): Promise<void> {
   let runId: string | undefined;
   let dashboardServer: Server | undefined;
   let okxDemo: OkxDemoExecutor | undefined;
+  let bot: TradingBot;
+  let reconfiguring = false;
   let tradingSettings: DashboardSettings = {
     symbol: config.SYMBOL,
     orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
@@ -118,61 +120,44 @@ async function main(): Promise<void> {
       if (stopping) return;
     }
 
-    if (
-      persistence &&
-      config.DASHBOARD_PASSWORD &&
-      config.DASHBOARD_SESSION_SECRET
-    ) {
-      const marketSymbols = new Set(market.listSpotSymbols());
-      const executionSymbols = okxDemo?.listSpotSymbols() ?? [...marketSymbols];
-      const supportedSymbols = executionSymbols.filter((symbol) =>
-        marketSymbols.has(symbol),
-      );
-      dashboardServer = await startDashboard({
-        port: config.PORT,
-        password: config.DASHBOARD_PASSWORD,
-        sessionSecret: config.DASHBOARD_SESSION_SECRET,
-        persistence,
-        supportedSymbols,
-        onSettingsChanged: () => {
-          process.exitCode = 75;
-          stop();
-        },
-      });
-    } else {
-      console.log(JSON.stringify({ event: "dashboard_disabled" }));
-    }
-
     const ai = config.GEMINI_ENABLED
       ? new GeminiRiskFilter(config.GEMINI_API_KEY!, config.GEMINI_MODEL)
       : undefined;
-    const paperTrader = new PaperTrader(
-      {
-        initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
-        tradeSizeUsdt:
-          tradingSettings.paperTradeSizeUsdt ?? config.PAPER_TRADE_SIZE_USDT,
-        feeRate: config.PAPER_FEE_RATE,
-        slippageRate: config.PAPER_SLIPPAGE_RATE,
-        stopLossRate: config.PAPER_STOP_LOSS_RATE,
-        takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
-      },
-      recoveryState?.paperState,
-    );
+    const createBot = (
+      settings: DashboardSettings,
+      state: Awaited<ReturnType<PostgresPersistence["loadRecoveryState"]>>,
+      demoExecutor: OkxDemoExecutor | undefined,
+    ): TradingBot => {
+      const paperTrader = new PaperTrader(
+        {
+          initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
+          tradeSizeUsdt:
+            settings.paperTradeSizeUsdt ?? config.PAPER_TRADE_SIZE_USDT,
+          feeRate: config.PAPER_FEE_RATE,
+          slippageRate: config.PAPER_SLIPPAGE_RATE,
+          stopLossRate: config.PAPER_STOP_LOSS_RATE,
+          takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+        },
+        state?.paperState,
+      );
 
-    const bot = new TradingBot(market, {
-      symbol: tradingSettings.symbol,
-      candleLimit: config.CANDLE_LIMIT,
-      minimumConfidence: config.MIN_AI_CONFIDENCE,
-      paperTrader,
-      ...(okxDemo ? { demoExecutor: okxDemo } : {}),
-      ...(ai ? { ai } : {}),
-      ...(persistence ? { persistence } : {}),
-      ...(recoveryState
-        ? { initialLastProcessedCandle: recoveryState.lastProcessedCandle }
-        : {}),
-      maxTradesPerInterval: tradingSettings.maxTrades,
-      tradeIntervalMinutes: tradingSettings.intervalMinutes,
-    });
+      return new TradingBot(market, {
+        symbol: settings.symbol,
+        candleLimit: config.CANDLE_LIMIT,
+        minimumConfidence: config.MIN_AI_CONFIDENCE,
+        paperTrader,
+        ...(demoExecutor ? { demoExecutor } : {}),
+        ...(ai ? { ai } : {}),
+        ...(persistence ? { persistence } : {}),
+        ...(state
+          ? { initialLastProcessedCandle: state.lastProcessedCandle }
+          : {}),
+        maxTradesPerInterval: settings.maxTrades,
+        tradeIntervalMinutes: settings.intervalMinutes,
+      });
+    };
+
+    bot = createBot(tradingSettings, recoveryState, okxDemo);
 
     console.log(
       JSON.stringify({
@@ -201,9 +186,89 @@ async function main(): Promise<void> {
       }),
     );
 
+    if (
+      persistence &&
+      config.DASHBOARD_PASSWORD &&
+      config.DASHBOARD_SESSION_SECRET
+    ) {
+      const marketSymbols = new Set(market.listSpotSymbols());
+      const executionSymbols = okxDemo?.listSpotSymbols() ?? [...marketSymbols];
+      const supportedSymbols = executionSymbols.filter((symbol) =>
+        marketSymbols.has(symbol),
+      );
+
+      const reconfigure = async (): Promise<void> => {
+        if (stopping || reconfiguring) return;
+        reconfiguring = true;
+        try {
+          const nextSettings = await persistence.getDashboardSettings();
+          const nextRecoveryState = await persistence.loadRecoveryState(
+            nextSettings.symbol,
+          );
+          let nextOkxDemo: OkxDemoExecutor | undefined;
+
+          if (config.EXECUTION_PROVIDER === "okx-demo") {
+            nextOkxDemo = new OkxDemoExecutor(
+              {
+                apiKey: config.OKX_API_KEY!,
+                secretKey: config.OKX_SECRET_KEY!,
+                passphrase: config.OKX_PASSPHRASE!,
+              },
+              {
+                symbol: nextSettings.symbol,
+                tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
+                orderSizeUsdt: nextSettings.orderSizeUsdt,
+                stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
+                takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
+              },
+            );
+            await initializeOkxDemoWithBackoff(
+              nextOkxDemo,
+              nextSettings,
+              shutdownController.signal,
+            );
+          }
+
+          const previousOkxDemo = okxDemo;
+          tradingSettings = nextSettings;
+          recoveryState = nextRecoveryState;
+          okxDemo = nextOkxDemo;
+          bot = createBot(nextSettings, nextRecoveryState, nextOkxDemo);
+          await previousOkxDemo?.close();
+
+          console.log(
+            JSON.stringify({
+              event: "bot_reconfigured",
+              symbol: nextSettings.symbol,
+              orderSizeUsdt: nextSettings.orderSizeUsdt,
+              maxTrades: nextSettings.maxTrades,
+              intervalMinutes: nextSettings.intervalMinutes,
+            }),
+          );
+        } finally {
+          reconfiguring = false;
+        }
+      };
+
+      dashboardServer = await startDashboard({
+        port: config.PORT,
+        password: config.DASHBOARD_PASSWORD,
+        sessionSecret: config.DASHBOARD_SESSION_SECRET,
+        persistence,
+        supportedSymbols,
+        onSettingsChanged: reconfigure,
+      });
+    } else {
+      console.log(JSON.stringify({ event: "dashboard_disabled" }));
+    }
+
     while (!stopping) {
       try {
-        await bot.runCycle();
+        if (reconfiguring) {
+          console.log(JSON.stringify({ event: "cycle_skipped", reason: "bot_reconfiguring" }));
+        } else {
+          await bot.runCycle();
+        }
       } catch (error) {
         console.error(
           JSON.stringify({
