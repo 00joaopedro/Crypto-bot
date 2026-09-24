@@ -49,6 +49,9 @@ async function main(): Promise<void> {
   let okxDemo: OkxDemoExecutor | undefined;
   let bot: TradingBot;
   let reconfiguring = false;
+  let activeCycle: Promise<void> | undefined;
+  let reconfigurationRequested = false;
+  let reconfigurationPromise: Promise<void> | undefined;
   let tradingSettings: DashboardSettings = {
     symbol: config.SYMBOL,
     orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
@@ -197,15 +200,17 @@ async function main(): Promise<void> {
         marketSymbols.has(symbol),
       );
 
-      const reconfigure = async (): Promise<void> => {
-        if (stopping || reconfiguring) return;
+      const applyLatestSettings = async (): Promise<void> => {
         reconfiguring = true;
+        let nextOkxDemo: OkxDemoExecutor | undefined;
         try {
+          // Wait for the current cycle before replacing the bot or closing its
+          // executor. A cycle may still be placing an order or persisting it.
+          await activeCycle;
           const nextSettings = await persistence.getDashboardSettings();
           const nextRecoveryState = await persistence.loadRecoveryState(
             nextSettings.symbol,
           );
-          let nextOkxDemo: OkxDemoExecutor | undefined;
 
           if (config.EXECUTION_PROVIDER === "okx-demo") {
             nextOkxDemo = new OkxDemoExecutor(
@@ -250,6 +255,23 @@ async function main(): Promise<void> {
         }
       };
 
+      const reconfigure = (): Promise<void> => {
+        // Serialize concurrent dashboard saves and apply the latest persisted
+        // settings instead of dropping a request received during initialization.
+        reconfigurationRequested = true;
+        if (!reconfigurationPromise) {
+          reconfigurationPromise = (async () => {
+            while (reconfigurationRequested && !stopping) {
+              reconfigurationRequested = false;
+              await applyLatestSettings();
+            }
+          })().finally(() => {
+            reconfigurationPromise = undefined;
+          });
+        }
+        return reconfigurationPromise;
+      };
+
       dashboardServer = await startDashboard({
         port: config.PORT,
         password: config.DASHBOARD_PASSWORD,
@@ -267,7 +289,13 @@ async function main(): Promise<void> {
         if (reconfiguring) {
           console.log(JSON.stringify({ event: "cycle_skipped", reason: "bot_reconfiguring" }));
         } else {
-          await bot.runCycle();
+          const cycle = bot.runCycle();
+          activeCycle = cycle;
+          try {
+            await cycle;
+          } finally {
+            if (activeCycle === cycle) activeCycle = undefined;
+          }
         }
       } catch (error) {
         console.error(
