@@ -15,6 +15,9 @@ type BotOptions = {
   minimumConfidence: number;
   minimumSignalScore?: number;
   signalScanSymbols?: string[];
+  dynamicUniverseSize?: number;
+  marketMinQuoteVolumeUsdt?: number;
+  marketMaxSpreadPercent?: number;
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy">;
   ai?: GeminiRiskFilter;
@@ -400,7 +403,19 @@ export class TradingBot {
   }
 
   private async scanSignals(currentCandles: Candle[]): Promise<RankedSignal[]> {
-    const symbols = [...new Set(this.options.signalScanSymbols ?? [this.options.symbol])];
+    const dynamicSymbols = this.options.dynamicUniverseSize &&
+      typeof this.market.selectSpotSymbols === "function"
+      ? await this.market.selectSpotSymbols({
+          limit: this.options.dynamicUniverseSize,
+          minQuoteVolume: this.options.marketMinQuoteVolumeUsdt ?? 1_000_000,
+          maxSpreadPercent: this.options.marketMaxSpreadPercent ?? 1,
+        })
+      : [];
+    const symbols = [...new Set([
+      this.options.symbol,
+      ...dynamicSymbols,
+      ...(this.options.signalScanSymbols ?? []),
+    ])].slice(0, this.options.dynamicUniverseSize ?? 10);
     const candidates: Array<{ symbol: string; candles: Candle[] }> = [
       { symbol: this.options.symbol, candles: currentCandles },
     ];

@@ -220,6 +220,9 @@ async function main(): Promise<void> {
         maxDailyLossPercent: config.RISK_MAX_DAILY_LOSS_PERCENT,
         maxDrawdownPercent: config.RISK_MAX_DRAWDOWN_PERCENT,
         signalScanSymbols: signalScanSymbolsFor(settings.symbol),
+        dynamicUniverseSize: config.DYNAMIC_UNIVERSE_SIZE,
+        marketMinQuoteVolumeUsdt: config.MARKET_MIN_QUOTE_VOLUME_USDT,
+        marketMaxSpreadPercent: config.MARKET_MAX_SPREAD_PERCENT,
         ...(emailAlerts ? { emailAlerts } : {}),
       });
     };
