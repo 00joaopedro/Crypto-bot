@@ -30,6 +30,7 @@ type BotOptions = {
   atrMaxStopRate?: number;
   fallbackStopLossRate?: number;
   fallbackTakeProfitRate?: number;
+  entryCooldownMinutes?: number;
   maxExposurePercent?: number;
   riskPerTradePercent?: number;
   maxDailyLossPercent?: number;
@@ -149,7 +150,26 @@ export class TradingBot {
           : "AI filter is not called for HOLD signals",
     };
 
-    if (signal.action === "BUY" && currentSymbolSelected && this.options.ai) {
+    const cooldownBlocked = Boolean(
+      signal.action === "BUY" &&
+      currentSymbolSelected &&
+      this.options.persistence &&
+      this.options.entryCooldownMinutes !== undefined &&
+      typeof this.options.persistence.canEnterSymbol === "function" &&
+      !(await this.options.persistence.canEnterSymbol?.(this.options.symbol, this.options.entryCooldownMinutes)),
+    );
+    if (cooldownBlocked) {
+      await this.recordOperationalEvent("COOLDOWN_BLOCK", "INFO", {
+        cooldownMinutes: this.options.entryCooldownMinutes,
+      });
+      console.log(JSON.stringify({
+        event: "trade_blocked_by_cooldown",
+        symbol: this.options.symbol,
+        cooldownMinutes: this.options.entryCooldownMinutes,
+      }));
+    }
+
+    if (signal.action === "BUY" && currentSymbolSelected && !cooldownBlocked && this.options.ai) {
       try {
         aiDecision = await this.options.ai.evaluate(signal);
       } catch (error) {
@@ -171,7 +191,8 @@ export class TradingBot {
       signal.action === "BUY" &&
       aiDecision.approve &&
       aiDecision.confidence >= this.options.minimumConfidence &&
-      currentSymbolSelected;
+      currentSymbolSelected &&
+      !cooldownBlocked;
 
     const riskBlock = approved ? this.riskBlockReason(exitRates) : undefined;
     if (riskBlock) {

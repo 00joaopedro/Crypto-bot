@@ -211,6 +211,7 @@ async function main(): Promise<void> {
         atrMaxStopRate: config.ATR_MAX_STOP_RATE,
         fallbackStopLossRate: config.PAPER_STOP_LOSS_RATE,
         fallbackTakeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+        entryCooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
         maxExposurePercent: config.RISK_MAX_EXPOSURE_PERCENT,
         riskPerTradePercent: config.RISK_PER_TRADE_PERCENT,
         maxDailyLossPercent: config.RISK_MAX_DAILY_LOSS_PERCENT,
