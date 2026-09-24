@@ -67,6 +67,7 @@ const schema = z
     RISK_MAX_DAILY_LOSS_PERCENT: z.coerce.number().gt(0).max(1).default(0.03),
     RISK_MAX_DRAWDOWN_PERCENT: z.coerce.number().gt(0).max(1).default(0.1),
     RISK_MAX_TRADES_PER_HOUR: z.coerce.number().int().min(1).max(100).default(3),
+    ENTRY_COOLDOWN_MINUTES: z.coerce.number().int().min(0).max(10_080).default(60),
     EMAIL_ALERTS_ENABLED: booleanString,
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: optionalTrimmedString,

@@ -72,6 +72,7 @@ export interface BotPersistence {
     error: string,
   ): Promise<void>;
   canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean>;
+  canEnterSymbol?(symbol: string, cooldownMinutes: number): Promise<boolean>;
   recordOperationalEvent(event: OperationalEvent): Promise<void>;
   getDailyStartEquity?(symbol: string): Promise<number | undefined>;
 }
@@ -299,6 +300,16 @@ export class PostgresPersistence implements BotPersistence {
       [intervalMinutes],
     );
     return Number(result.rows[0]?.count ?? 0) < maxTrades;
+  }
+
+  async canEnterSymbol(symbol: string, cooldownMinutes: number): Promise<boolean> {
+    const result = await this.pool.query<{ last_entry: Date | null }>(
+      `SELECT MAX(created_at) AS last_entry FROM paper_trades
+       WHERE symbol = $1 AND event_type = 'OPENED'
+         AND created_at >= NOW() - ($2 * INTERVAL '1 minute')`,
+      [symbol, cooldownMinutes],
+    );
+    return !result.rows[0]?.last_entry;
   }
 
   async recordOperationalEvent(event: OperationalEvent): Promise<void> {

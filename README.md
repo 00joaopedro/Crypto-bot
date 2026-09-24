@@ -64,6 +64,7 @@ Variáveis principais:
 - `RISK_MAX_DAILY_LOSS_PERCENT=0.03` (pausa ao perder 3% no dia)
 - `RISK_MAX_DRAWDOWN_PERCENT=0.10` (pausa ao atingir 10% de drawdown)
 - `RISK_MAX_TRADES_PER_HOUR=3` (referência operacional; o limite efetivo por intervalo é ajustável no painel)
+- `ENTRY_COOLDOWN_MINUTES=60` (intervalo mínimo entre novas entradas no mesmo par)
 - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
 - `DATABASE_CONNECTION_TIMEOUT_MS=10000`
 - `DASHBOARD_PASSWORD`: senha exclusiva do painel

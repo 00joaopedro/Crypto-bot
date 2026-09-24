@@ -30,6 +30,7 @@ type BotOptions = {
   atrMaxStopRate?: number;
   fallbackStopLossRate?: number;
   fallbackTakeProfitRate?: number;
+  entryCooldownMinutes?: number;
   maxExposurePercent?: number;
   riskPerTradePercent?: number;
   maxDailyLossPercent?: number;
@@ -42,6 +43,7 @@ export class TradingBot {
   private demoExecutionBlocked = false;
   private dailyDate = new Date().toISOString().slice(0, 10);
   private dailyStartEquity: number | undefined;
+  private readonly lastEntryAtBySymbol = new Map<string, number>();
 
   constructor(
     private readonly market: PublicMarketData,
@@ -149,7 +151,28 @@ export class TradingBot {
           : "AI filter is not called for HOLD signals",
     };
 
-    if (signal.action === "BUY" && currentSymbolSelected && this.options.ai) {
+    let cooldownBlocked = false;
+    if (signal.action === "BUY" && currentSymbolSelected && this.options.entryCooldownMinutes !== undefined) {
+      const cooldownMs = this.options.entryCooldownMinutes * 60_000;
+      if (this.options.persistence && typeof this.options.persistence.canEnterSymbol === "function") {
+        cooldownBlocked = !(await this.options.persistence.canEnterSymbol(this.options.symbol, this.options.entryCooldownMinutes));
+      } else {
+        const lastEntryAt = this.lastEntryAtBySymbol.get(this.options.symbol);
+        cooldownBlocked = lastEntryAt !== undefined && currentCandle.timestamp - lastEntryAt < cooldownMs;
+      }
+    }
+    if (cooldownBlocked) {
+      await this.recordOperationalEvent("COOLDOWN_BLOCK", "INFO", {
+        cooldownMinutes: this.options.entryCooldownMinutes,
+      });
+      console.log(JSON.stringify({
+        event: "trade_blocked_by_cooldown",
+        symbol: this.options.symbol,
+        cooldownMinutes: this.options.entryCooldownMinutes,
+      }));
+    }
+
+    if (signal.action === "BUY" && currentSymbolSelected && !cooldownBlocked && this.options.ai) {
       try {
         aiDecision = await this.options.ai.evaluate(signal);
       } catch (error) {
@@ -171,7 +194,8 @@ export class TradingBot {
       signal.action === "BUY" &&
       aiDecision.approve &&
       aiDecision.confidence >= this.options.minimumConfidence &&
-      currentSymbolSelected;
+      currentSymbolSelected &&
+      !cooldownBlocked;
 
     const riskBlock = approved ? this.riskBlockReason(exitRates) : undefined;
     if (riskBlock) {
@@ -208,6 +232,9 @@ export class TradingBot {
     } catch (error) {
       this.options.paperTrader.restoreState(previousState);
       throw error;
+    }
+    if (paperResult.events.some((event) => event.type === "OPENED")) {
+      this.lastEntryAtBySymbol.set(this.options.symbol, currentCandle.timestamp);
     }
     this.lastProcessedCandle = currentCandle.timestamp;
 
