@@ -43,6 +43,13 @@ export class PublicMarketData {
       .slice(-limit);
   }
 
+  listSpotSymbols(quote = "USDT"): string[] {
+    return Object.values(this.exchange.markets ?? {})
+      .filter((market) => market.spot && market.active !== false && market.quote === quote)
+      .map((market) => market.symbol)
+      .sort();
+  }
+
   async close(): Promise<void> {
     await this.exchange.close();
   }

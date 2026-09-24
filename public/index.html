@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Crypto Bot · Controle</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <section id="login" class="login-shell">
+    <form id="login-form" class="login-card">
+      <div class="brand-mark">CB</div>
+      <p class="eyebrow">PAINEL PROTEGIDO</p>
+      <h1>Crypto Bot</h1>
+      <p class="muted">Acompanhe e controle suas operações no ambiente Demo.</p>
+      <label>Senha do painel<input id="password" type="password" autocomplete="current-password" required></label>
+      <button class="primary" type="submit">Entrar no painel</button>
+      <p id="login-error" class="error" role="alert"></p>
+    </form>
+  </section>
+
+  <div id="dashboard" class="app" hidden>
+    <header class="topbar">
+      <div><p class="eyebrow">OKX DEMO</p><h1>Crypto Bot</h1></div>
+      <div class="top-actions">
+        <span id="connection" class="status"><i></i> Online</span>
+        <button id="theme" class="icon-button" aria-label="Alternar tema">☾</button>
+        <button id="logout" class="ghost">Sair</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero panel">
+        <div><p class="eyebrow">CONTROLE OPERACIONAL</p><h2>Visão geral da estratégia</h2><p class="muted">Dados do PostgreSQL atualizados automaticamente.</p></div>
+        <button id="toggle-bot" class="danger">Pausar bot</button>
+      </section>
+
+      <section class="metrics" aria-label="Indicadores principais">
+        <article class="metric"><span>Patrimônio paper</span><strong id="equity">—</strong><small id="strategy-return">Retorno —</small></article>
+        <article class="metric"><span>P&amp;L realizado</span><strong id="pnl">—</strong><small id="unrealized">Não realizado —</small></article>
+        <article class="metric"><span>Win rate</span><strong id="win-rate">—</strong><small id="closed-trades">0 trades fechados</small></article>
+        <article class="metric"><span>Drawdown máximo</span><strong id="drawdown">—</strong><small id="fees">Taxas —</small></article>
+      </section>
+
+      <section class="layout">
+        <article class="panel chart-panel">
+          <div class="section-head"><div><p class="eyebrow">DESEMPENHO</p><h2>Estratégia × comprar e manter</h2></div><span id="chart-range" class="pill">Últimos registros</span></div>
+          <div class="chart-wrap"><canvas id="performance-chart" aria-label="Gráfico de desempenho"></canvas></div>
+          <div class="legend"><span><i class="strategy-dot"></i>Estratégia</span><span><i class="benchmark-dot"></i>Buy &amp; Hold</span></div>
+        </article>
+
+        <article class="panel settings-panel">
+          <div class="section-head"><div><p class="eyebrow">ESTRATÉGIA</p><h2>Configuração</h2></div><span class="pill">Spot · 15m</span></div>
+          <form id="settings-form">
+            <label>Par negociado<input id="symbol" list="symbols" autocomplete="off" required><datalist id="symbols"></datalist></label>
+            <div class="form-grid">
+              <label>Valor por trade (USDT)<input id="order-size" type="number" min="1" max="100" step="0.01" required></label>
+              <label>Máximo de trades<input id="max-trades" type="number" min="1" max="100" required></label>
+            </div>
+            <label>Intervalo do limite<select id="interval"><option value="15">15 minutos</option><option value="60">1 hora</option><option value="240">4 horas</option><option value="1440">1 dia</option><option value="10080">1 semana</option></select></label>
+            <p class="hint">O limite conta apenas ordens Demo efetivamente enviadas. Salvar reinicia o worker de forma controlada.</p>
+            <button class="primary" type="submit">Salvar e aplicar</button>
+            <p id="settings-message" class="message" role="status"></p>
+          </form>
+        </article>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="panel"><div class="section-head"><div><p class="eyebrow">SINAL ATUAL</p><h2>Última decisão</h2></div><span id="decision-action" class="pill">—</span></div><div id="decision" class="decision-copy">Aguardando dados…</div></article>
+        <article class="panel table-panel"><div class="section-head"><div><p class="eyebrow">ATIVIDADE</p><h2>Ordens e trades recentes</h2></div></div><div class="table-scroll"><table><thead><tr><th>Data</th><th>Par</th><th>Tipo</th><th>Status / Resultado</th></tr></thead><tbody id="activity"></tbody></table></div></article>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

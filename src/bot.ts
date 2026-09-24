@@ -15,10 +15,13 @@ type BotOptions = {
   ai?: GeminiRiskFilter;
   persistence?: BotPersistence;
   initialLastProcessedCandle?: number;
+  maxTradesPerInterval?: number;
+  tradeIntervalMinutes?: number;
 };
 
 export class TradingBot {
   private lastProcessedCandle: number | undefined;
+  private demoExecutionBlocked = false;
 
   constructor(
     private readonly market: PublicMarketData,
@@ -29,6 +32,7 @@ export class TradingBot {
 
   async runCycle(): Promise<void> {
     if (
+      this.demoExecutionBlocked ||
       this.options.persistence &&
       (await this.options.persistence.isPaused())
     ) {
@@ -101,8 +105,9 @@ export class TradingBot {
     if (signal.action === "BUY" && this.options.ai) {
       try {
         aiDecision = await this.options.ai.evaluate(signal);
-      } catch (error) {
-        console.error(
+        } catch (error) {
+          this.demoExecutionBlocked = true;
+          console.error(
           JSON.stringify({
             event: "ai_filter_failed_closed",
             error: error instanceof Error ? error.message : String(error),
@@ -143,35 +148,72 @@ export class TradingBot {
 
     if (approved && this.options.demoExecutor) {
       try {
-        const demoResult = await this.options.demoExecutor.executeApprovedBuy({
-          candleTimestamp: currentCandle.timestamp,
-        });
-        try {
-          await this.options.persistence?.recordDemoOrder(
-            this.options.symbol,
-            currentCandle.timestamp,
-            demoResult,
-          );
-        } catch (error) {
-          console.error(
+        const intervalLimitReached = Boolean(
+          this.options.persistence &&
+          this.options.maxTradesPerInterval &&
+          this.options.tradeIntervalMinutes &&
+          !(await this.options.persistence.canPlaceDemoOrder(
+            this.options.maxTradesPerInterval,
+            this.options.tradeIntervalMinutes,
+          )),
+        );
+        if (intervalLimitReached) {
+          console.log(
             JSON.stringify({
-              event: "database_write_failed_after_order",
+              event: "okx_demo_order_skipped",
               symbol: this.options.symbol,
-              candleTimestamp: currentCandle.timestamp,
-              error: error instanceof Error ? error.message : String(error),
+              reason: "trade_interval_limit_reached",
+              maxTrades: this.options.maxTradesPerInterval,
+              intervalMinutes: this.options.tradeIntervalMinutes,
+            }),
+          );
+          try {
+            await this.options.persistence?.setPaused(
+              true,
+              "system:demo_order_persistence_failure",
+            );
+          } catch (pauseError) {
+            console.error(
+              JSON.stringify({
+                event: "kill_switch_write_failed",
+                error:
+                  pauseError instanceof Error
+                    ? pauseError.message
+                    : String(pauseError),
+              }),
+            );
+          }
+        } else {
+          const demoResult = await this.options.demoExecutor.executeApprovedBuy({
+            candleTimestamp: currentCandle.timestamp,
+          });
+          try {
+            await this.options.persistence?.recordDemoOrder(
+              this.options.symbol,
+              currentCandle.timestamp,
+              demoResult,
+            );
+          } catch (error) {
+            console.error(
+              JSON.stringify({
+                event: "database_write_failed_after_order",
+                symbol: this.options.symbol,
+                candleTimestamp: currentCandle.timestamp,
+                error: error instanceof Error ? error.message : String(error),
+              }),
+            );
+          }
+          console.log(
+            JSON.stringify({
+              event:
+                demoResult.status === "PLACED"
+                  ? "okx_demo_order_submitted"
+                  : "okx_demo_order_skipped",
+              symbol: this.options.symbol,
+              result: demoResult,
             }),
           );
         }
-        console.log(
-          JSON.stringify({
-            event:
-              demoResult.status === "PLACED"
-                ? "okx_demo_order_submitted"
-                : "okx_demo_order_skipped",
-            symbol: this.options.symbol,
-            result: demoResult,
-          }),
-        );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         try {
