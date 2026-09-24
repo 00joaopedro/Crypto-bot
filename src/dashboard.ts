@@ -19,7 +19,7 @@ type DashboardOptions = {
   sessionSecret: string;
   persistence: PostgresPersistence;
   supportedSymbols: string[];
-  onSettingsChanged: () => void;
+  onSettingsChanged: () => void | Promise<void>;
 };
 
 const assets = new Map<string, { file: string; type: string }>([
@@ -80,8 +80,15 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
           return json(response, 400, { error: "Configuração ou par não suportado." });
         }
         await options.persistence.updateDashboardSettings(parsed.data, "dashboard");
-        json(response, 200, { ok: true, restarting: true });
-        setTimeout(options.onSettingsChanged, 500);
+        json(response, 200, { ok: true, reconfiguring: true });
+        setTimeout(() => {
+          void Promise.resolve(options.onSettingsChanged()).catch((error) => {
+            console.error(JSON.stringify({
+              event: "dashboard_reconfiguration_failed",
+              error: error instanceof Error ? error.message : String(error),
+            }));
+          });
+        }, 500);
         return;
       }
       return json(response, 404, { error: "Rota não encontrada." });
