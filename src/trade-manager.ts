@@ -35,6 +35,10 @@ export class CentralTradeManager {
     this.positions.set(position.symbol, { ...position });
   }
 
+  restorePositions(positions: ManagedPosition[]): void {
+    for (const position of positions) this.recordEntry(position);
+  }
+
   recordExit(symbol: string): void {
     this.positions.delete(symbol);
   }

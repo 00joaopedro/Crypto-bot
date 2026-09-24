@@ -184,6 +184,13 @@ async function main(): Promise<void> {
       state: Awaited<ReturnType<PostgresPersistence["loadRecoveryState"]>>,
       demoExecutor: OkxDemoExecutor | undefined,
     ): TradingBot => {
+      if (state?.paperState.position) {
+        tradeManager.restorePositions([{
+          symbol: settings.symbol,
+          notionalUsdt: state.paperState.position.entryNotional,
+          openedAt: state.paperState.position.entryTimestamp,
+        }]);
+      }
       const paperTrader = new PaperTrader(
         {
           initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,

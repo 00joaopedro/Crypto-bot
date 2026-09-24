@@ -123,6 +123,9 @@ export class TradingBot {
     for (const candle of unseenCandles.slice(0, -1)) {
       const previousState = this.options.paperTrader.exportState();
       const paperResult = this.options.paperTrader.processCandle(candle, false);
+      if (paperResult.events.some((event) => event.type === "CLOSED")) {
+        this.options.tradeManager?.recordExit(this.options.symbol);
+      }
       try {
         await this.options.persistence?.recordCycle({
           symbol: this.options.symbol,
@@ -210,7 +213,9 @@ export class TradingBot {
     const managerBlock = approved && this.options.tradeManager
       ? this.options.tradeManager.canEnter(
           this.options.symbol,
-          this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt,
+          this.options.demoExecutor
+            ? this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt
+            : this.options.paperTrader.tradeSizeUsdt,
           this.paperEquityEstimate(),
         ).reason
       : undefined;
@@ -256,7 +261,9 @@ export class TradingBot {
       this.lastEntryAtBySymbol.set(this.options.symbol, currentCandle.timestamp);
       this.options.tradeManager?.recordEntry({
         symbol: this.options.symbol,
-        notionalUsdt: this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt,
+        notionalUsdt: this.options.demoExecutor
+          ? this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt
+          : this.options.paperTrader.tradeSizeUsdt,
         openedAt: currentCandle.timestamp,
       });
     }
