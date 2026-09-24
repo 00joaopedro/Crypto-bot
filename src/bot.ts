@@ -414,7 +414,7 @@ export class TradingBot {
       return "max_exposure_percent";
     }
     if (this.options.riskPerTradePercent !== undefined) {
-      const estimatedRisk = tradeSize * ((this.options.paperTrader.stopLossRate ?? 0) + 0.002);
+      const estimatedRisk = tradeSize * this.options.paperTrader.stopLossRate;
       if (estimatedRisk / balance > this.options.riskPerTradePercent) return "risk_per_trade_percent";
     }
     return undefined;
