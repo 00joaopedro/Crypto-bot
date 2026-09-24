@@ -403,19 +403,27 @@ export class TradingBot {
   }
 
   private async scanSignals(currentCandles: Candle[]): Promise<RankedSignal[]> {
-    const dynamicSymbols = this.options.dynamicUniverseSize &&
-      typeof this.market.selectSpotSymbols === "function"
-      ? await this.market.selectSpotSymbols({
-          limit: this.options.dynamicUniverseSize,
-          minQuoteVolume: this.options.marketMinQuoteVolumeUsdt ?? 1_000_000,
-          maxSpreadPercent: this.options.marketMaxSpreadPercent ?? 1,
-        })
-      : [];
+    let dynamicSymbols: string[] = [];
+    if (this.options.dynamicUniverseSize && typeof this.market.selectSpotSymbols === "function") {
+      try {
+        dynamicSymbols = await this.market.selectSpotSymbols({
+            limit: this.options.dynamicUniverseSize,
+            minQuoteVolume: this.options.marketMinQuoteVolumeUsdt ?? 1_000_000,
+            maxSpreadPercent: this.options.marketMaxSpreadPercent ?? 1,
+          });
+      } catch (error) {
+        console.error(JSON.stringify({
+          event: "dynamic_universe_scan_failed",
+          error: error instanceof Error ? error.message : String(error),
+        }));
+      }
+    }
+    const configuredSymbols = [this.options.symbol, ...(this.options.signalScanSymbols ?? [])];
+    const universeSize = this.options.dynamicUniverseSize ?? 10;
     const symbols = [...new Set([
-      this.options.symbol,
-      ...dynamicSymbols,
-      ...(this.options.signalScanSymbols ?? []),
-    ])].slice(0, this.options.dynamicUniverseSize ?? 10);
+      ...configuredSymbols,
+      ...dynamicSymbols.slice(0, Math.max(0, universeSize - new Set(configuredSymbols).size)),
+    ])];
     const candidates: Array<{ symbol: string; candles: Candle[] }> = [
       { symbol: this.options.symbol, candles: currentCandles },
     ];

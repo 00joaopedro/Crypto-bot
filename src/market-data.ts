@@ -91,7 +91,12 @@ export class PublicMarketData {
     minQuoteVolume: number;
     maxSpreadPercent: number;
   }): Promise<string[]> {
-    const exchange = this.exchanges.get(this.activeProvider)!;
+    // Keep the universe aligned with the execution venue. A temporary data
+    // fallback must not replace OKX symbols with pairs that Demo cannot trade.
+    const exchange = this.exchanges.get(this.provider)!;
+    if (!this.initializedProviders.has(this.provider)) {
+      await this.initializeProvider(this.provider, exchange);
+    }
     const tickers = await retry("fetchTickers", () => exchange.fetchTickers());
     const candidates = Object.values(exchange.markets ?? {})
       .filter((market) => market.spot && market.active !== false && market.quote === (options.quote ?? "USDT"))
