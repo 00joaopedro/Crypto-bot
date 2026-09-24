@@ -12,6 +12,7 @@ import { PaperTrader } from "./paper-trader.js";
 import { PostgresPersistence } from "./persistence.js";
 import type { DashboardSettings } from "./persistence.js";
 import { CentralTradeManager } from "./trade-manager.js";
+import { ExecutionQueue } from "./execution-queue.js";
 
 async function sleep(
   milliseconds: number,
@@ -204,13 +205,16 @@ async function main(): Promise<void> {
         state?.paperState,
       );
 
+      const queuedExecutor = demoExecutor
+        ? new ExecutionQueue(demoExecutor)
+        : undefined;
       return new TradingBot(market, {
         symbol: settings.symbol,
         candleLimit: config.CANDLE_LIMIT,
         minimumConfidence: config.MIN_AI_CONFIDENCE,
         minimumSignalScore: config.MIN_SIGNAL_SCORE,
         paperTrader,
-        ...(demoExecutor ? { demoExecutor } : {}),
+        ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),
         ...(ai ? { ai } : {}),
         ...(persistence ? { persistence } : {}),
         ...(state
