@@ -2,6 +2,7 @@ import type { PublicMarketData } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
 import type { PaperCycleResult, PaperTrader } from "./paper-trader.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
+import type { BotPersistence } from "./persistence.js";
 import { evaluateStrategy } from "./strategy.js";
 import type { AiDecision, Candle } from "./types.js";
 
@@ -12,6 +13,8 @@ type BotOptions = {
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy">;
   ai?: GeminiRiskFilter;
+  persistence?: BotPersistence;
+  initialLastProcessedCandle?: number;
 };
 
 export class TradingBot {
@@ -20,9 +23,21 @@ export class TradingBot {
   constructor(
     private readonly market: PublicMarketData,
     private readonly options: BotOptions,
-  ) {}
+  ) {
+    this.lastProcessedCandle = options.initialLastProcessedCandle;
+  }
 
   async runCycle(): Promise<void> {
+    if (
+      this.options.persistence &&
+      (await this.options.persistence.isPaused())
+    ) {
+      console.log(
+        JSON.stringify({ event: "cycle_skipped", reason: "bot_paused" }),
+      );
+      return;
+    }
+
     const candles = await this.market.fetchClosedCandles(
       this.options.symbol,
       this.options.candleLimit,
@@ -50,7 +65,20 @@ export class TradingBot {
     // Replayed candles can close an existing position, but cannot create a
     // retrospective entry. Approval is calculated only for the newest candle.
     for (const candle of unseenCandles.slice(0, -1)) {
+      const previousState = this.options.paperTrader.exportState();
       const paperResult = this.options.paperTrader.processCandle(candle, false);
+      try {
+        await this.options.persistence?.recordCycle({
+          symbol: this.options.symbol,
+          candle,
+          replayed: true,
+          paperResult,
+          paperState: this.options.paperTrader.exportState(),
+        });
+      } catch (error) {
+        this.options.paperTrader.restoreState(previousState);
+        throw error;
+      }
       this.logPaperResult(candle, paperResult, true);
       this.lastProcessedCandle = candle.timestamp;
     }
@@ -88,10 +116,29 @@ export class TradingBot {
       aiDecision.approve &&
       aiDecision.confidence >= this.options.minimumConfidence;
 
+    const previousState = this.options.paperTrader.exportState();
     const paperResult = this.options.paperTrader.processCandle(
       currentCandle,
       approved,
     );
+    try {
+      await this.options.persistence?.recordCycle({
+        symbol: this.options.symbol,
+        candle: currentCandle,
+        replayed: false,
+        paperResult,
+        paperState: this.options.paperTrader.exportState(),
+        decision: {
+          mode: this.options.demoExecutor ? "PAPER_WITH_OKX_DEMO" : "PAPER",
+          signal,
+          aiDecision,
+          approved,
+        },
+      });
+    } catch (error) {
+      this.options.paperTrader.restoreState(previousState);
+      throw error;
+    }
     this.lastProcessedCandle = currentCandle.timestamp;
 
     if (approved && this.options.demoExecutor) {
@@ -99,6 +146,22 @@ export class TradingBot {
         const demoResult = await this.options.demoExecutor.executeApprovedBuy({
           candleTimestamp: currentCandle.timestamp,
         });
+        try {
+          await this.options.persistence?.recordDemoOrder(
+            this.options.symbol,
+            currentCandle.timestamp,
+            demoResult,
+          );
+        } catch (error) {
+          console.error(
+            JSON.stringify({
+              event: "database_write_failed_after_order",
+              symbol: this.options.symbol,
+              candleTimestamp: currentCandle.timestamp,
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          );
+        }
         console.log(
           JSON.stringify({
             event:
@@ -110,12 +173,31 @@ export class TradingBot {
           }),
         );
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        try {
+          await this.options.persistence?.recordDemoOrderFailure(
+            this.options.symbol,
+            currentCandle.timestamp,
+            message,
+          );
+        } catch (persistenceError) {
+          console.error(
+            JSON.stringify({
+              event: "database_write_failed",
+              operation: "record_demo_order_failure",
+              error:
+                persistenceError instanceof Error
+                  ? persistenceError.message
+                  : String(persistenceError),
+            }),
+          );
+        }
         console.error(
           JSON.stringify({
             event: "okx_demo_order_failed",
             symbol: this.options.symbol,
             candleTimestamp: currentCandle.timestamp,
-            error: error instanceof Error ? error.message : String(error),
+            error: message,
           }),
         );
       }

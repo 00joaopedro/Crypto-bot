@@ -6,6 +6,12 @@ const booleanString = z
   .default("false")
   .transform((value) => value === "true");
 
+const optionalUrl = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+}, z.string().url().optional());
+
 const schema = z
   .object({
     ENVIRONMENT: z.enum(["LOG_ONLY", "DEMO"]).default("LOG_ONLY"),
@@ -23,6 +29,13 @@ const schema = z
     TIMEFRAME: z.literal("15m").default("15m"),
     CANDLE_LIMIT: z.coerce.number().int().min(50).max(1000).default(100),
     LOOP_DELAY_MS: z.coerce.number().int().min(10_000).default(60_000),
+    DATABASE_URL: optionalUrl,
+    DATABASE_CONNECTION_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(1_000)
+      .max(60_000)
+      .default(10_000),
     GEMINI_ENABLED: booleanString,
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().min(1).default("gemini-flash-latest"),
@@ -65,6 +78,14 @@ const schema = z
       }
     }
     if (value.OKX_DEMO_TRADING_ENABLED) {
+      if (!value.DATABASE_URL) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["DATABASE_URL"],
+          message:
+            "DATABASE_URL is required when OKX_DEMO_TRADING_ENABLED=true",
+        });
+      }
       if (value.ENVIRONMENT !== "DEMO") {
         ctx.addIssue({
           code: "custom",
@@ -83,4 +104,8 @@ const schema = z
     }
   });
 
-export const config = schema.parse(process.env);
+export function parseConfig(environment: NodeJS.ProcessEnv): z.infer<typeof schema> {
+  return schema.parse(environment);
+}
+
+export const config = parseConfig(process.env);

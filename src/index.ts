@@ -6,6 +6,7 @@ import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
 import { OkxDemoExecutor } from "./okx-demo.js";
 import { PaperTrader } from "./paper-trader.js";
+import { PostgresPersistence } from "./persistence.js";
 
 async function sleep(
   milliseconds: number,
@@ -34,6 +35,13 @@ async function main(): Promise<void> {
   process.once("SIGTERM", stop);
 
   const market = new PublicMarketData(config.MARKET_DATA_PROVIDER);
+  const persistence = config.DATABASE_URL
+    ? new PostgresPersistence(
+        config.DATABASE_URL,
+        config.DATABASE_CONNECTION_TIMEOUT_MS,
+      )
+    : undefined;
+  let runId: string | undefined;
   const okxDemo =
     config.EXECUTION_PROVIDER === "okx-demo"
       ? new OkxDemoExecutor(
@@ -53,6 +61,36 @@ async function main(): Promise<void> {
       : undefined;
 
   try {
+    let recoveryState = null;
+    if (persistence) {
+      await initializeDatabaseWithBackoff(
+        persistence,
+        shutdownController.signal,
+      );
+      if (stopping) return;
+      recoveryState = await persistence.loadRecoveryState(config.SYMBOL);
+      runId = await persistence.startRun({
+        environment: config.ENVIRONMENT,
+        executionProvider: config.EXECUTION_PROVIDER,
+        symbol: config.SYMBOL,
+        timeframe: config.TIMEFRAME,
+      });
+      console.log(
+        JSON.stringify({
+          event: "database_connected",
+          migrationsApplied: true,
+          recovery: recoveryState
+            ? {
+                restored: true,
+                lastProcessedCandle: recoveryState.lastProcessedCandle,
+              }
+            : { restored: false },
+        }),
+      );
+    } else {
+      console.log(JSON.stringify({ event: "persistence_disabled" }));
+    }
+
     await initializeWithBackoff(market, shutdownController.signal);
     if (stopping) return;
 
@@ -64,14 +102,17 @@ async function main(): Promise<void> {
     const ai = config.GEMINI_ENABLED
       ? new GeminiRiskFilter(config.GEMINI_API_KEY!, config.GEMINI_MODEL)
       : undefined;
-    const paperTrader = new PaperTrader({
-      initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
-      tradeSizeUsdt: config.PAPER_TRADE_SIZE_USDT,
-      feeRate: config.PAPER_FEE_RATE,
-      slippageRate: config.PAPER_SLIPPAGE_RATE,
-      stopLossRate: config.PAPER_STOP_LOSS_RATE,
-      takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
-    });
+    const paperTrader = new PaperTrader(
+      {
+        initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
+        tradeSizeUsdt: config.PAPER_TRADE_SIZE_USDT,
+        feeRate: config.PAPER_FEE_RATE,
+        slippageRate: config.PAPER_SLIPPAGE_RATE,
+        stopLossRate: config.PAPER_STOP_LOSS_RATE,
+        takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+      },
+      recoveryState?.paperState,
+    );
 
     const bot = new TradingBot(market, {
       symbol: config.SYMBOL,
@@ -80,6 +121,10 @@ async function main(): Promise<void> {
       paperTrader,
       ...(okxDemo ? { demoExecutor: okxDemo } : {}),
       ...(ai ? { ai } : {}),
+      ...(persistence ? { persistence } : {}),
+      ...(recoveryState
+        ? { initialLastProcessedCandle: recoveryState.lastProcessedCandle }
+        : {}),
     });
 
     console.log(
@@ -96,6 +141,7 @@ async function main(): Promise<void> {
         symbol: config.SYMBOL,
         timeframe: config.TIMEFRAME,
         aiEnabled: config.GEMINI_ENABLED,
+        persistenceEnabled: Boolean(persistence),
         paperTrading: {
           initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
           tradeSizeUsdt: config.PAPER_TRADE_SIZE_USDT,
@@ -124,7 +170,51 @@ async function main(): Promise<void> {
       }
     }
   } finally {
-    await Promise.all([market.close(), okxDemo?.close()]);
+    if (persistence && runId) {
+      try {
+        await persistence.stopRun(
+          runId,
+          stopping ? "signal_shutdown" : "unexpected_shutdown",
+        );
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            event: "database_write_failed",
+            operation: "stop_run",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
+    }
+    await Promise.allSettled([
+      market.close(),
+      okxDemo?.close(),
+      persistence?.close(),
+    ]);
+  }
+}
+
+async function initializeDatabaseWithBackoff(
+  persistence: PostgresPersistence,
+  signal: AbortSignal,
+): Promise<void> {
+  let delayMs = 5_000;
+
+  while (!signal.aborted) {
+    try {
+      await persistence.initialize();
+      return;
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: "database_initialization_failed",
+          retryInMs: delayMs,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      if (!(await sleep(delayMs, signal))) return;
+      delayMs = Math.min(delayMs * 2, 60_000);
+    }
   }
 }
 

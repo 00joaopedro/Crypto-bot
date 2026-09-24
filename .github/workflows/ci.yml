@@ -12,6 +12,22 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: crypto_bot
+          POSTGRES_PASSWORD: crypto_bot_test
+          POSTGRES_DB: crypto_bot_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U crypto_bot -d crypto_bot_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://crypto_bot:crypto_bot_test@localhost:5432/crypto_bot_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
