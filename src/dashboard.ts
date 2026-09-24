@@ -8,7 +8,7 @@ import type { DashboardSettings, PostgresPersistence } from "./persistence.js";
 const settingsSchema = z.object({
   symbol: z.string().regex(/^[A-Z0-9]{2,15}\/USDT$/),
   orderSizeUsdt: z.number().positive().max(100),
-  maxTrades: z.number().int().min(1).max(100),
+  maxTrades: z.number().int().min(1).max(5),
   intervalMinutes: z.number().int().min(15).max(10_080),
 });
 

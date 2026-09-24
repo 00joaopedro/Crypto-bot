@@ -50,6 +50,8 @@ export type DashboardData = {
   health: Record<string, unknown>;
 };
 
+const MAX_SAFE_TRADES_PER_HOUR = 5;
+
 export type OperationalEvent = {
   eventType: string;
   severity: "INFO" | "WARN" | "ERROR";
@@ -237,6 +239,14 @@ export class PostgresPersistence implements BotPersistence {
        ON CONFLICT (id) DO NOTHING`,
       [defaults.symbol, defaults.orderSizeUsdt, defaults.maxTrades, defaults.intervalMinutes],
     );
+    // Existing dashboard rows predate the safety cap. Normalize them during
+    // startup so a persisted value cannot bypass the configured hourly limit.
+    await this.pool.query(
+      `UPDATE dashboard_settings
+       SET max_trades = LEAST(max_trades, $1), updated_at = NOW()
+       WHERE id = 1 AND max_trades > $1`,
+      [MAX_SAFE_TRADES_PER_HOUR],
+    );
     return this.getDashboardSettings();
   }
 
@@ -257,7 +267,7 @@ export class PostgresPersistence implements BotPersistence {
       symbol: row.symbol,
       orderSizeUsdt: Number(row.order_size_usdt),
       paperTradeSizeUsdt: row.paper_trade_size_usdt === null ? null : Number(row.paper_trade_size_usdt),
-      maxTrades: row.max_trades,
+      maxTrades: Math.min(row.max_trades, MAX_SAFE_TRADES_PER_HOUR),
       intervalMinutes: row.interval_minutes,
     };
   }
@@ -271,7 +281,7 @@ export class PostgresPersistence implements BotPersistence {
            symbol = $1, order_size_usdt = $2, max_trades = $3,
            interval_minutes = $4, updated_at = NOW(), updated_by = $5
          WHERE id = 1`,
-        [settings.symbol, settings.orderSizeUsdt, settings.maxTrades, settings.intervalMinutes, actor],
+        [settings.symbol, settings.orderSizeUsdt, Math.min(settings.maxTrades, MAX_SAFE_TRADES_PER_HOUR), settings.intervalMinutes, actor],
       );
       await client.query(
         `INSERT INTO audit_events (event_type, actor, details)
