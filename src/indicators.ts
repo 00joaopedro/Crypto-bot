@@ -45,6 +45,17 @@ export function rsiSeries(values: number[], period = 14): number[] {
   return output;
 }
 
+export function averageTrueRange(candles: Array<{ high: number; low: number; close: number }>, period = 14): number {
+  assertPeriod(period);
+  if (candles.length <= period) return 0;
+  const ranges = candles.slice(1).map((candle, index) => {
+    const previousClose = candles[index]!.close;
+    return Math.max(candle.high - candle.low, Math.abs(candle.high - previousClose), Math.abs(candle.low - previousClose));
+  });
+  const window = ranges.slice(-period);
+  return window.reduce((sum, value) => sum + value, 0) / window.length;
+}
+
 function toRsi(averageGain: number, averageLoss: number): number {
   if (averageLoss === 0) return averageGain === 0 ? 50 : 100;
   return 100 - 100 / (1 + averageGain / averageLoss);

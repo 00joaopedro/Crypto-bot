@@ -8,6 +8,7 @@ export type PaperTraderOptions = {
   stopLossRate: number;
   takeProfitRate: number;
 };
+export type DynamicExitRates = { stopLossRate: number; takeProfitRate: number };
 
 export type PaperPosition = {
   entryTimestamp: number;
@@ -146,7 +147,7 @@ export class PaperTrader {
     this.benchmarkStartPrice = state.benchmarkStartPrice ?? undefined;
   }
 
-  processCandle(candle: Candle, buyApproved: boolean): PaperCycleResult {
+  processCandle(candle: Candle, buyApproved: boolean, exitRates?: DynamicExitRates): PaperCycleResult {
     this.benchmarkStartPrice ??= candle.close;
     const events: Array<PaperTradeOpened | PaperTradeClosed> = [];
     const closedThisCandle = this.tryClosePosition(candle);
@@ -154,7 +155,7 @@ export class PaperTrader {
     if (closedThisCandle) {
       events.push(closedThisCandle);
     } else if (!this.position && buyApproved) {
-      const opened = this.tryOpenPosition(candle);
+      const opened = this.tryOpenPosition(candle, exitRates);
       if (opened) events.push(opened);
     }
 
@@ -164,7 +165,7 @@ export class PaperTrader {
     };
   }
 
-  private tryOpenPosition(candle: Candle): PaperTradeOpened | undefined {
+  private tryOpenPosition(candle: Candle, exitRates?: DynamicExitRates): PaperTradeOpened | undefined {
     const affordableNotional = this.cashUsdt / (1 + this.options.feeRate);
     const entryNotional = Math.min(this.options.tradeSizeUsdt, affordableNotional);
     if (entryNotional <= 0) return undefined;
@@ -172,14 +173,18 @@ export class PaperTrader {
     const entryPrice = candle.close * (1 + this.options.slippageRate);
     const quantity = entryNotional / entryPrice;
     const entryFee = entryNotional * this.options.feeRate;
+    const stopLossRate = exitRates?.stopLossRate ?? this.options.stopLossRate;
+    const takeProfitRate = exitRates?.takeProfitRate ?? this.options.takeProfitRate;
+    assertRate(stopLossRate, "stopLossRate");
+    assertRate(takeProfitRate, "takeProfitRate");
     const position: PaperPosition = {
       entryTimestamp: candle.timestamp,
       entryPrice,
       quantity,
       entryNotional,
       entryFee,
-      stopLossPrice: entryPrice * (1 - this.options.stopLossRate),
-      takeProfitPrice: entryPrice * (1 + this.options.takeProfitRate),
+      stopLossPrice: entryPrice * (1 - stopLossRate),
+      takeProfitPrice: entryPrice * (1 + takeProfitRate),
     };
 
     this.cashUsdt -= entryNotional + entryFee;

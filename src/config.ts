@@ -57,6 +57,11 @@ const schema = z
     PAPER_SLIPPAGE_RATE: z.coerce.number().min(0).max(0.1).default(0.0005),
     PAPER_STOP_LOSS_RATE: z.coerce.number().gt(0).lt(1).default(0.01),
     PAPER_TAKE_PROFIT_RATE: z.coerce.number().gt(0).lt(1).default(0.02),
+    ATR_PERIOD: z.coerce.number().int().min(5).max(100).default(14),
+    ATR_STOP_MULTIPLIER: z.coerce.number().gt(0).max(10).default(1.5),
+    ATR_TAKE_PROFIT_MULTIPLIER: z.coerce.number().gt(0).max(20).default(3),
+    ATR_MIN_STOP_RATE: z.coerce.number().gt(0).lt(1).default(0.005),
+    ATR_MAX_STOP_RATE: z.coerce.number().gt(0).lt(1).default(0.03),
     RISK_MAX_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(1).default(0.25),
     RISK_PER_TRADE_PERCENT: z.coerce.number().gt(0).max(0.1).default(0.01),
     RISK_MAX_DAILY_LOSS_PERCENT: z.coerce.number().gt(0).max(1).default(0.03),
@@ -68,6 +73,20 @@ const schema = z
     EMAIL_ALERT_TO: optionalTrimmedString,
   })
   .superRefine((value, ctx) => {
+    if (value.ATR_PERIOD > value.CANDLE_LIMIT) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ATR_PERIOD"],
+        message: "ATR_PERIOD cannot exceed CANDLE_LIMIT",
+      });
+    }
+    if (value.ATR_MIN_STOP_RATE > value.ATR_MAX_STOP_RATE) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ATR_MIN_STOP_RATE"],
+        message: "ATR_MIN_STOP_RATE cannot exceed ATR_MAX_STOP_RATE",
+      });
+    }
     if (value.GEMINI_ENABLED && !value.GEMINI_API_KEY) {
       ctx.addIssue({
         code: "custom",

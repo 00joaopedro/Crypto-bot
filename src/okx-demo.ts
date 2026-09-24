@@ -25,6 +25,8 @@ export type OkxDemoStatus = {
 
 export type DemoBuyRequest = {
   candleTimestamp: number;
+  stopLossRate?: number;
+  takeProfitRate?: number;
 };
 
 export type DemoBuyResult =
@@ -183,10 +185,8 @@ export class OkxDemoExecutor {
       throw new Error("OKX Demo returned no valid ask/last price");
     }
 
-    const stopLossPrice =
-      referencePrice * (1 - this.options.stopLossRate);
-    const takeProfitPrice =
-      referencePrice * (1 + this.options.takeProfitRate);
+    const stopLossPrice = referencePrice * (1 - (request.stopLossRate ?? this.options.stopLossRate));
+    const takeProfitPrice = referencePrice * (1 + (request.takeProfitRate ?? this.options.takeProfitRate));
 
     const submitted = await this.exchange.createMarketBuyOrderWithCost(
       this.options.symbol,
