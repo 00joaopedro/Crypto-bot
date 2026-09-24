@@ -43,6 +43,7 @@ export class TradingBot {
   private demoExecutionBlocked = false;
   private dailyDate = new Date().toISOString().slice(0, 10);
   private dailyStartEquity: number | undefined;
+  private readonly lastEntryAtBySymbol = new Map<string, number>();
 
   constructor(
     private readonly market: PublicMarketData,
@@ -150,14 +151,16 @@ export class TradingBot {
           : "AI filter is not called for HOLD signals",
     };
 
-    const cooldownBlocked = Boolean(
-      signal.action === "BUY" &&
-      currentSymbolSelected &&
-      this.options.persistence &&
-      this.options.entryCooldownMinutes !== undefined &&
-      typeof this.options.persistence.canEnterSymbol === "function" &&
-      !(await this.options.persistence.canEnterSymbol?.(this.options.symbol, this.options.entryCooldownMinutes)),
-    );
+    let cooldownBlocked = false;
+    if (signal.action === "BUY" && currentSymbolSelected && this.options.entryCooldownMinutes !== undefined) {
+      const cooldownMs = this.options.entryCooldownMinutes * 60_000;
+      if (this.options.persistence && typeof this.options.persistence.canEnterSymbol === "function") {
+        cooldownBlocked = !(await this.options.persistence.canEnterSymbol(this.options.symbol, this.options.entryCooldownMinutes));
+      } else {
+        const lastEntryAt = this.lastEntryAtBySymbol.get(this.options.symbol);
+        cooldownBlocked = lastEntryAt !== undefined && currentCandle.timestamp - lastEntryAt < cooldownMs;
+      }
+    }
     if (cooldownBlocked) {
       await this.recordOperationalEvent("COOLDOWN_BLOCK", "INFO", {
         cooldownMinutes: this.options.entryCooldownMinutes,
@@ -229,6 +232,9 @@ export class TradingBot {
     } catch (error) {
       this.options.paperTrader.restoreState(previousState);
       throw error;
+    }
+    if (paperResult.events.some((event) => event.type === "OPENED")) {
+      this.lastEntryAtBySymbol.set(this.options.symbol, currentCandle.timestamp);
     }
     this.lastProcessedCandle = currentCandle.timestamp;
 
