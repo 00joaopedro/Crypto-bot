@@ -184,6 +184,7 @@ async function main(): Promise<void> {
         symbol: settings.symbol,
         candleLimit: config.CANDLE_LIMIT,
         minimumConfidence: config.MIN_AI_CONFIDENCE,
+        minimumSignalScore: config.MIN_SIGNAL_SCORE,
         paperTrader,
         ...(demoExecutor ? { demoExecutor } : {}),
         ...(ai ? { ai } : {}),
@@ -223,6 +224,7 @@ async function main(): Promise<void> {
           stopLossRate: config.PAPER_STOP_LOSS_RATE,
           takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
         },
+        minimumSignalScore: config.MIN_SIGNAL_SCORE,
       }),
     );
 

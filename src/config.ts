@@ -49,6 +49,7 @@ const schema = z
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().min(1).default("gemini-flash-latest"),
     MIN_AI_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.82),
+    MIN_SIGNAL_SCORE: z.coerce.number().int().min(1).max(8).default(5),
     PAPER_INITIAL_BALANCE_USDT: z.coerce.number().positive().default(1000),
     PAPER_TRADE_SIZE_USDT: z.coerce.number().positive().default(100),
     PAPER_FEE_RATE: z.coerce.number().min(0).max(0.1).default(0.001),

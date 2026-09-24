@@ -16,6 +16,20 @@ export type QuantSignal = {
   previousEma9: number;
   previousEma21: number;
   rsi14: number;
+  score: number;
+  scoreThreshold: number;
+  scoreBreakdown: {
+    trend: number;
+    rsi: number;
+    volume: number;
+    momentum: number;
+    volatility: number;
+    stopDistance: number;
+  };
+  volumeRatio: number;
+  momentumPercent: number;
+  volatilityPercent: number;
+  stopDistancePercent: number;
   reason: string;
 };
 

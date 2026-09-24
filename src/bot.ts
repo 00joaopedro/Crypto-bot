@@ -11,6 +11,7 @@ type BotOptions = {
   symbol: string;
   candleLimit: number;
   minimumConfidence: number;
+  minimumSignalScore?: number;
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy">;
   ai?: GeminiRiskFilter;
@@ -95,7 +96,12 @@ export class TradingBot {
     const currentIndex = candles.findIndex(
       (candle) => candle.timestamp === currentCandle.timestamp,
     );
-    const signal = evaluateStrategy(candles.slice(0, currentIndex + 1));
+    const signalCandles = candles.slice(0, currentIndex + 1);
+    const signal = this.options.minimumSignalScore === undefined
+      ? evaluateStrategy(signalCandles)
+      : evaluateStrategy(signalCandles, {
+          minimumScore: this.options.minimumSignalScore,
+        });
 
     let aiDecision: AiDecision = {
       approve: false,
