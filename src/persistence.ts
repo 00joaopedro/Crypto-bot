@@ -30,6 +30,23 @@ export type RecoveryState = {
   paperState: PaperTraderState;
 };
 
+export type DashboardSettings = {
+  symbol: string;
+  orderSizeUsdt: number;
+  maxTrades: number;
+  intervalMinutes: number;
+};
+
+export type DashboardData = {
+  paused: boolean;
+  settings: DashboardSettings;
+  latestDecision: Record<string, unknown> | null;
+  latestSnapshot: Record<string, unknown> | null;
+  snapshots: Array<Record<string, unknown>>;
+  trades: Array<Record<string, unknown>>;
+  orders: Array<Record<string, unknown>>;
+};
+
 export interface BotPersistence {
   isPaused(): Promise<boolean>;
   recordCycle(cycle: PersistedCycle): Promise<void>;
@@ -43,6 +60,7 @@ export interface BotPersistence {
     candleTimestamp: number,
     error: string,
   ): Promise<void>;
+  canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean>;
 }
 
 type StateRow = {
@@ -166,6 +184,138 @@ export class PostgresPersistence implements BotPersistence {
       "SELECT paused FROM bot_control WHERE id = 1",
     );
     return result.rows[0]?.paused ?? true;
+  }
+
+  async setPaused(paused: boolean, actor: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `UPDATE bot_control
+         SET paused = $1, updated_at = NOW(), updated_by = $2
+         WHERE id = 1`,
+        [paused, actor],
+      );
+      await client.query(
+        `INSERT INTO audit_events (event_type, actor, details)
+         VALUES ('BOT_PAUSE_CHANGED', $1, $2::jsonb)`,
+        [actor, JSON.stringify({ paused })],
+      );
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async ensureDashboardSettings(defaults: DashboardSettings): Promise<DashboardSettings> {
+    await this.pool.query(
+      `INSERT INTO dashboard_settings (
+         id, symbol, order_size_usdt, max_trades, interval_minutes
+       ) VALUES (1, $1, $2, $3, $4)
+       ON CONFLICT (id) DO NOTHING`,
+      [defaults.symbol, defaults.orderSizeUsdt, defaults.maxTrades, defaults.intervalMinutes],
+    );
+    return this.getDashboardSettings();
+  }
+
+  async getDashboardSettings(): Promise<DashboardSettings> {
+    const result = await this.pool.query<{
+      symbol: string;
+      order_size_usdt: number;
+      max_trades: number;
+      interval_minutes: number;
+    }>(
+      `SELECT symbol, order_size_usdt, max_trades, interval_minutes
+       FROM dashboard_settings WHERE id = 1`,
+    );
+    const row = result.rows[0];
+    if (!row) throw new Error("Dashboard settings are not initialized");
+    return {
+      symbol: row.symbol,
+      orderSizeUsdt: Number(row.order_size_usdt),
+      maxTrades: row.max_trades,
+      intervalMinutes: row.interval_minutes,
+    };
+  }
+
+  async updateDashboardSettings(settings: DashboardSettings, actor: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `UPDATE dashboard_settings SET
+           symbol = $1, order_size_usdt = $2, max_trades = $3,
+           interval_minutes = $4, updated_at = NOW(), updated_by = $5
+         WHERE id = 1`,
+        [settings.symbol, settings.orderSizeUsdt, settings.maxTrades, settings.intervalMinutes, actor],
+      );
+      await client.query(
+        `INSERT INTO audit_events (event_type, actor, details)
+         VALUES ('TRADING_SETTINGS_CHANGED', $1, $2::jsonb)`,
+        [actor, JSON.stringify(settings)],
+      );
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean> {
+    const result = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM demo_orders
+       WHERE status = 'PLACED'
+         AND created_at >= NOW() - ($1 * INTERVAL '1 minute')`,
+      [intervalMinutes],
+    );
+    return Number(result.rows[0]?.count ?? 0) < maxTrades;
+  }
+
+  async getDashboardData(limit = 40): Promise<DashboardData> {
+    const settings = await this.getDashboardSettings();
+    const [control, decision, snapshot, snapshots, trades, orders] = await Promise.all([
+      this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
+         FROM decisions WHERE symbol = $1 ORDER BY created_at DESC LIMIT 1`,
+        [settings.symbol],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT symbol, candle_timestamp, snapshot, created_at
+         FROM portfolio_snapshots WHERE symbol = $1 ORDER BY created_at DESC LIMIT 1`,
+        [settings.symbol],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT symbol, candle_timestamp, equity_usdt, realized_pnl_usdt,
+                current_drawdown_percent, snapshot, created_at
+         FROM portfolio_snapshots WHERE symbol = $1 ORDER BY created_at DESC LIMIT $2`,
+        [settings.symbol, limit],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT symbol, event_type, candle_timestamp, trade, created_at
+         FROM paper_trades WHERE symbol = $1 ORDER BY created_at DESC LIMIT $2`,
+        [settings.symbol, limit],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT client_order_id, symbol, status, result, created_at
+         FROM demo_orders WHERE symbol = $1 ORDER BY created_at DESC LIMIT $2`,
+        [settings.symbol, limit],
+      ),
+    ]);
+    return {
+      paused: control.rows[0]?.paused ?? true,
+      settings,
+      latestDecision: decision.rows[0] ?? null,
+      latestSnapshot: snapshot.rows[0] ?? null,
+      snapshots: snapshots.rows.reverse(),
+      trades: trades.rows,
+      orders: orders.rows,
+    };
   }
 
   async recordCycle(cycle: PersistedCycle): Promise<void> {

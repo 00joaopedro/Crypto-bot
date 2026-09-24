@@ -12,6 +12,12 @@ const optionalUrl = z.preprocess((value) => {
   return trimmed.length === 0 ? undefined : trimmed;
 }, z.string().url().optional());
 
+const optionalTrimmedString = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+}, z.string().optional());
+
 const schema = z
   .object({
     ENVIRONMENT: z.enum(["LOG_ONLY", "DEMO"]).default("LOG_ONLY"),
@@ -36,6 +42,9 @@ const schema = z
       .min(1_000)
       .max(60_000)
       .default(10_000),
+    PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
+    DASHBOARD_PASSWORD: optionalTrimmedString,
+    DASHBOARD_SESSION_SECRET: optionalTrimmedString,
     GEMINI_ENABLED: booleanString,
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().min(1).default("gemini-flash-latest"),
@@ -101,6 +110,26 @@ const schema = z
             "EXECUTION_PROVIDER must be okx-demo when OKX_DEMO_TRADING_ENABLED=true",
         });
       }
+    }
+    if (
+      value.DASHBOARD_PASSWORD &&
+      (!value.DASHBOARD_SESSION_SECRET ||
+        value.DASHBOARD_SESSION_SECRET.length < 32)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["DASHBOARD_SESSION_SECRET"],
+        message:
+          "DASHBOARD_SESSION_SECRET must contain at least 32 characters",
+      });
+    }
+    if (value.DASHBOARD_SESSION_SECRET && !value.DASHBOARD_PASSWORD) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["DASHBOARD_PASSWORD"],
+        message:
+          "DASHBOARD_PASSWORD is required when a session secret is configured",
+      });
     }
   });
 

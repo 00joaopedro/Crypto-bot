@@ -1,12 +1,15 @@
+import type { Server } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
+import { startDashboard, stopDashboard } from "./dashboard.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
 import { OkxDemoExecutor } from "./okx-demo.js";
 import { PaperTrader } from "./paper-trader.js";
 import { PostgresPersistence } from "./persistence.js";
+import type { DashboardSettings } from "./persistence.js";
 
 async function sleep(
   milliseconds: number,
@@ -42,23 +45,14 @@ async function main(): Promise<void> {
       )
     : undefined;
   let runId: string | undefined;
-  const okxDemo =
-    config.EXECUTION_PROVIDER === "okx-demo"
-      ? new OkxDemoExecutor(
-          {
-            apiKey: config.OKX_API_KEY!,
-            secretKey: config.OKX_SECRET_KEY!,
-            passphrase: config.OKX_PASSPHRASE!,
-          },
-          {
-            symbol: config.SYMBOL,
-            tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
-            orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
-            stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
-            takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
-          },
-        )
-      : undefined;
+  let dashboardServer: Server | undefined;
+  let okxDemo: OkxDemoExecutor | undefined;
+  let tradingSettings: DashboardSettings = {
+    symbol: config.SYMBOL,
+    orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
+    maxTrades: 1,
+    intervalMinutes: 60,
+  };
 
   try {
     let recoveryState = null;
@@ -68,11 +62,13 @@ async function main(): Promise<void> {
         shutdownController.signal,
       );
       if (stopping) return;
-      recoveryState = await persistence.loadRecoveryState(config.SYMBOL);
+      tradingSettings =
+        await persistence.ensureDashboardSettings(tradingSettings);
+      recoveryState = await persistence.loadRecoveryState(tradingSettings.symbol);
       runId = await persistence.startRun({
         environment: config.ENVIRONMENT,
         executionProvider: config.EXECUTION_PROVIDER,
-        symbol: config.SYMBOL,
+        symbol: tradingSettings.symbol,
         timeframe: config.TIMEFRAME,
       });
       console.log(
@@ -94,9 +90,56 @@ async function main(): Promise<void> {
     await initializeWithBackoff(market, shutdownController.signal);
     if (stopping) return;
 
+    okxDemo =
+      config.EXECUTION_PROVIDER === "okx-demo"
+        ? new OkxDemoExecutor(
+            {
+              apiKey: config.OKX_API_KEY!,
+              secretKey: config.OKX_SECRET_KEY!,
+              passphrase: config.OKX_PASSPHRASE!,
+            },
+            {
+              symbol: tradingSettings.symbol,
+              tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
+              orderSizeUsdt: tradingSettings.orderSizeUsdt,
+              stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
+              takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
+            },
+          )
+        : undefined;
+
     if (okxDemo) {
-      await initializeOkxDemoWithBackoff(okxDemo, shutdownController.signal);
+      await initializeOkxDemoWithBackoff(
+        okxDemo,
+        tradingSettings,
+        shutdownController.signal,
+      );
       if (stopping) return;
+    }
+
+    if (
+      persistence &&
+      config.DASHBOARD_PASSWORD &&
+      config.DASHBOARD_SESSION_SECRET
+    ) {
+      const marketSymbols = new Set(market.listSpotSymbols());
+      const executionSymbols = okxDemo?.listSpotSymbols() ?? [...marketSymbols];
+      const supportedSymbols = executionSymbols.filter((symbol) =>
+        marketSymbols.has(symbol),
+      );
+      dashboardServer = await startDashboard({
+        port: config.PORT,
+        password: config.DASHBOARD_PASSWORD,
+        sessionSecret: config.DASHBOARD_SESSION_SECRET,
+        persistence,
+        supportedSymbols,
+        onSettingsChanged: () => {
+          process.exitCode = 75;
+          stop();
+        },
+      });
+    } else {
+      console.log(JSON.stringify({ event: "dashboard_disabled" }));
     }
 
     const ai = config.GEMINI_ENABLED
@@ -105,7 +148,7 @@ async function main(): Promise<void> {
     const paperTrader = new PaperTrader(
       {
         initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
-        tradeSizeUsdt: config.PAPER_TRADE_SIZE_USDT,
+        tradeSizeUsdt: tradingSettings.orderSizeUsdt,
         feeRate: config.PAPER_FEE_RATE,
         slippageRate: config.PAPER_SLIPPAGE_RATE,
         stopLossRate: config.PAPER_STOP_LOSS_RATE,
@@ -115,7 +158,7 @@ async function main(): Promise<void> {
     );
 
     const bot = new TradingBot(market, {
-      symbol: config.SYMBOL,
+      symbol: tradingSettings.symbol,
       candleLimit: config.CANDLE_LIMIT,
       minimumConfidence: config.MIN_AI_CONFIDENCE,
       paperTrader,
@@ -125,6 +168,8 @@ async function main(): Promise<void> {
       ...(recoveryState
         ? { initialLastProcessedCandle: recoveryState.lastProcessedCandle }
         : {}),
+      maxTradesPerInterval: tradingSettings.maxTrades,
+      tradeIntervalMinutes: tradingSettings.intervalMinutes,
     });
 
     console.log(
@@ -138,13 +183,13 @@ async function main(): Promise<void> {
         liveTradingEnabled: config.LIVE_TRADING_ENABLED,
         okxDemoTradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
         marketDataProvider: config.MARKET_DATA_PROVIDER,
-        symbol: config.SYMBOL,
+        symbol: tradingSettings.symbol,
         timeframe: config.TIMEFRAME,
         aiEnabled: config.GEMINI_ENABLED,
         persistenceEnabled: Boolean(persistence),
         paperTrading: {
           initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
-          tradeSizeUsdt: config.PAPER_TRADE_SIZE_USDT,
+          tradeSizeUsdt: tradingSettings.orderSizeUsdt,
           feeRate: config.PAPER_FEE_RATE,
           slippageRate: config.PAPER_SLIPPAGE_RATE,
           stopLossRate: config.PAPER_STOP_LOSS_RATE,
@@ -187,6 +232,7 @@ async function main(): Promise<void> {
       }
     }
     await Promise.allSettled([
+      stopDashboard(dashboardServer),
       market.close(),
       okxDemo?.close(),
       persistence?.close(),
@@ -220,6 +266,7 @@ async function initializeDatabaseWithBackoff(
 
 async function initializeOkxDemoWithBackoff(
   okxDemo: OkxDemoExecutor,
+  tradingSettings: DashboardSettings,
   signal: AbortSignal,
 ): Promise<void> {
   let delayMs = 15_000;
@@ -234,7 +281,9 @@ async function initializeOkxDemoWithBackoff(
             ? {
                 event: "okx_demo_execution_armed",
                 provider: "okx-demo",
-                orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
+                orderSizeUsdt: tradingSettings.orderSizeUsdt,
+                maxTrades: tradingSettings.maxTrades,
+                intervalMinutes: tradingSettings.intervalMinutes,
                 stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
                 takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
               }

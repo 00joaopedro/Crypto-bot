@@ -13,6 +13,17 @@ integration("PostgresPersistence", () => {
     await persistence.initialize();
     await persistence.initialize();
 
+    const dashboardSettings = await persistence.ensureDashboardSettings({
+      symbol: "BTC/USDT",
+      orderSizeUsdt: 10,
+      maxTrades: 2,
+      intervalMinutes: 60,
+    });
+    expect(dashboardSettings.symbol).toBeTruthy();
+    await persistence.setPaused(true, "integration-test");
+    await expect(persistence.isPaused()).resolves.toBe(true);
+    await persistence.setPaused(false, "integration-test");
+
     const symbol = `TEST/${Date.now()}`;
     const candle: Candle = {
       timestamp: Date.now(),

@@ -99,4 +99,24 @@ export const migrations: readonly Migration[] = [
       CREATE INDEX audit_events_created_at_idx ON audit_events (created_at DESC);
     `,
   },
+  {
+    version: 2,
+    name: "dashboard_controls",
+    sql: `
+      CREATE TABLE dashboard_settings (
+        id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        symbol TEXT NOT NULL,
+        order_size_usdt DOUBLE PRECISION NOT NULL CHECK (order_size_usdt > 0 AND order_size_usdt <= 100),
+        max_trades INTEGER NOT NULL CHECK (max_trades BETWEEN 1 AND 100),
+        interval_minutes INTEGER NOT NULL CHECK (interval_minutes BETWEEN 15 AND 10080),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_by TEXT NOT NULL DEFAULT 'system'
+      );
+
+      CREATE INDEX portfolio_snapshots_created_at_idx
+        ON portfolio_snapshots (created_at DESC);
+      CREATE INDEX demo_orders_created_at_idx
+        ON demo_orders (created_at DESC);
+    `,
+  },
 ] as const;

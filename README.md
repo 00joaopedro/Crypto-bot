@@ -41,7 +41,7 @@ No Windows PowerShell, copie manualmente `.env.example` para `.env` caso `cp` n�
 
 ## Deploy na Railway
 
-A Railway detecta o `Dockerfile`. O bot é um worker contínuo e não precisa de domínio público.
+A Railway detecta o `Dockerfile`. O mesmo serviço mantém o worker e serve o painel protegido.
 
 Variáveis principais:
 
@@ -59,6 +59,9 @@ Variáveis principais:
 - `PAPER_TAKE_PROFIT_RATE=0.02` (2%)
 - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
 - `DATABASE_CONNECTION_TIMEOUT_MS=10000`
+- `DASHBOARD_PASSWORD`: senha exclusiva do painel
+- `DASHBOARD_SESSION_SECRET`: segredo aleatório com pelo menos 32 caracteres
+- `PORT`: fornecida automaticamente pela Railway
 
 Para autorizar ordens com saldo virtual, use o duplo opt-in:
 
@@ -88,6 +91,23 @@ O primeiro migration cria:
 - `demo_orders`: resultado das tentativas de ordem OKX Demo;
 - `bot_control`: kill switch persistente para o futuro painel;
 - `audit_events`: trilha de auditoria reservada para alterações do painel.
+
+O segundo migration adiciona as configurações operacionais do painel. O painel
+permite pausar/retomar o bot, escolher qualquer par Spot/USDT simultaneamente
+suportado por Kraken e OKX Demo, definir o valor de cada ordem e limitar a
+quantidade de ordens por intervalo. Uma mudança de configuração causa um restart
+controlado para que símbolo e executor sejam reconstruídos com o novo estado.
+
+## Painel web
+
+Após configurar as duas variáveis `DASHBOARD_*`, gere um domínio público em
+**Railway → Settings → Networking → Generate Domain**. O painel usa HTML e CSS
+puros, JavaScript nativo, tema escuro por padrão e layout mobile-first.
+
+Controles mutáveis exigem sessão autenticada e origem válida. A sessão fica em
+cookie `HttpOnly`, `Secure` e `SameSite=Strict`; tentativas de login são limitadas
+e toda pausa ou mudança de estratégia gera um evento de auditoria. Segredos da
+OKX, do Gemini e do banco nunca são enviados ao navegador.
 
 Cada ciclo grava snapshot, eventos e checkpoint em uma única transação. Se essa
 transação falhar, o estado em memória volta ao checkpoint anterior e ordens Demo
@@ -123,9 +143,9 @@ Se Stop-Loss e Take-Profit forem tocados no mesmo candle, o simulador escolhe St
 - não existe execução em conta real;
 - os resultados não garantem desempenho futuro;
 - o histórico começa a ser acumulado somente após o deploy deste marco;
-- o painel web e a autenticação dos controles ainda não fazem parte deste marco.
+- o painel controla apenas o ambiente Demo; não existe execução em conta real;
+- apenas um par fica ativo por vez neste primeiro marco do painel.
 
-O painel será adicionado no próximo marco, consumindo as tabelas persistentes.
 Antes de habilitar qualquer conta real ainda serão necessários autenticação forte
 do painel, confirmação/reconciliação de preenchimentos, limites de exposição e
 perda diária e uma etapa de validação prolongada em ambiente Demo.

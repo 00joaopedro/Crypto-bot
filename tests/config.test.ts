@@ -18,4 +18,20 @@ describe("configuration", () => {
       "postgresql://user:pass@postgres:5432/crypto_bot",
     );
   });
+
+  it("requires a strong session secret when the dashboard is enabled", () => {
+    expect(() =>
+      parseConfig({
+        DASHBOARD_PASSWORD: "test-password",
+        DASHBOARD_SESSION_SECRET: "short",
+      }),
+    ).toThrow();
+
+    expect(
+      parseConfig({
+        DASHBOARD_PASSWORD: "test-password",
+        DASHBOARD_SESSION_SECRET: "a".repeat(32),
+      }).DASHBOARD_PASSWORD,
+    ).toBe("test-password");
+  });
 });

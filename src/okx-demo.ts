@@ -214,6 +214,14 @@ export class OkxDemoExecutor {
     };
   }
 
+  listSpotSymbols(quote = "USDT"): string[] {
+    if (!this.initialized) return [];
+    return Object.values(this.exchange.markets ?? {})
+      .filter((market) => market.spot && market.active !== false && market.quote === quote)
+      .map((market) => market.symbol)
+      .sort();
+  }
+
   async close(): Promise<void> {
     await this.exchange.close();
   }
