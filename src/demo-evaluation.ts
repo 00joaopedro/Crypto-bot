@@ -29,21 +29,30 @@ export function evaluateDemoPeriod(trades: DemoClosedTrade[], candles: Candle[],
   if (!Number.isInteger(minimumOperations) || minimumOperations < 1) throw new Error("minimumOperations must be positive");
   if (!Number.isInteger(targetOperations) || targetOperations < minimumOperations) throw new Error("targetOperations must be at least minimumOperations");
   if (!Number.isInteger(lookback) || lookback < 2) throw new Error("regimeLookbackCandles must be at least 2");
-  const candleByTimestamp = new Map(candles.map((candle) => [candle.timestamp, candle]));
+  if (!Number.isFinite(threshold) || threshold < 0) throw new Error("regimeThresholdPercent must be finite and non-negative");
   const regimeFor = (timestamp: number): string => {
-    const index = candles.findIndex((candle) => candle.timestamp === timestamp);
+    let index = candles.findIndex((candle) => candle.timestamp === timestamp);
+    if (index < 0) {
+      for (let cursor = candles.length - 1; cursor >= 0; cursor -= 1) {
+        if (candles[cursor]!.timestamp <= timestamp) { index = cursor; break; }
+      }
+    }
     if (index < lookback) return "UNKNOWN";
     const start = candles[index - lookback]!.close;
     const change = ((candles[index]!.close - start) / start) * 100;
     return change >= threshold ? "BULL" : change <= -threshold ? "BEAR" : "SIDEWAYS";
   };
-  const validTrades = trades.filter((trade) => Number.isFinite(trade.netPnlUsdt) && candleByTimestamp.has(trade.exitTimestamp));
+  const validTrades = trades.filter((trade) => Number.isFinite(trade.netPnlUsdt));
   const bySymbol = bucketMetrics(validTrades.map((trade) => ({ key: trade.symbol, pnl: trade.netPnlUsdt })));
   const byRegime = bucketMetrics(validTrades.map((trade) => ({ key: regimeFor(trade.exitTimestamp), pnl: trade.netPnlUsdt })));
+  for (const key of ["BULL", "BEAR", "SIDEWAYS", "UNKNOWN"]) {
+    if (!byRegime.some((bucket) => bucket.key === key)) byRegime.push({ key, trades: 0, wins: 0, winRate: 0, netPnlUsdt: 0, averagePnlUsdt: 0, profitFactor: 0 });
+  }
+  byRegime.sort((left, right) => ["BULL", "BEAR", "SIDEWAYS", "UNKNOWN"].indexOf(left.key) - ["BULL", "BEAR", "SIDEWAYS", "UNKNOWN"].indexOf(right.key));
   const stableSymbols = bySymbol.filter((bucket) => bucket.trades >= 10 && bucket.netPnlUsdt > 0 && bucket.winRate >= 45).map((bucket) => bucket.key);
   const warnings: string[] = [];
   if (validTrades.length < minimumOperations) warnings.push(`Amostra insuficiente: ${validTrades.length}/${minimumOperations} operações fechadas.`);
-  if (byRegime.some((bucket) => bucket.key !== "UNKNOWN" && bucket.trades < 10)) warnings.push("Alguns regimes ainda têm poucas operações para uma conclusão confiável.");
+  if (byRegime.some((bucket) => bucket.key === "UNKNOWN" || bucket.trades < 10)) warnings.push("Alguns regimes ainda têm poucas operações ou cobertura desconhecida para uma conclusão confiável.");
   if (stableSymbols.length === 0 && validTrades.length >= minimumOperations) warnings.push("Nenhum par atingiu os critérios mínimos de estabilidade.");
   return { operations: validTrades.length, minimumOperations, targetOperations, sampleReady: validTrades.length >= minimumOperations, targetReached: validTrades.length >= targetOperations, bySymbol, byRegime, stableSymbols, warnings };
 }

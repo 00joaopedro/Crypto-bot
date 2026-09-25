@@ -17,4 +17,11 @@ describe("evaluateDemoPeriod", () => {
     expect(result.sampleReady).toBe(false);
     expect(result.warnings[0]).toContain("Amostra insuficiente");
   });
+
+  it("keeps trades without an exact candle and validates thresholds", () => {
+    const result = evaluateDemoPeriod([{ symbol: "BTC/USDT", entryTimestamp: 0, exitTimestamp: 12345, netPnlUsdt: 2 }], candles);
+    expect(result.operations).toBe(1);
+    expect(result.byRegime.some((bucket) => bucket.key === "UNKNOWN")).toBe(true);
+    expect(() => evaluateDemoPeriod([], candles, { regimeThresholdPercent: -1 })).toThrow("non-negative");
+  });
 });
