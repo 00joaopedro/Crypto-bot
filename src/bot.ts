@@ -260,16 +260,6 @@ export class TradingBot {
       !stopLossCooldownBlocked &&
       this.consecutiveLosses < (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY);
 
-    if (quantitativeFallback) {
-      aiDecision = {
-        approve: true,
-        confidence: 1,
-        reason: aiFallbackUsed
-          ? "AI unavailable; quantitative fallback approved"
-          : "AI disabled; quantitative fallback approved",
-      };
-    }
-
     const managerBlock = approved && this.options.tradeManager
       ? this.options.tradeManager.canEnter(
           executionSymbol,
@@ -457,13 +447,18 @@ export class TradingBot {
             event: "okx_demo_order_failed",
             symbol: executionSymbol,
             candleTimestamp: currentCandle.timestamp,
-            error: message,
+            error: serializeOkxError(error),
           }),
         );
-        await this.recordOperationalEvent("OKX_ORDER_ERROR", "ERROR", {
-          error: message,
+        const availabilityFailure = isOkxAvailabilityFailure(error);
+        await this.recordOperationalEvent(availabilityFailure ? "OKX_ORDER_ERROR" : "OKX_ORDER_REJECTED", availabilityFailure ? "ERROR" : "WARN", {
+          error: serializeOkxError(error),
         });
-        await this.recordServiceStatus("okx-demo", "unhealthy", error);
+        if (availabilityFailure) {
+          await this.recordServiceStatus("okx-demo", "unhealthy", error);
+        } else {
+          await this.recordServiceStatus("okx-demo", "ok");
+        }
       }
     }
 
@@ -826,4 +821,23 @@ export class TradingBot {
       }));
     }
   }
+}
+
+function isOkxAvailabilityFailure(error: unknown): boolean {
+  const typed = error as { okxFailureKind?: string; name?: string } | null;
+  if (typed?.okxFailureKind) return typed.okxFailureKind === "availability";
+  return ["NetworkError", "ExchangeNotAvailable", "RequestTimeout", "DDoSProtection", "AuthenticationError"].includes(typed?.name ?? "");
+}
+
+function serializeOkxError(error: unknown): Record<string, unknown> {
+  const typed = error as { name?: unknown; message?: unknown; stack?: unknown; code?: unknown; response?: unknown; okxFailureKind?: unknown; okxDetails?: unknown };
+  return {
+    name: typed?.name ?? "Error",
+    message: typed?.message ?? String(error),
+    code: typed?.code,
+    response: typed?.response,
+    failureKind: typed?.okxFailureKind,
+    details: typed?.okxDetails,
+    stack: typed?.stack,
+  };
 }
