@@ -43,6 +43,10 @@ export function evaluateRealCapitalReadiness(
     killSwitchEnabled: options.killSwitchEnabled,
     liveTradingEnabled: options.liveTradingEnabled,
   };
+  const counts = [evidence.operations, evidence.profitableWindows, evidence.totalWindows];
+  if (counts.some((value) => !Number.isInteger(value) || value < 0)) throw new Error("evidence counts must be finite non-negative integers");
+  if (evidence.profitableWindows > evidence.totalWindows) throw new Error("profitableWindows cannot exceed totalWindows");
+  if (![evidence.netReturnPercent, evidence.maxDrawdownPercent].every(Number.isFinite) || Number.isNaN(evidence.profitFactor) || evidence.profitFactor < 0) throw new Error("evidence metrics must be finite");
   if (!Number.isInteger(limits.minimumOperations) || limits.minimumOperations < 100) throw new Error("minimumOperations must be at least 100");
   if (!Number.isInteger(limits.minimumWindows) || limits.minimumWindows < 2) throw new Error("minimumWindows must be at least 2");
   if (!Number.isFinite(limits.minimumProfitableWindowRate) || limits.minimumProfitableWindowRate <= 0 || limits.minimumProfitableWindowRate > 1) throw new Error("minimumProfitableWindowRate must be between 0 and 1");
@@ -55,7 +59,7 @@ export function evaluateRealCapitalReadiness(
   const windowRate = evidence.totalWindows > 0 ? evidence.profitableWindows / evidence.totalWindows : 0;
   if (windowRate < limits.minimumProfitableWindowRate) reasons.push("A consistência entre janelas ainda está abaixo do mínimo.");
   if (!Number.isFinite(evidence.netReturnPercent) || evidence.netReturnPercent <= 0) reasons.push("O retorno líquido fora da amostra não é positivo.");
-  if (!Number.isFinite(evidence.profitFactor) || evidence.profitFactor <= 1) reasons.push("O profit factor fora da amostra não é maior que 1.");
+  if (evidence.profitFactor <= 1) reasons.push("O profit factor fora da amostra não é maior que 1.");
   if (!Number.isFinite(evidence.maxDrawdownPercent) || evidence.maxDrawdownPercent > limits.maximumDrawdownPercent) reasons.push("O drawdown fora da amostra excede o limite.");
   if (!limits.killSwitchEnabled) reasons.push("Kill switch não está habilitado.");
   if (limits.liveTradingEnabled) reasons.push("Trading real está bloqueado nesta etapa; não é permitido habilitá-lo.");

@@ -25,4 +25,14 @@ describe("evaluateRealCapitalReadiness", () => {
     expect(() => evaluateRealCapitalReadiness(goodEvidence, { minimumOperations: 99, killSwitchEnabled: true, liveTradingEnabled: false })).toThrow("at least 100");
     expect(() => evaluateRealCapitalReadiness(goodEvidence, { maximumRiskPerTradePercent: 2, killSwitchEnabled: true, liveTradingEnabled: false })).toThrow("must not exceed");
   });
+
+  it("accepts an infinite profit factor when there are no losses", () => {
+    const result = evaluateRealCapitalReadiness({ ...goodEvidence, profitFactor: Number.POSITIVE_INFINITY }, { killSwitchEnabled: true, liveTradingEnabled: false });
+    expect(result.eligible).toBe(true);
+  });
+
+  it("rejects malformed evidence counts", () => {
+    expect(() => evaluateRealCapitalReadiness({ ...goodEvidence, operations: Number.NaN }, { killSwitchEnabled: true, liveTradingEnabled: false })).toThrow("finite non-negative integers");
+    expect(() => evaluateRealCapitalReadiness({ ...goodEvidence, profitableWindows: 5 }, { killSwitchEnabled: true, liveTradingEnabled: false })).toThrow("cannot exceed");
+  });
 });
