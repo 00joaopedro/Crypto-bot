@@ -51,7 +51,12 @@ export type DemoBuyResult =
         | "existing_open_order"
         | "insufficient_quote_balance";
       clientOrderId: string;
-    };
+  };
+
+export type OkxExecutionError = Error & {
+  okxFailureKind?: "availability" | "order_rejected" | undefined;
+  okxDetails?: Record<string, unknown>;
+};
 
 type Pause = (milliseconds: number) => Promise<void>;
 
@@ -112,8 +117,9 @@ export class OkxDemoExecutor {
       throw new Error("OKX Demo executor must be initialized before execution");
     }
 
-    const marketSymbol = request.symbol ?? this.options.symbol;
-    const market = this.exchange.market(marketSymbol);
+    const requestedSymbol = request.symbol ?? this.options.symbol;
+    const market = this.resolveActiveSpotMarket(requestedSymbol);
+    const marketSymbol = market.symbol;
     if (!market.spot || market.active === false) {
       throw new Error(`OKX Demo symbol is not an active Spot market: ${marketSymbol}`);
     }
@@ -259,6 +265,37 @@ export class OkxDemoExecutor {
     }
     return latest;
   }
+
+  private resolveActiveSpotMarket(symbol: string) {
+    let market: ReturnType<Exchange["market"]>;
+    try {
+      market = this.exchange.market(symbol);
+    } catch (error) {
+      throw createOrderError(`OKX Demo market is unavailable: ${symbol}`, error, "order_rejected");
+    }
+    if (!market.spot || market.active === false) {
+      throw createOrderError(`OKX Demo symbol is not an active Spot market: ${symbol}`, undefined, "order_rejected");
+    }
+    return market;
+  }
+}
+
+function createOrderError(
+  message: string,
+  cause: unknown,
+  kind: OkxExecutionError["okxFailureKind"],
+): OkxExecutionError {
+  const error = new Error(message, cause instanceof Error ? { cause } : undefined) as OkxExecutionError;
+  error.okxFailureKind = kind;
+  if (cause instanceof Error) {
+    error.okxDetails = {
+      name: cause.name,
+      message: cause.message,
+      code: (cause as Error & { code?: unknown }).code,
+      response: (cause as Error & { response?: unknown }).response,
+    };
+  }
+  return error;
 }
 
 function readFreeBalance(free: unknown, currency: string): number | null {
