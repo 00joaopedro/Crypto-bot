@@ -206,10 +206,12 @@ export class PostgresPersistence implements BotPersistence {
       throw new Error("Database contains an invalid last_processed_candle");
     }
 
+    const storedState = row.state as PaperTraderState & { symbol?: unknown };
+    const { symbol: _storedSymbol, ...paperState } = storedState;
     return {
       symbol: row.state && typeof row.state === "object" && "symbol" in row.state && typeof row.state.symbol === "string" ? row.state.symbol : symbol,
       lastProcessedCandle,
-      paperState: row.state as PaperTraderState,
+      paperState: paperState as PaperTraderState,
       ...(isRiskState(row.state) ? { riskState: row.state } : {}),
     };
   }
