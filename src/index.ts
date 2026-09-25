@@ -187,7 +187,7 @@ async function main(): Promise<void> {
     ): TradingBot => {
       if (state?.paperState.position) {
         tradeManager.restorePositions([{
-          symbol: settings.symbol,
+          symbol: state.symbol,
           notionalUsdt: state.paperState.position.entryNotional,
           openedAt: state.paperState.position.entryTimestamp,
         }]);

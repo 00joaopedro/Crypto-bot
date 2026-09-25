@@ -27,6 +27,7 @@ export type PersistedCycle = {
 };
 
 export type RecoveryState = {
+  symbol: string;
   lastProcessedCandle: number;
   paperState: PaperTraderState;
   riskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
@@ -192,7 +193,12 @@ export class PostgresPersistence implements BotPersistence {
        WHERE symbol = $1`,
       [symbol],
     );
-    const row = result.rows[0];
+    const fallback = result.rows[0] ? undefined : await this.pool.query<StateRow>(
+      `SELECT last_processed_candle, state
+       FROM paper_trader_state
+       ORDER BY updated_at DESC LIMIT 1`,
+    );
+    const row = result.rows[0] ?? fallback?.rows[0];
     if (!row) return null;
 
     const lastProcessedCandle = Number(row.last_processed_candle);
@@ -200,11 +206,16 @@ export class PostgresPersistence implements BotPersistence {
       throw new Error("Database contains an invalid last_processed_candle");
     }
 
-    return {
+    const storedState = row.state as PaperTraderState & { symbol?: unknown };
+    const { symbol: _storedSymbol, ...paperState } = storedState;
+    const recoverySymbol = row.state && typeof row.state === "object" && "symbol" in row.state && typeof row.state.symbol === "string" ? row.state.symbol : symbol;
+    const recovery = {
       lastProcessedCandle,
-      paperState: row.state as PaperTraderState,
+      paperState: paperState as PaperTraderState,
       ...(isRiskState(row.state) ? { riskState: row.state } : {}),
-    };
+    } as RecoveryState;
+    Object.defineProperty(recovery, "symbol", { value: recoverySymbol, enumerable: false });
+    return recovery;
   }
 
   async isPaused(): Promise<boolean> {
@@ -353,7 +364,7 @@ export class PostgresPersistence implements BotPersistence {
     return equity === undefined ? undefined : Number(equity);
   }
 
-  async getDashboardData(limit = 40): Promise<DashboardData> {
+  async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
     const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents] = await Promise.all([
       this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
@@ -375,13 +386,17 @@ export class PostgresPersistence implements BotPersistence {
       ),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, event_type, candle_timestamp, trade, created_at
-         FROM paper_trades WHERE symbol = $1 ORDER BY created_at DESC LIMIT $2`,
-        [settings.symbol, limit],
+         FROM paper_trades
+         WHERE ($1::text IS NULL OR symbol = $1)
+         ORDER BY created_at DESC LIMIT $2`,
+        [historySymbol ?? null, limit],
       ),
       this.pool.query<Record<string, unknown>>(
         `SELECT client_order_id, symbol, status, result, created_at
-         FROM demo_orders WHERE symbol = $1 ORDER BY created_at DESC LIMIT $2`,
-        [settings.symbol, limit],
+         FROM demo_orders
+         WHERE ($1::text IS NULL OR symbol = $1)
+         ORDER BY created_at DESC LIMIT $2`,
+        [historySymbol ?? null, limit],
       ),
       this.pool.query<Record<string, unknown>>(
         `SELECT COUNT(*)::int AS decisions,
@@ -476,7 +491,7 @@ export class PostgresPersistence implements BotPersistence {
         [
           cycle.symbol,
           cycle.candle.timestamp,
-          JSON.stringify({ ...cycle.paperState, ...(cycle.riskState ?? {}) }),
+           JSON.stringify({ symbol: cycle.symbol, ...cycle.paperState, ...(cycle.riskState ?? {}) }),
         ],
       );
       if (checkpoint.rowCount !== 1) {

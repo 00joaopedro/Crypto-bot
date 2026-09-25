@@ -63,7 +63,8 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         return json(response, 401, { error: "Não autenticado." });
       }
       if (request.method === "GET" && url.pathname === "/api/dashboard") {
-        const data = await options.persistence.getDashboardData();
+        const historySymbol = url.searchParams.get("symbol") || undefined;
+        const data = await options.persistence.getDashboardData(40, historySymbol);
         return json(response, 200, { ...data, supportedSymbols: options.supportedSymbols });
       }
       if (request.method === "POST" && url.pathname === "/api/control") {
