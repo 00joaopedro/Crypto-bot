@@ -1,5 +1,5 @@
 import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
-import { evaluateStrategy } from "./strategy.js";
+import { emaSeries, rsiSeries } from "./indicators.js";
 import type { Candle } from "./types.js";
 
 export type BacktestOptions = {
@@ -46,13 +46,16 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   const closedTrades: PaperTradeClosed[] = [];
   const equities: number[] = [];
   const pending = new Map<number, boolean>();
+  const closes = candles.map((candle) => candle.close);
+  const ema9 = emaSeries(closes, 9);
+  const ema21 = emaSeries(closes, 21);
+  const rsi14 = rsiSeries(closes, 14);
   for (let index = 0; index < candles.length; index += 1) {
     const candle = candles[index]!;
-    const history = candles.slice(0, index + 1);
-    const signal = history.length >= 50
-      ? evaluateStrategy(history, options.minimumSignalScore === undefined ? undefined : { minimumScore: options.minimumSignalScore })
-      : undefined;
-    if (signal?.action === "BUY") pending.set(index + delay, true);
+    const signal = index >= 50 ? incrementalSignal(candles, index, ema9, ema21, rsi14, options.minimumSignalScore) : undefined;
+    // A signal uses the just-closed candle; the earliest honest fill is the
+    // next candle, even when no additional artificial delay is requested.
+    if (signal?.action === "BUY") pending.set(index + Math.max(1, delay), true);
     const result = trader.processCandle(candle, pending.get(index) === true);
     pending.delete(index);
     closedTrades.push(...result.events.filter((event): event is PaperTradeClosed => event.type === "CLOSED"));
@@ -84,4 +87,23 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     winRate: closedTrades.length ? (wins / closedTrades.length) * 100 : 0,
     trades: closedTrades.length, wins, losses, maxDrawdownPercent, executionDelayCandles: delay,
   }, trades: closedTrades };
+}
+
+function incrementalSignal(candles: Candle[], index: number, ema9: number[], ema21: number[], rsi14: number[], minimumScore = 5): { action: "BUY" | "HOLD" } {
+  const e9 = ema9[index - 8]!, previousE9 = ema9[index - 9]!;
+  const e21 = ema21[index - 20]!, previousE21 = ema21[index - 21]!;
+  const rsi = rsi14[index - 14]!;
+  const candle = candles[index]!;
+  const averageVolume = candles.slice(Math.max(0, index - 19), index + 1).reduce((sum, item) => sum + item.volume, 0) / Math.min(20, index + 1);
+  const momentum = ((candle.close - candles[index - 4]!.close) / candles[index - 4]!.close) * 100;
+  const window = candles.slice(Math.max(0, index - 14), index + 1);
+  const atr = window.slice(1).reduce((sum, item, offset) => {
+    const previous = window[offset]!.close;
+    return sum + Math.max(item.high - item.low, Math.abs(item.high - previous), Math.abs(item.low - previous));
+  }, 0) / Math.max(1, window.length - 1);
+  const volatility = (atr / candle.close) * 100;
+  const trend = e9 > e21 && e9 > previousE9 ? 2 : e9 > e21 ? 1 : 0;
+  const rsiScore = rsi >= 45 && rsi <= 70 ? 2 : rsi >= 40 && rsi <= 75 ? 1 : 0;
+  const score = trend + rsiScore + (candle.volume / averageVolume >= 0.9 ? 1 : 0) + (momentum > 0 ? 1 : 0) + (volatility >= 0.1 && volatility <= 5 ? 1 : 0) + (volatility * 1.5 >= 0.3 && volatility * 1.5 <= 3 ? 1 : 0);
+  return { action: trend >= 1 && score >= minimumScore ? "BUY" : "HOLD" };
 }
