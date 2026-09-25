@@ -42,6 +42,8 @@ type BotOptions = {
   riskPerTradePercent?: number;
   maxDailyLossPercent?: number;
   maxDrawdownPercent?: number;
+  maxConsecutiveLosses?: number;
+  stopLossCooldownMinutes?: number;
   tradeManager?: CentralTradeManager;
   emailAlerts?: EmailTradeAlert;
 };
@@ -52,6 +54,8 @@ export class TradingBot {
   private dailyDate = new Date().toISOString().slice(0, 10);
   private dailyStartEquity: number | undefined;
   private readonly lastEntryAtBySymbol = new Map<string, number>();
+  private consecutiveLosses = 0;
+  private stopLossCooldownUntil = 0;
   private activeUniverse: string[] = [];
   private lastUniverseSwitchAt = 0;
 
@@ -167,6 +171,7 @@ export class TradingBot {
     };
 
     let cooldownBlocked = false;
+    const stopLossCooldownBlocked = currentCandle.timestamp < this.stopLossCooldownUntil;
     if (signal.action === "BUY" && currentSymbolSelected && this.options.entryCooldownMinutes !== undefined) {
       const cooldownMs = this.options.entryCooldownMinutes * 60_000;
       if (this.options.persistence && typeof this.options.persistence.canEnterSymbol === "function") {
@@ -176,7 +181,12 @@ export class TradingBot {
         cooldownBlocked = lastEntryAt !== undefined && currentCandle.timestamp - lastEntryAt < cooldownMs;
       }
     }
-    if (cooldownBlocked) {
+    if (stopLossCooldownBlocked) {
+      await this.recordOperationalEvent("STOP_LOSS_COOLDOWN", "INFO", {
+        cooldownUntil: this.stopLossCooldownUntil,
+      });
+    }
+    if (cooldownBlocked || stopLossCooldownBlocked) {
       await this.recordOperationalEvent("COOLDOWN_BLOCK", "INFO", {
         cooldownMinutes: this.options.entryCooldownMinutes,
       });
@@ -210,7 +220,9 @@ export class TradingBot {
       aiDecision.approve &&
       aiDecision.confidence >= this.options.minimumConfidence &&
       currentSymbolSelected &&
-      !cooldownBlocked;
+      !cooldownBlocked &&
+      !stopLossCooldownBlocked &&
+      this.consecutiveLosses < (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY);
 
     const managerBlock = approved && this.options.tradeManager
       ? this.options.tradeManager.canEnter(
@@ -271,6 +283,27 @@ export class TradingBot {
     }
     if (paperResult.events.some((event) => event.type === "CLOSED")) {
       this.options.tradeManager?.recordExit(this.options.symbol);
+      for (const event of paperResult.events) {
+        if (event.type !== "CLOSED") continue;
+        if (event.netPnlUsdt < 0) {
+          this.consecutiveLosses += 1;
+          if (event.reason === "STOP_LOSS") {
+            this.stopLossCooldownUntil = currentCandle.timestamp +
+              (this.options.stopLossCooldownMinutes ?? 0) * 60_000;
+          }
+        } else {
+          this.consecutiveLosses = 0;
+        }
+      }
+      if (this.consecutiveLosses >= (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY)) {
+        await this.options.persistence?.setPaused(true, "system:consecutive_losses");
+        console.log(JSON.stringify({
+          event: "risk_pause_triggered",
+          symbol: this.options.symbol,
+          reason: "max_consecutive_losses",
+          consecutiveLosses: this.consecutiveLosses,
+        }));
+      }
     }
     this.lastProcessedCandle = currentCandle.timestamp;
 

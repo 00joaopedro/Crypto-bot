@@ -69,6 +69,8 @@ Variáveis principais:
 - `RISK_MAX_DRAWDOWN_PERCENT=0.10` (pausa ao atingir 10% de drawdown)
 - `RISK_MAX_TRADES_PER_HOUR=3` (referência operacional; o limite efetivo por intervalo é ajustável no painel)
 - `ENTRY_COOLDOWN_MINUTES=60` (intervalo mínimo entre novas entradas no mesmo par)
+- `RISK_MAX_CONSECUTIVE_LOSSES=3` (pausa novas entradas após três perdas consecutivas)
+- `STOP_LOSS_COOLDOWN_MINUTES=60` (cooldown adicional após stop-loss)
 - `DYNAMIC_UNIVERSE_SIZE=10` (quantidade máxima de pares classificados por candle)
 - `MARKET_MIN_QUOTE_VOLUME_USDT=1000000` (liquidez mínima do par)
 - `MARKET_MAX_SPREAD_PERCENT=1` (spread máximo aceito)
