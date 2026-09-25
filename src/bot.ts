@@ -14,6 +14,7 @@ type BotOptions = {
   symbol: string;
   candleLimit: number;
   minimumConfidence: number;
+  aiFailureMode?: "reject" | "quantitative";
   minimumSignalScore?: number;
   signalScanSymbols?: string[];
   dynamicUniverseSize?: number;
@@ -189,6 +190,7 @@ export class TradingBot {
           ? "AI filter is disabled"
           : "AI filter is not called for HOLD signals",
     };
+    let aiFallbackUsed = false;
 
     let cooldownBlocked = false;
     const stopLossCooldownBlocked = currentCandle.timestamp < this.stopLossCooldownUntil;
@@ -236,19 +238,37 @@ export class TradingBot {
         aiDecision = {
           approve: false,
           confidence: 0,
-          reason: "AI unavailable; entry rejected for this cycle",
+          reason: "AI unavailable; quantitative fallback considered",
         };
+        aiFallbackUsed = true;
       }
     }
 
+    // AI is a risk filter, never a hard dependency. In the configured
+    // quantitative mode, a disabled/unavailable filter falls back to the
+    // already validated signal and remains subject to all risk controls.
+    const quantitativeFallback =
+      signal.action === "BUY" &&
+      this.options.aiFailureMode === "quantitative" &&
+      (!this.options.ai || aiFallbackUsed);
+
     let approved =
       signal.action === "BUY" &&
-      aiDecision.approve &&
-      aiDecision.confidence >= this.options.minimumConfidence &&
+      (quantitativeFallback || (aiDecision.approve && aiDecision.confidence >= this.options.minimumConfidence)) &&
       currentSymbolSelected &&
       !cooldownBlocked &&
       !stopLossCooldownBlocked &&
       this.consecutiveLosses < (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY);
+
+    if (quantitativeFallback) {
+      aiDecision = {
+        approve: true,
+        confidence: 1,
+        reason: aiFallbackUsed
+          ? "AI unavailable; quantitative fallback approved"
+          : "AI disabled; quantitative fallback approved",
+      };
+    }
 
     const managerBlock = approved && this.options.tradeManager
       ? this.options.tradeManager.canEnter(

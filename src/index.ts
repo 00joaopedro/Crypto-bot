@@ -212,6 +212,7 @@ async function main(): Promise<void> {
         symbol: settings.symbol,
         candleLimit: config.CANDLE_LIMIT,
         minimumConfidence: config.MIN_AI_CONFIDENCE,
+        aiFailureMode: config.AI_FAILURE_MODE,
         minimumSignalScore: config.MIN_SIGNAL_SCORE,
         paperTrader,
         ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),

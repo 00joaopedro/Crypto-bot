@@ -49,6 +49,7 @@ const schema = z
     GEMINI_ENABLED: booleanString,
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().min(1).default("gemini-flash-latest"),
+    AI_FAILURE_MODE: z.enum(["reject", "quantitative"]).default("quantitative"),
     MIN_AI_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.82),
     MIN_SIGNAL_SCORE: z.coerce.number().int().min(1).max(8).default(5),
     SIGNAL_SCAN_SYMBOLS: z.string().default(""),
