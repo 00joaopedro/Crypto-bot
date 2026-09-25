@@ -33,7 +33,8 @@ export type WalkForwardResult = {
  * parameters from its preceding training window; no future candle is consulted.
  */
 export function runWalkForward(candles: Candle[], options: WalkForwardOptions): WalkForwardResult {
-  if (!Number.isInteger(options.trainCandles) || options.trainCandles < 50) throw new Error("trainCandles must be at least 50");
+  const requiredWarmup = 51 + Math.max(1, options.base.executionDelayCandles ?? 0);
+  if (!Number.isInteger(options.trainCandles) || options.trainCandles < requiredWarmup) throw new Error(`trainCandles must be at least ${requiredWarmup}`);
   if (!Number.isInteger(options.testCandles) || options.testCandles < 2) throw new Error("testCandles must be at least 2");
   if (options.candidates.length === 0) throw new Error("At least one candidate is required");
   const step = options.stepCandles ?? options.testCandles;
@@ -49,7 +50,9 @@ export function runWalkForward(candles: Candle[], options: WalkForwardOptions): 
       return { candidate, metrics, score: metrics.netReturnPercent - metrics.maxDrawdownPercent * 0.5 };
     }).sort((left, right) => right.score - left.score);
     const winner = evaluated[0]!;
-    const testMetrics = runBacktest(test, { ...options.base, ...winner.candidate }).metrics;
+    const warmup = Math.min(requiredWarmup, train.length);
+    const testWithWarmup = [...train.slice(-warmup), ...test];
+    const testMetrics = runBacktest(testWithWarmup, { ...options.base, ...winner.candidate, warmupCandles: warmup }).metrics;
     windows.push({ trainStart, trainEnd, testStart: trainEnd, testEnd, selected: winner.candidate, trainMetrics: winner.metrics, testMetrics });
   }
   if (windows.length === 0) throw new Error("Not enough candles for one walk-forward window");

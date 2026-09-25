@@ -25,6 +25,6 @@ describe("runWalkForward", () => {
     expect(() => runWalkForward(candles(60), {
       trainCandles: 50, testCandles: 20, candidates: [{ minimumSignalScore: 5 }],
       base: { initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0.001, slippageRate: 0.001, stopLossRate: 0.01, takeProfitRate: 0.02 },
-    })).toThrow("Not enough candles");
+    })).toThrow("trainCandles must be at least");
   });
 });
