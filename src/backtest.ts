@@ -11,6 +11,8 @@ export type BacktestOptions = {
   takeProfitRate: number;
   executionDelayCandles?: number;
   minimumSignalScore?: number;
+  /** Number of leading candles used only to warm indicators/state. */
+  warmupCandles?: number;
 };
 
 export type BacktestMetrics = {
@@ -40,6 +42,8 @@ export type BacktestResult = { metrics: BacktestMetrics; trades: PaperTradeClose
 export function runBacktest(candles: Candle[], options: BacktestOptions): BacktestResult {
   if (candles.length < 2) throw new Error("Backtest requires at least two candles");
   const delay = options.executionDelayCandles ?? 0;
+  const warmup = options.warmupCandles ?? 0;
+  if (!Number.isInteger(warmup) || warmup < 0 || warmup >= candles.length - 1) throw new Error("warmupCandles must leave at least two test candles");
   if (!Number.isInteger(delay) || delay < 0) throw new Error("executionDelayCandles must be a non-negative integer");
 
   const trader = new PaperTrader(options);
@@ -58,17 +62,20 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     if (signal?.action === "BUY") pending.set(index + Math.max(1, delay), true);
     const result = trader.processCandle(candle, pending.get(index) === true);
     pending.delete(index);
-    closedTrades.push(...result.events.filter((event): event is PaperTradeClosed => event.type === "CLOSED"));
-    equities.push(result.snapshot.equityUsdt);
+    if (index >= warmup) {
+      closedTrades.push(...result.events.filter((event): event is PaperTradeClosed => event.type === "CLOSED"));
+      equities.push(result.snapshot.equityUsdt);
+    }
   }
 
   const finalEquityUsdt = equities.at(-1)!;
-  const firstPrice = candles[0]!.close;
-  const buyAndHoldEquityUsdt = options.initialBalanceUsdt * candles.at(-1)!.close / firstPrice;
-  const netReturnUsdt = finalEquityUsdt - options.initialBalanceUsdt;
+  const baselineEquity = warmup > 0 ? equities[0]! : options.initialBalanceUsdt;
+  const firstPrice = candles[warmup]!.close;
+  const buyAndHoldEquityUsdt = baselineEquity * candles.at(-1)!.close / firstPrice;
+  const netReturnUsdt = finalEquityUsdt - baselineEquity;
   const grossProfitUsdt = closedTrades.filter((trade) => trade.netPnlUsdt > 0).reduce((sum, trade) => sum + trade.netPnlUsdt, 0);
   const grossLossUsdt = Math.abs(closedTrades.filter((trade) => trade.netPnlUsdt < 0).reduce((sum, trade) => sum + trade.netPnlUsdt, 0));
-  let peak = options.initialBalanceUsdt;
+  let peak = baselineEquity;
   let maxDrawdownPercent = 0;
   for (const equity of equities) {
     peak = Math.max(peak, equity);
@@ -77,10 +84,10 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   const wins = closedTrades.filter((trade) => trade.netPnlUsdt > 0).length;
   const losses = closedTrades.filter((trade) => trade.netPnlUsdt < 0).length;
   return { metrics: {
-    initialBalanceUsdt: options.initialBalanceUsdt, finalEquityUsdt, netReturnUsdt,
-    netReturnPercent: (netReturnUsdt / options.initialBalanceUsdt) * 100,
-    buyAndHoldEquityUsdt, buyAndHoldReturnPercent: ((buyAndHoldEquityUsdt / options.initialBalanceUsdt) - 1) * 100,
-    excessReturnVsBuyAndHoldPercent: (netReturnUsdt / options.initialBalanceUsdt) * 100 - ((buyAndHoldEquityUsdt / options.initialBalanceUsdt) - 1) * 100,
+    initialBalanceUsdt: baselineEquity, finalEquityUsdt, netReturnUsdt,
+    netReturnPercent: (netReturnUsdt / baselineEquity) * 100,
+    buyAndHoldEquityUsdt, buyAndHoldReturnPercent: ((buyAndHoldEquityUsdt / baselineEquity) - 1) * 100,
+    excessReturnVsBuyAndHoldPercent: (netReturnUsdt / baselineEquity) * 100 - ((buyAndHoldEquityUsdt / baselineEquity) - 1) * 100,
     grossProfitUsdt, grossLossUsdt, totalFeesUsdt: trader.exportState().totalFeesUsdt,
     profitFactor: grossLossUsdt === 0 ? (grossProfitUsdt > 0 ? Number.POSITIVE_INFINITY : 0) : grossProfitUsdt / grossLossUsdt,
     expectancyUsdt: closedTrades.length ? closedTrades.reduce((sum, trade) => sum + trade.netPnlUsdt, 0) / closedTrades.length : 0,
