@@ -54,6 +54,7 @@ export class TradingBot {
   private demoExecutionBlocked = false;
   private dailyDate = new Date().toISOString().slice(0, 10);
   private dailyStartEquity: number | undefined;
+  private readonly dailyStartEquityBySymbol = new Map<string, number>();
   private readonly lastEntryAtBySymbol = new Map<string, number>();
   private consecutiveLosses: number;
   private stopLossCooldownUntil: number;
@@ -313,9 +314,10 @@ export class TradingBot {
     }
     this.lastProcessedCandleBySymbol.set(executionSymbol, currentCandle.timestamp);
 
-    await this.updateDailyRiskBaseline(paperResult.snapshot.equityUsdt);
-    const dailyLossPercent = this.dailyStartEquity
-      ? Math.max(0, (this.dailyStartEquity - paperResult.snapshot.equityUsdt) / this.dailyStartEquity)
+    await this.updateDailyRiskBaseline(executionSymbol, paperResult.snapshot.equityUsdt);
+    const dailyStartEquity = this.dailyStartEquityBySymbol.get(executionSymbol) ?? paperResult.snapshot.equityUsdt;
+    const dailyLossPercent = dailyStartEquity
+      ? Math.max(0, (dailyStartEquity - paperResult.snapshot.equityUsdt) / dailyStartEquity)
       : 0;
     if (
       this.options.persistence &&
@@ -511,7 +513,7 @@ export class TradingBot {
     if (existing && this.loadedPaperSymbols.has(symbol)) return existing;
     const trader = new PaperTrader(this.options.paperTrader.configuration);
     const recovery = await this.options.persistence?.loadRecoveryState?.(symbol);
-    if (recovery) {
+    if (recovery && recovery.symbol === symbol) {
       trader.restoreState(recovery.paperState);
       this.lastProcessedCandleBySymbol.set(symbol, recovery.lastProcessedCandle);
     }
@@ -653,13 +655,15 @@ export class TradingBot {
     return new Set(this.activeUniverse);
   }
 
-  private async updateDailyRiskBaseline(equity: number): Promise<void> {
+  private async updateDailyRiskBaseline(symbol: string, equity: number): Promise<void> {
     const date = new Date().toISOString().slice(0, 10);
     if (date !== this.dailyDate) {
       this.dailyDate = date;
-      this.dailyStartEquity = await this.options.persistence?.getDailyStartEquity?.(this.options.symbol) ?? equity;
+      this.dailyStartEquityBySymbol.set(symbol, await this.options.persistence?.getDailyStartEquity?.(symbol) ?? equity);
     } else {
-      this.dailyStartEquity ??= await this.options.persistence?.getDailyStartEquity?.(this.options.symbol) ?? equity;
+      if (!this.dailyStartEquityBySymbol.has(symbol)) {
+        this.dailyStartEquityBySymbol.set(symbol, await this.options.persistence?.getDailyStartEquity?.(symbol) ?? equity);
+      }
     }
   }
 
