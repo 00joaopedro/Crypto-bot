@@ -116,6 +116,7 @@ export class PaperTrader {
 
   get tradeSizeUsdt(): number { return this.options.tradeSizeUsdt; }
   get stopLossRate(): number { return this.options.stopLossRate; }
+  get configuration(): PaperTraderOptions { return { ...this.options }; }
 
   exportState(): PaperTraderState {
     return {
