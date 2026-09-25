@@ -280,7 +280,7 @@ export class PostgresPersistence implements BotPersistence {
       interval_minutes: number;
       max_concurrent_positions: number;
     }>(
-      `SELECT symbol, order_size_usdt, paper_trade_size_usdt, max_trades, interval_minutes
+      `SELECT symbol, order_size_usdt, paper_trade_size_usdt, max_trades, interval_minutes, max_concurrent_positions
        FROM dashboard_settings WHERE id = 1`,
     );
     const row = result.rows[0];
@@ -442,8 +442,15 @@ export class PostgresPersistence implements BotPersistence {
       aggregate.closedTrades = Number(aggregate.closedTrades ?? 0) + Number(current.closedTrades ?? 0);
       aggregate.wins = Number(aggregate.wins ?? 0) + Number(current.wins ?? 0);
       aggregate.losses = Number(aggregate.losses ?? 0) + Number(current.losses ?? 0);
+      aggregate.currentDrawdownPercent = Math.max(Number(aggregate.currentDrawdownPercent ?? 0), Number(current.currentDrawdownPercent ?? 0));
+      aggregate.maxDrawdownPercent = Math.max(Number(aggregate.maxDrawdownPercent ?? 0), Number(current.maxDrawdownPercent ?? 0));
+      aggregate.buyAndHoldReturnPercent = Number(aggregate.buyAndHoldReturnPercent ?? 0) + Number(current.buyAndHoldReturnPercent ?? 0);
       return aggregate;
     }, {});
+    const portfolioCount = portfolioRows.rows.length || 1;
+    aggregateSnapshot.strategyReturnPercent = Number(aggregateSnapshot.equityUsdt ?? 0) / (portfolioCount * 1000) * 100 - 100;
+    aggregateSnapshot.buyAndHoldReturnPercent = Number(aggregateSnapshot.buyAndHoldReturnPercent ?? 0) / portfolioCount;
+    aggregateSnapshot.excessReturnVsBuyAndHoldPercent = Number(aggregateSnapshot.strategyReturnPercent) - Number(aggregateSnapshot.buyAndHoldReturnPercent);
     const closedTrades = Number(latestSnapshot?.closedTrades ?? tradeRow.exits ?? 0);
     const wins = Number(latestSnapshot?.wins ?? tradeRow.wins ?? 0);
     const latestCycleAt = snapshot.rows[0]?.created_at ?? null;
