@@ -18,6 +18,7 @@ integration("PostgresPersistence", () => {
       orderSizeUsdt: 10,
       maxTrades: 2,
       intervalMinutes: 60,
+      maxConcurrentPositions: 2,
     });
     expect(dashboardSettings.symbol).toBeTruthy();
     await persistence.setPaused(true, "integration-test");
