@@ -1,6 +1,6 @@
 import type { PublicMarketData } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
-import type { PaperCycleResult, PaperTrader } from "./paper-trader.js";
+import { PaperTrader, type PaperCycleResult } from "./paper-trader.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
 import type { BotPersistence } from "./persistence.js";
 import { evaluateStrategy } from "./strategy.js";
@@ -54,12 +54,16 @@ export class TradingBot {
   private demoExecutionBlocked = false;
   private dailyDate = new Date().toISOString().slice(0, 10);
   private dailyStartEquity: number | undefined;
+  private readonly dailyStartEquityBySymbol = new Map<string, number>();
   private readonly lastEntryAtBySymbol = new Map<string, number>();
   private consecutiveLosses: number;
   private stopLossCooldownUntil: number;
   private observedPaused = false;
   private activeUniverse: string[] = [];
   private lastUniverseSwitchAt = 0;
+  private readonly paperTraders = new Map<string, PaperTrader>();
+  private readonly loadedPaperSymbols = new Set<string>();
+  private readonly lastProcessedCandleBySymbol = new Map<string, number>();
 
   constructor(
     private readonly market: PublicMarketData,
@@ -68,6 +72,11 @@ export class TradingBot {
     this.lastProcessedCandle = options.initialLastProcessedCandle;
     this.consecutiveLosses = options.initialRiskState?.consecutiveLosses ?? 0;
     this.stopLossCooldownUntil = options.initialRiskState?.stopLossCooldownUntil ?? 0;
+    this.paperTraders.set(options.symbol, options.paperTrader);
+    this.loadedPaperSymbols.add(options.symbol);
+    if (options.initialLastProcessedCandle !== undefined) {
+      this.lastProcessedCandleBySymbol.set(options.symbol, options.initialLastProcessedCandle);
+    }
   }
 
   async runCycle(): Promise<void> {
@@ -117,14 +126,16 @@ export class TradingBot {
     // because the ranking has no selected symbol.
     const managedPositionSymbol = this.options.tradeManager?.activePositions[0]?.symbol;
     const executionSymbol = managedPositionSymbol ?? selectedEligibleSymbol ?? this.options.symbol;
+    const paperTrader = await this.getPaperTrader(executionSymbol);
     const executionCandles = executionSymbol === this.options.symbol
       ? candles
       : await this.market.fetchClosedCandles(executionSymbol, this.options.candleLimit);
     const executionLatest = executionCandles.at(-1);
     if (!executionLatest) throw new Error(`Market data provider returned no closed candles for ${executionSymbol}`);
-    const unseenCandles = this.lastProcessedCandle === undefined
+    const lastProcessedCandle = this.lastProcessedCandleBySymbol.get(executionSymbol);
+    const unseenCandles = lastProcessedCandle === undefined
       ? [executionLatest]
-      : executionCandles.filter((candle) => candle.timestamp > this.lastProcessedCandle!);
+      : executionCandles.filter((candle) => candle.timestamp > lastProcessedCandle);
     if (unseenCandles.length === 0) {
       console.log(JSON.stringify({ event: "cycle_skipped", reason: "candle_already_processed", symbol: executionSymbol }));
       return;
@@ -134,8 +145,8 @@ export class TradingBot {
     // Replayed candles can close an existing position, but cannot create a
     // retrospective entry. Approval is calculated only for the newest candle.
     for (const candle of unseenCandles.slice(0, -1)) {
-      const previousState = this.options.paperTrader.exportState();
-      const paperResult = this.options.paperTrader.processCandle(candle, false);
+      const previousState = paperTrader.exportState();
+      const paperResult = paperTrader.processCandle(candle, false);
       await this.applyLossControls(paperResult.events, candle.timestamp);
       if (paperResult.events.some((event) => event.type === "CLOSED")) {
         this.options.tradeManager?.recordExit(executionSymbol);
@@ -146,16 +157,16 @@ export class TradingBot {
           candle,
           replayed: true,
           paperResult,
-          paperState: this.options.paperTrader.exportState(),
+          paperState: paperTrader.exportState(),
           riskState: this.exportRiskState(),
         });
       } catch (error) {
-        this.options.paperTrader.restoreState(previousState);
+        paperTrader.restoreState(previousState);
         throw error;
       }
-      this.logPaperResult(candle, paperResult, true);
+      this.logPaperResult(candle, paperResult, true, executionSymbol);
       await this.sendTradeAlerts(paperResult.events, true);
-      this.lastProcessedCandle = candle.timestamp;
+      this.lastProcessedCandleBySymbol.set(executionSymbol, candle.timestamp);
     }
 
     const currentCandle = unseenCandles.at(-1)!;
@@ -163,7 +174,7 @@ export class TradingBot {
       (candle) => candle.timestamp === currentCandle.timestamp,
     );
     const signalCandles = executionCandles.slice(0, currentIndex + 1);
-    const exitRates = this.calculateVolatilityExitRates(signalCandles, currentCandle.close);
+    const exitRates = this.calculateVolatilityExitRates(signalCandles, currentCandle.close, paperTrader);
     const signal = this.options.minimumSignalScore === undefined
       ? evaluateStrategy(signalCandles)
       : evaluateStrategy(signalCandles, {
@@ -210,7 +221,6 @@ export class TradingBot {
       try {
         aiDecision = await this.options.ai.evaluate(signal);
       } catch (error) {
-        this.demoExecutionBlocked = true;
         console.error(
           JSON.stringify({
             event: "ai_filter_failed_closed",
@@ -221,6 +231,13 @@ export class TradingBot {
           error: error instanceof Error ? error.message : String(error),
         });
         await this.recordServiceStatus("gemini", "unhealthy", error);
+        // A transient AI outage rejects only this entry. The next candle
+        // retries the filter instead of permanently pausing the bot.
+        aiDecision = {
+          approve: false,
+          confidence: 0,
+          reason: "AI unavailable; entry rejected for this cycle",
+        };
       }
     }
 
@@ -237,13 +254,13 @@ export class TradingBot {
       ? this.options.tradeManager.canEnter(
           executionSymbol,
           this.options.demoExecutor
-            ? this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt
-            : this.options.paperTrader.tradeSizeUsdt,
-          this.paperEquityEstimate(),
+            ? this.options.demoOrderSizeUsdt ?? paperTrader.tradeSizeUsdt
+            : paperTrader.tradeSizeUsdt,
+        this.paperEquityEstimate(executionSymbol),
         ).reason
       : undefined;
     const riskBlock = approved
-      ? managerBlock ?? this.riskBlockReason(exitRates)
+      ? managerBlock ?? this.riskBlockReason(exitRates, paperTrader)
       : undefined;
     if (riskBlock) {
       approved = false;
@@ -255,8 +272,8 @@ export class TradingBot {
       await this.recordOperationalEvent("RISK_LIMIT", "WARN", { reason: riskBlock });
     }
 
-    const previousState = this.options.paperTrader.exportState();
-    const paperResult = this.options.paperTrader.processCandle(
+    const previousState = paperTrader.exportState();
+    const paperResult = paperTrader.processCandle(
       currentCandle,
       approved,
       exitRates,
@@ -268,7 +285,7 @@ export class TradingBot {
         candle: currentCandle,
         replayed: false,
         paperResult,
-        paperState: this.options.paperTrader.exportState(),
+        paperState: paperTrader.exportState(),
         riskState: this.exportRiskState(),
         decision: {
           mode: this.options.demoExecutor ? "PAPER_WITH_OKX_DEMO" : "PAPER",
@@ -279,7 +296,7 @@ export class TradingBot {
       });
       await this.recordServiceStatus("postgresql", "ok");
     } catch (error) {
-      this.options.paperTrader.restoreState(previousState);
+      paperTrader.restoreState(previousState);
       throw error;
     }
     if (paperResult.events.some((event) => event.type === "OPENED")) {
@@ -287,19 +304,20 @@ export class TradingBot {
       this.options.tradeManager?.recordEntry({
         symbol: executionSymbol,
         notionalUsdt: this.options.demoExecutor
-          ? this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt
-          : this.options.paperTrader.tradeSizeUsdt,
+          ? this.options.demoOrderSizeUsdt ?? paperTrader.tradeSizeUsdt
+          : paperTrader.tradeSizeUsdt,
         openedAt: currentCandle.timestamp,
       });
     }
     if (paperResult.events.some((event) => event.type === "CLOSED")) {
       this.options.tradeManager?.recordExit(executionSymbol);
     }
-    this.lastProcessedCandle = currentCandle.timestamp;
+    this.lastProcessedCandleBySymbol.set(executionSymbol, currentCandle.timestamp);
 
-    await this.updateDailyRiskBaseline(paperResult.snapshot.equityUsdt);
-    const dailyLossPercent = this.dailyStartEquity
-      ? Math.max(0, (this.dailyStartEquity - paperResult.snapshot.equityUsdt) / this.dailyStartEquity)
+    await this.updateDailyRiskBaseline(executionSymbol, paperResult.snapshot.equityUsdt);
+    const dailyStartEquity = this.dailyStartEquityBySymbol.get(executionSymbol) ?? paperResult.snapshot.equityUsdt;
+    const dailyLossPercent = dailyStartEquity
+      ? Math.max(0, (dailyStartEquity - paperResult.snapshot.equityUsdt) / dailyStartEquity)
       : 0;
     if (
       this.options.persistence &&
@@ -455,7 +473,7 @@ export class TradingBot {
       }),
     );
 
-    this.logPaperResult(currentCandle, paperResult, false);
+    this.logPaperResult(currentCandle, paperResult, false, executionSymbol);
     await this.sendTradeAlerts(paperResult.events, false);
   }
 
@@ -490,8 +508,22 @@ export class TradingBot {
     }
   }
 
-  private paperEquityEstimate(): number {
-    return this.options.paperTrader.exportState().cashUsdt;
+  private async getPaperTrader(symbol: string): Promise<PaperTrader> {
+    const existing = this.paperTraders.get(symbol);
+    if (existing && this.loadedPaperSymbols.has(symbol)) return existing;
+    const trader = new PaperTrader(this.options.paperTrader.configuration);
+    const recovery = await this.options.persistence?.loadRecoveryState?.(symbol);
+    if (recovery && recovery.symbol === symbol) {
+      trader.restoreState(recovery.paperState);
+      this.lastProcessedCandleBySymbol.set(symbol, recovery.lastProcessedCandle);
+    }
+    this.paperTraders.set(symbol, trader);
+    this.loadedPaperSymbols.add(symbol);
+    return trader;
+  }
+
+  private paperEquityEstimate(symbol = this.options.symbol): number {
+    return this.paperTraders.get(symbol)?.exportState().cashUsdt ?? this.options.paperTrader.exportState().cashUsdt;
   }
 
   private async scanSignals(currentCandles: Candle[]): Promise<RankedSignal[]> {
@@ -623,37 +655,39 @@ export class TradingBot {
     return new Set(this.activeUniverse);
   }
 
-  private async updateDailyRiskBaseline(equity: number): Promise<void> {
+  private async updateDailyRiskBaseline(symbol: string, equity: number): Promise<void> {
     const date = new Date().toISOString().slice(0, 10);
     if (date !== this.dailyDate) {
       this.dailyDate = date;
-      this.dailyStartEquity = await this.options.persistence?.getDailyStartEquity?.(this.options.symbol) ?? equity;
+      this.dailyStartEquityBySymbol.set(symbol, await this.options.persistence?.getDailyStartEquity?.(symbol) ?? equity);
     } else {
-      this.dailyStartEquity ??= await this.options.persistence?.getDailyStartEquity?.(this.options.symbol) ?? equity;
+      if (!this.dailyStartEquityBySymbol.has(symbol)) {
+        this.dailyStartEquityBySymbol.set(symbol, await this.options.persistence?.getDailyStartEquity?.(symbol) ?? equity);
+      }
     }
   }
 
-  private calculateVolatilityExitRates(candles: Candle[], referencePrice: number): { stopLossRate: number; takeProfitRate: number } {
+  private calculateVolatilityExitRates(candles: Candle[], referencePrice: number, trader = this.options.paperTrader): { stopLossRate: number; takeProfitRate: number } {
     const atr = averageTrueRange(candles, this.options.atrPeriod ?? 14);
     if (atr <= 0) {
       return {
-        stopLossRate: this.options.fallbackStopLossRate ?? this.options.paperTrader.stopLossRate,
+        stopLossRate: this.options.fallbackStopLossRate ?? trader.stopLossRate,
         takeProfitRate: this.options.fallbackTakeProfitRate ?? 0.02,
       };
     }
-    const volatilityRate = atr > 0 ? atr / referencePrice : this.options.paperTrader.stopLossRate;
+    const volatilityRate = atr > 0 ? atr / referencePrice : trader.stopLossRate;
     const stopLossRate = Math.min(this.options.atrMaxStopRate ?? 0.03, Math.max(this.options.atrMinStopRate ?? 0.005, volatilityRate * (this.options.atrStopMultiplier ?? 1.5)));
     const takeProfitRate = Math.min(0.5, Math.max(stopLossRate, volatilityRate * (this.options.atrTakeProfitMultiplier ?? 3)));
     return { stopLossRate, takeProfitRate };
   }
 
-  private riskBlockReason(exitRates: { stopLossRate: number; takeProfitRate: number }): string | undefined {
-    const traderState = this.options.paperTrader.exportState();
+  private riskBlockReason(exitRates: { stopLossRate: number; takeProfitRate: number }, trader: PaperTrader): string | undefined {
+    const traderState = trader.exportState();
     if (traderState.position) return "position_already_open";
     const balance = Math.max(traderState.peakEquityUsdt, traderState.cashUsdt);
     const tradeSize = this.options.demoExecutor && this.options.demoOrderSizeUsdt !== undefined
       ? this.options.demoOrderSizeUsdt
-      : this.options.paperTrader.tradeSizeUsdt;
+      : trader.tradeSizeUsdt;
     if (this.options.maxExposurePercent !== undefined && tradeSize / balance > this.options.maxExposurePercent) {
       return "max_exposure_percent";
     }
@@ -668,6 +702,7 @@ export class TradingBot {
     candle: Candle,
     result: PaperCycleResult,
     replayed: boolean,
+    symbol: string,
   ): void {
     for (const event of result.events) {
       console.log(
@@ -676,7 +711,7 @@ export class TradingBot {
             event.type === "OPENED"
               ? "paper_trade_opened"
               : "paper_trade_closed",
-          symbol: this.options.symbol,
+          symbol,
           replayed,
           trade: event,
         }),
@@ -686,7 +721,7 @@ export class TradingBot {
     console.log(
       JSON.stringify({
         event: "paper_portfolio_snapshot",
-        symbol: this.options.symbol,
+        symbol,
         candleTimestamp: candle.timestamp,
         replayed,
         portfolio: result.snapshot,
