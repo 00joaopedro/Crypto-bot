@@ -194,12 +194,7 @@ export class PostgresPersistence implements BotPersistence {
        WHERE symbol = $1`,
       [symbol],
     );
-    const fallback = result.rows[0] ? undefined : await this.pool.query<StateRow>(
-      `SELECT last_processed_candle, state
-       FROM paper_trader_state
-       ORDER BY updated_at DESC LIMIT 1`,
-    );
-    const row = result.rows[0] ?? fallback?.rows[0];
+    const row = result.rows[0];
     if (!row) return null;
 
     const lastProcessedCandle = Number(row.last_processed_candle);
