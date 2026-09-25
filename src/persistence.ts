@@ -17,6 +17,7 @@ export type PersistedCycle = {
   replayed: boolean;
   paperResult: PaperCycleResult;
   paperState: PaperTraderState;
+  riskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
   decision?: {
     mode: "PAPER" | "PAPER_WITH_OKX_DEMO";
     signal: QuantSignal;
@@ -28,6 +29,7 @@ export type PersistedCycle = {
 export type RecoveryState = {
   lastProcessedCandle: number;
   paperState: PaperTraderState;
+  riskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
 };
 
 export type DashboardSettings = {
@@ -89,6 +91,15 @@ type AppliedMigrationRow = {
   name: string;
   checksum: string;
 };
+
+function isRiskState(value: unknown): value is { consecutiveLosses: number; stopLossCooldownUntil: number } {
+  if (!value || typeof value !== "object") return false;
+  const state = value as Record<string, unknown>;
+  return typeof state.consecutiveLosses === "number" &&
+    Number.isFinite(state.consecutiveLosses) &&
+    typeof state.stopLossCooldownUntil === "number" &&
+    Number.isFinite(state.stopLossCooldownUntil);
+}
 
 export class PostgresPersistence implements BotPersistence {
   private readonly pool: Pool;
@@ -192,6 +203,7 @@ export class PostgresPersistence implements BotPersistence {
     return {
       lastProcessedCandle,
       paperState: row.state as PaperTraderState,
+      ...(isRiskState(row.state) ? { riskState: row.state } : {}),
     };
   }
 
@@ -464,7 +476,7 @@ export class PostgresPersistence implements BotPersistence {
         [
           cycle.symbol,
           cycle.candle.timestamp,
-          JSON.stringify(cycle.paperState),
+          JSON.stringify({ ...cycle.paperState, ...(cycle.riskState ?? {}) }),
         ],
       );
       if (checkpoint.rowCount !== 1) {

@@ -220,6 +220,7 @@ async function main(): Promise<void> {
         ...(state
           ? { initialLastProcessedCandle: state.lastProcessedCandle }
           : {}),
+        ...(state?.riskState ? { initialRiskState: state.riskState } : {}),
         maxTradesPerInterval: settings.maxTrades,
         tradeIntervalMinutes: settings.intervalMinutes,
         demoOrderSizeUsdt: settings.orderSizeUsdt,
@@ -235,6 +236,8 @@ async function main(): Promise<void> {
         riskPerTradePercent: config.RISK_PER_TRADE_PERCENT,
         maxDailyLossPercent: config.RISK_MAX_DAILY_LOSS_PERCENT,
         maxDrawdownPercent: config.RISK_MAX_DRAWDOWN_PERCENT,
+        maxConsecutiveLosses: config.RISK_MAX_CONSECUTIVE_LOSSES,
+        stopLossCooldownMinutes: config.STOP_LOSS_COOLDOWN_MINUTES,
         tradeManager,
         signalScanSymbols: signalScanSymbolsFor(settings.symbol),
         dynamicUniverseSize: config.DYNAMIC_UNIVERSE_SIZE,
