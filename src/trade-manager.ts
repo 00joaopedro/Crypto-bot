@@ -12,8 +12,15 @@ export type TradeManagerOptions = {
 /** Central gate shared by signal ranking and execution. */
 export class CentralTradeManager {
   private readonly positions = new Map<string, ManagedPosition>();
+  private maxConcurrentPositions: number;
 
-  constructor(private readonly options: TradeManagerOptions) {}
+  constructor(private readonly options: TradeManagerOptions) {
+    this.maxConcurrentPositions = options.maxConcurrentPositions;
+  }
+
+  setMaxConcurrentPositions(value: number): void {
+    this.maxConcurrentPositions = Math.min(99, Math.max(1, Math.trunc(value)));
+  }
 
   get activePositions(): ManagedPosition[] {
     return [...this.positions.values()].map((position) => ({ ...position }));
@@ -21,7 +28,7 @@ export class CentralTradeManager {
 
   canEnter(symbol: string, notionalUsdt: number, equityUsdt: number): { allowed: boolean; reason?: string } {
     if (this.positions.has(symbol)) return { allowed: false, reason: "position_already_open" };
-    if (this.positions.size >= this.options.maxConcurrentPositions) {
+    if (this.positions.size >= this.maxConcurrentPositions) {
       return { allowed: false, reason: "max_concurrent_positions" };
     }
     const exposure = this.totalExposureUsdt + notionalUsdt;
