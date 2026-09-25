@@ -208,12 +208,14 @@ export class PostgresPersistence implements BotPersistence {
 
     const storedState = row.state as PaperTraderState & { symbol?: unknown };
     const { symbol: _storedSymbol, ...paperState } = storedState;
-    return {
-      symbol: row.state && typeof row.state === "object" && "symbol" in row.state && typeof row.state.symbol === "string" ? row.state.symbol : symbol,
+    const recoverySymbol = row.state && typeof row.state === "object" && "symbol" in row.state && typeof row.state.symbol === "string" ? row.state.symbol : symbol;
+    const recovery = {
       lastProcessedCandle,
       paperState: paperState as PaperTraderState,
       ...(isRiskState(row.state) ? { riskState: row.state } : {}),
-    };
+    } as RecoveryState;
+    Object.defineProperty(recovery, "symbol", { value: recoverySymbol, enumerable: false });
+    return recovery;
   }
 
   async isPaused(): Promise<boolean> {
