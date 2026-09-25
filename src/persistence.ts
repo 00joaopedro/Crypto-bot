@@ -64,6 +64,7 @@ export type OperationalEvent = {
 
 export interface BotPersistence {
   isPaused(): Promise<boolean>;
+  loadRecoveryState?(symbol: string): Promise<RecoveryState | null>;
   setPaused(paused: boolean, actor: string): Promise<void>;
   recordCycle(cycle: PersistedCycle): Promise<void>;
   recordDemoOrder(
