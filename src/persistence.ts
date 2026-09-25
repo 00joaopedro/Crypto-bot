@@ -39,6 +39,7 @@ export type DashboardSettings = {
   paperTradeSizeUsdt?: number | null;
   maxTrades: number;
   intervalMinutes: number;
+  maxConcurrentPositions: number;
 };
 
 export type DashboardData = {
@@ -50,6 +51,7 @@ export type DashboardData = {
   trades: Array<Record<string, unknown>>;
   orders: Array<Record<string, unknown>>;
   metrics: Record<string, unknown>;
+  portfoliosBySymbol: Array<Record<string, unknown>>;
   health: Record<string, unknown>;
 };
 
@@ -253,10 +255,10 @@ export class PostgresPersistence implements BotPersistence {
   async ensureDashboardSettings(defaults: DashboardSettings): Promise<DashboardSettings> {
     await this.pool.query(
       `INSERT INTO dashboard_settings (
-         id, symbol, order_size_usdt, max_trades, interval_minutes
-       ) VALUES (1, $1, $2, $3, $4)
+         id, symbol, order_size_usdt, max_trades, interval_minutes, max_concurrent_positions
+       ) VALUES (1, $1, $2, $3, $4, $5)
        ON CONFLICT (id) DO NOTHING`,
-      [defaults.symbol, defaults.orderSizeUsdt, defaults.maxTrades, defaults.intervalMinutes],
+      [defaults.symbol, defaults.orderSizeUsdt, defaults.maxTrades, defaults.intervalMinutes, defaults.maxConcurrentPositions],
     );
     // Existing dashboard rows predate the safety cap. Normalize them during
     // startup so a persisted value cannot bypass the configured hourly limit.
@@ -276,8 +278,9 @@ export class PostgresPersistence implements BotPersistence {
       paper_trade_size_usdt: number | null;
       max_trades: number;
       interval_minutes: number;
+      max_concurrent_positions: number;
     }>(
-      `SELECT symbol, order_size_usdt, paper_trade_size_usdt, max_trades, interval_minutes
+      `SELECT symbol, order_size_usdt, paper_trade_size_usdt, max_trades, interval_minutes, max_concurrent_positions
        FROM dashboard_settings WHERE id = 1`,
     );
     const row = result.rows[0];
@@ -288,6 +291,7 @@ export class PostgresPersistence implements BotPersistence {
       paperTradeSizeUsdt: row.paper_trade_size_usdt === null ? null : Number(row.paper_trade_size_usdt),
       maxTrades: Math.min(row.max_trades, MAX_SAFE_TRADES_PER_HOUR),
       intervalMinutes: row.interval_minutes,
+      maxConcurrentPositions: Math.min(99, Math.max(1, Number(row.max_concurrent_positions))),
     };
   }
 
@@ -298,9 +302,10 @@ export class PostgresPersistence implements BotPersistence {
       await client.query(
         `UPDATE dashboard_settings SET
            symbol = $1, order_size_usdt = $2, max_trades = $3,
-           interval_minutes = $4, updated_at = NOW(), updated_by = $5
+           interval_minutes = $4, max_concurrent_positions = $5,
+           updated_at = NOW(), updated_by = $6
          WHERE id = 1`,
-        [settings.symbol, settings.orderSizeUsdt, Math.min(settings.maxTrades, MAX_SAFE_TRADES_PER_HOUR), settings.intervalMinutes, actor],
+        [settings.symbol, settings.orderSizeUsdt, Math.min(settings.maxTrades, MAX_SAFE_TRADES_PER_HOUR), settings.intervalMinutes, settings.maxConcurrentPositions, actor],
       );
       await client.query(
         `INSERT INTO audit_events (event_type, actor, details)
@@ -362,7 +367,7 @@ export class PostgresPersistence implements BotPersistence {
 
   async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
-    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents] = await Promise.all([
+    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows] = await Promise.all([
       this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
@@ -421,11 +426,31 @@ export class PostgresPersistence implements BotPersistence {
          WHERE event_type = 'SERVICE_STATUS'
          ORDER BY details->>'service', created_at DESC`,
       ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT DISTINCT ON (symbol) symbol, snapshot, created_at
+         FROM portfolio_snapshots ORDER BY symbol, created_at DESC`,
+      ),
     ]);
     const decisionRow = decisionMetrics.rows[0] ?? {};
     const tradeRow = tradeMetrics.rows[0] ?? {};
     const eventRow = eventMetrics.rows[0] ?? {};
     const latestSnapshot = snapshot.rows[0]?.snapshot as Record<string, unknown> | undefined;
+    const aggregateSnapshot = portfolioRows.rows.reduce<Record<string, unknown>>((aggregate, row) => {
+      const current = (row.snapshot ?? {}) as Record<string, unknown>;
+      for (const key of ["equityUsdt", "realizedPnlUsdt", "unrealizedPnlUsdt", "totalFeesUsdt"])
+        aggregate[key] = Number(aggregate[key] ?? 0) + Number(current[key] ?? 0);
+      aggregate.closedTrades = Number(aggregate.closedTrades ?? 0) + Number(current.closedTrades ?? 0);
+      aggregate.wins = Number(aggregate.wins ?? 0) + Number(current.wins ?? 0);
+      aggregate.losses = Number(aggregate.losses ?? 0) + Number(current.losses ?? 0);
+      aggregate.currentDrawdownPercent = Math.max(Number(aggregate.currentDrawdownPercent ?? 0), Number(current.currentDrawdownPercent ?? 0));
+      aggregate.maxDrawdownPercent = Math.max(Number(aggregate.maxDrawdownPercent ?? 0), Number(current.maxDrawdownPercent ?? 0));
+      aggregate.buyAndHoldReturnPercent = Number(aggregate.buyAndHoldReturnPercent ?? 0) + Number(current.buyAndHoldReturnPercent ?? 0);
+      return aggregate;
+    }, {});
+    const portfolioCount = portfolioRows.rows.length || 1;
+    aggregateSnapshot.strategyReturnPercent = Number(aggregateSnapshot.equityUsdt ?? 0) / (portfolioCount * 1000) * 100 - 100;
+    aggregateSnapshot.buyAndHoldReturnPercent = Number(aggregateSnapshot.buyAndHoldReturnPercent ?? 0) / portfolioCount;
+    aggregateSnapshot.excessReturnVsBuyAndHoldPercent = Number(aggregateSnapshot.strategyReturnPercent) - Number(aggregateSnapshot.buyAndHoldReturnPercent);
     const closedTrades = Number(latestSnapshot?.closedTrades ?? tradeRow.exits ?? 0);
     const wins = Number(latestSnapshot?.wins ?? tradeRow.wins ?? 0);
     const latestCycleAt = snapshot.rows[0]?.created_at ?? null;
@@ -435,8 +460,9 @@ export class PostgresPersistence implements BotPersistence {
       paused: control.rows[0]?.paused ?? true,
       settings,
       latestDecision: decision.rows[0] ?? null,
-      latestSnapshot: snapshot.rows[0] ?? null,
+      latestSnapshot: snapshot.rows[0] ? { ...snapshot.rows[0], snapshot: { ...latestSnapshot, ...aggregateSnapshot } } : null,
       snapshots: snapshots.rows.reverse(),
+      portfoliosBySymbol: portfolioRows.rows,
       trades: trades.rows,
       orders: orders.rows,
       metrics: {

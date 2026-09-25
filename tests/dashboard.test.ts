@@ -64,6 +64,7 @@ describe("dashboard authentication", () => {
         orderSizeUsdt: 10,
         maxTrades: 1,
         intervalMinutes: 60,
+        maxConcurrentPositions: 2,
       }),
     });
     expect(settings.status).toBe(200);

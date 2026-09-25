@@ -146,4 +146,13 @@ export const migrations: readonly Migration[] = [
         ON operational_events (event_type, created_at DESC);
     `,
   },
+  {
+    version: 5,
+    name: "dashboard_concurrent_positions",
+    sql: `
+      ALTER TABLE dashboard_settings
+        ADD COLUMN max_concurrent_positions INTEGER NOT NULL DEFAULT 2
+        CHECK (max_concurrent_positions BETWEEN 1 AND 99);
+    `,
+  },
 ] as const;

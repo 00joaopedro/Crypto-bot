@@ -10,6 +10,7 @@ const settingsSchema = z.object({
   orderSizeUsdt: z.number().positive().max(100),
   maxTrades: z.number().int().min(1).max(5),
   intervalMinutes: z.number().int().min(15).max(10_080),
+  maxConcurrentPositions: z.number().int().min(1).max(99),
 });
 
 type DashboardOptions = {

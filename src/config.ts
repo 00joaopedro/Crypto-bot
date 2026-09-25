@@ -74,7 +74,7 @@ const schema = z
     // 20–30% aggregate exposure. Enforce the envelope at startup so a
     // dashboard or Railway edit cannot silently widen it.
     RISK_MAX_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(0.3).default(0.25),
-    MAX_CONCURRENT_POSITIONS: z.coerce.number().int().min(1).max(2).default(2),
+    MAX_CONCURRENT_POSITIONS: z.coerce.number().int().min(1).max(99).default(2),
     RISK_PER_TRADE_PERCENT: z.coerce.number().gt(0).max(0.01).default(0.01),
     RISK_MAX_DAILY_LOSS_PERCENT: z.coerce.number().gt(0).max(1).default(0.03),
     RISK_MAX_DRAWDOWN_PERCENT: z.coerce.number().gt(0).max(1).default(0.1),
