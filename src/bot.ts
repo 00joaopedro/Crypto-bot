@@ -115,7 +115,8 @@ export class TradingBot {
     // No eligible candidate means no entry is allowed. In particular, a BUY
     // signal with insufficient market quality must not fall through merely
     // because the ranking has no selected symbol.
-    const executionSymbol = selectedEligibleSymbol ?? this.options.symbol;
+    const managedPositionSymbol = this.options.tradeManager?.activePositions[0]?.symbol;
+    const executionSymbol = managedPositionSymbol ?? selectedEligibleSymbol ?? this.options.symbol;
     const executionCandles = executionSymbol === this.options.symbol
       ? candles
       : await this.market.fetchClosedCandles(executionSymbol, this.options.candleLimit);
@@ -128,7 +129,7 @@ export class TradingBot {
       console.log(JSON.stringify({ event: "cycle_skipped", reason: "candle_already_processed", symbol: executionSymbol }));
       return;
     }
-    const currentSymbolSelected = true;
+    const currentSymbolSelected = selectedEligibleSymbol !== undefined || managedPositionSymbol !== undefined;
 
     // Replayed candles can close an existing position, but cannot create a
     // retrospective entry. Approval is calculated only for the newest candle.

@@ -129,7 +129,7 @@ export class OkxDemoExecutor {
       };
     }
 
-    const existing = await this.findOrderByClientId(clientOrderId);
+    const existing = await this.findOrderByClientId(clientOrderId, marketSymbol);
     if (existing) {
       return {
         status: "SKIPPED",
@@ -203,7 +203,7 @@ export class OkxDemoExecutor {
         takeProfit: { triggerPrice: takeProfitPrice, type: "market" },
       },
     );
-    const order = await this.waitForOrderUpdate(submitted);
+    const order = await this.waitForOrderUpdate(submitted, marketSymbol);
 
     return {
       status: "PLACED",
@@ -231,9 +231,9 @@ export class OkxDemoExecutor {
     await this.exchange.close();
   }
 
-  private async findOrderByClientId(clientOrderId: string): Promise<Order | null> {
+  private async findOrderByClientId(clientOrderId: string, symbol: string): Promise<Order | null> {
     try {
-      return await this.exchange.fetchOrder(clientOrderId, this.options.symbol, {
+      return await this.exchange.fetchOrder(clientOrderId, symbol, {
         clientOrderId,
       });
     } catch (error) {
@@ -242,7 +242,7 @@ export class OkxDemoExecutor {
     }
   }
 
-  private async waitForOrderUpdate(submitted: Order): Promise<Order> {
+  private async waitForOrderUpdate(submitted: Order, symbol: string): Promise<Order> {
     if (submitted.status === "closed" || submitted.status === "canceled") {
       return submitted;
     }
@@ -253,7 +253,7 @@ export class OkxDemoExecutor {
       await this.pause(1_000);
       latest = await this.exchange.fetchOrder(
         submittedId,
-        this.options.symbol,
+        symbol,
       );
       if (latest.status === "closed" || latest.status === "canceled") break;
     }

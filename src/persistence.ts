@@ -27,6 +27,7 @@ export type PersistedCycle = {
 };
 
 export type RecoveryState = {
+  symbol: string;
   lastProcessedCandle: number;
   paperState: PaperTraderState;
   riskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
@@ -192,7 +193,12 @@ export class PostgresPersistence implements BotPersistence {
        WHERE symbol = $1`,
       [symbol],
     );
-    const row = result.rows[0];
+    const fallback = result.rows[0] ? undefined : await this.pool.query<StateRow>(
+      `SELECT last_processed_candle, state
+       FROM paper_trader_state
+       ORDER BY updated_at DESC LIMIT 1`,
+    );
+    const row = result.rows[0] ?? fallback?.rows[0];
     if (!row) return null;
 
     const lastProcessedCandle = Number(row.last_processed_candle);
@@ -201,6 +207,7 @@ export class PostgresPersistence implements BotPersistence {
     }
 
     return {
+      symbol: row.state && typeof row.state === "object" && "symbol" in row.state && typeof row.state.symbol === "string" ? row.state.symbol : symbol,
       lastProcessedCandle,
       paperState: row.state as PaperTraderState,
       ...(isRiskState(row.state) ? { riskState: row.state } : {}),
@@ -480,7 +487,7 @@ export class PostgresPersistence implements BotPersistence {
         [
           cycle.symbol,
           cycle.candle.timestamp,
-          JSON.stringify({ ...cycle.paperState, ...(cycle.riskState ?? {}) }),
+           JSON.stringify({ symbol: cycle.symbol, ...cycle.paperState, ...(cycle.riskState ?? {}) }),
         ],
       );
       if (checkpoint.rowCount !== 1) {
