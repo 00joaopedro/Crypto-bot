@@ -68,6 +68,7 @@ async function main(): Promise<void> {
     paperTradeSizeUsdt: null,
     maxTrades: config.RISK_MAX_TRADES_PER_HOUR,
     intervalMinutes: 60,
+    maxConcurrentPositions: config.MAX_CONCURRENT_POSITIONS,
   };
 
   try {
@@ -326,6 +327,7 @@ async function main(): Promise<void> {
 
           const previousOkxDemo = okxDemo;
           tradingSettings = nextSettings;
+          tradeManager.setMaxConcurrentPositions(nextSettings.maxConcurrentPositions);
           recoveryState = nextRecoveryState;
           okxDemo = nextOkxDemo;
           bot = createBot(nextSettings, nextRecoveryState, nextOkxDemo);
