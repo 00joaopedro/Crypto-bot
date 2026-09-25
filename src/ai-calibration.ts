@@ -27,11 +27,13 @@ export type AiCalibrationResult = {
 export function calibrateAi(opportunities: AiCalibrationOpportunity[], confidenceThresholds = [0.5, 0.7, 0.8], initialBalanceUsdt = 1000): AiCalibrationResult {
   if (!Number.isFinite(initialBalanceUsdt) || initialBalanceUsdt <= 0) throw new Error("initialBalanceUsdt must be positive");
   if (confidenceThresholds.length === 0 || confidenceThresholds.some((threshold) => !Number.isFinite(threshold) || threshold < 0 || threshold > 1)) throw new Error("confidence thresholds must be between 0 and 1");
-  const noAi = metrics("WITHOUT_AI", 0, opportunities, () => true, initialBalanceUsdt);
-  const thresholds = confidenceThresholds.map((threshold) => metrics(`AI_${threshold}`, threshold, opportunities, (opportunity) => opportunity.aiApprove && opportunity.aiConfidence >= threshold, initialBalanceUsdt));
+  const validOpportunities = opportunities.filter((opportunity) => Number.isFinite(opportunity.netPnlUsdt));
+  const noAi = metrics("WITHOUT_AI", 0, validOpportunities, () => true, initialBalanceUsdt);
+  const thresholds = confidenceThresholds.map((threshold) => metrics(`AI_${threshold}`, threshold, validOpportunities, (opportunity) => opportunity.aiApprove && opportunity.aiConfidence >= threshold, initialBalanceUsdt));
   const bestByNetPnl = [noAi, ...thresholds].reduce((best, current) => current.netPnlUsdt > best.netPnlUsdt ? current : best);
   const warnings: string[] = [];
-  if (opportunities.length < 100) warnings.push(`Amostra de IA insuficiente: ${opportunities.length}/100 oportunidades.`);
+  if (validOpportunities.length < 100) warnings.push(`Amostra de IA insuficiente: ${validOpportunities.length}/100 oportunidades.`);
+  if (validOpportunities.length < opportunities.length) warnings.push(`Oportunidades inválidas ignoradas: ${opportunities.length - validOpportunities.length}.`);
   if (thresholds.every((result) => result.trades === 0)) warnings.push("Nenhum limiar de confiança aprovou operações.");
   return { noAi, thresholds, bestByNetPnl, aiImprovesNetPnl: bestByNetPnl.scenario !== "WITHOUT_AI" && bestByNetPnl.netPnlUsdt > noAi.netPnlUsdt, warnings };
 }

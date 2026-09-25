@@ -15,4 +15,14 @@ describe("calibrateAi", () => {
   it("rejects invalid confidence thresholds", () => {
     expect(() => calibrateAi([], [-0.1])).toThrow("between 0 and 1");
   });
+  it("ignores non-finite P&L values", () => {
+    const result = calibrateAi([
+      { netPnlUsdt: Number.NaN, aiApprove: true, aiConfidence: 1 },
+      { netPnlUsdt: Number.POSITIVE_INFINITY, aiApprove: true, aiConfidence: 1 },
+      { netPnlUsdt: 3, aiApprove: true, aiConfidence: 0.9 },
+    ]);
+    expect(result.noAi.trades).toBe(1);
+    expect(result.noAi.netPnlUsdt).toBe(3);
+    expect(result.warnings).toContain("Oportunidades inválidas ignoradas: 2.");
+  });
 });
