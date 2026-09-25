@@ -220,6 +220,7 @@ async function main(): Promise<void> {
         ...(state
           ? { initialLastProcessedCandle: state.lastProcessedCandle }
           : {}),
+        ...(state?.riskState ? { initialRiskState: state.riskState } : {}),
         maxTradesPerInterval: settings.maxTrades,
         tradeIntervalMinutes: settings.intervalMinutes,
         demoOrderSizeUsdt: settings.orderSizeUsdt,

@@ -27,6 +27,7 @@ type BotOptions = {
   ai?: GeminiRiskFilter;
   persistence?: BotPersistence;
   initialLastProcessedCandle?: number;
+  initialRiskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
   maxTradesPerInterval?: number;
   tradeIntervalMinutes?: number;
   demoOrderSizeUsdt?: number;
@@ -54,8 +55,9 @@ export class TradingBot {
   private dailyDate = new Date().toISOString().slice(0, 10);
   private dailyStartEquity: number | undefined;
   private readonly lastEntryAtBySymbol = new Map<string, number>();
-  private consecutiveLosses = 0;
-  private stopLossCooldownUntil = 0;
+  private consecutiveLosses: number;
+  private stopLossCooldownUntil: number;
+  private observedPaused = false;
   private activeUniverse: string[] = [];
   private lastUniverseSwitchAt = 0;
 
@@ -64,14 +66,22 @@ export class TradingBot {
     private readonly options: BotOptions,
   ) {
     this.lastProcessedCandle = options.initialLastProcessedCandle;
+    this.consecutiveLosses = options.initialRiskState?.consecutiveLosses ?? 0;
+    this.stopLossCooldownUntil = options.initialRiskState?.stopLossCooldownUntil ?? 0;
   }
 
   async runCycle(): Promise<void> {
-    if (
-      this.demoExecutionBlocked ||
-      this.options.persistence &&
-      (await this.options.persistence.isPaused())
-    ) {
+    const persistedPaused = this.options.persistence
+      ? await this.options.persistence.isPaused()
+      : false;
+    if (persistedPaused) this.observedPaused = true;
+    if (this.observedPaused && !persistedPaused) {
+      this.consecutiveLosses = 0;
+      this.stopLossCooldownUntil = 0;
+      this.observedPaused = false;
+      console.log(JSON.stringify({ event: "risk_latch_reset", reason: "operator_resume" }));
+    }
+    if (this.demoExecutionBlocked || persistedPaused) {
       console.log(
         JSON.stringify({ event: "cycle_skipped", reason: "bot_paused" }),
       );
@@ -129,6 +139,7 @@ export class TradingBot {
     for (const candle of unseenCandles.slice(0, -1)) {
       const previousState = this.options.paperTrader.exportState();
       const paperResult = this.options.paperTrader.processCandle(candle, false);
+      await this.applyLossControls(paperResult.events, candle.timestamp);
       if (paperResult.events.some((event) => event.type === "CLOSED")) {
         this.options.tradeManager?.recordExit(this.options.symbol);
       }
@@ -139,6 +150,7 @@ export class TradingBot {
           replayed: true,
           paperResult,
           paperState: this.options.paperTrader.exportState(),
+          riskState: this.exportRiskState(),
         });
       } catch (error) {
         this.options.paperTrader.restoreState(previousState);
@@ -197,7 +209,7 @@ export class TradingBot {
       }));
     }
 
-    if (signal.action === "BUY" && currentSymbolSelected && !cooldownBlocked && this.options.ai) {
+    if (signal.action === "BUY" && currentSymbolSelected && !cooldownBlocked && !stopLossCooldownBlocked && this.options.ai) {
       try {
         aiDecision = await this.options.ai.evaluate(signal);
       } catch (error) {
@@ -252,6 +264,7 @@ export class TradingBot {
       approved,
       exitRates,
     );
+    await this.applyLossControls(paperResult.events, currentCandle.timestamp);
     try {
       await this.options.persistence?.recordCycle({
         symbol: this.options.symbol,
@@ -259,6 +272,7 @@ export class TradingBot {
         replayed: false,
         paperResult,
         paperState: this.options.paperTrader.exportState(),
+        riskState: this.exportRiskState(),
         decision: {
           mode: this.options.demoExecutor ? "PAPER_WITH_OKX_DEMO" : "PAPER",
           signal,
@@ -283,27 +297,6 @@ export class TradingBot {
     }
     if (paperResult.events.some((event) => event.type === "CLOSED")) {
       this.options.tradeManager?.recordExit(this.options.symbol);
-      for (const event of paperResult.events) {
-        if (event.type !== "CLOSED") continue;
-        if (event.netPnlUsdt < 0) {
-          this.consecutiveLosses += 1;
-          if (event.reason === "STOP_LOSS") {
-            this.stopLossCooldownUntil = currentCandle.timestamp +
-              (this.options.stopLossCooldownMinutes ?? 0) * 60_000;
-          }
-        } else {
-          this.consecutiveLosses = 0;
-        }
-      }
-      if (this.consecutiveLosses >= (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY)) {
-        await this.options.persistence?.setPaused(true, "system:consecutive_losses");
-        console.log(JSON.stringify({
-          event: "risk_pause_triggered",
-          symbol: this.options.symbol,
-          reason: "max_consecutive_losses",
-          consecutiveLosses: this.consecutiveLosses,
-        }));
-      }
     }
     this.lastProcessedCandle = currentCandle.timestamp;
 
@@ -466,6 +459,37 @@ export class TradingBot {
 
     this.logPaperResult(currentCandle, paperResult, false);
     await this.sendTradeAlerts(paperResult.events, false);
+  }
+
+  private exportRiskState(): { consecutiveLosses: number; stopLossCooldownUntil: number } {
+    return { consecutiveLosses: this.consecutiveLosses, stopLossCooldownUntil: this.stopLossCooldownUntil };
+  }
+
+  private async applyLossControls(events: PaperCycleResult["events"], candleTimestamp: number): Promise<void> {
+    for (const event of events) {
+      if (event.type !== "CLOSED") continue;
+      if (event.netPnlUsdt < 0) {
+        this.consecutiveLosses += 1;
+        if (event.reason === "STOP_LOSS") {
+          this.stopLossCooldownUntil = Math.max(
+            this.stopLossCooldownUntil,
+            candleTimestamp + (this.options.stopLossCooldownMinutes ?? 0) * 60_000,
+          );
+        }
+      } else {
+        this.consecutiveLosses = 0;
+      }
+    }
+    if (this.consecutiveLosses >= (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY)) {
+      await this.options.persistence?.setPaused(true, "system:consecutive_losses");
+      this.observedPaused = true;
+      console.log(JSON.stringify({
+        event: "risk_pause_triggered",
+        symbol: this.options.symbol,
+        reason: "max_consecutive_losses",
+        consecutiveLosses: this.consecutiveLosses,
+      }));
+    }
   }
 
   private paperEquityEstimate(): number {
