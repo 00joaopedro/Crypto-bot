@@ -96,23 +96,6 @@ export class TradingBot {
     const latest = candles.at(-1);
     if (!latest) throw new Error("Market data provider returned no closed candles");
 
-    const unseenCandles =
-      this.lastProcessedCandle === undefined
-        ? [latest]
-        : candles.filter(
-            (candle) => candle.timestamp > this.lastProcessedCandle!,
-          );
-
-    if (unseenCandles.length === 0) {
-      console.log(
-        JSON.stringify({
-          event: "cycle_skipped",
-          reason: "candle_already_processed",
-        }),
-      );
-      return;
-    }
-
     const ranking = await this.scanSignals(candles);
     if (ranking.length > 0) {
       console.log(JSON.stringify({
@@ -132,7 +115,20 @@ export class TradingBot {
     // No eligible candidate means no entry is allowed. In particular, a BUY
     // signal with insufficient market quality must not fall through merely
     // because the ranking has no selected symbol.
-    const currentSymbolSelected = selectedEligibleSymbol === this.options.symbol;
+    const executionSymbol = selectedEligibleSymbol ?? this.options.symbol;
+    const executionCandles = executionSymbol === this.options.symbol
+      ? candles
+      : await this.market.fetchClosedCandles(executionSymbol, this.options.candleLimit);
+    const executionLatest = executionCandles.at(-1);
+    if (!executionLatest) throw new Error(`Market data provider returned no closed candles for ${executionSymbol}`);
+    const unseenCandles = this.lastProcessedCandle === undefined
+      ? [executionLatest]
+      : executionCandles.filter((candle) => candle.timestamp > this.lastProcessedCandle!);
+    if (unseenCandles.length === 0) {
+      console.log(JSON.stringify({ event: "cycle_skipped", reason: "candle_already_processed", symbol: executionSymbol }));
+      return;
+    }
+    const currentSymbolSelected = true;
 
     // Replayed candles can close an existing position, but cannot create a
     // retrospective entry. Approval is calculated only for the newest candle.
@@ -141,11 +137,11 @@ export class TradingBot {
       const paperResult = this.options.paperTrader.processCandle(candle, false);
       await this.applyLossControls(paperResult.events, candle.timestamp);
       if (paperResult.events.some((event) => event.type === "CLOSED")) {
-        this.options.tradeManager?.recordExit(this.options.symbol);
+        this.options.tradeManager?.recordExit(executionSymbol);
       }
       try {
         await this.options.persistence?.recordCycle({
-          symbol: this.options.symbol,
+          symbol: executionSymbol,
           candle,
           replayed: true,
           paperResult,
@@ -162,10 +158,10 @@ export class TradingBot {
     }
 
     const currentCandle = unseenCandles.at(-1)!;
-    const currentIndex = candles.findIndex(
+    const currentIndex = executionCandles.findIndex(
       (candle) => candle.timestamp === currentCandle.timestamp,
     );
-    const signalCandles = candles.slice(0, currentIndex + 1);
+    const signalCandles = executionCandles.slice(0, currentIndex + 1);
     const exitRates = this.calculateVolatilityExitRates(signalCandles, currentCandle.close);
     const signal = this.options.minimumSignalScore === undefined
       ? evaluateStrategy(signalCandles)
@@ -187,9 +183,9 @@ export class TradingBot {
     if (signal.action === "BUY" && currentSymbolSelected && this.options.entryCooldownMinutes !== undefined) {
       const cooldownMs = this.options.entryCooldownMinutes * 60_000;
       if (this.options.persistence && typeof this.options.persistence.canEnterSymbol === "function") {
-        cooldownBlocked = !(await this.options.persistence.canEnterSymbol(this.options.symbol, this.options.entryCooldownMinutes));
+        cooldownBlocked = !(await this.options.persistence.canEnterSymbol(executionSymbol, this.options.entryCooldownMinutes));
       } else {
-        const lastEntryAt = this.lastEntryAtBySymbol.get(this.options.symbol);
+        const lastEntryAt = this.lastEntryAtBySymbol.get(executionSymbol);
         cooldownBlocked = lastEntryAt !== undefined && currentCandle.timestamp - lastEntryAt < cooldownMs;
       }
     }
@@ -204,7 +200,7 @@ export class TradingBot {
       });
       console.log(JSON.stringify({
         event: "trade_blocked_by_cooldown",
-        symbol: this.options.symbol,
+        symbol: executionSymbol,
         cooldownMinutes: this.options.entryCooldownMinutes,
       }));
     }
@@ -238,7 +234,7 @@ export class TradingBot {
 
     const managerBlock = approved && this.options.tradeManager
       ? this.options.tradeManager.canEnter(
-          this.options.symbol,
+          executionSymbol,
           this.options.demoExecutor
             ? this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt
             : this.options.paperTrader.tradeSizeUsdt,
@@ -252,7 +248,7 @@ export class TradingBot {
       approved = false;
       console.log(JSON.stringify({
         event: "trade_blocked_by_risk",
-        symbol: this.options.symbol,
+        symbol: executionSymbol,
         reason: riskBlock,
       }));
       await this.recordOperationalEvent("RISK_LIMIT", "WARN", { reason: riskBlock });
@@ -267,7 +263,7 @@ export class TradingBot {
     await this.applyLossControls(paperResult.events, currentCandle.timestamp);
     try {
       await this.options.persistence?.recordCycle({
-        symbol: this.options.symbol,
+        symbol: executionSymbol,
         candle: currentCandle,
         replayed: false,
         paperResult,
@@ -286,9 +282,9 @@ export class TradingBot {
       throw error;
     }
     if (paperResult.events.some((event) => event.type === "OPENED")) {
-      this.lastEntryAtBySymbol.set(this.options.symbol, currentCandle.timestamp);
+      this.lastEntryAtBySymbol.set(executionSymbol, currentCandle.timestamp);
       this.options.tradeManager?.recordEntry({
-        symbol: this.options.symbol,
+        symbol: executionSymbol,
         notionalUsdt: this.options.demoExecutor
           ? this.options.demoOrderSizeUsdt ?? this.options.paperTrader.tradeSizeUsdt
           : this.options.paperTrader.tradeSizeUsdt,
@@ -296,7 +292,7 @@ export class TradingBot {
       });
     }
     if (paperResult.events.some((event) => event.type === "CLOSED")) {
-      this.options.tradeManager?.recordExit(this.options.symbol);
+      this.options.tradeManager?.recordExit(executionSymbol);
     }
     this.lastProcessedCandle = currentCandle.timestamp;
 
@@ -313,7 +309,7 @@ export class TradingBot {
       await this.options.persistence.setPaused(true, "system:risk_limit");
       console.log(JSON.stringify({
         event: "risk_pause_triggered",
-        symbol: this.options.symbol,
+        symbol: executionSymbol,
         currentDrawdownPercent: paperResult.snapshot.currentDrawdownPercent,
         dailyLossPercent,
       }));
@@ -335,7 +331,7 @@ export class TradingBot {
           console.log(
             JSON.stringify({
               event: "okx_demo_order_skipped",
-              symbol: this.options.symbol,
+              symbol: executionSymbol,
               reason: "trade_interval_limit_reached",
               maxTrades: this.options.maxTradesPerInterval,
               intervalMinutes: this.options.tradeIntervalMinutes,
@@ -359,12 +355,13 @@ export class TradingBot {
           }
         } else {
           const demoResult = await this.options.demoExecutor.executeApprovedBuy({
+            symbol: executionSymbol,
             candleTimestamp: currentCandle.timestamp,
             ...exitRates,
           });
           try {
             await this.options.persistence?.recordDemoOrder(
-              this.options.symbol,
+              executionSymbol,
               currentCandle.timestamp,
               demoResult,
             );
@@ -373,7 +370,7 @@ export class TradingBot {
             console.error(
               JSON.stringify({
                 event: "database_write_failed_after_order",
-                symbol: this.options.symbol,
+                symbol: executionSymbol,
                 candleTimestamp: currentCandle.timestamp,
                 error: error instanceof Error ? error.message : String(error),
               }),
@@ -390,7 +387,7 @@ export class TradingBot {
                 demoResult.status === "PLACED"
                   ? "okx_demo_order_submitted"
                   : "okx_demo_order_skipped",
-              symbol: this.options.symbol,
+              symbol: executionSymbol,
               result: demoResult,
             }),
           );
@@ -400,7 +397,7 @@ export class TradingBot {
         const message = error instanceof Error ? error.message : String(error);
         try {
           await this.options.persistence?.recordDemoOrderFailure(
-            this.options.symbol,
+            executionSymbol,
             currentCandle.timestamp,
             message,
           );
@@ -419,7 +416,7 @@ export class TradingBot {
         console.error(
           JSON.stringify({
             event: "okx_demo_order_failed",
-            symbol: this.options.symbol,
+            symbol: executionSymbol,
             candleTimestamp: currentCandle.timestamp,
             error: message,
           }),
@@ -435,7 +432,7 @@ export class TradingBot {
       console.log(
         JSON.stringify({
           event: "okx_demo_order_skipped",
-          symbol: this.options.symbol,
+          symbol: executionSymbol,
           reason: "paper_position_not_opened",
           paperEvents: paperResult.events.map((event) => event.type),
         }),
@@ -446,7 +443,7 @@ export class TradingBot {
       JSON.stringify({
         event: "decision",
         mode: this.options.demoExecutor ? "PAPER_WITH_OKX_DEMO" : "PAPER",
-        symbol: this.options.symbol,
+        symbol: executionSymbol,
         signal,
         aiDecision,
         approved,

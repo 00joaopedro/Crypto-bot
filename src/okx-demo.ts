@@ -24,6 +24,7 @@ export type OkxDemoStatus = {
 };
 
 export type DemoBuyRequest = {
+  symbol?: string;
   candleTimestamp: number;
   stopLossRate?: number;
   takeProfitRate?: number;
@@ -111,8 +112,13 @@ export class OkxDemoExecutor {
       throw new Error("OKX Demo executor must be initialized before execution");
     }
 
+    const marketSymbol = request.symbol ?? this.options.symbol;
+    const market = this.exchange.market(marketSymbol);
+    if (!market.spot || market.active === false) {
+      throw new Error(`OKX Demo symbol is not an active Spot market: ${marketSymbol}`);
+    }
     const clientOrderId = createClientOrderId(
-      this.options.symbol,
+      marketSymbol,
       request.candleTimestamp,
     );
     if (!this.options.tradingEnabled) {
@@ -133,15 +139,15 @@ export class OkxDemoExecutor {
     }
 
     const [regularOrders, conditionalOrders, ocoOrders] = await Promise.all([
-      this.exchange.fetchOpenOrders(this.options.symbol),
+      this.exchange.fetchOpenOrders(marketSymbol),
       this.exchange.fetchOpenOrders(
-        this.options.symbol,
+        marketSymbol,
         undefined,
         100,
         { trigger: true, ordType: "conditional" },
       ),
       this.exchange.fetchOpenOrders(
-        this.options.symbol,
+        marketSymbol,
         undefined,
         100,
         { trigger: true, ordType: "oco" },
@@ -159,7 +165,6 @@ export class OkxDemoExecutor {
       };
     }
 
-    const market = this.exchange.market(this.options.symbol);
     const balance = await this.exchange.fetchBalance();
     const quoteCurrency = requiredString(market.quote, "market quote currency");
     const quoteFree = readFreeBalance(balance.free, quoteCurrency) ?? 0;
@@ -175,7 +180,7 @@ export class OkxDemoExecutor {
       };
     }
 
-    const ticker = await this.exchange.fetchTicker(this.options.symbol);
+    const ticker = await this.exchange.fetchTicker(marketSymbol);
     const referencePrice = ticker.ask ?? ticker.last;
     if (
       typeof referencePrice !== "number" ||
@@ -189,7 +194,7 @@ export class OkxDemoExecutor {
     const takeProfitPrice = referencePrice * (1 + (request.takeProfitRate ?? this.options.takeProfitRate));
 
     const submitted = await this.exchange.createMarketBuyOrderWithCost(
-      this.options.symbol,
+      marketSymbol,
       this.options.orderSizeUsdt,
       {
         clientOrderId,

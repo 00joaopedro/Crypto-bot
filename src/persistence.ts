@@ -353,7 +353,7 @@ export class PostgresPersistence implements BotPersistence {
     return equity === undefined ? undefined : Number(equity);
   }
 
-  async getDashboardData(limit = 40): Promise<DashboardData> {
+  async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
     const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents] = await Promise.all([
       this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
@@ -375,13 +375,17 @@ export class PostgresPersistence implements BotPersistence {
       ),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, event_type, candle_timestamp, trade, created_at
-         FROM paper_trades WHERE symbol = $1 ORDER BY created_at DESC LIMIT $2`,
-        [settings.symbol, limit],
+         FROM paper_trades
+         WHERE ($1::text IS NULL OR symbol = $1)
+         ORDER BY created_at DESC LIMIT $2`,
+        [historySymbol ?? null, limit],
       ),
       this.pool.query<Record<string, unknown>>(
         `SELECT client_order_id, symbol, status, result, created_at
-         FROM demo_orders WHERE symbol = $1 ORDER BY created_at DESC LIMIT $2`,
-        [settings.symbol, limit],
+         FROM demo_orders
+         WHERE ($1::text IS NULL OR symbol = $1)
+         ORDER BY created_at DESC LIMIT $2`,
+        [historySymbol ?? null, limit],
       ),
       this.pool.query<Record<string, unknown>>(
         `SELECT COUNT(*)::int AS decisions,
