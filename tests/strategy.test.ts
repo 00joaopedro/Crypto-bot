@@ -40,4 +40,14 @@ describe("strategy", () => {
     expect(signal.score).toBeGreaterThanOrEqual(0);
     expect(signal.scoreThreshold).toBe(4);
   });
+
+  it("emits a conservative quantitative SELL on confirmed bearish momentum", () => {
+    const candles = Array.from({ length: 60 }, (_, index) => ({
+      ...candle(112 - index * 0.2, index),
+      high: 112 - index * 0.2 + 0.3,
+      low: 112 - index * 0.2 - 0.3,
+      volume: index === 59 ? 2 : 1,
+    }));
+    expect(evaluateStrategy(candles, { minimumScore: 4 }).action).toBe("SELL");
+  });
 });
