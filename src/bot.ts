@@ -56,7 +56,7 @@ export class TradingBot {
   private dailyDate = new Date().toISOString().slice(0, 10);
   private dailyStartEquity: number | undefined;
   private readonly dailyStartEquityBySymbol = new Map<string, number>();
-  private readonly lastEntryAtBySymbol = new Map<string, number>();
+  private readonly lastTradeAtBySymbol = new Map<string, number>();
   private consecutiveLosses: number;
   private stopLossCooldownUntil: number;
   private observedPaused = false;
@@ -150,6 +150,7 @@ export class TradingBot {
       const paperResult = paperTrader.processCandle(candle, false);
       await this.applyLossControls(paperResult.events, candle.timestamp);
       if (paperResult.events.some((event) => event.type === "CLOSED")) {
+        this.lastTradeAtBySymbol.set(executionSymbol, candle.timestamp);
         this.options.tradeManager?.recordExit(executionSymbol);
       }
       try {
@@ -199,8 +200,8 @@ export class TradingBot {
       if (this.options.persistence && typeof this.options.persistence.canEnterSymbol === "function") {
         cooldownBlocked = !(await this.options.persistence.canEnterSymbol(executionSymbol, this.options.entryCooldownMinutes));
       } else {
-        const lastEntryAt = this.lastEntryAtBySymbol.get(executionSymbol);
-        cooldownBlocked = lastEntryAt !== undefined && currentCandle.timestamp - lastEntryAt < cooldownMs;
+        const lastTradeAt = this.lastTradeAtBySymbol.get(executionSymbol);
+        cooldownBlocked = lastTradeAt !== undefined && currentCandle.timestamp - lastTradeAt < cooldownMs;
       }
     }
     if (stopLossCooldownBlocked) {
@@ -315,7 +316,7 @@ export class TradingBot {
       throw error;
     }
     if (paperResult.events.some((event) => event.type === "OPENED")) {
-      this.lastEntryAtBySymbol.set(executionSymbol, currentCandle.timestamp);
+      this.lastTradeAtBySymbol.set(executionSymbol, currentCandle.timestamp);
       this.options.tradeManager?.recordEntry({
         symbol: executionSymbol,
         notionalUsdt: this.options.demoExecutor
@@ -325,6 +326,7 @@ export class TradingBot {
       });
     }
     if (paperResult.events.some((event) => event.type === "CLOSED")) {
+      this.lastTradeAtBySymbol.set(executionSymbol, currentCandle.timestamp);
       this.options.tradeManager?.recordExit(executionSymbol);
     }
     this.lastProcessedCandleBySymbol.set(executionSymbol, currentCandle.timestamp);
