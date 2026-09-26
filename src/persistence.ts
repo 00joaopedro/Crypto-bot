@@ -83,6 +83,7 @@ export interface BotPersistence {
   canEnterSymbol?(symbol: string, cooldownMinutes: number): Promise<boolean>;
   recordOperationalEvent(event: OperationalEvent): Promise<void>;
   getDailyStartEquity?(symbol: string): Promise<number | undefined>;
+  getDiagnosticLogs?(hours?: number, limit?: number): Promise<string>;
 }
 
 type StateRow = {
@@ -352,6 +353,24 @@ export class PostgresPersistence implements BotPersistence {
        VALUES ($1, $2, $3, $4::jsonb)`,
       [event.eventType, event.severity, event.symbol ?? null, JSON.stringify(event.details ?? {})],
     );
+  }
+
+  async getDiagnosticLogs(hours = 6, limit = 500): Promise<string> {
+    const safeHours = Math.min(24, Math.max(1, Math.trunc(hours)));
+    const safeLimit = Math.min(500, Math.max(50, Math.trunc(limit)));
+    const [events, decisions, trades, orders] = await Promise.all([
+      this.pool.query(`SELECT created_at, event_type, severity, symbol, details FROM operational_events WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, symbol, candle_timestamp, mode, signal, ai_decision, approved FROM decisions WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, symbol, candle_timestamp, event_type, trade FROM paper_trades WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, symbol, candle_timestamp, status, result FROM demo_orders WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+    ]);
+    const lines = [
+      { section: "operational_events", rows: events.rows },
+      { section: "decisions", rows: decisions.rows },
+      { section: "paper_trades", rows: trades.rows },
+      { section: "demo_orders", rows: orders.rows },
+    ].flatMap(({ section, rows }) => rows.map((row) => JSON.stringify({ section, ...row })));
+    return JSON.stringify({ generatedAt: new Date().toISOString(), scope: { hours: safeHours, maxRowsPerSection: safeLimit }, records: lines.map((line) => JSON.parse(line)) }, null, 2);
   }
 
   async getDailyStartEquity(symbol: string): Promise<number | undefined> {
