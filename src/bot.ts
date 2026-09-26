@@ -24,7 +24,7 @@ type BotOptions = {
   universeSwitchMinScoreAdvantage?: number;
   universeMaxReplacements?: number;
   paperTrader: PaperTrader;
-  demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy">;
+  demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
   ai?: GeminiRiskFilter;
   persistence?: BotPersistence;
   initialLastProcessedCandle?: number;
@@ -147,7 +147,11 @@ export class TradingBot {
     // retrospective entry. Approval is calculated only for the newest candle.
     for (const candle of unseenCandles.slice(0, -1)) {
       const previousState = paperTrader.exportState();
-      const paperResult = paperTrader.processCandle(candle, false);
+      const replayIndex = executionCandles.findIndex((item) => item.timestamp === candle.timestamp);
+      const replaySignal = replayIndex >= 49
+        ? evaluateStrategy(executionCandles.slice(0, replayIndex + 1), this.options.minimumSignalScore === undefined ? undefined : { minimumScore: this.options.minimumSignalScore })
+        : undefined;
+      const paperResult = paperTrader.processCandle(candle, false, undefined, replaySignal?.action === "SELL" && paperTrader.hasOpenPosition);
       await this.applyLossControls(paperResult.events, candle.timestamp);
       if (paperResult.events.some((event) => event.type === "CLOSED")) {
         this.lastTradeAtBySymbol.set(executionSymbol, candle.timestamp);
@@ -329,6 +333,23 @@ export class TradingBot {
     if (paperResult.events.some((event) => event.type === "CLOSED")) {
       this.lastTradeAtBySymbol.set(executionSymbol, currentCandle.timestamp);
       this.options.tradeManager?.recordExit(executionSymbol);
+    }
+
+    const contraryClose = paperResult.events.find((event) => event.type === "CLOSED" && event.reason === "SIGNAL_CONTRARY");
+    if (contraryClose && this.options.demoExecutor?.executeApprovedSell) {
+      try {
+        const demoResult = await this.options.demoExecutor.executeApprovedSell({
+          symbol: executionSymbol,
+          candleTimestamp: currentCandle.timestamp,
+          quantity: contraryClose.quantity,
+        });
+        await this.options.persistence?.recordDemoOrder(executionSymbol, currentCandle.timestamp, demoResult);
+        console.log(JSON.stringify({ event: "okx_demo_sell_submitted", symbol: executionSymbol, result: demoResult }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await this.options.persistence?.recordDemoOrderFailure(executionSymbol, currentCandle.timestamp, message);
+        console.error(JSON.stringify({ event: "okx_demo_sell_failed", symbol: executionSymbol, error: message }));
+      }
     }
     this.lastProcessedCandleBySymbol.set(executionSymbol, currentCandle.timestamp);
 
