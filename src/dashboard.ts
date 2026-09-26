@@ -68,6 +68,14 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         const data = await options.persistence.getDashboardData(40, historySymbol);
         return json(response, 200, { ...data, supportedSymbols: options.supportedSymbols });
       }
+      if (request.method === "GET" && url.pathname === "/api/logs") {
+        const hours = Number(url.searchParams.get("hours") ?? 6);
+        const limit = Number(url.searchParams.get("limit") ?? 500);
+        const content = await options.persistence.getDiagnosticLogs(hours, limit);
+        response.writeHead(200, { "content-type": "application/json; charset=utf-8", "content-disposition": `attachment; filename="crypto-bot-diagnostic-logs.json"`, "cache-control": "no-store" });
+        response.end(content);
+        return;
+      }
       if (request.method === "POST" && url.pathname === "/api/control") {
         requireSameOrigin(request);
         const body = await readJson(request);
