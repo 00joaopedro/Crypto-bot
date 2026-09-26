@@ -451,9 +451,9 @@ export class PostgresPersistence implements BotPersistence {
       ),
       this.pool.query<Record<string, unknown>>(
         `SELECT
-           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND created_at >= date_trunc('day', NOW())), 0)::double precision AS daily,
-           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND created_at >= date_trunc('week', NOW())), 0)::double precision AS weekly,
-           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND created_at >= date_trunc('month', NOW())), 0)::double precision AS monthly
+           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND to_timestamp((trade->>'exitTimestamp')::double precision / 1000) >= date_trunc('day', NOW())), 0)::double precision AS daily,
+           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND to_timestamp((trade->>'exitTimestamp')::double precision / 1000) >= date_trunc('week', NOW())), 0)::double precision AS weekly,
+           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND to_timestamp((trade->>'exitTimestamp')::double precision / 1000) >= date_trunc('month', NOW())), 0)::double precision AS monthly
          FROM paper_trades`,
       ),
     ]);
@@ -694,4 +694,3 @@ export class PostgresPersistence implements BotPersistence {
     );
   }
 }
-
