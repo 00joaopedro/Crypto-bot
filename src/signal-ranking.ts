@@ -23,21 +23,22 @@ export function rankSignals(
   candidates: SignalCandidate[],
   minimumScore?: number,
   blockedSymbols: ReadonlySet<string> = new Set(),
+  qualityFilters = true,
 ): RankedSignal[] {
   const ranked = candidates
     .map(({ symbol, candles }) => ({
       symbol,
       marketQuality: assessMarketQuality(candles),
       signal: minimumScore === undefined
-        ? evaluateStrategy(candles)
-        : evaluateStrategy(candles, { minimumScore }),
+        ? evaluateStrategy(candles, { qualityFilters })
+        : evaluateStrategy(candles, { minimumScore, qualityFilters }),
     }))
     .sort((left, right) => compareSignals(left.signal, right.signal, left.marketQuality, right.marketQuality));
 
   return ranked.map((candidate, index) => ({
     ...candidate,
     rank: index + 1,
-    eligible: candidate.signal.action === "BUY" && candidate.marketQuality.score >= 3 && !blockedSymbols.has(candidate.symbol),
+    eligible: (candidate.signal.action === "BUY" || candidate.signal.action === "SELL") && candidate.marketQuality.score >= 3 && !blockedSymbols.has(candidate.symbol),
   }));
 }
 
