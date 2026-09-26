@@ -19,6 +19,7 @@ export type PaperPosition = {
   stopLossPrice: number;
   takeProfitPrice: number;
   trailingStopPrice?: number;
+  trailingStopRate?: number;
 };
 
 export type PaperTraderState = {
@@ -187,7 +188,10 @@ export class PaperTrader {
       entryFee,
       stopLossPrice: entryPrice * (1 - stopLossRate),
       takeProfitPrice: entryPrice * (1 + takeProfitRate),
-      ...(exitRates?.trailingStopRate ? { trailingStopPrice: entryPrice * (1 - exitRates.trailingStopRate) } : {}),
+      ...(exitRates?.trailingStopRate ? {
+        trailingStopPrice: entryPrice * (1 - exitRates.trailingStopRate),
+        trailingStopRate: exitRates.trailingStopRate,
+      } : {}),
     };
 
     this.cashUsdt -= entryNotional + entryFee;
@@ -213,7 +217,7 @@ export class PaperTrader {
     if (position.trailingStopPrice !== undefined) {
       // Keep the trailing level monotonic. The initial level is derived from the
       // entry price; subsequent candles can only tighten it after a new high.
-      const trailingRate = 1 - position.trailingStopPrice / position.entryPrice;
+      const trailingRate = position.trailingStopRate ?? (1 - position.trailingStopPrice / position.entryPrice);
       position.trailingStopPrice = Math.max(position.trailingStopPrice, candle.high * (1 - trailingRate));
     }
 
@@ -228,7 +232,8 @@ export class PaperTrader {
     const targetPrice =
       reason === "STOP_LOSS" ? position.stopLossPrice : reason === "TAKE_PROFIT" ? position.takeProfitPrice : position.trailingStopPrice!;
     const availablePrice =
-      reason === "STOP_LOSS" && candle.open < position.stopLossPrice
+      (reason === "STOP_LOSS" && candle.open < position.stopLossPrice) ||
+      (reason === "TRAILING_STOP" && candle.open < targetPrice)
         ? candle.open
         : targetPrice;
     const exitPrice = availablePrice * (1 - this.options.slippageRate);
