@@ -8,7 +8,7 @@ export type Candle = {
 };
 
 export type QuantSignal = {
-  action: "BUY" | "HOLD";
+  action: "BUY" | "SELL" | "HOLD";
   candleTimestamp: number;
   price: number;
   ema9: number;
