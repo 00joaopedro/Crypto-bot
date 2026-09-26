@@ -55,6 +55,7 @@ export type DashboardData = {
   portfoliosBySymbol: Array<Record<string, unknown>>;
   health: Record<string, unknown>;
   analytics: ReturnType<typeof buildStatisticalReport>;
+  okxDemo: { quoteFree: number | null; totalUsdt: number | null; updatedAt: string | null; status: string; lastError?: string };
 };
 
 const MAX_SAFE_TRADES_PER_HOUR = 5;
@@ -393,7 +394,7 @@ export class PostgresPersistence implements BotPersistence {
 
   async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
-    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades] = await Promise.all([
+    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades, okxEvents] = await Promise.all([
       this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
@@ -464,6 +465,7 @@ export class PostgresPersistence implements BotPersistence {
          FROM paper_trades`,
       ),
       this.pool.query<Record<string, unknown>>(`SELECT pt.symbol, pt.trade, d.signal, d.ai_decision FROM paper_trades pt LEFT JOIN LATERAL (SELECT signal, ai_decision FROM decisions WHERE decisions.symbol = pt.symbol AND decisions.candle_timestamp = (pt.trade->>'entryTimestamp')::bigint ORDER BY decisions.created_at DESC LIMIT 1) d ON TRUE WHERE pt.event_type = 'CLOSED'`),
+      this.pool.query<Record<string, unknown>>(`SELECT event_type, severity, details, created_at FROM operational_events WHERE details->>'service' = 'okx-demo' ORDER BY created_at DESC LIMIT 20`),
     ]);
     const decisionRow = decisionMetrics.rows[0] ?? {};
     const tradeRow = tradeMetrics.rows[0] ?? {};
@@ -492,8 +494,6 @@ export class PostgresPersistence implements BotPersistence {
     aggregateSnapshot.strategyReturnPercent = Number(aggregateSnapshot.equityUsdt ?? 0) / (portfolioCount * 1000) * 100 - 100;
     aggregateSnapshot.buyAndHoldReturnPercent = Number(aggregateSnapshot.buyAndHoldReturnPercent ?? 0) / portfolioCount;
     aggregateSnapshot.excessReturnVsBuyAndHoldPercent = Number(aggregateSnapshot.strategyReturnPercent) - Number(aggregateSnapshot.buyAndHoldReturnPercent);
-    const closedTrades = Number(latestSnapshot?.closedTrades ?? tradeRow.exits ?? 0);
-    const wins = Number(latestSnapshot?.wins ?? tradeRow.wins ?? 0);
     const latestCycleAt = snapshot.rows[0]?.created_at ?? null;
     const health = Object.fromEntries(serviceEvents.rows.map((row) => [row.service, row.status]));
     health.postgresql ??= "ok";
@@ -506,6 +506,9 @@ export class PostgresPersistence implements BotPersistence {
       const trend = Number(breakdown.trend ?? 0); const volatility = Number(signal.volatilityPercent ?? 0);
       return { symbol: String(row.symbol), netPnlUsdt: Number(trade.netPnlUsdt ?? 0), exitTimestamp, regime: Math.abs(trend) >= 2 ? "trend" : volatility > 2 ? "volatile" : "lateral", aiState: aiReason.includes("UNAVAILABLE") ? "AI_UNAVAILABLE" : aiReason.includes("disabled") ? "AI_DISABLED" : "AI_AVAILABLE" };
     });
+    const analytics = buildStatisticalReport(statisticalTrades);
+    const closedTrades = analytics.trades;
+    const wins = analytics.wins;
     return {
       paused: control.rows[0]?.paused ?? true,
       settings,
@@ -525,7 +528,7 @@ export class PostgresPersistence implements BotPersistence {
         wins,
         losses: Math.max(0, closedTrades - wins),
         winRate: closedTrades ? (wins / closedTrades) * 100 : 0,
-        netPnlUsdt: Number(tradeRow.net_pnl ?? latestSnapshot?.realizedPnlUsdt ?? 0),
+        netPnlUsdt: analytics.netPnlUsdt,
         feesUsdt: Number(latestSnapshot?.totalFeesUsdt ?? 0),
         currentDrawdownPercent: Number(latestSnapshot?.currentDrawdownPercent ?? 0),
         maxDrawdownPercent: Number(latestSnapshot?.maxDrawdownPercent ?? 0),
@@ -540,7 +543,14 @@ export class PostgresPersistence implements BotPersistence {
         totalPositionValuePercent: totalEquity ? (totalPositionValue / totalEquity) * 100 : 0,
       },
       health: { ...health, lastOperationalEventAt: eventRow.last_event_at ?? null },
-      analytics: buildStatisticalReport(statisticalTrades),
+      analytics,
+      okxDemo: (() => {
+        const event = okxEvents.rows.find((row) => (row.details as Record<string, unknown> | undefined)?.balance) ?? okxEvents.rows.find((row) => (row.details as Record<string, unknown> | undefined)?.status === "ok");
+        const details = (event?.details ?? {}) as Record<string, unknown>;
+        const balance = (details.balance ?? {}) as Record<string, unknown>;
+        const errorEvent = okxEvents.rows.find((row) => row.severity === "ERROR");
+        return { quoteFree: Number.isFinite(Number(balance.quoteFree)) ? Number(balance.quoteFree) : null, totalUsdt: Number.isFinite(Number(balance.totalUsdt)) ? Number(balance.totalUsdt) : null, updatedAt: event?.created_at ? String(event.created_at) : null, status: String(details.status ?? "unknown"), ...(errorEvent ? { lastError: String(((errorEvent.details ?? {}) as Record<string, unknown>).error ?? "") } : {}) };
+      })(),
     };
   }
 
