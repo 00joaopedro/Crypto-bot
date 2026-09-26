@@ -10,6 +10,7 @@ import type {
 } from "./paper-trader.js";
 import type { DemoBuyResult } from "./okx-demo.js";
 import type { AiDecision, Candle, QuantSignal } from "./types.js";
+import { buildStatisticalReport, type StatisticalTrade } from "./analytics.js";
 
 export type PersistedCycle = {
   symbol: string;
@@ -53,6 +54,7 @@ export type DashboardData = {
   metrics: Record<string, unknown>;
   portfoliosBySymbol: Array<Record<string, unknown>>;
   health: Record<string, unknown>;
+  analytics: ReturnType<typeof buildStatisticalReport>;
 };
 
 const MAX_SAFE_TRADES_PER_HOUR = 5;
@@ -391,7 +393,7 @@ export class PostgresPersistence implements BotPersistence {
 
   async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
-    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl] = await Promise.all([
+    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades] = await Promise.all([
       this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
@@ -461,6 +463,7 @@ export class PostgresPersistence implements BotPersistence {
            COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND to_timestamp((trade->>'exitTimestamp')::double precision / 1000) >= date_trunc('month', NOW())), 0)::double precision AS monthly
          FROM paper_trades`,
       ),
+      this.pool.query<Record<string, unknown>>(`SELECT pt.symbol, pt.trade, d.signal, d.ai_decision FROM paper_trades pt LEFT JOIN LATERAL (SELECT signal, ai_decision FROM decisions WHERE decisions.symbol = pt.symbol AND decisions.candle_timestamp = (pt.trade->>'entryTimestamp')::bigint ORDER BY decisions.created_at DESC LIMIT 1) d ON TRUE WHERE pt.event_type = 'CLOSED'`),
     ]);
     const decisionRow = decisionMetrics.rows[0] ?? {};
     const tradeRow = tradeMetrics.rows[0] ?? {};
@@ -494,6 +497,15 @@ export class PostgresPersistence implements BotPersistence {
     const latestCycleAt = snapshot.rows[0]?.created_at ?? null;
     const health = Object.fromEntries(serviceEvents.rows.map((row) => [row.service, row.status]));
     health.postgresql ??= "ok";
+    const statisticalTrades: StatisticalTrade[] = analyticsTrades.rows.map((row) => {
+      const trade = (row.trade ?? {}) as Record<string, unknown>;
+      const exitTimestamp = Number(trade.exitTimestamp ?? 0);
+      const signal = (row.signal ?? {}) as Record<string, unknown>;
+      const breakdown = (signal.scoreBreakdown ?? {}) as Record<string, unknown>;
+      const aiReason = String((row.ai_decision as Record<string, unknown> | undefined)?.reason ?? "");
+      const trend = Number(breakdown.trend ?? 0); const volatility = Number(signal.volatilityPercent ?? 0);
+      return { symbol: String(row.symbol), netPnlUsdt: Number(trade.netPnlUsdt ?? 0), exitTimestamp, regime: Math.abs(trend) >= 2 ? "trend" : volatility > 2 ? "volatile" : "lateral", aiState: aiReason.includes("UNAVAILABLE") ? "AI_UNAVAILABLE" : aiReason.includes("disabled") ? "AI_DISABLED" : "AI_AVAILABLE" };
+    });
     return {
       paused: control.rows[0]?.paused ?? true,
       settings,
@@ -528,6 +540,7 @@ export class PostgresPersistence implements BotPersistence {
         totalPositionValuePercent: totalEquity ? (totalPositionValue / totalEquity) * 100 : 0,
       },
       health: { ...health, lastOperationalEventAt: eventRow.last_event_at ?? null },
+      analytics: buildStatisticalReport(statisticalTrades),
     };
   }
 
