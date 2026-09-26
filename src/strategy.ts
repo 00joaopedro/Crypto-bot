@@ -3,14 +3,18 @@ import type { Candle, QuantSignal } from "./types.js";
 
 export const DEFAULT_MINIMUM_SIGNAL_SCORE = 5;
 
-type StrategyOptions = { minimumScore?: number };
+export type StrategyOptions = { minimumScore?: number; qualityFilters?: boolean };
 
 export function evaluateStrategy(
   candles: Candle[],
   options: StrategyOptions = {},
 ): QuantSignal {
+  const qualityFilters = options.qualityFilters !== false;
   if (candles.length < 50) {
     throw new Error("At least 50 closed candles are required");
+  }
+  if (qualityFilters && candles.length < 84) {
+    return holdSignal(candles.at(-1)!, DEFAULT_MINIMUM_SIGNAL_SCORE, "At least 84 closed candles are required when quality filters are active");
   }
 
   const closes = candles.map((candle) => candle.close);
@@ -58,7 +62,18 @@ export function evaluateStrategy(
   // no longer required. The score and risk controls still control selectivity.
   const buyConfirmed = bullishTrend >= 1 && score >= minimumScore;
   const sellConfirmed = bearishTrend >= 1 && sellScore >= minimumScore && bearishMomentum === 1;
-  const action = buyConfirmed ? "BUY" : sellConfirmed ? "SELL" : "HOLD";
+  const higherTrend = higherTimeframeTrend(candles);
+  const lateralMarket = Math.abs(currentEma9 - currentEma21) / candle.close < Math.max(volatilityPercent / 100, 0.001) * 0.35;
+  const weakVolume = volumeRatio < 0.9;
+  const stretchedBuyRsi = currentRsi > 70;
+  const stretchedSellRsi = currentRsi < 30;
+  const buyQuality = higherTrend === 1 && !lateralMarket && !weakVolume && !stretchedBuyRsi;
+  const sellQuality = higherTrend === -1 && !lateralMarket && !weakVolume && !stretchedSellRsi;
+  const action = buyConfirmed && (!qualityFilters || buyQuality)
+    ? "BUY"
+    : sellConfirmed && (!qualityFilters || sellQuality)
+      ? "SELL"
+      : "HOLD";
   const scoreBreakdown = {
     trend: action === "SELL" ? bearishTrend : bullishTrend,
     rsi: action === "SELL" ? bearishRsi : rsiScore,
@@ -89,11 +104,36 @@ export function evaluateStrategy(
     volatilityPercent,
     stopDistancePercent,
     reason: action === "BUY"
-      ? `BUY score ${score}/8; contributing checks: ${contributingChecks || "none"}`
+      ? `BUY score ${score}/8; higher-timeframe trend confirmed; contributing checks: ${contributingChecks || "none"}`
       : action === "SELL"
         ? `SELL score ${sellScore}/8; bearish trend and negative momentum confirmed`
-        : `No directional signal; BUY score ${score}/8, SELL score ${sellScore}/8`,
+        : `No directional signal; BUY score ${score}/8, SELL score ${sellScore}/8; quality filters: ${qualityFilters ? "active" : "disabled"}`,
   };
+}
+
+function higherTimeframeTrend(candles: Candle[]): -1 | 0 | 1 {
+  const groups = new Map<number, Candle[]>();
+  for (const candle of candles) {
+    const bucket = Math.floor(candle.timestamp / (4 * 900_000));
+    const group = groups.get(bucket) ?? [];
+    group.push(candle); groups.set(bucket, group);
+  }
+  const aggregated: Candle[] = [];
+  for (const group of [...groups.values()].sort((left, right) => left[0]!.timestamp - right[0]!.timestamp)) {
+    if (group.length !== 4) continue;
+    aggregated.push({ timestamp: group.at(-1)!.timestamp, open: group[0]!.open, high: Math.max(...group.map((c) => c.high)), low: Math.min(...group.map((c) => c.low)), close: group.at(-1)!.close, volume: group.reduce((sum, c) => sum + c.volume, 0) });
+  }
+  if (aggregated.length < 21) return 0;
+  const closes = aggregated.map((c) => c.close);
+  const fast = emaSeries(closes, 9); const slow = emaSeries(closes, 21);
+  const currentFast = fast.at(-1)!; const currentSlow = slow.at(-1)!;
+  if (currentFast > currentSlow && currentFast > fast.at(-2)!) return 1;
+  if (currentFast < currentSlow && currentFast < fast.at(-2)!) return -1;
+  return 0;
+}
+
+function holdSignal(candle: Candle, minimumScore: number, reason: string): QuantSignal {
+  return { action: "HOLD", candleTimestamp: candle.timestamp, price: candle.close, ema9: candle.close, ema21: candle.close, previousEma9: candle.close, previousEma21: candle.close, rsi14: 50, score: 0, scoreThreshold: minimumScore, scoreBreakdown: { trend: 0, rsi: 0, volume: 0, momentum: 0, volatility: 0, stopDistance: 0 }, volumeRatio: 0, momentumPercent: 0, volatilityPercent: 0, stopDistancePercent: 0, reason };
 }
 
 function average(values: number[]): number {

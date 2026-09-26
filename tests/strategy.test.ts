@@ -22,11 +22,11 @@ describe("strategy", () => {
   });
 
   it("exposes an explainable score and can enter an established trend", () => {
-    const candles = Array.from({ length: 60 }, (_, index) => ({
+    const candles = Array.from({ length: 100 }, (_, index) => ({
       ...candle(100 + index * 0.2, index),
       high: 100 + index * 0.2 + 0.3,
       low: 100 + index * 0.2 - 0.3,
-      volume: index === 59 ? 2 : 1,
+      volume: index === 99 ? 2 : 1,
     }));
     const signal = evaluateStrategy(candles, { minimumScore: 4 });
     expect(signal.scoreBreakdown).toEqual(expect.objectContaining({
@@ -42,12 +42,13 @@ describe("strategy", () => {
   });
 
   it("emits a conservative quantitative SELL on confirmed bearish momentum", () => {
-    const candles = Array.from({ length: 60 }, (_, index) => ({
+    const candles = Array.from({ length: 100 }, (_, index) => ({
       ...candle(112 - index * 0.2, index),
       high: 112 - index * 0.2 + 0.3,
       low: 112 - index * 0.2 - 0.3,
-      volume: index === 59 ? 2 : 1,
+      volume: index === 99 ? 2 : 1,
     }));
-    expect(evaluateStrategy(candles, { minimumScore: 4 }).action).toBe("SELL");
+    expect(evaluateStrategy(candles, { minimumScore: 4, qualityFilters: false }).action).toBe("SELL");
+    expect(evaluateStrategy(candles, { minimumScore: 4 }).action).toBe("HOLD");
   });
 });

@@ -3,7 +3,7 @@ import { rankSignals } from "../src/signal-ranking.js";
 import type { Candle } from "../src/types.js";
 
 const candlesFor = (base: number, slope: number): Candle[] =>
-  Array.from({ length: 60 }, (_, index) => {
+  Array.from({ length: 100 }, (_, index) => {
     const close = base + index * slope;
     return {
       timestamp: index * 900_000,
@@ -11,7 +11,7 @@ const candlesFor = (base: number, slope: number): Candle[] =>
       high: close + 0.3,
       low: close - 0.3,
       close,
-      volume: index === 59 ? 2 : 1,
+      volume: index === 99 ? 2 : 1,
     };
   });
 
@@ -20,7 +20,7 @@ describe("signal ranking", () => {
     const ranked = rankSignals([
       { symbol: "BTC/USDT", candles: candlesFor(100, 0.2) },
       { symbol: "ETH/USDT", candles: candlesFor(100, 0) },
-    ], 4);
+    ], 4, new Set(), false);
 
     expect(ranked[0]?.symbol).toBe("BTC/USDT");
     expect(ranked[0]?.eligible).toBe(true);

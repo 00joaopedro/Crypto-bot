@@ -33,7 +33,7 @@ export type WalkForwardResult = {
  * parameters from its preceding training window; no future candle is consulted.
  */
 export function runWalkForward(candles: Candle[], options: WalkForwardOptions): WalkForwardResult {
-  const requiredWarmup = 51 + Math.max(1, options.base.executionDelayCandles ?? 0);
+  const requiredWarmup = (options.base.qualityFilters === true ? 84 : 51) + Math.max(1, options.base.executionDelayCandles ?? 0);
   if (!Number.isInteger(options.trainCandles) || options.trainCandles < requiredWarmup) throw new Error(`trainCandles must be at least ${requiredWarmup}`);
   if (!Number.isInteger(options.testCandles) || options.testCandles < 2) throw new Error("testCandles must be at least 2");
   if (options.candidates.length === 0) throw new Error("At least one candidate is required");
