@@ -449,7 +449,11 @@ export class TradingBot {
               result: demoResult,
             }),
           );
-          await this.recordServiceStatus("okx-demo", "ok");
+          await this.recordServiceStatus(
+            "okx-demo",
+            demoResult.status === "PENDING" ? "unhealthy" : "ok",
+            demoResult.status === "PENDING" ? new Error(demoResult.reconciliationError ?? "OKX order was not confirmed") : undefined,
+          );
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -856,7 +860,7 @@ export class TradingBot {
 function isOkxAvailabilityFailure(error: unknown): boolean {
   const typed = error as { okxFailureKind?: string; name?: string } | null;
   if (typed?.okxFailureKind) return typed.okxFailureKind === "availability";
-  return ["NetworkError", "ExchangeNotAvailable", "RequestTimeout", "DDoSProtection", "AuthenticationError"].includes(typed?.name ?? "");
+  return ["NetworkError", "ExchangeNotAvailable", "RequestTimeout", "DDoSProtection", "AuthenticationError", "OnMaintenance"].includes(typed?.name ?? "");
 }
 
 function serializeOkxError(error: unknown): Record<string, unknown> {

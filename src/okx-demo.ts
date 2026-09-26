@@ -21,6 +21,14 @@ export type OkxDemoStatus = {
   quoteCurrency: string;
   quoteFree: number | null;
   orderExecutionEnabled: boolean;
+  totalUsdt?: number | null;
+};
+
+export type OkxDemoAccountSnapshot = {
+  quoteCurrency: string;
+  quoteFree: number | null;
+  totalUsdt: number | null;
+  updatedAt: string;
 };
 
 export type DemoBuyRequest = {
@@ -33,7 +41,7 @@ export type DemoSellRequest = { symbol?: string; candleTimestamp: number; quanti
 
 export type DemoBuyResult =
   | {
-      status: "PLACED";
+      status: "PLACED" | "PENDING" | "FAILED";
       orderId: string;
       clientOrderId: string;
       orderStatus: string | null;
@@ -43,6 +51,8 @@ export type DemoBuyResult =
       referencePrice: number;
       stopLossPrice: number;
       takeProfitPrice: number;
+      confirmed: boolean;
+      reconciliationError?: string;
     }
   | {
       status: "SKIPPED";
@@ -101,6 +111,7 @@ export class OkxDemoExecutor {
     const balance = await this.exchange.fetchBalance();
     const quoteCurrency = requiredString(market.quote, "market quote currency");
     const quoteFree = readFreeBalance(balance.free, quoteCurrency);
+    const totalUsdt = readTotalBalance(balance.total, quoteCurrency);
     this.initialized = true;
 
     return {
@@ -110,7 +121,16 @@ export class OkxDemoExecutor {
       quoteCurrency,
       quoteFree,
       orderExecutionEnabled: this.options.tradingEnabled,
+      totalUsdt,
     };
+  }
+
+  async getAccountSnapshot(): Promise<OkxDemoAccountSnapshot> {
+    if (!this.initialized) throw new Error("OKX Demo executor must be initialized before balance queries");
+    const market = this.resolveActiveSpotMarket(this.options.symbol);
+    const balance = await this.exchange.fetchBalance();
+    const quoteCurrency = requiredString(market.quote, "market quote currency");
+    return { quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt: readTotalBalance(balance.total, quoteCurrency), updatedAt: new Date().toISOString() };
   }
 
   async executeApprovedBuy(request: DemoBuyRequest): Promise<DemoBuyResult> {
@@ -212,8 +232,9 @@ export class OkxDemoExecutor {
     );
     const order = await this.waitForOrderUpdate(submitted, marketSymbol);
 
+    const confirmed = order.status === "closed";
     return {
-      status: "PLACED",
+      status: confirmed ? "PLACED" : "PENDING",
       orderId: requiredString(order.id, "order id"),
       clientOrderId,
       orderStatus: order.status ?? null,
@@ -223,6 +244,8 @@ export class OkxDemoExecutor {
       referencePrice,
       stopLossPrice,
       takeProfitPrice,
+      confirmed,
+      ...(confirmed ? {} : { reconciliationError: `Final OKX order status was ${order.status ?? "unknown"}` }),
     };
   }
 
@@ -235,10 +258,12 @@ export class OkxDemoExecutor {
     const submitted = await this.exchange.createOrder(market.symbol, "market", "sell", request.quantity, undefined, { clientOrderId });
     const order = await this.waitForOrderUpdate(submitted, market.symbol);
     const referencePrice = finiteOrNull(order.average) ?? finiteOrNull(order.price) ?? 0;
+    const confirmed = order.status === "closed";
     return {
-      status: "PLACED", orderId: requiredString(order.id, "sell order id"), clientOrderId,
+      status: confirmed ? "PLACED" : "PENDING", orderId: requiredString(order.id, "sell order id"), clientOrderId,
       orderStatus: order.status ?? null, filled: finiteOrNull(order.filled), average: finiteOrNull(order.average),
-      cost: finiteOrNull(order.cost), referencePrice, stopLossPrice: 0, takeProfitPrice: 0,
+      cost: finiteOrNull(order.cost), referencePrice, stopLossPrice: 0, takeProfitPrice: 0, confirmed,
+      ...(confirmed ? {} : { reconciliationError: `Final OKX order status was ${order.status ?? "unknown"}` }),
     };
   }
 
@@ -317,6 +342,11 @@ function createOrderError(
 
 function readFreeBalance(free: unknown, currency: string): number | null {
   const balances = (free ?? {}) as Record<string, unknown>;
+  return finiteOrNull(balances[currency]);
+}
+
+function readTotalBalance(total: unknown, currency: string): number | null {
+  const balances = (total ?? {}) as Record<string, unknown>;
   return finiteOrNull(balances[currency]);
 }
 
