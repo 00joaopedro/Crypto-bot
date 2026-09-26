@@ -689,18 +689,19 @@ export class TradingBot {
     }
   }
 
-  private calculateVolatilityExitRates(candles: Candle[], referencePrice: number, trader = this.options.paperTrader): { stopLossRate: number; takeProfitRate: number } {
+  private calculateVolatilityExitRates(candles: Candle[], referencePrice: number, trader = this.options.paperTrader): { stopLossRate: number; takeProfitRate: number; trailingStopRate: number } {
     const atr = averageTrueRange(candles, this.options.atrPeriod ?? 14);
     if (atr <= 0) {
       return {
         stopLossRate: this.options.fallbackStopLossRate ?? trader.stopLossRate,
         takeProfitRate: this.options.fallbackTakeProfitRate ?? 0.02,
+        trailingStopRate: this.options.fallbackStopLossRate ?? trader.stopLossRate,
       };
     }
     const volatilityRate = atr > 0 ? atr / referencePrice : trader.stopLossRate;
     const stopLossRate = Math.min(this.options.atrMaxStopRate ?? 0.03, Math.max(this.options.atrMinStopRate ?? 0.005, volatilityRate * (this.options.atrStopMultiplier ?? 1.5)));
     const takeProfitRate = Math.min(0.5, Math.max(stopLossRate, volatilityRate * (this.options.atrTakeProfitMultiplier ?? 3)));
-    return { stopLossRate, takeProfitRate };
+    return { stopLossRate, takeProfitRate, trailingStopRate: stopLossRate };
   }
 
   private riskBlockReason(exitRates: { stopLossRate: number; takeProfitRate: number }, trader: PaperTrader): string | undefined {
