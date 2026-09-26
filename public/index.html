@@ -50,6 +50,13 @@
         <article class="metric"><span>Buy &amp; Hold</span><strong id="benchmark-return">—</strong><small id="excess-return">Diferença —</small></article>
       </section>
 
+      <section class="metrics period-metrics" aria-label="Lucro por período e posição atual">
+        <button type="button" class="metric metric-toggle" data-metric="daily"><span>Lucro diário</span><strong id="pnl-daily">US$ 0,00</strong><small id="pnl-daily-mode">USDT · clique para %</small></button>
+        <button type="button" class="metric metric-toggle" data-metric="weekly"><span>Lucro semanal</span><strong id="pnl-weekly">US$ 0,00</strong><small id="pnl-weekly-mode">USDT · clique para %</small></button>
+        <button type="button" class="metric metric-toggle" data-metric="monthly"><span>Lucro mensal</span><strong id="pnl-monthly">US$ 0,00</strong><small id="pnl-monthly-mode">USDT · clique para %</small></button>
+        <button type="button" class="metric metric-toggle" data-metric="position"><span>Total em trade</span><strong id="position-total">US$ 0,00</strong><small id="position-total-mode">USDT · clique para %</small></button>
+      </section>
+
       <section class="panel health-panel">
         <div class="section-head"><div><p class="eyebrow">SAÚDE DO SISTEMA</p><h2>Conexões e alertas</h2></div><span class="pill">Atualização automática</span></div>
         <div id="health" class="health-grid"></div>
@@ -91,3 +98,4 @@
   <script src="/app.js" defer></script>
 </body>
 </html>
+
