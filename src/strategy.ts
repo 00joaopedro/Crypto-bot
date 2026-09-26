@@ -9,8 +9,12 @@ export function evaluateStrategy(
   candles: Candle[],
   options: StrategyOptions = {},
 ): QuantSignal {
+  const qualityFilters = options.qualityFilters !== false;
   if (candles.length < 50) {
     throw new Error("At least 50 closed candles are required");
+  }
+  if (qualityFilters && candles.length < 84) {
+    return holdSignal(candles.at(-1)!, DEFAULT_MINIMUM_SIGNAL_SCORE, "At least 84 closed candles are required when quality filters are active");
   }
 
   const closes = candles.map((candle) => candle.close);
@@ -25,7 +29,6 @@ export function evaluateStrategy(
   const currentRsi = rsi14.at(-1)!;
   const candle = candles.at(-1)!;
   const minimumScore = options.minimumScore ?? DEFAULT_MINIMUM_SIGNAL_SCORE;
-  const qualityFilters = options.qualityFilters !== false;
   if (!Number.isInteger(minimumScore) || minimumScore < 1 || minimumScore > 8) {
     throw new Error("minimumScore must be an integer between 1 and 8");
   }
@@ -109,9 +112,15 @@ export function evaluateStrategy(
 }
 
 function higherTimeframeTrend(candles: Candle[]): -1 | 0 | 1 {
+  const groups = new Map<number, Candle[]>();
+  for (const candle of candles) {
+    const bucket = Math.floor(candle.timestamp / (4 * 900_000));
+    const group = groups.get(bucket) ?? [];
+    group.push(candle); groups.set(bucket, group);
+  }
   const aggregated: Candle[] = [];
-  for (let index = 0; index + 3 < candles.length; index += 4) {
-    const group = candles.slice(index, index + 4);
+  for (const group of [...groups.values()].sort((left, right) => left[0]!.timestamp - right[0]!.timestamp)) {
+    if (group.length !== 4) continue;
     aggregated.push({ timestamp: group.at(-1)!.timestamp, open: group[0]!.open, high: Math.max(...group.map((c) => c.high)), low: Math.min(...group.map((c) => c.low)), close: group.at(-1)!.close, volume: group.reduce((sum, c) => sum + c.volume, 0) });
   }
   if (aggregated.length < 21) return 0;
@@ -121,6 +130,10 @@ function higherTimeframeTrend(candles: Candle[]): -1 | 0 | 1 {
   if (currentFast > currentSlow && currentFast > fast.at(-2)!) return 1;
   if (currentFast < currentSlow && currentFast < fast.at(-2)!) return -1;
   return 0;
+}
+
+function holdSignal(candle: Candle, minimumScore: number, reason: string): QuantSignal {
+  return { action: "HOLD", candleTimestamp: candle.timestamp, price: candle.close, ema9: candle.close, ema21: candle.close, previousEma9: candle.close, previousEma21: candle.close, rsi14: 50, score: 0, scoreThreshold: minimumScore, scoreBreakdown: { trend: 0, rsi: 0, volume: 0, momentum: 0, volatility: 0, stopDistance: 0 }, volumeRatio: 0, momentumPercent: 0, volatilityPercent: 0, stopDistancePercent: 0, reason };
 }
 
 function average(values: number[]): number {
