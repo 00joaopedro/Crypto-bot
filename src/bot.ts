@@ -224,6 +224,7 @@ export class TradingBot {
         aiDecision = await withTimeout(this.options.ai.evaluate(signal), 8_000, "Gemini request timed out");
         await this.recordServiceStatus("gemini", "ok");
       } catch (error) {
+        const fallbackMode = this.options.aiFailureMode === "quantitative" ? "quantitative" : "reject";
         console.error(
           JSON.stringify({
             event: "ai_unavailable_quantitative_fallback",
@@ -232,7 +233,7 @@ export class TradingBot {
         );
         await this.recordOperationalEvent("AI_UNAVAILABLE", "WARN", {
           error: error instanceof Error ? error.message : String(error),
-          fallback: "quantitative",
+          configuredFailureMode: fallbackMode,
         });
         await this.recordServiceStatus("gemini", "unhealthy", error);
         // A transient AI outage rejects only this entry. The next candle
@@ -240,7 +241,9 @@ export class TradingBot {
         aiDecision = {
           approve: false,
           confidence: 0,
-          reason: "AI_UNAVAILABLE; quantitative fallback selected",
+          reason: fallbackMode === "quantitative"
+            ? "AI_UNAVAILABLE; quantitative fallback selected"
+            : "AI_UNAVAILABLE; entry rejected by configured failure mode",
         };
         aiFallbackUsed = true;
       }
