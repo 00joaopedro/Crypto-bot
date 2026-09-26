@@ -60,7 +60,8 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     // A signal uses the just-closed candle; the earliest honest fill is the
     // next candle, even when no additional artificial delay is requested.
     if (signal?.action === "BUY") pending.set(index + Math.max(1, delay), true);
-    const result = trader.processCandle(candle, pending.get(index) === true);
+    const sellSignal = signal?.action === "SELL";
+    const result = trader.processCandle(candle, pending.get(index) === true, undefined, sellSignal);
     pending.delete(index);
     if (index >= warmup) {
       closedTrades.push(...result.events.filter((event): event is PaperTradeClosed => event.type === "CLOSED"));
@@ -96,7 +97,7 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   }, trades: closedTrades };
 }
 
-function incrementalSignal(candles: Candle[], index: number, ema9: number[], ema21: number[], rsi14: number[], minimumScore = 5): { action: "BUY" | "HOLD" } {
+function incrementalSignal(candles: Candle[], index: number, ema9: number[], ema21: number[], rsi14: number[], minimumScore = 5): { action: "BUY" | "SELL" | "HOLD" } {
   const e9 = ema9[index - 8]!, previousE9 = ema9[index - 9]!;
   const e21 = ema21[index - 20]!, previousE21 = ema21[index - 21]!;
   const rsi = rsi14[index - 14]!;
@@ -110,7 +111,12 @@ function incrementalSignal(candles: Candle[], index: number, ema9: number[], ema
   }, 0) / Math.max(1, window.length - 1);
   const volatility = (atr / candle.close) * 100;
   const trend = e9 > e21 && e9 > previousE9 ? 2 : e9 > e21 ? 1 : 0;
+  const bearishTrend = e9 < e21 && e9 < previousE9 ? 2 : e9 < e21 ? 1 : 0;
   const rsiScore = rsi >= 45 && rsi <= 70 ? 2 : rsi >= 40 && rsi <= 75 ? 1 : 0;
-  const score = trend + rsiScore + (candle.volume / averageVolume >= 0.9 ? 1 : 0) + (momentum > 0 ? 1 : 0) + (volatility >= 0.1 && volatility <= 5 ? 1 : 0) + (volatility * 1.5 >= 0.3 && volatility * 1.5 <= 3 ? 1 : 0);
-  return { action: trend >= 1 && score >= minimumScore ? "BUY" : "HOLD" };
+  const volume = candle.volume / averageVolume >= 0.9 ? 1 : 0;
+  const volatilityScore = volatility >= 0.1 && volatility <= 5 ? 1 : 0;
+  const stopScore = volatility * 1.5 >= 0.3 && volatility * 1.5 <= 3 ? 1 : 0;
+  const score = trend + rsiScore + volume + (momentum > 0 ? 1 : 0) + volatilityScore + stopScore;
+  const sellScore = bearishTrend + (rsi <= 35 ? 2 : rsi <= 55 ? 1 : 0) + volume + (momentum < 0 ? 1 : 0) + volatilityScore + stopScore;
+  return { action: trend >= 1 && score >= minimumScore ? "BUY" : bearishTrend >= 1 && sellScore >= minimumScore && momentum < 0 ? "SELL" : "HOLD" };
 }
