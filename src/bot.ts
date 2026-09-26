@@ -293,6 +293,7 @@ export class TradingBot {
       currentCandle,
       approved,
       exitRates,
+      signal.action === "SELL" && paperTrader.hasOpenPosition,
     );
     await this.applyLossControls(paperResult.events, currentCandle.timestamp);
     try {
