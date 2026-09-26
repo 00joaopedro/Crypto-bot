@@ -51,9 +51,10 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   const closedTrades: PaperTradeClosed[] = [];
   const equities: number[] = [];
   const pending = new Map<number, boolean>();
+  const filtersEnabled = options.qualityFilters === true;
   for (let index = 0; index < candles.length; index += 1) {
     const candle = candles[index]!;
-    const signal = index >= 50 ? evaluateStrategy(candles.slice(0, index + 1), {
+    const signal = index >= (filtersEnabled ? 84 : 50) ? evaluateStrategy(candles.slice(0, index + 1), {
       ...(options.minimumSignalScore === undefined ? {} : { minimumScore: options.minimumSignalScore }),
       ...(options.qualityFilters === undefined ? {} : { qualityFilters: options.qualityFilters }),
     }) : undefined;
