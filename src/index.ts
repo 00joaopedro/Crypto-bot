@@ -373,6 +373,7 @@ async function main(): Promise<void> {
         persistence,
         supportedSymbols,
         onSettingsChanged: reconfigure,
+        ...(okxDemo ? { getOkxDemoSnapshot: () => okxDemo!.getAccountSnapshot() } : {}),
       });
     } else {
       console.log(JSON.stringify({ event: "dashboard_disabled" }));
