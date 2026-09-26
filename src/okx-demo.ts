@@ -29,6 +29,7 @@ export type DemoBuyRequest = {
   stopLossRate?: number;
   takeProfitRate?: number;
 };
+export type DemoSellRequest = { symbol?: string; candleTimestamp: number; quantity: number };
 
 export type DemoBuyResult =
   | {
@@ -222,6 +223,22 @@ export class OkxDemoExecutor {
       referencePrice,
       stopLossPrice,
       takeProfitPrice,
+    };
+  }
+
+  async executeApprovedSell(request: DemoSellRequest): Promise<DemoBuyResult> {
+    if (!this.initialized) throw new Error("OKX Demo executor must be initialized before execution");
+    if (!Number.isFinite(request.quantity) || request.quantity <= 0) throw new Error("Sell quantity must be positive");
+    const market = this.resolveActiveSpotMarket(request.symbol ?? this.options.symbol);
+    const clientOrderId = createClientOrderId(`SELL-${market.symbol}`, request.candleTimestamp);
+    if (!this.options.tradingEnabled) return { status: "SKIPPED", reason: "demo_trading_disabled", clientOrderId };
+    const submitted = await this.exchange.createOrder(market.symbol, "market", "sell", request.quantity, undefined, { clientOrderId });
+    const order = await this.waitForOrderUpdate(submitted, market.symbol);
+    const referencePrice = finiteOrNull(order.average) ?? finiteOrNull(order.price) ?? 0;
+    return {
+      status: "PLACED", orderId: requiredString(order.id, "sell order id"), clientOrderId,
+      orderStatus: order.status ?? null, filled: finiteOrNull(order.filled), average: finiteOrNull(order.average),
+      cost: finiteOrNull(order.cost), referencePrice, stopLossPrice: 0, takeProfitPrice: 0,
     };
   }
 
