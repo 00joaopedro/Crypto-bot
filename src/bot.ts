@@ -221,16 +221,18 @@ export class TradingBot {
 
     if (signal.action === "BUY" && currentSymbolSelected && !cooldownBlocked && !stopLossCooldownBlocked && this.options.ai) {
       try {
-        aiDecision = await this.options.ai.evaluate(signal);
+        aiDecision = await withTimeout(this.options.ai.evaluate(signal), 8_000, "Gemini request timed out");
+        await this.recordServiceStatus("gemini", "ok");
       } catch (error) {
         console.error(
           JSON.stringify({
-            event: "ai_filter_failed_closed",
+            event: "ai_unavailable_quantitative_fallback",
             error: error instanceof Error ? error.message : String(error),
           }),
         );
-        await this.recordOperationalEvent("AI_ERROR", "ERROR", {
+        await this.recordOperationalEvent("AI_UNAVAILABLE", "WARN", {
           error: error instanceof Error ? error.message : String(error),
+          fallback: "quantitative",
         });
         await this.recordServiceStatus("gemini", "unhealthy", error);
         // A transient AI outage rejects only this entry. The next candle
@@ -238,7 +240,7 @@ export class TradingBot {
         aiDecision = {
           approve: false,
           confidence: 0,
-          reason: "AI unavailable; quantitative fallback considered",
+          reason: "AI_UNAVAILABLE; quantitative fallback selected",
         };
         aiFallbackUsed = true;
       }
@@ -840,4 +842,18 @@ function serializeOkxError(error: unknown): Record<string, unknown> {
     details: typed?.okxDetails,
     stack: typed?.stack,
   };
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
