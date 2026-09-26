@@ -6,3 +6,5 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 .secondary-metrics{margin-top:-4px}.health-panel{padding:18px}.health-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.health-item{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}.health-item i{width:8px;height:8px;border-radius:50%;background:var(--red)}.health-item i.ok{background:var(--green)}.health-item small{margin-left:auto;color:var(--muted);font-size:11px}@media(min-width:700px){.health-grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:700px){.diagnostic-actions{display:flex;flex-wrap:wrap;gap:8px}.diagnostic-actions .ghost{display:inline-flex}}
+.metric-toggle{appearance:none;text-align:left;cursor:pointer}.metric-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
