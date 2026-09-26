@@ -393,7 +393,7 @@ export class PostgresPersistence implements BotPersistence {
 
   async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
-    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades, analyticsDecisions] = await Promise.all([
+    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades] = await Promise.all([
       this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
@@ -463,8 +463,7 @@ export class PostgresPersistence implements BotPersistence {
            COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND to_timestamp((trade->>'exitTimestamp')::double precision / 1000) >= date_trunc('month', NOW())), 0)::double precision AS monthly
          FROM paper_trades`,
       ),
-      this.pool.query<Record<string, unknown>>(`SELECT symbol, trade FROM paper_trades WHERE event_type = 'CLOSED'`),
-      this.pool.query<Record<string, unknown>>(`SELECT symbol, candle_timestamp, signal, ai_decision FROM decisions`),
+      this.pool.query<Record<string, unknown>>(`SELECT pt.symbol, pt.trade, d.signal, d.ai_decision FROM paper_trades pt LEFT JOIN LATERAL (SELECT signal, ai_decision FROM decisions WHERE decisions.symbol = pt.symbol AND decisions.candle_timestamp = (pt.trade->>'entryTimestamp')::bigint ORDER BY decisions.created_at DESC LIMIT 1) d ON TRUE WHERE pt.event_type = 'CLOSED'`),
     ]);
     const decisionRow = decisionMetrics.rows[0] ?? {};
     const tradeRow = tradeMetrics.rows[0] ?? {};
@@ -501,11 +500,9 @@ export class PostgresPersistence implements BotPersistence {
     const statisticalTrades: StatisticalTrade[] = analyticsTrades.rows.map((row) => {
       const trade = (row.trade ?? {}) as Record<string, unknown>;
       const exitTimestamp = Number(trade.exitTimestamp ?? 0);
-      const candidates = analyticsDecisions.rows.filter((item) => item.symbol === row.symbol && Number(item.candle_timestamp) <= exitTimestamp).sort((a, b) => Number(b.candle_timestamp) - Number(a.candle_timestamp));
-      const decision = candidates[0];
-      const signal = (decision?.signal ?? {}) as Record<string, unknown>;
+      const signal = (row.signal ?? {}) as Record<string, unknown>;
       const breakdown = (signal.scoreBreakdown ?? {}) as Record<string, unknown>;
-      const aiReason = String((decision?.ai_decision as Record<string, unknown> | undefined)?.reason ?? "");
+      const aiReason = String((row.ai_decision as Record<string, unknown> | undefined)?.reason ?? "");
       const trend = Number(breakdown.trend ?? 0); const volatility = Number(signal.volatilityPercent ?? 0);
       return { symbol: String(row.symbol), netPnlUsdt: Number(trade.netPnlUsdt ?? 0), exitTimestamp, regime: Math.abs(trend) >= 2 ? "trend" : volatility > 2 ? "volatile" : "lateral", aiState: aiReason.includes("UNAVAILABLE") ? "AI_UNAVAILABLE" : aiReason.includes("disabled") ? "AI_DISABLED" : "AI_AVAILABLE" };
     });
