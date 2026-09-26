@@ -386,7 +386,7 @@ export class PostgresPersistence implements BotPersistence {
 
   async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
-    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows] = await Promise.all([
+    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl] = await Promise.all([
       this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
@@ -449,6 +449,13 @@ export class PostgresPersistence implements BotPersistence {
         `SELECT DISTINCT ON (symbol) symbol, snapshot, created_at
          FROM portfolio_snapshots ORDER BY symbol, created_at DESC`,
       ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT
+           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND created_at >= date_trunc('day', NOW())), 0)::double precision AS daily,
+           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND created_at >= date_trunc('week', NOW())), 0)::double precision AS weekly,
+           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND created_at >= date_trunc('month', NOW())), 0)::double precision AS monthly
+         FROM paper_trades`,
+      ),
     ]);
     const decisionRow = decisionMetrics.rows[0] ?? {};
     const tradeRow = tradeMetrics.rows[0] ?? {};
@@ -467,6 +474,13 @@ export class PostgresPersistence implements BotPersistence {
       return aggregate;
     }, {});
     const portfolioCount = portfolioRows.rows.length || 1;
+    const totalEquity = Number(aggregateSnapshot.equityUsdt ?? 0);
+    const totalPositionValue = portfolioRows.rows.reduce((sum, row) => sum + Number(((row.snapshot ?? {}) as Record<string, unknown>).positionMarketValueUsdt ?? 0), 0);
+    const periodRow = periodPnl.rows[0] ?? {};
+    const periodMetrics = Object.fromEntries(["daily", "weekly", "monthly"].map((period) => {
+      const value = Number(periodRow[period] ?? 0);
+      return [period, { usdt: value, percent: totalEquity ? (value / totalEquity) * 100 : 0 }];
+    }));
     aggregateSnapshot.strategyReturnPercent = Number(aggregateSnapshot.equityUsdt ?? 0) / (portfolioCount * 1000) * 100 - 100;
     aggregateSnapshot.buyAndHoldReturnPercent = Number(aggregateSnapshot.buyAndHoldReturnPercent ?? 0) / portfolioCount;
     aggregateSnapshot.excessReturnVsBuyAndHoldPercent = Number(aggregateSnapshot.strategyReturnPercent) - Number(aggregateSnapshot.buyAndHoldReturnPercent);
@@ -504,6 +518,9 @@ export class PostgresPersistence implements BotPersistence {
         strategyReturnPercent: Number(latestSnapshot?.strategyReturnPercent ?? 0),
         excessReturnVsBuyAndHoldPercent: Number(latestSnapshot?.excessReturnVsBuyAndHoldPercent ?? 0),
         errorCount: Number(eventRow.errors ?? 0),
+        periodPnl: periodMetrics,
+        totalPositionValueUsdt: totalPositionValue,
+        totalPositionValuePercent: totalEquity ? (totalPositionValue / totalEquity) * 100 : 0,
       },
       health: { ...health, lastOperationalEventAt: eventRow.last_event_at ?? null },
     };
@@ -677,3 +694,4 @@ export class PostgresPersistence implements BotPersistence {
     );
   }
 }
+
