@@ -154,7 +154,7 @@ async function main(): Promise<void> {
       });
     }
 
-    const ai = config.GEMINI_ENABLED
+    const ai = config.AI_MODE === "filter" && config.GEMINI_ENABLED
       ? new GeminiRiskFilter(config.GEMINI_API_KEY!, config.GEMINI_MODEL)
       : undefined;
     const emailAlerts = config.EMAIL_ALERTS_ENABLED
@@ -169,7 +169,8 @@ async function main(): Promise<void> {
       severity: "INFO",
       details: {
         service: "gemini",
-        status: config.GEMINI_ENABLED ? "configured" : "disabled",
+        status: ai ? "configured" : "disabled",
+        mode: config.AI_MODE,
       },
     });
     const marketSymbols = new Set(market.listSpotSymbols());
@@ -267,7 +268,8 @@ async function main(): Promise<void> {
         marketDataProvider: config.MARKET_DATA_PROVIDER,
         symbol: tradingSettings.symbol,
         timeframe: config.TIMEFRAME,
-        aiEnabled: config.GEMINI_ENABLED,
+        aiEnabled: config.AI_MODE === "filter" && config.GEMINI_ENABLED,
+        signalEngineMode: config.AI_MODE,
         persistenceEnabled: Boolean(persistence),
         paperTrading: {
           initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
