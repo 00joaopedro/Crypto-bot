@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 
 import { z } from "zod";
 import type { DashboardSettings, PostgresPersistence } from "./persistence.js";
+import type { OkxDemoAccountSnapshot } from "./okx-demo.js";
 
 const settingsSchema = z.object({
   symbol: z.string().regex(/^[A-Z0-9]{2,15}\/USDT$/),
@@ -21,6 +22,7 @@ type DashboardOptions = {
   persistence: PostgresPersistence;
   supportedSymbols: string[];
   onSettingsChanged: () => void | Promise<void>;
+  getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
 };
 
 const assets = new Map<string, { file: string; type: string }>([
@@ -66,7 +68,16 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
       if (request.method === "GET" && url.pathname === "/api/dashboard") {
         const historySymbol = url.searchParams.get("symbol") || undefined;
         const data = await options.persistence.getDashboardData(40, historySymbol);
-        return json(response, 200, { ...data, supportedSymbols: options.supportedSymbols });
+        let okxDemo = data.okxDemo;
+        if (options.getOkxDemoSnapshot) {
+          try {
+            const snapshot = await options.getOkxDemoSnapshot();
+            okxDemo = { ...okxDemo, ...snapshot, status: "ok" };
+          } catch (error) {
+            okxDemo = { ...okxDemo, status: "unhealthy", lastError: error instanceof Error ? error.message : String(error) };
+          }
+        }
+        return json(response, 200, { ...data, okxDemo, supportedSymbols: options.supportedSymbols });
       }
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);
