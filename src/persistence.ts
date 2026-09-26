@@ -338,13 +338,18 @@ export class PostgresPersistence implements BotPersistence {
   }
 
   async canEnterSymbol(symbol: string, cooldownMinutes: number): Promise<boolean> {
-    const result = await this.pool.query<{ last_entry: Date | null }>(
-      `SELECT MAX(created_at) AS last_entry FROM paper_trades
-       WHERE symbol = $1 AND event_type = 'OPENED'
-         AND created_at >= NOW() - ($2 * INTERVAL '1 minute')`,
+    const result = await this.pool.query<{ last_trade: Date | null }>(
+      `SELECT MAX(to_timestamp((trade->>
+         CASE WHEN event_type = 'CLOSED' THEN 'exitTimestamp' ELSE 'entryTimestamp' END
+       )::double precision / 1000)) AS last_trade
+       FROM paper_trades
+       WHERE symbol = $1
+         AND to_timestamp((trade->>
+           CASE WHEN event_type = 'CLOSED' THEN 'exitTimestamp' ELSE 'entryTimestamp' END
+         )::double precision / 1000) >= NOW() - ($2 * INTERVAL '1 minute')`,
       [symbol, cooldownMinutes],
     );
-    return !result.rows[0]?.last_entry;
+    return !result.rows[0]?.last_trade;
   }
 
   async recordOperationalEvent(event: OperationalEvent): Promise<void> {

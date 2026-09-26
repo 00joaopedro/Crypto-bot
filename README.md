@@ -10,8 +10,8 @@ Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 2. Usa Kraken como fonte padrão, evitando o bloqueio regional da Bybit na Railway.
 3. Calcula EMA 9, EMA 21, RSI 14, volume, momentum e volatilidade de forma determinística.
 4. Gera um score de entrada (1–8) com tendência, RSI, volume, momentum, volatilidade e distância estimada do stop. A EMA ainda precisa apontar para cima, mas não é necessário um cruzamento em um único candle.
-5. O score é submetido ao filtro de IA quando ele está habilitado; a IA continua sendo uma barreira adicional e uma falha permanece fail-closed.
-6. Usa o Gemini opcionalmente como filtro de risco com saída JSON estruturada.
+5. Opera no modo quantitativo por padrão, sem depender de IA; o score é determinístico e sujeito aos limites de risco.
+6. O Gemini pode ser ativado futuramente com `AI_MODE=filter` e `GEMINI_ENABLED=true` como filtro adicional de risco.
 7. Mantém uma carteira paper com taxa, slippage, Stop-Loss e Take-Profit.
 8. Quando as duas travas Demo estão habilitadas, envia uma compra Spot virtual à OKX com TP/SL anexados.
 9. Pode classificar uma lista de pares em cada candle fechado e só considera o melhor sinal elegível para a execução do par configurado. A carteira multiativos será uma etapa posterior.
@@ -23,7 +23,7 @@ Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 
 A fonte dos candles não define a corretora de execução. Kraken fornece os candles e a OKX Demo recebe apenas ordens virtuais aprovadas pelas regras quantitativas e pelo filtro de IA.
 
-A IA não cria sinais, não define tamanho da posição e não altera regras de risco. Falha da IA bloqueia a compra.
+A IA não cria sinais, não define tamanho da posição e não altera regras de risco. No modo quantitativo ela não é chamada; no modo filtro, indisponibilidade segue `AI_FAILURE_MODE`.
 
 ## Requisitos
 
@@ -53,7 +53,8 @@ Variáveis principais:
 - `EXECUTION_PROVIDER=okx-demo`
 - `LIVE_TRADING_ENABLED=false` (único valor aceito neste marco)
 - `OKX_API_KEY`, `OKX_SECRET_KEY` e `OKX_PASSPHRASE`
-- `GEMINI_ENABLED=true` junto com `GEMINI_API_KEY`
+- `AI_MODE=quantitative` (padrão, operação independente de IA)
+- `GEMINI_ENABLED=true` junto com `AI_MODE=filter` e `GEMINI_API_KEY` (opcional)
 - `PAPER_INITIAL_BALANCE_USDT=1000`
 - `PAPER_TRADE_SIZE_USDT=100`
 - `PAPER_FEE_RATE=0.001` (0,10%)

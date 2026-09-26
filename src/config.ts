@@ -47,6 +47,7 @@ const schema = z
     DASHBOARD_PASSWORD: optionalTrimmedString,
     DASHBOARD_SESSION_SECRET: optionalTrimmedString,
     GEMINI_ENABLED: booleanString,
+    AI_MODE: z.enum(["quantitative", "filter"]).default("quantitative"),
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().min(1).default("gemini-flash-latest"),
     AI_FAILURE_MODE: z.enum(["reject", "quantitative"]).default("quantitative"),
