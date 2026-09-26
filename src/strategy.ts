@@ -37,22 +37,33 @@ export function evaluateStrategy(
   // PaperTrader and the OKX Demo executor settings.
   const stopDistancePercent = volatilityPercent * 1.5;
 
-  const trend = currentEma9 > currentEma21
+  const bullishTrend = currentEma9 > currentEma21
     ? currentEma9 > previousEma9 ? 2 : 1
+    : 0;
+  const bearishTrend = currentEma9 < currentEma21
+    ? currentEma9 < previousEma9 ? 2 : 1
     : 0;
   const rsiScore = currentRsi >= 45 && currentRsi <= 70
     ? 2
     : currentRsi >= 40 && currentRsi <= 75 ? 1 : 0;
   const volume = volumeRatio >= 0.9 ? 1 : 0;
   const momentum = momentumPercent > 0 ? 1 : 0;
+  const bearishMomentum = momentumPercent < 0 ? 1 : 0;
   const volatility = volatilityPercent >= 0.1 && volatilityPercent <= 5 ? 1 : 0;
   const stopDistance = stopDistancePercent >= 0.3 && stopDistancePercent <= 3 ? 1 : 0;
-  const score = trend + rsiScore + volume + momentum + volatility + stopDistance;
+  const bearishRsi = currentRsi <= 35 ? 2 : currentRsi <= 55 ? 1 : 0;
+  const score = bullishTrend + rsiScore + volume + momentum + volatility + stopDistance;
+  const sellScore = bearishTrend + bearishRsi + volume + bearishMomentum + volatility + stopDistance;
+  // The EMA direction remains mandatory, but an exact one-candle crossover is
+  // no longer required. The score and risk controls still control selectivity.
+  const buyConfirmed = bullishTrend >= 1 && score >= minimumScore;
+  const sellConfirmed = bearishTrend >= 1 && sellScore >= minimumScore && bearishMomentum === 1;
+  const action = buyConfirmed ? "BUY" : sellConfirmed ? "SELL" : "HOLD";
   const scoreBreakdown = {
-    trend,
-    rsi: rsiScore,
+    trend: action === "SELL" ? bearishTrend : bullishTrend,
+    rsi: action === "SELL" ? bearishRsi : rsiScore,
     volume,
-    momentum,
+    momentum: action === "SELL" ? bearishMomentum : momentum,
     volatility,
     stopDistance,
   };
@@ -60,10 +71,6 @@ export function evaluateStrategy(
     .filter(([, points]) => points > 0)
     .map(([check]) => check)
     .join(", ");
-
-  // The EMA direction remains mandatory, but an exact one-candle crossover is
-  // no longer required. The score and AI filter still control selectivity.
-  const action = trend >= 1 && score >= minimumScore ? "BUY" : "HOLD";
 
   return {
     action,
@@ -74,16 +81,18 @@ export function evaluateStrategy(
     previousEma9,
     previousEma21,
     rsi14: currentRsi,
-    score,
+    score: action === "SELL" ? sellScore : score,
     scoreThreshold: minimumScore,
     scoreBreakdown,
     volumeRatio,
-    momentumPercent,
+    momentumPercent: action === "SELL" ? -Math.abs(momentumPercent) : momentumPercent,
     volatilityPercent,
     stopDistancePercent,
     reason: action === "BUY"
-      ? `Signal score ${score}/8; contributing checks: ${contributingChecks || "none"}`
-      : `Signal score ${score}/8 below threshold ${minimumScore} or trend not confirmed`,
+      ? `BUY score ${score}/8; contributing checks: ${contributingChecks || "none"}`
+      : action === "SELL"
+        ? `SELL score ${sellScore}/8; bearish trend and negative momentum confirmed`
+        : `No directional signal; BUY score ${score}/8, SELL score ${sellScore}/8`,
   };
 }
 

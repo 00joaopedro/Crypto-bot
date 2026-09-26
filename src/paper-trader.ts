@@ -150,10 +150,12 @@ export class PaperTrader {
     this.benchmarkStartPrice = state.benchmarkStartPrice ?? undefined;
   }
 
-  processCandle(candle: Candle, buyApproved: boolean, exitRates?: DynamicExitRates): PaperCycleResult {
+  get hasOpenPosition(): boolean { return this.position !== undefined; }
+
+  processCandle(candle: Candle, buyApproved: boolean, exitRates?: DynamicExitRates, signalContrary = false): PaperCycleResult {
     this.benchmarkStartPrice ??= candle.close;
     const events: Array<PaperTradeOpened | PaperTradeClosed> = [];
-    const closedThisCandle = this.tryClosePosition(candle);
+    const closedThisCandle = this.tryClosePosition(candle, signalContrary);
 
     if (closedThisCandle) {
       events.push(closedThisCandle);
@@ -210,7 +212,7 @@ export class PaperTrader {
     };
   }
 
-  private tryClosePosition(candle: Candle): PaperTradeClosed | undefined {
+  private tryClosePosition(candle: Candle, signalContrary = false): PaperTradeClosed | undefined {
     const position = this.position;
     if (!position || candle.timestamp <= position.entryTimestamp) return undefined;
 
@@ -224,13 +226,13 @@ export class PaperTrader {
     const stopTouched = candle.low <= position.stopLossPrice;
     const takeProfitTouched = candle.high >= position.takeProfitPrice;
     const trailingTouched = position.trailingStopPrice !== undefined && candle.close <= position.trailingStopPrice;
-    if (!stopTouched && !takeProfitTouched && !trailingTouched) return undefined;
+    if (!stopTouched && !takeProfitTouched && !trailingTouched && !signalContrary) return undefined;
 
     // With OHLC data the intrabar order is unknown. If both levels were touched,
     // choose stop-loss first to keep the simulation conservative.
-    const reason = stopTouched ? "STOP_LOSS" : takeProfitTouched ? "TAKE_PROFIT" : "TRAILING_STOP";
+    const reason = stopTouched ? "STOP_LOSS" : takeProfitTouched ? "TAKE_PROFIT" : trailingTouched ? "TRAILING_STOP" : "SIGNAL_CONTRARY";
     const targetPrice =
-      reason === "STOP_LOSS" ? position.stopLossPrice : reason === "TAKE_PROFIT" ? position.takeProfitPrice : position.trailingStopPrice!;
+      reason === "STOP_LOSS" ? position.stopLossPrice : reason === "TAKE_PROFIT" ? position.takeProfitPrice : reason === "TRAILING_STOP" ? position.trailingStopPrice! : candle.close;
     const availablePrice =
       (reason === "STOP_LOSS" && candle.open < position.stopLossPrice) ||
       (reason === "TRAILING_STOP" && candle.open < targetPrice)
