@@ -1,5 +1,5 @@
 import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
-import { emaSeries, rsiSeries } from "./indicators.js";
+import { evaluateStrategy } from "./strategy.js";
 import type { Candle } from "./types.js";
 
 export type BacktestOptions = {
@@ -13,6 +13,7 @@ export type BacktestOptions = {
   minimumSignalScore?: number;
   /** Number of leading candles used only to warm indicators/state. */
   warmupCandles?: number;
+  qualityFilters?: boolean;
 };
 
 export type BacktestMetrics = {
@@ -50,13 +51,12 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   const closedTrades: PaperTradeClosed[] = [];
   const equities: number[] = [];
   const pending = new Map<number, boolean>();
-  const closes = candles.map((candle) => candle.close);
-  const ema9 = emaSeries(closes, 9);
-  const ema21 = emaSeries(closes, 21);
-  const rsi14 = rsiSeries(closes, 14);
   for (let index = 0; index < candles.length; index += 1) {
     const candle = candles[index]!;
-    const signal = index >= 50 ? incrementalSignal(candles, index, ema9, ema21, rsi14, options.minimumSignalScore) : undefined;
+    const signal = index >= 50 ? evaluateStrategy(candles.slice(0, index + 1), {
+      ...(options.minimumSignalScore === undefined ? {} : { minimumScore: options.minimumSignalScore }),
+      ...(options.qualityFilters === undefined ? {} : { qualityFilters: options.qualityFilters }),
+    }) : undefined;
     // A signal uses the just-closed candle; the earliest honest fill is the
     // next candle, even when no additional artificial delay is requested.
     if (signal?.action === "BUY") pending.set(index + Math.max(1, delay), true);
@@ -97,26 +97,9 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   }, trades: closedTrades };
 }
 
-function incrementalSignal(candles: Candle[], index: number, ema9: number[], ema21: number[], rsi14: number[], minimumScore = 5): { action: "BUY" | "SELL" | "HOLD" } {
-  const e9 = ema9[index - 8]!, previousE9 = ema9[index - 9]!;
-  const e21 = ema21[index - 20]!, previousE21 = ema21[index - 21]!;
-  const rsi = rsi14[index - 14]!;
-  const candle = candles[index]!;
-  const averageVolume = candles.slice(Math.max(0, index - 19), index + 1).reduce((sum, item) => sum + item.volume, 0) / Math.min(20, index + 1);
-  const momentum = ((candle.close - candles[index - 4]!.close) / candles[index - 4]!.close) * 100;
-  const window = candles.slice(Math.max(0, index - 14), index + 1);
-  const atr = window.slice(1).reduce((sum, item, offset) => {
-    const previous = window[offset]!.close;
-    return sum + Math.max(item.high - item.low, Math.abs(item.high - previous), Math.abs(item.low - previous));
-  }, 0) / Math.max(1, window.length - 1);
-  const volatility = (atr / candle.close) * 100;
-  const trend = e9 > e21 && e9 > previousE9 ? 2 : e9 > e21 ? 1 : 0;
-  const bearishTrend = e9 < e21 && e9 < previousE9 ? 2 : e9 < e21 ? 1 : 0;
-  const rsiScore = rsi >= 45 && rsi <= 70 ? 2 : rsi >= 40 && rsi <= 75 ? 1 : 0;
-  const volume = candle.volume / averageVolume >= 0.9 ? 1 : 0;
-  const volatilityScore = volatility >= 0.1 && volatility <= 5 ? 1 : 0;
-  const stopScore = volatility * 1.5 >= 0.3 && volatility * 1.5 <= 3 ? 1 : 0;
-  const score = trend + rsiScore + volume + (momentum > 0 ? 1 : 0) + volatilityScore + stopScore;
-  const sellScore = bearishTrend + (rsi <= 35 ? 2 : rsi <= 55 ? 1 : 0) + volume + (momentum < 0 ? 1 : 0) + volatilityScore + stopScore;
-  return { action: trend >= 1 && score >= minimumScore ? "BUY" : bearishTrend >= 1 && sellScore >= minimumScore && momentum < 0 ? "SELL" : "HOLD" };
+export function compareSignalQuality(candles: Candle[], options: BacktestOptions): { withFilters: BacktestResult; withoutFilters: BacktestResult } {
+  return {
+    withFilters: runBacktest(candles, { ...options, qualityFilters: true }),
+    withoutFilters: runBacktest(candles, { ...options, qualityFilters: false }),
+  };
 }
