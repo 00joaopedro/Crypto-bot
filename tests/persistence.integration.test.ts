@@ -8,6 +8,26 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("retrieves older Demo failures only when the diagnostic range includes them", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const timestamp = Date.now();
+    const id = `FAILED:LOGTEST/USDT:${timestamp}`;
+    try {
+      await persistence.initialize();
+      await persistence.recordDemoOrderFailure("LOGTEST/USDT", timestamp, "diagnostic test failure");
+      await verification.query("UPDATE demo_orders SET created_at = NOW() - INTERVAL '10 days' WHERE client_order_id = $1", [id]);
+      const recent = JSON.parse(await persistence.getDiagnosticLogs(6, 500));
+      const older = JSON.parse(await persistence.getDiagnosticLogs(720, 500));
+      expect(recent.records.some((item: { symbol?: string }) => item.symbol === "LOGTEST/USDT")).toBe(false);
+      expect(older.records).toEqual(expect.arrayContaining([expect.objectContaining({ section: "demo_orders", symbol: "LOGTEST/USDT", status: "FAILED" })]));
+      expect(older.scope.hours).toBe(720);
+    } finally {
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [id]);
+      await verification.end();
+      await persistence.close();
+    }
+  });
   it("persists pending intent, blocks further orders, and reconciles without losing the ID", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const verification = new Pool({ connectionString: databaseUrl });
@@ -183,3 +203,4 @@ integration("PostgresPersistence", () => {
     await persistence.close();
   });
 });
+

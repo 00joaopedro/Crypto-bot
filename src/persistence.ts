@@ -419,8 +419,8 @@ export class PostgresPersistence implements BotPersistence {
   }
 
   async getDiagnosticLogs(hours = 6, limit = 500): Promise<string> {
-    const safeHours = Math.min(24, Math.max(1, Math.trunc(hours)));
-    const safeLimit = Math.min(500, Math.max(50, Math.trunc(limit)));
+    const safeHours = Number.isFinite(hours) ? Math.min(2160, Math.max(1, Math.trunc(hours))) : 6;
+    const safeLimit = Number.isFinite(limit) ? Math.min(500, Math.max(50, Math.trunc(limit))) : 500;
     const [events, decisions, trades, orders] = await Promise.all([
       this.pool.query(`SELECT created_at, event_type, severity, symbol, details FROM operational_events WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
       this.pool.query(`SELECT created_at, symbol, candle_timestamp, mode, signal, ai_decision, approved FROM decisions WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
@@ -779,3 +779,4 @@ export class PostgresPersistence implements BotPersistence {
     );
   }
 }
+
