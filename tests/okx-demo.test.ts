@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createClientOrderId,
   classifyDemoOrder,
+  normalizedOrderFees,
   OkxDemoExecutor,
   type OkxDemoOptions,
 } from "../src/okx-demo.js";
@@ -51,6 +52,10 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("preserves fee currencies and never invents a zero fee", () => {
+    expect(normalizedOrderFees({ fee: undefined, fees: undefined })).toEqual([]);
+    expect(normalizedOrderFees({ fee: { currency: "BTC", cost: 0.00001 }, fees: undefined })).toEqual([{ currency: "BTC", cost: 0.00001 }]);
+  });
   it("does not discard partial or unknown terminal fills", () => {
     expect(classifyDemoOrder("canceled", 0.01)).toBe("PENDING");
     expect(classifyDemoOrder("canceled", undefined)).toBe("PENDING");
