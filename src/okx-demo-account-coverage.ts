@@ -3,11 +3,11 @@
  */
 export async function collectDemoAccountCoverage(
   client: { privateGetAccountBills(params: Record<string, string>): Promise<unknown> },
-  input: { from: number; to: number; now: number; ownedOrderIds: ReadonlySet<string>; maxPages?: number },
+  input: { from: number; to: number; now: number; ownedOrderIds: ReadonlySet<string>; quiescentFrom?: number; maxPages?: number },
 ): Promise<{ status: "covered"; billCount: number } | { status: "unavailable"; reason: string }> {
   const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
   const maxPages = input.maxPages ?? 100;
-  if (![input.from, input.to, input.now].every(Number.isSafeInteger) || input.from <= 0 || input.from > input.to || input.to > input.now || input.from < input.now - 6 * 86_400_000 || !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 1000) return unavailable("account_coverage_window_unsupported");
+  if (![input.from, input.to, input.now].every(Number.isSafeInteger) || input.from <= 0 || input.from > input.to || input.to > input.now || input.from < input.now - 6 * 86_400_000 || (input.quiescentFrom !== undefined && (!Number.isSafeInteger(input.quiescentFrom) || input.quiescentFrom < input.from || input.quiescentFrom > input.to)) || !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 1000) return unavailable("account_coverage_window_unsupported");
   let cursor: bigint | undefined;
   let count = 0;
   try {
@@ -26,6 +26,7 @@ export async function collectDemoAccountCoverage(
         cursor = id;
         const timestamp = Number(row.ts);
         if (!Number.isSafeInteger(timestamp) || timestamp < input.from || timestamp > input.to) return unavailable("account_bill_outside_window");
+        if (input.quiescentFrom !== undefined && timestamp >= input.quiescentFrom) return unavailable("account_movement_during_snapshot");
         // Account movements without a verified bot order may be transfers,
         // manual orders, or adjustments. Any of them breaks isolated P&L.
         if (typeof row.ordId !== "string" || !input.ownedOrderIds.has(row.ordId)) return unavailable("unattributed_account_bill");

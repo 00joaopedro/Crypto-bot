@@ -32,7 +32,8 @@ describe("accounting from Demo evidence", () => {
     expect(accountForDemoEvidence({ ...evidence, baseline, positionBalances: { BTC: 1.5, ETH: 1, OKB: 100, USDT: 58.4 } }).status).toBe("confirmed");
     expect(accountForDemoEvidence({ ...evidence, baseline: { ...baseline, confirmed: false } })).toMatchObject({ reason: "baseline_unconfirmed" });
     expect(accountForDemoEvidence({ ...evidence, baseline: { ...baseline, timestamp: 1 } })).toMatchObject({ reason: "baseline_unconfirmed" });
-    expect(accountForDemoEvidence({ ...evidence, baseline: { ...baseline, balances: { ETH: 1 } } })).toMatchObject({ reason: "baseline_balance_missing" });
+    expect(accountForDemoEvidence({ ...evidence, baseline: { ...baseline, balances: { ETH: 1 } } })).toMatchObject({ reason: "position_balance_missing" });
+    expect(accountForDemoEvidence({ ...evidence, baseline: { confirmed: true, timestamp: 0, balances: { USDT: 100 } } }).status).toBe("confirmed");
     expect(accountForDemoEvidence({ ...evidence, baseline, positionBalances: { BTC: 1.5, ETH: 2, OKB: 100 } })).toMatchObject({ reason: "position_balance_mismatch" });
     expect(accountForDemoEvidence({ ...evidence, baseline: { ...baseline, balances: { BTC: NaN } } })).toMatchObject({ reason: "invalid_baseline_balance" });
   });

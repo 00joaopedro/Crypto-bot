@@ -194,11 +194,29 @@ export class OkxDemoExecutor {
     return inspectBaselineBills({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now() });
   }
 
-  async collectAccountCoverage(from: number, to: number, ownedOrderIds: ReadonlySet<string>) {
+  async collectAccountCoverage(from: number, to: number, ownedOrderIds: ReadonlySet<string>, quiescentFrom?: number) {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable" as const, reason: "demo_not_initialized" };
     const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown> };
     if (typeof client.privateGetAccountBills !== "function") return { status: "unavailable" as const, reason: "account_bills_endpoint_unavailable" };
-    return collectDemoAccountCoverage({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now(), ownedOrderIds });
+    return collectDemoAccountCoverage({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now(), ownedOrderIds, ...(quiescentFrom === undefined ? {} : { quiescentFrom }) });
+  }
+
+  /** Total Spot balances bounded by local request times; never a claimed atomic exchange timestamp. */
+  async collectAccountBalances(): Promise<{ status: "collected"; startedAt: number; endedAt: number; balances: Record<string, number> } | { status: "unavailable"; reason: string }> {
+    if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
+    try {
+      const startedAt = Date.now();
+      const balance = await this.exchange.fetchBalance();
+      const endedAt = Date.now();
+      if (!balance.total || typeof balance.total !== "object" || !Number.isSafeInteger(startedAt) || !Number.isSafeInteger(endedAt) || endedAt < startedAt) return { status: "unavailable", reason: "balances_unavailable" };
+      const balances: Record<string, number> = Object.create(null) as Record<string, number>;
+      for (const [asset, value] of Object.entries(balance.total)) {
+        if (!/^[A-Z0-9]+$/.test(asset) || typeof value !== "number" || !Number.isFinite(value) || value < 0) return { status: "unavailable", reason: "invalid_balance" };
+        balances[asset] = value;
+      }
+      if (!Object.hasOwn(balances, "USDT")) return { status: "unavailable", reason: "usdt_balance_missing" };
+      return { status: "collected", startedAt, endedAt, balances };
+    } catch { return { status: "unavailable", reason: "balance_request_failed" }; }
   }
 
   async inspectAccountIdentity(): Promise<{ status: "confirmed"; identity: DemoAccountIdentity } | { status: "unavailable"; reason: string }> {

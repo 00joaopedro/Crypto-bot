@@ -11,6 +11,7 @@ describe("bounded Demo account history coverage", () => {
     expect(request).toHaveBeenCalledWith(expect.objectContaining({ after: "8" }));
   });
   it("rejects an unknown account movement, stale window, and pagination cutoff", async () => {
+    expect(await collectDemoAccountCoverage({ privateGetAccountBills: async () => ({ code: "0", data: [bill("9")] }) }, { ...input, quiescentFrom: now - 600 })).toMatchObject({ reason: "account_movement_during_snapshot" });
     expect(await collectDemoAccountCoverage({ privateGetAccountBills: async () => ({ code: "0", data: [bill("9", "manual")] }) }, input)).toMatchObject({ reason: "unattributed_account_bill" });
     expect(await collectDemoAccountCoverage({ privateGetAccountBills: async () => ({ code: "0", data: [] }) }, { ...input, from: now - 7 * 86_400_000 })).toMatchObject({ reason: "account_coverage_window_unsupported" });
     expect(await collectDemoAccountCoverage({ privateGetAccountBills: async () => ({ code: "0", data: [bill("9")] }) }, { ...input, maxPages: 1 })).toMatchObject({ reason: "account_bills_page_limit" });

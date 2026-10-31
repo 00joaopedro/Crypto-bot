@@ -57,10 +57,11 @@ export function accountForDemoEvidence(input: {
     const asset = symbol.split("/")[0]!;
     if (expectedAssets.has(asset)) return unavailable("ambiguous_position_asset");
     expectedAssets.add(asset);
-    if (!Object.hasOwn(input.baseline.balances, asset)) return unavailable("baseline_balance_missing");
+    // A Spot balance response can omit an asset that was zero before the bot's
+    // first buy; the complete, isolated baseline treats that absence as zero.
     const actual = input.positionBalances[asset];
     if (typeof actual !== "number" || !Number.isFinite(actual) || actual < 0) return unavailable("position_balance_missing");
-    const expected = input.baseline.balances[asset]! + position.quantity;
+    const expected = (input.baseline.balances[asset] ?? 0) + position.quantity;
     if (!Number.isFinite(expected) || Math.abs(actual - expected) > Math.max(actual, expected) * 1e-8) return unavailable("position_balance_mismatch");
   }
   for (const [asset, baseline] of Object.entries(input.baseline.balances)) {
