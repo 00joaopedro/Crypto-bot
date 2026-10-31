@@ -141,6 +141,8 @@ async function main(): Promise<void> {
         : undefined;
 
     if (okxDemo) {
+      if (config.OKX_DEMO_TRADING_ENABLED && !persistence) throw new Error("OKX Demo execution requires persistent order journal");
+      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id) => persistence.reserveDemoOrder(symbol, timestamp, id));
       await initializeOkxDemoWithBackoff(
         okxDemo,
         tradingSettings,
@@ -320,6 +322,7 @@ async function main(): Promise<void> {
                 takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
               },
             );
+            nextOkxDemo.setIntentJournal((symbol, timestamp, id) => persistence.reserveDemoOrder(symbol, timestamp, id));
             await initializeOkxDemoWithBackoff(
               nextOkxDemo,
               nextSettings,
@@ -381,6 +384,16 @@ async function main(): Promise<void> {
 
     while (!stopping) {
       try {
+        if (!reconfiguring && okxDemo && persistence) {
+          for (const pending of await persistence.pendingDemoOrders()) {
+            try {
+              const order = await okxDemo.reconcileOrder(pending.symbol, pending.client_order_id);
+              if (order) await persistence.reconcileDemoOrder(pending.client_order_id, order);
+            } catch (error) {
+              console.error(JSON.stringify({ event: "okx_reconciliation_failed", symbol: pending.symbol, clientOrderId: pending.client_order_id, error: error instanceof Error ? error.message : String(error) }));
+            }
+          }
+        }
         if (reconfiguring) {
           console.log(JSON.stringify({ event: "cycle_skipped", reason: "bot_reconfiguring" }));
         } else {
