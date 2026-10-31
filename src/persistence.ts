@@ -340,14 +340,32 @@ export class PostgresPersistence implements BotPersistence {
     return !result.rows[0]?.pending && Number(result.rows[0]?.count ?? 0) < maxTrades;
   }
 
-  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string): Promise<boolean> {
-    const result = await this.pool.query(
+  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = 1, intervalMinutes = 60): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-order-reservation'))");
+      const counts = await client.query<{ pending: boolean; recent: string }>(
+        `SELECT COALESCE(BOOL_OR(status = 'PENDING'), false) AS pending,
+          COUNT(*) FILTER (WHERE status = 'PLACED' AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))::text AS recent
+         FROM demo_orders`, [intervalMinutes],
+      );
+      if (counts.rows[0]?.pending || Number(counts.rows[0]?.recent ?? 0) >= maxTrades) {
+        await client.query("COMMIT");
+        return false;
+      }
+      const result = await client.query(
       `INSERT INTO demo_orders (client_order_id, symbol, candle_timestamp, status, result)
        VALUES ($1, $2, $3, 'PENDING', $4::jsonb)
        ON CONFLICT (client_order_id) DO NOTHING RETURNING client_order_id`,
       [clientOrderId, symbol, timestamp, JSON.stringify({ clientOrderId, status: "PENDING", reason: "submission_unconfirmed" })],
-    );
-    return result.rowCount === 1;
+      );
+      await client.query("COMMIT");
+      return result.rowCount === 1;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
   }
 
   async pendingDemoOrders(): Promise<Array<{ client_order_id: string; symbol: string }>> {
@@ -630,7 +648,8 @@ export class PostgresPersistence implements BotPersistence {
          status = EXCLUDED.status,
          result = EXCLUDED.result,
          updated_at = NOW()
-       WHERE EXCLUDED.status <> 'SKIPPED' OR demo_orders.status NOT IN ('PENDING', 'PLACED')`,
+       WHERE (EXCLUDED.status <> 'SKIPPED' OR demo_orders.status NOT IN ('PENDING', 'PLACED'))
+         AND NOT (EXCLUDED.status = 'PENDING' AND demo_orders.status IN ('PLACED', 'FAILED'))`,
       [
         result.clientOrderId,
         symbol,
