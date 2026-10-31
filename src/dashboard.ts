@@ -34,6 +34,15 @@ const assets = new Map<string, { file: string; type: string }>([
 ]);
 
 export async function startDashboard(options: DashboardOptions): Promise<Server> {
+  let accountingRequest: Promise<unknown> | undefined;
+  let accountingExpiresAt = 0;
+  const accounting = (): Promise<unknown> => {
+    if (!accountingRequest || Date.now() >= accountingExpiresAt) {
+      accountingExpiresAt = Date.now() + 60_000;
+      accountingRequest = Promise.resolve().then(() => options.inspectDemoAccounting?.() ?? { status: "unavailable", reason: "demo_disabled" }).catch(() => ({ status: "unavailable", reason: "diagnostic_failed" }));
+    }
+    return accountingRequest;
+  };
   const server = createServer(async (request, response) => {
     setSecurityHeaders(response);
     try {
@@ -68,9 +77,7 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         return json(response, 401, { error: "Não autenticado." });
       }
       if (request.method === "GET" && url.pathname === "/api/demo-reconciliation") {
-        if (!options.inspectDemoAccounting) return json(response, 200, { status: "unavailable", reason: "demo_disabled" });
-        try { return json(response, 200, await options.inspectDemoAccounting()); }
-        catch { return json(response, 200, { status: "unavailable", reason: "diagnostic_failed" }); }
+        return json(response, 200, await accounting());
       }
       if (request.method === "GET" && url.pathname === "/api/demo-permission") {
         if (!options.inspectDemoPermission) return json(response, 200, { status: "unavailable", reason: "demo_disabled" });
@@ -89,7 +96,7 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
             okxDemo = { ...okxDemo, status: "unhealthy", lastError: error instanceof Error ? error.message : String(error) };
           }
         }
-        return json(response, 200, { ...data, okxDemo, supportedSymbols: options.supportedSymbols });
+        return json(response, 200, { ...data, okxDemo, demoAccounting: await accounting(), supportedSymbols: options.supportedSymbols });
       }
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);
