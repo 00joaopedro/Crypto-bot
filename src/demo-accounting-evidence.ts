@@ -74,6 +74,18 @@ export function accountForDemoEvidence(input: {
     if (typeof balance !== "number" || !Number.isFinite(balance) || balance < 0) return unavailable("invalid_position_balance");
     if (asset !== "USDT" && !expectedAssets.has(asset) && balance !== 0) return unavailable("unattributed_position_balance");
   }
+  // The quote balance is part of the evidence too. A matching base position
+  // alone cannot reveal missing costs, quote fees, deposits or withdrawals.
+  const initialUsdt = input.baseline.balances.USDT;
+  const actualUsdt = input.positionBalances.USDT;
+  if (typeof initialUsdt !== "number" || typeof actualUsdt !== "number" || !Number.isFinite(actualUsdt) || actualUsdt < 0) return unavailable("quote_balance_missing");
+  let expectedUsdt = initialUsdt;
+  for (const fill of input.fills) {
+    expectedUsdt += fill.side === "buy" ? -fill.costUsdt : fill.costUsdt;
+    for (const fee of fill.fees) if (fee.currency === "USDT") expectedUsdt -= fee.cost;
+    if (!Number.isFinite(expectedUsdt)) return unavailable("invalid_calculation");
+  }
+  if (expectedUsdt < 0 || Math.abs(actualUsdt - expectedUsdt) > Math.max(actualUsdt, expectedUsdt) * 1e-8) return unavailable("quote_balance_mismatch");
   return result;
 }
 

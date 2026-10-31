@@ -8,7 +8,7 @@ const fills: DemoFill[] = [
   { id: "f1", orderId: "b", symbol: "BTC/USDT", side: "buy", timestamp: 1, amount: 1, costUsdt: 100, fees: [{ currency: "USDT", cost: 1 }] },
   { id: "f2", orderId: "s", symbol: "BTC/USDT", side: "sell", timestamp: 2, amount: 0.5, costUsdt: 60, fees: [{ currency: "USDT", cost: 0.6 }] },
 ];
-const evidence = { journalComplete: true, historyComplete: true, positionsReconciled: true, baseline: { confirmed: true, timestamp: 0, balances: { BTC: 0 } }, positionBalances: { BTC: 0.5, USDT: 100 }, positionBalancesTimestamp: 3, coverageStart: 0, coverageEnd: 3, journal: [{ orderId: "b", clientOrderId: "client", symbol: "BTC/USDT", attachedAlgoClientId: "algo" }], buys: [buy], protections: [{ algoClientId: "algo", symbol: "BTC/USDT", side: "sell" as const, spawnedOrderIds: ["s"] }], sells: [sell], fills };
+const evidence = { journalComplete: true, historyComplete: true, positionsReconciled: true, baseline: { confirmed: true, timestamp: 0, balances: { BTC: 0, USDT: 100 } }, positionBalances: { BTC: 0.5, USDT: 58.4 }, positionBalancesTimestamp: 3, coverageStart: 0, coverageEnd: 3, journal: [{ orderId: "b", clientOrderId: "client", symbol: "BTC/USDT", attachedAlgoClientId: "algo" }], buys: [buy], protections: [{ algoClientId: "algo", symbol: "BTC/USDT", side: "sell" as const, spawnedOrderIds: ["s"] }], sells: [sell], fills };
 describe("accounting from Demo evidence", () => {
   it("connects verified ownership to fill accounting", () => {
     const result = accountForDemoEvidence(evidence);
@@ -28,13 +28,18 @@ describe("accounting from Demo evidence", () => {
     expect(accountForDemoEvidence({ ...evidence, positionBalances: { BTC: 0.5, ETH: NaN } })).toMatchObject({ reason: "invalid_position_balance" });
   });
   it("separates independently verified pre-existing balances from bot inventory", () => {
-    const baseline = { confirmed: true, timestamp: 0, balances: { BTC: 1, ETH: 1, OKB: 100 } };
-    expect(accountForDemoEvidence({ ...evidence, baseline, positionBalances: { BTC: 1.5, ETH: 1, OKB: 100 } }).status).toBe("confirmed");
+    const baseline = { confirmed: true, timestamp: 0, balances: { BTC: 1, ETH: 1, OKB: 100, USDT: 100 } };
+    expect(accountForDemoEvidence({ ...evidence, baseline, positionBalances: { BTC: 1.5, ETH: 1, OKB: 100, USDT: 58.4 } }).status).toBe("confirmed");
     expect(accountForDemoEvidence({ ...evidence, baseline: { ...baseline, confirmed: false } })).toMatchObject({ reason: "baseline_unconfirmed" });
     expect(accountForDemoEvidence({ ...evidence, baseline: { ...baseline, timestamp: 1 } })).toMatchObject({ reason: "baseline_unconfirmed" });
     expect(accountForDemoEvidence({ ...evidence, baseline: { ...baseline, balances: { ETH: 1 } } })).toMatchObject({ reason: "baseline_balance_missing" });
     expect(accountForDemoEvidence({ ...evidence, baseline, positionBalances: { BTC: 1.5, ETH: 2, OKB: 100 } })).toMatchObject({ reason: "position_balance_mismatch" });
     expect(accountForDemoEvidence({ ...evidence, baseline: { ...baseline, balances: { BTC: NaN } } })).toMatchObject({ reason: "invalid_baseline_balance" });
+  });
+  it("reconciles quote costs and fees and refuses unaccounted cash movements", () => {
+    expect(accountForDemoEvidence({ ...evidence, positionBalances: { BTC: 0.5, USDT: 59.4 } })).toMatchObject({ reason: "quote_balance_mismatch" });
+    expect(accountForDemoEvidence({ ...evidence, positionBalances: { BTC: 0.5 } })).toMatchObject({ reason: "quote_balance_missing" });
+    expect(accountForDemoEvidence({ ...evidence, baseline: { ...evidence.baseline, balances: { BTC: 0 } } })).toMatchObject({ reason: "quote_balance_missing" });
   });
   it("rejects unowned orders, missing executions and unknown fees", () => {
     expect(accountForDemoEvidence({ ...evidence, protections: [] }).status).toBe("unavailable");
