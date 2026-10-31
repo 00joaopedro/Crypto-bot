@@ -188,5 +188,14 @@ export const migrations: readonly Migration[] = [
       );
     `,
   },
+  {
+    version: 9,
+    name: "demo_baseline_superseded_audit",
+    sql: `
+      ALTER TABLE demo_accounting_baselines DROP CONSTRAINT demo_accounting_baselines_status_check;
+      ALTER TABLE demo_accounting_baselines ADD CONSTRAINT demo_accounting_baselines_status_check
+        CHECK (status IN ('UNVERIFIED', 'SUPERSEDED'));
+    `,
+  },
 ] as const;
 

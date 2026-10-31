@@ -373,7 +373,7 @@ export class PostgresPersistence implements BotPersistence {
   }
 
   async getDemoBaselineCandidate(): Promise<{ observedAt: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string } | null> {
-    const result = await this.pool.query<{ observed_at: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string }>("SELECT observed_at, balances, evidence, status FROM demo_accounting_baselines ORDER BY id DESC LIMIT 1");
+    const result = await this.pool.query<{ observed_at: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string }>("SELECT observed_at, balances, evidence, status FROM demo_accounting_baselines WHERE status = 'UNVERIFIED' ORDER BY id DESC LIMIT 1");
     const row = result.rows[0];
     return row ? { observedAt: row.observed_at, balances: row.balances, evidence: row.evidence, status: row.status } : null;
   }
@@ -389,8 +389,14 @@ export class PostgresPersistence implements BotPersistence {
       if (control.rows[0]?.paused !== true) throw new Error("Bot must be paused before recording a baseline");
       const pending = await client.query("SELECT 1 FROM demo_orders WHERE status = 'PENDING' LIMIT 1");
       if (pending.rowCount) throw new Error("Pending Demo orders prevent recording a baseline");
-      const existing = await client.query("SELECT 1 FROM demo_accounting_baselines LIMIT 1");
-      if (existing.rowCount) throw new Error("Demo baseline candidate already exists");
+      const existing = await client.query<{ id: string; observed_at: Date; evidence: Record<string, unknown> }>("SELECT id, observed_at, evidence FROM demo_accounting_baselines WHERE status = 'UNVERIFIED' ORDER BY id DESC LIMIT 1 FOR UPDATE");
+      if (existing.rows[0]) {
+        const previous = existing.rows[0];
+        if (previous.evidence?.accountIdentity) throw new Error("Demo baseline candidate already has an account identity");
+        const activity = await client.query("SELECT 1 FROM demo_orders WHERE created_at >= $1 LIMIT 1", [previous.observed_at]);
+        if (activity.rowCount) throw new Error("Demo order activity prevents replacing the legacy baseline");
+        await client.query("UPDATE demo_accounting_baselines SET status = 'SUPERSEDED' WHERE id = $1", [previous.id]);
+      }
       await client.query("INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status) VALUES (to_timestamp($1 / 1000.0), $2::jsonb, $3::jsonb, 'UNVERIFIED')", [input.observedAt, JSON.stringify(input.balances), JSON.stringify(input.evidence)]);
       await client.query("COMMIT");
     } catch (error) {

@@ -8,6 +8,25 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("replaces only an idle identity-less baseline while retaining its audit row", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const oldAt = Date.now() - 120_000;
+    const newAt = Date.now();
+    const candidate = { observedAt: newAt, balances: { USDT: 5000 }, evidence: { accountIdentity: { uid: "123", mainUid: "123" } } };
+    try {
+      await persistence.initialize();
+      await persistence.setPaused(true, "baseline-replacement-test");
+      await verification.query("INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status) VALUES (to_timestamp($1 / 1000.0), $2::jsonb, '{}'::jsonb, 'UNVERIFIED')", [oldAt, JSON.stringify({ USDT: 5000 })]);
+      await persistence.saveDemoBaselineCandidate(candidate);
+      const records = await verification.query("SELECT status FROM demo_accounting_baselines WHERE observed_at IN (to_timestamp($1 / 1000.0), to_timestamp($2 / 1000.0)) ORDER BY observed_at", [oldAt, newAt]);
+      expect(records.rows.map((row) => row.status)).toEqual(["SUPERSEDED", "UNVERIFIED"]);
+    } finally {
+      await verification.query("DELETE FROM demo_accounting_baselines WHERE observed_at IN (to_timestamp($1 / 1000.0), to_timestamp($2 / 1000.0))", [oldAt, newAt]);
+      await verification.end();
+      await persistence.close();
+    }
+  });
   it("stores baseline candidates as unverified only while paused with no pending orders", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const verification = new Pool({ connectionString: databaseUrl });

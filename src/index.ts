@@ -159,6 +159,10 @@ async function main(): Promise<void> {
             if (existing) {
               if (!sameDemoAccount(existing.evidence.accountIdentity, baseline.evidence.accountIdentity as { uid: string; mainUid: string })) {
                 console.log(JSON.stringify({ event: "demo_baseline_comparison", status: "unavailable", reason: "account_identity_mismatch_or_missing" }));
+                if (!existing.evidence.accountIdentity) {
+                  await persistence.saveDemoBaselineCandidate(baseline);
+                  console.log(JSON.stringify({ event: "demo_baseline_candidate_recorded", status: "UNVERIFIED", reason: "legacy_baseline_superseded" }));
+                }
               } else {
               const comparison = compareDemoBaseline(existing.balances, baseline.balances);
               console.log(JSON.stringify({ event: "demo_baseline_comparison", ...comparison }));
