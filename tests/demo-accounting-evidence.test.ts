@@ -8,7 +8,7 @@ const fills: DemoFill[] = [
   { id: "f1", orderId: "b", symbol: "BTC/USDT", side: "buy", timestamp: 1, amount: 1, costUsdt: 100, fees: [{ currency: "USDT", cost: 1 }] },
   { id: "f2", orderId: "s", symbol: "BTC/USDT", side: "sell", timestamp: 2, amount: 0.5, costUsdt: 60, fees: [{ currency: "USDT", cost: 0.6 }] },
 ];
-const evidence = { journalComplete: true, historyComplete: true, positionsReconciled: true, coverageStart: 0, coverageEnd: 3, journal: [{ orderId: "b", clientOrderId: "client", symbol: "BTC/USDT", attachedAlgoClientId: "algo" }], buys: [buy], protections: [{ algoClientId: "algo", symbol: "BTC/USDT", side: "sell" as const, spawnedOrderIds: ["s"] }], sells: [sell], fills };
+const evidence = { journalComplete: true, historyComplete: true, positionsReconciled: true, positionBalances: { BTC: 0.5, USDT: 100 }, positionBalancesTimestamp: 3, coverageStart: 0, coverageEnd: 3, journal: [{ orderId: "b", clientOrderId: "client", symbol: "BTC/USDT", attachedAlgoClientId: "algo" }], buys: [buy], protections: [{ algoClientId: "algo", symbol: "BTC/USDT", side: "sell" as const, spawnedOrderIds: ["s"] }], sells: [sell], fills };
 describe("accounting from Demo evidence", () => {
   it("connects verified ownership to fill accounting", () => {
     const result = accountForDemoEvidence(evidence);
@@ -18,7 +18,14 @@ describe("accounting from Demo evidence", () => {
   it("requires all coverage proofs and a real baseline", () => {
     for (const field of ["journalComplete", "historyComplete", "positionsReconciled"] as const) expect(accountForDemoEvidence({ ...evidence, [field]: false })).toMatchObject({ reason: "evidence_coverage_incomplete" });
     expect(accountForDemoEvidence({ ...evidence, journal: [], buys: [], sells: [], fills: [] })).toMatchObject({ reason: "baseline_unconfirmed" });
-    expect(accountForDemoEvidence({ ...evidence, coverageEnd: 1 })).toMatchObject({ reason: "fill_outside_coverage" });
+    expect(accountForDemoEvidence({ ...evidence, coverageEnd: 1, positionBalancesTimestamp: 1 })).toMatchObject({ reason: "fill_outside_coverage" });
+  });
+  it("requires a matching, current total balance without unexplained assets", () => {
+    expect(accountForDemoEvidence({ ...evidence, positionBalancesTimestamp: 2 })).toMatchObject({ reason: "position_snapshot_unconfirmed" });
+    expect(accountForDemoEvidence({ ...evidence, positionBalances: { BTC: 0.6 } })).toMatchObject({ reason: "position_balance_mismatch" });
+    expect(accountForDemoEvidence({ ...evidence, positionBalances: {} })).toMatchObject({ reason: "position_balance_missing" });
+    expect(accountForDemoEvidence({ ...evidence, positionBalances: { BTC: 0.5, ETH: 1 } })).toMatchObject({ reason: "unattributed_position_balance" });
+    expect(accountForDemoEvidence({ ...evidence, positionBalances: { BTC: 0.5, ETH: NaN } })).toMatchObject({ reason: "invalid_position_balance" });
   });
   it("rejects unowned orders, missing executions and unknown fees", () => {
     expect(accountForDemoEvidence({ ...evidence, protections: [] }).status).toBe("unavailable");
@@ -28,3 +35,4 @@ describe("accounting from Demo evidence", () => {
     expect(accountForDemoEvidence({ ...evidence, sells: [{ ...sell, terminal: false }] }).status).toBe("unavailable");
   });
 });
+

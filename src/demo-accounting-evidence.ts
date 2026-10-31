@@ -11,6 +11,9 @@ export function accountForDemoEvidence(input: {
   journalComplete: boolean;
   historyComplete: boolean;
   positionsReconciled: boolean;
+  /** Total (free + locked) Demo balances, captured at the coverage endpoint. */
+  positionBalances: Record<string, number>;
+  positionBalancesTimestamp: number;
   coverageStart: number;
   coverageEnd: number;
   journal: JournaledDemoBuy[];
@@ -22,6 +25,7 @@ export function accountForDemoEvidence(input: {
   const unavailable = (reason: string): DemoLedgerResult => ({ status: "unavailable", reason });
   if (!input.journalComplete || !input.historyComplete || !input.positionsReconciled) return unavailable("evidence_coverage_incomplete");
   if (!Number.isSafeInteger(input.coverageStart) || !Number.isSafeInteger(input.coverageEnd) || input.coverageStart < 0 || input.coverageStart > input.coverageEnd) return unavailable("invalid_coverage_window");
+  if (input.positionBalancesTimestamp !== input.coverageEnd || !input.positionBalances || typeof input.positionBalances !== "object" || Array.isArray(input.positionBalances)) return unavailable("position_snapshot_unconfirmed");
   // An empty input set cannot establish an initial accounting baseline.
   if (input.journal.length === 0) return unavailable("baseline_unconfirmed");
   if (input.buys.some((order) => order.side !== "buy") || input.sells.some((order) => order.side !== "sell")) return unavailable("invalid_order_side");
@@ -33,9 +37,28 @@ export function accountForDemoEvidence(input: {
   if (orders.length !== ownership.ownedOrderIds.length) return unavailable("order_set_mismatch");
   const owned = new Set(ownership.ownedOrderIds);
   if (orders.some((order) => !owned.has(order.id))) return unavailable("order_set_mismatch");
-  return reconcileDemoExecutions({
+  const result = reconcileDemoExecutions({
     historyComplete: true,
     orders: orders.map((order) => ({ id: order.id, symbol: order.symbol, side: order.side, filled: order.filled, terminal: order.terminal, ownershipConfirmed: true })),
     fills: input.fills,
   });
+  if (result.status !== "confirmed") return result;
+  // Compare whole-account total balances, including locked funds. A caller must
+  // separately establish isolation and that the snapshot and history describe
+  // the same instant; matching quantities alone does not establish either.
+  const expectedAssets = new Set<string>();
+  for (const [symbol, position] of Object.entries(result.positions)) {
+    const asset = symbol.split("/")[0]!;
+    if (expectedAssets.has(asset)) return unavailable("ambiguous_position_asset");
+    expectedAssets.add(asset);
+    const actual = input.positionBalances[asset];
+    if (typeof actual !== "number" || !Number.isFinite(actual) || actual < 0) return unavailable("position_balance_missing");
+    if (Math.abs(actual - position.quantity) > Math.max(actual, position.quantity) * 1e-8) return unavailable("position_balance_mismatch");
+  }
+  for (const [asset, balance] of Object.entries(input.positionBalances)) {
+    if (typeof balance !== "number" || !Number.isFinite(balance) || balance < 0) return unavailable("invalid_position_balance");
+    if (asset !== "USDT" && !expectedAssets.has(asset) && balance !== 0) return unavailable("unattributed_position_balance");
+  }
+  return result;
 }
+
