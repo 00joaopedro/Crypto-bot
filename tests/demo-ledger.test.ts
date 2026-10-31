@@ -25,4 +25,15 @@ describe("Demo ledger", () => {
     expect(result.status).toBe("confirmed");
     if (result.status === "confirmed") expect(result.positions["BTC/USDT"]?.quantity).toBeCloseTo(0.99);
   });
+  it("rejects tiny unmatched sales and preserves small remaining positions", () => {
+    const tinySell = { ...sell, amount: 1e-12 };
+    expect(calculateDemoLedger([tinySell], true)).toMatchObject({ reason: "unmatched_sell_or_missing_history" });
+    const tinyBuy = { ...buy, amount: 2e-12 };
+    const result = calculateDemoLedger([tinyBuy, tinySell], true);
+    expect(result.status).toBe("confirmed");
+    if (result.status === "confirmed") expect(result.positions["BTC/USDT"]?.quantity).toBeCloseTo(1e-12, 18);
+  });
+  it("rejects overflow in fee aggregation and inventory cost", () => {
+    expect(calculateDemoLedger([{ ...buy, fees: [{ currency: "USDT", cost: 1e308 }, { currency: "USDT", cost: 1e308 }] }], true)).toMatchObject({ status: "unavailable" });
+  });
 });

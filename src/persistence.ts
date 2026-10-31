@@ -340,7 +340,10 @@ export class PostgresPersistence implements BotPersistence {
     return !result.rows[0]?.pending && Number(result.rows[0]?.count ?? 0) < maxTrades;
   }
 
-  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = 1, intervalMinutes = 60): Promise<boolean> {
+  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = 1, intervalMinutes = 60, attachedAlgoClientId: string | null = null): Promise<boolean> {
+    if (attachedAlgoClientId !== null && !/^[A-Za-z0-9]{1,32}$/.test(attachedAlgoClientId)) {
+      throw new Error("Invalid Demo protection client ID");
+    }
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
@@ -355,10 +358,10 @@ export class PostgresPersistence implements BotPersistence {
         return false;
       }
       const result = await client.query(
-      `INSERT INTO demo_orders (client_order_id, symbol, candle_timestamp, status, result)
-       VALUES ($1, $2, $3, 'PENDING', $4::jsonb)
+      `INSERT INTO demo_orders (client_order_id, symbol, candle_timestamp, status, result, attached_algo_client_id)
+       VALUES ($1, $2, $3, 'PENDING', $4::jsonb, $5)
        ON CONFLICT (client_order_id) DO NOTHING RETURNING client_order_id`,
-      [clientOrderId, symbol, timestamp, JSON.stringify({ clientOrderId, status: "PENDING", reason: "submission_unconfirmed" })],
+      [clientOrderId, symbol, timestamp, JSON.stringify({ clientOrderId, status: "PENDING", reason: "submission_unconfirmed" }), attachedAlgoClientId],
       );
       await client.query("COMMIT");
       return result.rowCount === 1;
@@ -366,6 +369,15 @@ export class PostgresPersistence implements BotPersistence {
       await client.query("ROLLBACK");
       throw error;
     } finally { client.release(); }
+  }
+
+  /** Raw durable intent records: this does not prove exchange acceptance or ownership. */
+  async demoOrderJournal(): Promise<Array<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>> {
+    const result = await this.pool.query<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>(
+      `SELECT client_order_id, symbol, status, result, attached_algo_client_id, created_at
+       FROM demo_orders ORDER BY created_at, client_order_id`,
+    );
+    return result.rows;
   }
 
   async pendingDemoOrders(): Promise<Array<{ client_order_id: string; symbol: string }>> {

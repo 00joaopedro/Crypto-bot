@@ -142,7 +142,7 @@ async function main(): Promise<void> {
 
     if (okxDemo) {
       if (config.OKX_DEMO_TRADING_ENABLED && !persistence) throw new Error("OKX Demo execution requires persistent order journal");
-      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes));
+      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes, protectionId));
       await initializeOkxDemoWithBackoff(
         okxDemo,
         tradingSettings,
@@ -322,7 +322,7 @@ async function main(): Promise<void> {
                 takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
               },
             );
-            nextOkxDemo.setIntentJournal((symbol, timestamp, id) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes));
+            nextOkxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes, protectionId));
             await initializeOkxDemoWithBackoff(
               nextOkxDemo,
               nextSettings,

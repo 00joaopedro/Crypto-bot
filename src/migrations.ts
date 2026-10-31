@@ -164,4 +164,14 @@ export const migrations: readonly Migration[] = [
         CHECK (status IN ('PLACED', 'SKIPPED', 'FAILED', 'PENDING'));
     `,
   },
+  {
+    version: 7,
+    name: "demo_protection_intent_identity",
+    sql: `
+      ALTER TABLE demo_orders ADD COLUMN attached_algo_client_id TEXT
+        CHECK (attached_algo_client_id IS NULL OR attached_algo_client_id ~ '^[A-Za-z0-9]{1,32}$');
+      CREATE UNIQUE INDEX demo_orders_attached_algo_client_id_idx
+        ON demo_orders (attached_algo_client_id) WHERE attached_algo_client_id IS NOT NULL;
+    `,
+  },
 ] as const;

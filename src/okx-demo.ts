@@ -1,4 +1,5 @@
 import ccxt, { OrderNotFound, type Exchange, type Order } from "ccxt";
+import { collectOkxDemoFills, type OkxCollectedFills, type OkxFillHistoryClient } from "./okx-demo-fill-history.js";
 
 export type OkxDemoCredentials = {
   apiKey: string;
@@ -93,9 +94,9 @@ type Pause = (milliseconds: number) => Promise<void>;
 export class OkxDemoExecutor {
   private sandboxConfigured = false;
   private initialized = false;
-  private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string) => Promise<boolean>;
+  private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string) => Promise<boolean>;
 
-  setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string) => Promise<boolean>): void {
+  setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string) => Promise<boolean>): void {
     this.reserveIntent = reserve;
   }
 
@@ -178,6 +179,19 @@ export class OkxDemoExecutor {
     }
     if (readTotalBalance(balance.total, "USDT") === null) unvaluedAssets.push("USDT");
     return { quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt: readTotalBalance(balance.total, quoteCurrency), equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, updatedAt: new Date().toISOString() };
+  }
+
+  /** Read-only collection, not proof of history coverage or bot ownership. */
+  async collectFillHistory(input: { symbol: string; from: number; to: number }): Promise<OkxCollectedFills> {
+    if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
+    const client = this.exchange as unknown as Partial<OkxFillHistoryClient>;
+    if (typeof client.privateGetTradeFills !== "function" || typeof client.privateGetTradeFillsHistory !== "function") {
+      return { status: "unavailable", reason: "history_endpoint_unavailable" };
+    }
+    return collectOkxDemoFills({
+      privateGetTradeFills: (params) => client.privateGetTradeFills!(params),
+      privateGetTradeFillsHistory: (params) => client.privateGetTradeFillsHistory!(params),
+    }, { ...input, now: Date.now() });
   }
 
   async executeApprovedBuy(request: DemoBuyRequest): Promise<DemoBuyResult> {
@@ -267,7 +281,16 @@ export class OkxDemoExecutor {
     const stopLossPrice = referencePrice * (1 - (request.stopLossRate ?? this.options.stopLossRate));
     const takeProfitPrice = referencePrice * (1 + (request.takeProfitRate ?? this.options.takeProfitRate));
 
-    if (this.reserveIntent && !(await this.reserveIntent(marketSymbol, request.candleTimestamp, clientOrderId))) {
+    const attachedAlgoClientId = `AP${clientOrderId.slice(2)}`;
+    // CCXT currently does not expose attachAlgoClOrdId through stopLoss/takeProfit;
+    // raw attachAlgoOrds replaces those parameters, so include both full legs.
+    const attachAlgoOrds = [{
+      attachAlgoClOrdId: attachedAlgoClientId,
+      slTriggerPx: this.exchange.priceToPrecision(marketSymbol, stopLossPrice), slOrdPx: "-1",
+      tpTriggerPx: this.exchange.priceToPrecision(marketSymbol, takeProfitPrice), tpOrdPx: "-1",
+    }];
+    if (!this.reserveIntent) throw new Error("Demo order requires a persistent intent journal");
+    if (!(await this.reserveIntent(marketSymbol, request.candleTimestamp, clientOrderId, attachedAlgoClientId))) {
       throw new Error(`Demo order intent already exists: ${clientOrderId}`);
     }
     const submitted = await this.exchange.createMarketBuyOrderWithCost(
@@ -276,8 +299,7 @@ export class OkxDemoExecutor {
       {
         clientOrderId,
         tdMode: "cash",
-        stopLoss: { triggerPrice: stopLossPrice, type: "market" },
-        takeProfit: { triggerPrice: takeProfitPrice, type: "market" },
+        attachAlgoOrds,
       },
     );
     const order = await this.waitForOrderUpdate(submitted, marketSymbol);
@@ -318,6 +340,7 @@ export class OkxDemoExecutor {
   }
 
   async close(): Promise<void> {
+    this.initialized = false;
     await this.exchange.close();
   }
 
