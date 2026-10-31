@@ -63,6 +63,8 @@ integration("PostgresPersistence", () => {
       await persistence.initialize();
       expect(await persistence.reserveDemoOrder("BTC/USDT", Date.now(), id, 1, 60, protectionId)).toBe(true);
       expect(await persistence.demoOrderJournal()).toEqual(expect.arrayContaining([expect.objectContaining({ client_order_id: id, attached_algo_client_id: protectionId })]));
+      expect((await persistence.demoOrderJournal(new Date(Date.now() + 60_000))).some((entry) => entry.client_order_id === id)).toBe(false);
+      await expect(persistence.demoOrderJournal(new Date(NaN))).rejects.toThrow("Invalid Demo journal start date");
       expect(await persistence.reserveDemoOrder("BTC/USDT", Date.now(), id)).toBe(false);
       expect(await persistence.canPlaceDemoOrder(99, 15)).toBe(false);
       expect(await persistence.pendingDemoOrders()).toEqual(expect.arrayContaining([expect.objectContaining({ client_order_id: id })]));

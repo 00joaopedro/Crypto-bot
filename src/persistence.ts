@@ -398,10 +398,12 @@ export class PostgresPersistence implements BotPersistence {
     } finally { client.release(); }
   }
 
-  async demoOrderJournal(): Promise<Array<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>> {
+  async demoOrderJournal(since?: Date): Promise<Array<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>> {
+    if (since && !Number.isFinite(since.getTime())) throw new Error("Invalid Demo journal start date");
     const result = await this.pool.query<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>(
       `SELECT client_order_id, symbol, status, result, attached_algo_client_id, created_at
-       FROM demo_orders ORDER BY created_at, client_order_id`,
+       FROM demo_orders WHERE ($1::timestamptz IS NULL OR created_at >= $1) ORDER BY created_at, client_order_id`,
+      [since ?? null],
     );
     return result.rows;
   }
