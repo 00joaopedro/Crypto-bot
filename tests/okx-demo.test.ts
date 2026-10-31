@@ -50,6 +50,18 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("does not present a partial Demo portfolio valuation as total equity", async () => {
+    const exchange = exchangeMock({
+      fetchBalance: vi.fn(async () => ({ free: { USDT: 100 }, total: { USDT: 100, DOGE: 5 } })),
+      market: vi.fn((symbol: string) => {
+        if (symbol !== "BTC/USDT") throw new Error("market unavailable");
+        return { symbol, quote: "USDT", spot: true, active: true, limits: { cost: { min: 1 } } };
+      }),
+    });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await executor.initialize();
+    await expect(executor.getAccountSnapshot()).resolves.toMatchObject({ totalUsdt: 100, equityUsdt: null, unvaluedAssets: ["DOGE"] });
+  });
   it("preserves the submitted order as pending when reconciliation fails", async () => {
     const fetchOrder = vi.fn()
       .mockRejectedValueOnce(new OrderNotFound("missing"))
