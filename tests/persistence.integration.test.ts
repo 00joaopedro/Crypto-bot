@@ -8,6 +8,25 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("persists pending intent, blocks further orders, and reconciles without losing the ID", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const id = `INTENT${Date.now()}`;
+    try {
+      await persistence.initialize();
+      expect(await persistence.reserveDemoOrder("BTC/USDT", Date.now(), id)).toBe(true);
+      expect(await persistence.reserveDemoOrder("BTC/USDT", Date.now(), id)).toBe(false);
+      expect(await persistence.canPlaceDemoOrder(99, 15)).toBe(false);
+      expect(await persistence.pendingDemoOrders()).toEqual(expect.arrayContaining([expect.objectContaining({ client_order_id: id })]));
+      await persistence.reconcileDemoOrder(id, { id: "exchange-id", status: "closed", filled: 0.1, cost: 10 });
+      const result = await verification.query("SELECT status, result FROM demo_orders WHERE client_order_id = $1", [id]);
+      expect(result.rows[0]).toMatchObject({ status: "PLACED", result: { confirmed: true, orderId: "exchange-id", filled: 0.1 } });
+    } finally {
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [id]);
+      await verification.end();
+      await persistence.close();
+    }
+  });
   it("migrates idempotently and persists a recoverable cycle", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     await persistence.initialize();
