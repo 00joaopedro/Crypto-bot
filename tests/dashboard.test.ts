@@ -11,6 +11,7 @@ describe("dashboard authentication", () => {
 
   networkTest("keeps data private and creates an authenticated session", async () => {
     const onSettingsChanged = vi.fn();
+    const inspectDemoAccounting = vi.fn(async () => ({ status: "unavailable", reason: "no_confirmed_orders" }));
     const persistence = {
       getDashboardData: async () => ({ paused: false }),
       updateDashboardSettings: vi.fn(async () => undefined),
@@ -23,11 +24,14 @@ describe("dashboard authentication", () => {
       persistence,
       supportedSymbols: ["BTC/USDT"],
       onSettingsChanged,
+      inspectDemoAccounting,
+      inspectDemoPermission: async () => ({ status: "available", trading: true }),
     });
     const { port } = server.address() as AddressInfo;
     const base = `http://127.0.0.1:${port}`;
 
     expect((await fetch(`${base}/api/dashboard`)).status).toBe(401);
+    expect((await fetch(`${base}/api/demo-permission`)).status).toBe(401);
     expect(
       (
         await fetch(`${base}/api/login`, {
@@ -51,6 +55,12 @@ describe("dashboard authentication", () => {
       headers: { cookie: cookie!.split(";")[0]! },
     });
     expect(authenticated.status).toBe(200);
+    expect((await authenticated.json()).demoAccounting).toEqual({ status: "unavailable", reason: "no_confirmed_orders" });
+    const reconciliation = await fetch(`${base}/api/demo-reconciliation`, { headers: { cookie: cookie!.split(";")[0]! } });
+    expect(await reconciliation.json()).toEqual({ status: "unavailable", reason: "no_confirmed_orders" });
+    expect(inspectDemoAccounting).toHaveBeenCalledOnce();
+    const permission = await fetch(`${base}/api/demo-permission`, { headers: { cookie: cookie!.split(";")[0]! } });
+    expect(await permission.json()).toEqual({ status: "available", trading: true });
 
     const settings = await fetch(`${base}/api/settings`, {
       method: "PUT",
@@ -72,3 +82,4 @@ describe("dashboard authentication", () => {
     expect(onSettingsChanged).toHaveBeenCalledOnce();
   });
 });
+

@@ -4,6 +4,9 @@ import { setTimeout as delay } from "node:timers/promises";
 import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
+import { inspectDemoAccounting } from "./demo-diagnostic.js";
+import { compareDemoBaseline } from "./demo-baseline.js";
+import { sameDemoAccount } from "./okx-demo-identity.js";
 import { EmailTradeAlert } from "./email-alerts.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
@@ -141,11 +144,52 @@ async function main(): Promise<void> {
         : undefined;
 
     if (okxDemo) {
+      if (config.OKX_DEMO_TRADING_ENABLED && !persistence) throw new Error("OKX Demo execution requires persistent order journal");
+      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes, protectionId));
       await initializeOkxDemoWithBackoff(
         okxDemo,
         tradingSettings,
         shutdownController.signal,
       );
+      if (persistence && await persistence.isPaused()) {
+        try {
+          const baseline = await okxDemo.collectBaselineCandidate();
+          if (baseline.status === "collected") {
+            const existing = await persistence.getDemoBaselineCandidate();
+            if (existing) {
+              if (!sameDemoAccount(existing.evidence.accountIdentity, baseline.evidence.accountIdentity as { uid: string; mainUid: string })) {
+                console.log(JSON.stringify({ event: "demo_baseline_comparison", status: "unavailable", reason: "account_identity_mismatch_or_missing" }));
+                if (!existing.evidence.accountIdentity) {
+                  await persistence.saveDemoBaselineCandidate(baseline);
+                  console.log(JSON.stringify({ event: "demo_baseline_candidate_recorded", status: "UNVERIFIED", reason: "legacy_baseline_superseded" }));
+                }
+              } else {
+              const comparison = compareDemoBaseline(existing.balances, baseline.balances);
+              console.log(JSON.stringify({ event: "demo_baseline_comparison", ...comparison }));
+              const startedAt = existing.evidence.startedAt;
+              const observedAt = existing.observedAt.getTime();
+              if (typeof startedAt === "number") {
+                const history = await okxDemo.inspectBaselineHistory(startedAt, observedAt);
+                console.log(JSON.stringify({ event: "demo_baseline_history_observation", ...history }));
+                // This second bounded query checks the period after the saved
+                // snapshot. Empty results do not prove exchange-wide coverage.
+                const sinceBaseline = await okxDemo.inspectBaselineHistory(observedAt, baseline.observedAt);
+                console.log(JSON.stringify({ event: "demo_since_baseline_history_observation", ...sinceBaseline }));
+              } else {
+                console.log(JSON.stringify({ event: "demo_baseline_history_observation", status: "unavailable", reason: "baseline_start_time_missing" }));
+              }
+              }
+            } else {
+              await persistence.saveDemoBaselineCandidate(baseline);
+              console.log(JSON.stringify({ event: "demo_baseline_candidate_recorded", status: "UNVERIFIED" }));
+            }
+          } else {
+            console.log(JSON.stringify({ event: "demo_baseline_candidate_unavailable", reason: baseline.reason }));
+          }
+        } catch {
+          console.log(JSON.stringify({ event: "demo_baseline_candidate_not_recorded" }));
+        }
+      }
       if (stopping) return;
       await persistence?.recordOperationalEvent({
         eventType: "SERVICE_STATUS",
@@ -320,6 +364,7 @@ async function main(): Promise<void> {
                 takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
               },
             );
+            nextOkxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes, protectionId));
             await initializeOkxDemoWithBackoff(
               nextOkxDemo,
               nextSettings,
@@ -373,6 +418,9 @@ async function main(): Promise<void> {
         persistence,
         supportedSymbols,
         onSettingsChanged: reconfigure,
+        ...(okxDemo ? { getOkxDemoSnapshot: () => okxDemo!.getAccountSnapshot() } : {}),
+        ...(okxDemo ? { inspectDemoAccounting: () => inspectDemoAccounting(persistence, okxDemo!) } : {}),
+        ...(okxDemo ? { inspectDemoPermission: () => okxDemo!.inspectTradingPermission() } : {}),
       });
     } else {
       console.log(JSON.stringify({ event: "dashboard_disabled" }));
@@ -380,6 +428,16 @@ async function main(): Promise<void> {
 
     while (!stopping) {
       try {
+        if (!reconfiguring && okxDemo && persistence) {
+          for (const pending of await persistence.pendingDemoOrders()) {
+            try {
+              const order = await okxDemo.reconcileOrder(pending.symbol, pending.client_order_id);
+              if (order) await persistence.reconcileDemoOrder(pending.client_order_id, order);
+            } catch (error) {
+              console.error(JSON.stringify({ event: "okx_reconciliation_failed", symbol: pending.symbol, clientOrderId: pending.client_order_id, error: error instanceof Error ? error.message : String(error) }));
+            }
+          }
+        }
         if (reconfiguring) {
           console.log(JSON.stringify({ event: "cycle_skipped", reason: "bot_reconfiguring" }));
         } else {
@@ -493,6 +551,8 @@ async function initializeOkxDemoWithBackoff(
     try {
       const status = await okxDemo.initialize();
       console.log(JSON.stringify({ event: "okx_demo_connected", ...status }));
+      const permission = await okxDemo.inspectTradingPermission();
+      console.log(JSON.stringify({ event: "okx_demo_permission_checked", ...permission }));
       console.log(
         JSON.stringify(
           status.orderExecutionEnabled
@@ -567,3 +627,4 @@ main().catch((error) => {
   );
   process.exitCode = 1;
 });
+

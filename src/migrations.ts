@@ -155,4 +155,47 @@ export const migrations: readonly Migration[] = [
         CHECK (max_concurrent_positions BETWEEN 1 AND 99);
     `,
   },
+  {
+    version: 6,
+    name: "demo_pending_status",
+    sql: `
+      ALTER TABLE demo_orders DROP CONSTRAINT demo_orders_status_check;
+      ALTER TABLE demo_orders ADD CONSTRAINT demo_orders_status_check
+        CHECK (status IN ('PLACED', 'SKIPPED', 'FAILED', 'PENDING'));
+    `,
+  },
+  {
+    version: 7,
+    name: "demo_protection_intent_identity",
+    sql: `
+      ALTER TABLE demo_orders ADD COLUMN attached_algo_client_id TEXT
+        CHECK (attached_algo_client_id IS NULL OR attached_algo_client_id ~ '^[A-Za-z0-9]{1,32}$');
+      CREATE UNIQUE INDEX demo_orders_attached_algo_client_id_idx
+        ON demo_orders (attached_algo_client_id) WHERE attached_algo_client_id IS NOT NULL;
+    `,
+  },
+  {
+    version: 8,
+    name: "demo_accounting_baseline_candidates",
+    sql: `
+      CREATE TABLE demo_accounting_baselines (
+        id BIGSERIAL PRIMARY KEY,
+        observed_at TIMESTAMPTZ NOT NULL,
+        balances JSONB NOT NULL,
+        evidence JSONB NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('UNVERIFIED')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `,
+  },
+  {
+    version: 9,
+    name: "demo_baseline_superseded_audit",
+    sql: `
+      ALTER TABLE demo_accounting_baselines DROP CONSTRAINT demo_accounting_baselines_status_check;
+      ALTER TABLE demo_accounting_baselines ADD CONSTRAINT demo_accounting_baselines_status_check
+        CHECK (status IN ('UNVERIFIED', 'SUPERSEDED'));
+    `,
+  },
 ] as const;
+

@@ -8,6 +8,117 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("replaces only an idle identity-less baseline while retaining its audit row", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const oldAt = Date.now() - 120_000;
+    const newAt = Date.now();
+    const candidate = { observedAt: newAt, balances: { USDT: 5000 }, evidence: { accountIdentity: { uid: "123", mainUid: "123" } } };
+    try {
+      await persistence.initialize();
+      await persistence.setPaused(true, "baseline-replacement-test");
+      await verification.query("INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status) VALUES (to_timestamp($1 / 1000.0), $2::jsonb, '{}'::jsonb, 'UNVERIFIED')", [oldAt, JSON.stringify({ USDT: 5000 })]);
+      await persistence.saveDemoBaselineCandidate(candidate);
+      const records = await verification.query("SELECT status FROM demo_accounting_baselines WHERE observed_at IN (to_timestamp($1 / 1000.0), to_timestamp($2 / 1000.0)) ORDER BY observed_at", [oldAt, newAt]);
+      expect(records.rows.map((row) => row.status)).toEqual(["SUPERSEDED", "UNVERIFIED"]);
+    } finally {
+      await verification.query("DELETE FROM demo_accounting_baselines WHERE observed_at IN (to_timestamp($1 / 1000.0), to_timestamp($2 / 1000.0))", [oldAt, newAt]);
+      await verification.end();
+      await persistence.close();
+    }
+  });
+  it("stores baseline candidates as unverified only while paused with no pending orders", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const observedAt = Date.now();
+    const pendingId = `BASELINE${observedAt}`;
+    const candidate = { observedAt, balances: { BTC: 1, USDT: 5000 }, evidence: { source: "test", accountIdentity: { uid: "123", mainUid: "123" } } };
+    try {
+      await persistence.initialize();
+      await persistence.setPaused(false, "baseline-test");
+      await expect(persistence.saveDemoBaselineCandidate(candidate)).rejects.toThrow("paused");
+      await persistence.setPaused(true, "baseline-test");
+      await expect(persistence.saveDemoBaselineCandidate({ ...candidate, balances: { BTC: NaN, USDT: 0 } })).rejects.toThrow("Invalid");
+      await persistence.reserveDemoOrder("BTC/USDT", observedAt, pendingId);
+      await expect(persistence.saveDemoBaselineCandidate(candidate)).rejects.toThrow("Pending");
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [pendingId]);
+      await persistence.saveDemoBaselineCandidate(candidate);
+      const result = await verification.query("SELECT balances, status FROM demo_accounting_baselines WHERE observed_at = to_timestamp($1 / 1000.0)", [observedAt]);
+      expect(result.rows).toEqual([expect.objectContaining({ balances: candidate.balances, status: "UNVERIFIED" })]);
+      await expect(persistence.getDemoBaselineCandidate()).resolves.toMatchObject({ balances: candidate.balances, status: "UNVERIFIED" });
+    } finally {
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [pendingId]);
+      await verification.query("DELETE FROM demo_accounting_baselines WHERE observed_at = to_timestamp($1 / 1000.0)", [observedAt]);
+      await verification.end();
+      await persistence.close();
+    }
+  });
+  it("retrieves older Demo failures only when the diagnostic range includes them", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const timestamp = Date.now();
+    const id = `FAILED:LOGTEST/USDT:${timestamp}`;
+    try {
+      await persistence.initialize();
+      await persistence.recordDemoOrderFailure("LOGTEST/USDT", timestamp, "diagnostic test failure");
+      await verification.query("UPDATE demo_orders SET created_at = NOW() - INTERVAL '10 days' WHERE client_order_id = $1", [id]);
+      const recent = JSON.parse(await persistence.getDiagnosticLogs(6, 500));
+      const older = JSON.parse(await persistence.getDiagnosticLogs(720, 500));
+      expect(recent.records.some((item: { symbol?: string }) => item.symbol === "LOGTEST/USDT")).toBe(false);
+      expect(older.records).toEqual(expect.arrayContaining([expect.objectContaining({ section: "demo_orders", symbol: "LOGTEST/USDT", status: "FAILED" })]));
+      expect(older.scope.hours).toBe(720);
+    } finally {
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [id]);
+      await verification.end();
+      await persistence.close();
+    }
+  });
+  it("persists pending intent, blocks further orders, and reconciles without losing the ID", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const id = `INTENT${Date.now()}`;
+    const protectionId = `PROTECT${Date.now()}`;
+    try {
+      await persistence.initialize();
+      expect(await persistence.reserveDemoOrder("BTC/USDT", Date.now(), id, 1, 60, protectionId)).toBe(true);
+      expect(await persistence.demoOrderJournal()).toEqual(expect.arrayContaining([expect.objectContaining({ client_order_id: id, attached_algo_client_id: protectionId })]));
+      expect((await persistence.demoOrderJournal(new Date(Date.now() + 60_000))).some((entry) => entry.client_order_id === id)).toBe(false);
+      await expect(persistence.demoOrderJournal(new Date(NaN))).rejects.toThrow("Invalid Demo journal start date");
+      expect(await persistence.reserveDemoOrder("BTC/USDT", Date.now(), id)).toBe(false);
+      expect(await persistence.canPlaceDemoOrder(99, 15)).toBe(false);
+      expect(await persistence.pendingDemoOrders()).toEqual(expect.arrayContaining([expect.objectContaining({ client_order_id: id })]));
+      await persistence.reconcileDemoOrder(id, { id: "exchange-id", status: "canceled", filled: 0.05, cost: 5, fee: { currency: "USDT", cost: 0.005 } });
+      let partial = await verification.query("SELECT status, result FROM demo_orders WHERE client_order_id = $1", [id]);
+      expect(partial.rows[0]).toMatchObject({ status: "PENDING", result: { filled: 0.05, confirmed: false } });
+      await persistence.reconcileDemoOrder(id, { id: "exchange-id", status: "closed", filled: 0.1, cost: 10 });
+      await persistence.recordDemoOrder("BTC/USDT", Date.now(), { status: "PENDING", orderId: "exchange-id", clientOrderId: id, orderStatus: "open", filled: 0, average: null, cost: null, referencePrice: 100, stopLossPrice: 99, takeProfitPrice: 102, confirmed: false });
+      const result = await verification.query("SELECT status, result, attached_algo_client_id FROM demo_orders WHERE client_order_id = $1", [id]);
+      expect(result.rows[0]).toMatchObject({ status: "PLACED", attached_algo_client_id: protectionId, result: { confirmed: true, orderId: "exchange-id", filled: 0.1, fees: [{ currency: "USDT", cost: 0.005 }] } });
+    } finally {
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [id]);
+      await verification.end();
+      await persistence.close();
+    }
+  });
+  it("atomically allows at most one concurrent pending intent across connections", async () => {
+    const first = new PostgresPersistence(databaseUrl!);
+    const second = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const ids = [`RACEA${Date.now()}`, `RACEB${Date.now()}`];
+    try {
+      await first.initialize();
+      const results = await Promise.all([
+        first.reserveDemoOrder("BTC/USDT", Date.now(), ids[0]!, 99, 15),
+        second.reserveDemoOrder("ETH/USDT", Date.now(), ids[1]!, 99, 15),
+      ]);
+      expect(results.filter(Boolean)).toHaveLength(1);
+    } finally {
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = ANY($1::text[])", [ids]);
+      await verification.end();
+      await first.close();
+      await second.close();
+    }
+  });
   it("migrates idempotently and persists a recoverable cycle", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     await persistence.initialize();
@@ -139,3 +250,4 @@ integration("PostgresPersistence", () => {
     await persistence.close();
   });
 });
+

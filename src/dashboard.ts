@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 
 import { z } from "zod";
 import type { DashboardSettings, PostgresPersistence } from "./persistence.js";
+import type { OkxDemoAccountSnapshot } from "./okx-demo.js";
 
 const settingsSchema = z.object({
   symbol: z.string().regex(/^[A-Z0-9]{2,15}\/USDT$/),
@@ -21,6 +22,9 @@ type DashboardOptions = {
   persistence: PostgresPersistence;
   supportedSymbols: string[];
   onSettingsChanged: () => void | Promise<void>;
+  getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
+  inspectDemoAccounting?: () => Promise<unknown>;
+  inspectDemoPermission?: () => Promise<unknown>;
 };
 
 const assets = new Map<string, { file: string; type: string }>([
@@ -30,6 +34,15 @@ const assets = new Map<string, { file: string; type: string }>([
 ]);
 
 export async function startDashboard(options: DashboardOptions): Promise<Server> {
+  let accountingRequest: Promise<unknown> | undefined;
+  let accountingExpiresAt = 0;
+  const accounting = (): Promise<unknown> => {
+    if (!accountingRequest || Date.now() >= accountingExpiresAt) {
+      accountingExpiresAt = Date.now() + 60_000;
+      accountingRequest = Promise.resolve().then(() => options.inspectDemoAccounting?.() ?? { status: "unavailable", reason: "demo_disabled" }).catch(() => ({ status: "unavailable", reason: "diagnostic_failed" }));
+    }
+    return accountingRequest;
+  };
   const server = createServer(async (request, response) => {
     setSecurityHeaders(response);
     try {
@@ -63,10 +76,27 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
       if (!isAuthenticated(request, options.sessionSecret)) {
         return json(response, 401, { error: "Não autenticado." });
       }
+      if (request.method === "GET" && url.pathname === "/api/demo-reconciliation") {
+        return json(response, 200, await accounting());
+      }
+      if (request.method === "GET" && url.pathname === "/api/demo-permission") {
+        if (!options.inspectDemoPermission) return json(response, 200, { status: "unavailable", reason: "demo_disabled" });
+        try { return json(response, 200, await options.inspectDemoPermission()); }
+        catch { return json(response, 200, { status: "unavailable", reason: "permission_request_failed" }); }
+      }
       if (request.method === "GET" && url.pathname === "/api/dashboard") {
         const historySymbol = url.searchParams.get("symbol") || undefined;
         const data = await options.persistence.getDashboardData(40, historySymbol);
-        return json(response, 200, { ...data, supportedSymbols: options.supportedSymbols });
+        let okxDemo = data.okxDemo;
+        if (options.getOkxDemoSnapshot) {
+          try {
+            const snapshot = await options.getOkxDemoSnapshot();
+            okxDemo = { ...okxDemo, ...snapshot, status: "ok" };
+          } catch (error) {
+            okxDemo = { ...okxDemo, status: "unhealthy", lastError: error instanceof Error ? error.message : String(error) };
+          }
+        }
+        return json(response, 200, { ...data, okxDemo, demoAccounting: await accounting(), supportedSymbols: options.supportedSymbols });
       }
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);
@@ -179,3 +209,4 @@ function setSecurityHeaders(response: ServerResponse): void {
   response.setHeader("referrer-policy", "no-referrer");
   response.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=()");
 }
+

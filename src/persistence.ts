@@ -8,7 +8,8 @@ import type {
   PaperTradeClosed,
   PaperTradeOpened,
 } from "./paper-trader.js";
-import type { DemoBuyResult } from "./okx-demo.js";
+import { classifyDemoOrder, normalizedOrderFees, type DemoBuyResult } from "./okx-demo.js";
+import { readDemoAccountIdentity } from "./okx-demo-identity.js";
 import type { AiDecision, Candle, QuantSignal } from "./types.js";
 import { buildStatisticalReport, type StatisticalTrade } from "./analytics.js";
 
@@ -55,6 +56,7 @@ export type DashboardData = {
   portfoliosBySymbol: Array<Record<string, unknown>>;
   health: Record<string, unknown>;
   analytics: ReturnType<typeof buildStatisticalReport>;
+  okxDemo: { quoteFree: number | null; totalUsdt: number | null; updatedAt: string | null; status: string; lastError?: string };
 };
 
 const MAX_SAFE_TRADES_PER_HOUR = 5;
@@ -330,13 +332,102 @@ export class PostgresPersistence implements BotPersistence {
   }
 
   async canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean> {
-    const result = await this.pool.query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count FROM demo_orders
-       WHERE status = 'PLACED'
-         AND created_at >= NOW() - ($1 * INTERVAL '1 minute')`,
+    const result = await this.pool.query<{ count: string; pending: boolean }>(
+      `SELECT COUNT(*)::text AS count, COALESCE(BOOL_OR(status = 'PENDING'), false) AS pending FROM demo_orders
+       WHERE status = 'PENDING' OR (status = 'PLACED'
+         AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))`,
       [intervalMinutes],
     );
-    return Number(result.rows[0]?.count ?? 0) < maxTrades;
+    return !result.rows[0]?.pending && Number(result.rows[0]?.count ?? 0) < maxTrades;
+  }
+
+  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = 1, intervalMinutes = 60, attachedAlgoClientId: string | null = null): Promise<boolean> {
+    if (attachedAlgoClientId !== null && !/^[A-Za-z0-9]{1,32}$/.test(attachedAlgoClientId)) {
+      throw new Error("Invalid Demo protection client ID");
+    }
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-order-reservation'))");
+      const counts = await client.query<{ pending: boolean; recent: string }>(
+        `SELECT COALESCE(BOOL_OR(status = 'PENDING'), false) AS pending,
+          COUNT(*) FILTER (WHERE status = 'PLACED' AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))::text AS recent
+         FROM demo_orders`, [intervalMinutes],
+      );
+      if (counts.rows[0]?.pending || Number(counts.rows[0]?.recent ?? 0) >= maxTrades) {
+        await client.query("COMMIT");
+        return false;
+      }
+      const result = await client.query(
+      `INSERT INTO demo_orders (client_order_id, symbol, candle_timestamp, status, result, attached_algo_client_id)
+       VALUES ($1, $2, $3, 'PENDING', $4::jsonb, $5)
+       ON CONFLICT (client_order_id) DO NOTHING RETURNING client_order_id`,
+      [clientOrderId, symbol, timestamp, JSON.stringify({ clientOrderId, status: "PENDING", reason: "submission_unconfirmed" }), attachedAlgoClientId],
+      );
+      await client.query("COMMIT");
+      return result.rowCount === 1;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
+  }
+
+  async getDemoBaselineCandidate(): Promise<{ observedAt: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string } | null> {
+    const result = await this.pool.query<{ observed_at: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string }>("SELECT observed_at, balances, evidence, status FROM demo_accounting_baselines WHERE status = 'UNVERIFIED' ORDER BY id DESC LIMIT 1");
+    const row = result.rows[0];
+    return row ? { observedAt: row.observed_at, balances: row.balances, evidence: row.evidence, status: row.status } : null;
+  }
+
+  /** Raw durable intent records: this does not prove exchange acceptance or ownership. */
+  async saveDemoBaselineCandidate(input: { observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown> }): Promise<void> {
+    if (!readDemoAccountIdentity({ code: "0", data: [input.evidence?.accountIdentity] }) || !Number.isSafeInteger(input.observedAt) || input.observedAt <= 0 || input.observedAt > Date.now() || !input.balances || !Object.hasOwn(input.balances, "USDT") || Object.entries(input.balances).some(([asset, amount]) => !/^[A-Z0-9]+$/.test(asset) || !Number.isFinite(amount) || amount < 0)) throw new Error("Invalid Demo baseline candidate");
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-baseline'))");
+      const control = await client.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1 FOR UPDATE");
+      if (control.rows[0]?.paused !== true) throw new Error("Bot must be paused before recording a baseline");
+      const pending = await client.query("SELECT 1 FROM demo_orders WHERE status = 'PENDING' LIMIT 1");
+      if (pending.rowCount) throw new Error("Pending Demo orders prevent recording a baseline");
+      const existing = await client.query<{ id: string; observed_at: Date; evidence: Record<string, unknown> }>("SELECT id, observed_at, evidence FROM demo_accounting_baselines WHERE status = 'UNVERIFIED' ORDER BY id DESC LIMIT 1 FOR UPDATE");
+      if (existing.rows[0]) {
+        const previous = existing.rows[0];
+        if (previous.evidence?.accountIdentity) throw new Error("Demo baseline candidate already has an account identity");
+        const activity = await client.query("SELECT 1 FROM demo_orders WHERE created_at >= $1 LIMIT 1", [previous.observed_at]);
+        if (activity.rowCount) throw new Error("Demo order activity prevents replacing the legacy baseline");
+        await client.query("UPDATE demo_accounting_baselines SET status = 'SUPERSEDED' WHERE id = $1", [previous.id]);
+      }
+      await client.query("INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status) VALUES (to_timestamp($1 / 1000.0), $2::jsonb, $3::jsonb, 'UNVERIFIED')", [input.observedAt, JSON.stringify(input.balances), JSON.stringify(input.evidence)]);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
+  }
+
+  async demoOrderJournal(since?: Date): Promise<Array<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>> {
+    if (since && !Number.isFinite(since.getTime())) throw new Error("Invalid Demo journal start date");
+    const result = await this.pool.query<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>(
+      `SELECT client_order_id, symbol, status, result, attached_algo_client_id, created_at
+       FROM demo_orders WHERE ($1::timestamptz IS NULL OR created_at >= $1) ORDER BY created_at, client_order_id`,
+      [since ?? null],
+    );
+    return result.rows;
+  }
+
+  async pendingDemoOrders(): Promise<Array<{ client_order_id: string; symbol: string }>> {
+    const result = await this.pool.query<{ client_order_id: string; symbol: string }>(
+      `SELECT client_order_id, symbol FROM demo_orders WHERE status = 'PENDING' ORDER BY created_at LIMIT 100`,
+    );
+    return result.rows;
+  }
+
+  async reconcileDemoOrder(clientOrderId: string, order: { id?: string | undefined; status?: string | undefined; filled?: number | undefined; average?: number | undefined; cost?: number | undefined; side?: string | undefined; fee?: { currency?: string | undefined; cost?: number | undefined } | undefined; fees?: Array<{ currency?: string | undefined; cost?: number | undefined }> | undefined }): Promise<void> {
+    const status = classifyDemoOrder(order.status, order.filled);
+    await this.pool.query(
+      `UPDATE demo_orders SET status = $2, result = result || $3::jsonb, updated_at = NOW() WHERE client_order_id = $1 AND status = 'PENDING'`,
+      [clientOrderId, status, JSON.stringify({ orderId: order.id ?? null, orderStatus: order.status ?? null, filled: order.filled ?? null, average: order.average ?? null, cost: order.cost ?? null, ...(order.side ? { side: order.side } : {}), ...(order.fee || order.fees?.length ? { fees: normalizedOrderFees(order) } : {}), feesPresentOnTerminalResponse: status !== "PENDING" && normalizedOrderFees(order).length > 0, confirmed: status === "PLACED", reconciledAt: new Date().toISOString() })],
+    );
   }
 
   async canEnterSymbol(symbol: string, cooldownMinutes: number): Promise<boolean> {
@@ -363,8 +454,8 @@ export class PostgresPersistence implements BotPersistence {
   }
 
   async getDiagnosticLogs(hours = 6, limit = 500): Promise<string> {
-    const safeHours = Math.min(24, Math.max(1, Math.trunc(hours)));
-    const safeLimit = Math.min(500, Math.max(50, Math.trunc(limit)));
+    const safeHours = Number.isFinite(hours) ? Math.min(2160, Math.max(1, Math.trunc(hours))) : 6;
+    const safeLimit = Number.isFinite(limit) ? Math.min(500, Math.max(50, Math.trunc(limit))) : 500;
     const [events, decisions, trades, orders] = await Promise.all([
       this.pool.query(`SELECT created_at, event_type, severity, symbol, details FROM operational_events WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
       this.pool.query(`SELECT created_at, symbol, candle_timestamp, mode, signal, ai_decision, approved FROM decisions WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
@@ -393,7 +484,7 @@ export class PostgresPersistence implements BotPersistence {
 
   async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
-    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades] = await Promise.all([
+    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades, okxEvents] = await Promise.all([
       this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
@@ -464,6 +555,7 @@ export class PostgresPersistence implements BotPersistence {
          FROM paper_trades`,
       ),
       this.pool.query<Record<string, unknown>>(`SELECT pt.symbol, pt.trade, d.signal, d.ai_decision FROM paper_trades pt LEFT JOIN LATERAL (SELECT signal, ai_decision FROM decisions WHERE decisions.symbol = pt.symbol AND decisions.candle_timestamp = (pt.trade->>'entryTimestamp')::bigint ORDER BY decisions.created_at DESC LIMIT 1) d ON TRUE WHERE pt.event_type = 'CLOSED'`),
+      this.pool.query<Record<string, unknown>>(`SELECT event_type, severity, details, created_at FROM operational_events WHERE details->>'service' = 'okx-demo' ORDER BY created_at DESC LIMIT 20`),
     ]);
     const decisionRow = decisionMetrics.rows[0] ?? {};
     const tradeRow = tradeMetrics.rows[0] ?? {};
@@ -492,8 +584,6 @@ export class PostgresPersistence implements BotPersistence {
     aggregateSnapshot.strategyReturnPercent = Number(aggregateSnapshot.equityUsdt ?? 0) / (portfolioCount * 1000) * 100 - 100;
     aggregateSnapshot.buyAndHoldReturnPercent = Number(aggregateSnapshot.buyAndHoldReturnPercent ?? 0) / portfolioCount;
     aggregateSnapshot.excessReturnVsBuyAndHoldPercent = Number(aggregateSnapshot.strategyReturnPercent) - Number(aggregateSnapshot.buyAndHoldReturnPercent);
-    const closedTrades = Number(latestSnapshot?.closedTrades ?? tradeRow.exits ?? 0);
-    const wins = Number(latestSnapshot?.wins ?? tradeRow.wins ?? 0);
     const latestCycleAt = snapshot.rows[0]?.created_at ?? null;
     const health = Object.fromEntries(serviceEvents.rows.map((row) => [row.service, row.status]));
     health.postgresql ??= "ok";
@@ -506,6 +596,9 @@ export class PostgresPersistence implements BotPersistence {
       const trend = Number(breakdown.trend ?? 0); const volatility = Number(signal.volatilityPercent ?? 0);
       return { symbol: String(row.symbol), netPnlUsdt: Number(trade.netPnlUsdt ?? 0), exitTimestamp, regime: Math.abs(trend) >= 2 ? "trend" : volatility > 2 ? "volatile" : "lateral", aiState: aiReason.includes("UNAVAILABLE") ? "AI_UNAVAILABLE" : aiReason.includes("disabled") ? "AI_DISABLED" : "AI_AVAILABLE" };
     });
+    const analytics = buildStatisticalReport(statisticalTrades);
+    const closedTrades = analytics.trades;
+    const wins = analytics.wins;
     return {
       paused: control.rows[0]?.paused ?? true,
       settings,
@@ -525,10 +618,10 @@ export class PostgresPersistence implements BotPersistence {
         wins,
         losses: Math.max(0, closedTrades - wins),
         winRate: closedTrades ? (wins / closedTrades) * 100 : 0,
-        netPnlUsdt: Number(tradeRow.net_pnl ?? latestSnapshot?.realizedPnlUsdt ?? 0),
+        netPnlUsdt: analytics.netPnlUsdt,
         feesUsdt: Number(latestSnapshot?.totalFeesUsdt ?? 0),
         currentDrawdownPercent: Number(latestSnapshot?.currentDrawdownPercent ?? 0),
-        maxDrawdownPercent: Number(latestSnapshot?.maxDrawdownPercent ?? 0),
+        maxDrawdownPercent: Number(aggregateSnapshot.maxDrawdownPercent ?? 0),
         lastCycleAt: latestCycleAt,
         secondsSinceLastCycle: latestCycleAt ? Math.max(0, (Date.now() - new Date(String(latestCycleAt)).getTime()) / 1000) : null,
         buyAndHoldReturnPercent: Number(latestSnapshot?.buyAndHoldReturnPercent ?? 0),
@@ -540,7 +633,14 @@ export class PostgresPersistence implements BotPersistence {
         totalPositionValuePercent: totalEquity ? (totalPositionValue / totalEquity) * 100 : 0,
       },
       health: { ...health, lastOperationalEventAt: eventRow.last_event_at ?? null },
-      analytics: buildStatisticalReport(statisticalTrades),
+      analytics,
+      okxDemo: (() => {
+        const event = okxEvents.rows.find((row) => (row.details as Record<string, unknown> | undefined)?.balance) ?? okxEvents.rows.find((row) => (row.details as Record<string, unknown> | undefined)?.status === "ok");
+        const details = (event?.details ?? {}) as Record<string, unknown>;
+        const balance = (details.balance ?? {}) as Record<string, unknown>;
+        const errorEvent = okxEvents.rows.find((row) => row.severity === "ERROR");
+        return { quoteFree: Number.isFinite(Number(balance.quoteFree)) ? Number(balance.quoteFree) : null, totalUsdt: Number.isFinite(Number(balance.totalUsdt)) ? Number(balance.totalUsdt) : null, updatedAt: event?.created_at ? String(event.created_at) : null, status: String(details.status ?? "unknown"), ...(errorEvent ? { lastError: String(((errorEvent.details ?? {}) as Record<string, unknown>).error ?? "") } : {}) };
+      })(),
     };
   }
 
@@ -594,7 +694,9 @@ export class PostgresPersistence implements BotPersistence {
        ON CONFLICT (client_order_id) DO UPDATE SET
          status = EXCLUDED.status,
          result = EXCLUDED.result,
-         updated_at = NOW()`,
+         updated_at = NOW()
+       WHERE (EXCLUDED.status <> 'SKIPPED' OR demo_orders.status NOT IN ('PENDING', 'PLACED'))
+         AND NOT (EXCLUDED.status = 'PENDING' AND demo_orders.status IN ('PLACED', 'FAILED'))`,
       [
         result.clientOrderId,
         symbol,
@@ -712,3 +814,4 @@ export class PostgresPersistence implements BotPersistence {
     );
   }
 }
+

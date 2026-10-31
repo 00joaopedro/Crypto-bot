@@ -1,7 +1,9 @@
-import { OrderNotFound, type Exchange } from "ccxt";
+import ccxt, { OrderNotFound, type Exchange } from "ccxt";
 import { describe, expect, it, vi } from "vitest";
 import {
   createClientOrderId,
+  classifyDemoOrder,
+  normalizedOrderFees,
   OkxDemoExecutor,
   type OkxDemoOptions,
 } from "../src/okx-demo.js";
@@ -22,6 +24,7 @@ const enabledOptions: OkxDemoOptions = {
 
 function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
   return {
+    privateGetAccountConfig: vi.fn(async () => ({ code: "0", data: [{ uid: "123", mainUid: "123", perm: "trade" }] })),
     setSandboxMode: vi.fn(),
     loadMarkets: vi.fn(async () => ({})),
     market: vi.fn(() => ({
@@ -37,6 +40,7 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
     }),
     fetchOpenOrders: vi.fn(async () => []),
     fetchTicker: vi.fn(async () => ({ ask: 100 })),
+    priceToPrecision: vi.fn((_symbol: string, value: number) => String(value)),
     createMarketBuyOrderWithCost: vi.fn(async () => ({
       id: "order-1",
       status: "closed",
@@ -50,6 +54,161 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("collects a Demo baseline candidate without claiming it proves history coverage", async () => {
+    const exchange = exchangeMock({ fetchBalance: vi.fn(async () => ({ free: { USDT: 5000 }, total: { BTC: 1, USDT: 5000 } })) });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await expect(executor.collectBaselineCandidate()).resolves.toMatchObject({ reason: "demo_not_initialized" });
+    await executor.initialize();
+    const result = await executor.collectBaselineCandidate();
+    expect(result).toMatchObject({ status: "collected", balances: { BTC: 1, USDT: 5000 }, evidence: { atomic: false, historyCoverageProven: false } });
+    expect(exchange.fetchOpenOrders).toHaveBeenCalledTimes(3);
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
+  it("bounds two read-only total balance snapshots and rejects malformed balances", async () => {
+    const fetchBalance = vi.fn(async () => ({ free: { USDT: 100 }, total: { USDT: 100, BTC: 0.5 } }));
+    const exchange = exchangeMock({ fetchBalance });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await expect(executor.collectAccountBalances()).resolves.toMatchObject({ reason: "demo_not_initialized" });
+    await executor.initialize();
+    const before = Date.now();
+    const result = await executor.collectAccountBalances();
+    const after = Date.now();
+    expect(result).toMatchObject({ status: "collected", balances: { USDT: 100, BTC: 0.5 } });
+    if (result.status === "collected") {
+      expect(result.startedAt).toBeGreaterThanOrEqual(before);
+      expect(result.endedAt).toBeLessThanOrEqual(after);
+    }
+    fetchBalance.mockResolvedValueOnce({ free: { USDT: 100 }, total: { USDT: 100, BTC: NaN } });
+    await expect(executor.collectAccountBalances()).resolves.toMatchObject({ reason: "invalid_balance" });
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
+  it("refuses a baseline candidate when any open order is found", async () => {
+    const exchange = exchangeMock({ fetchOpenOrders: vi.fn(async () => [{ id: "pending" }]) });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await executor.initialize();
+    await expect(executor.collectBaselineCandidate()).resolves.toMatchObject({ reason: "open_orders_present" });
+  });
+  it("reads Demo trading permission without disclosing account details or placing an order", async () => {
+    const getConfig = vi.fn(async () => ({ code: "0", data: [{ perm: "read_only,trade", uid: "private-account-id" }] }));
+    const exchange = exchangeMock({ privateGetAccountConfig: getConfig });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await expect(executor.inspectTradingPermission()).resolves.toEqual({ status: "unavailable", reason: "demo_not_initialized" });
+    expect(getConfig).not.toHaveBeenCalled();
+    await executor.initialize();
+    await expect(executor.inspectTradingPermission()).resolves.toEqual({ status: "available", trading: true });
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
+  it("fails closed when Demo permission is missing or cannot be read", async () => {
+    const getConfig = vi.fn(async () => ({ code: "0", data: [{ perm: "read_only" }] }));
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchangeMock({ privateGetAccountConfig: getConfig }));
+    await executor.initialize();
+    await expect(executor.inspectTradingPermission()).resolves.toEqual({ status: "available", trading: false });
+    getConfig.mockResolvedValueOnce({ code: "0", data: [{ perm: "unknown" }] });
+    await expect(executor.inspectTradingPermission()).resolves.toMatchObject({ status: "unavailable" });
+    getConfig.mockRejectedValueOnce(new Error("secret should never be returned"));
+    await expect(executor.inspectTradingPermission()).resolves.toEqual({ status: "unavailable", reason: "permission_request_failed" });
+  });
+  it("only queries order evidence through initialized Demo exchange methods", async () => {
+    const exchange = exchangeMock();
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await expect(executor.collectOrderEvidence([])).resolves.toMatchObject({ reason: "demo_not_initialized" });
+    await executor.initialize();
+    await expect(executor.collectOrderEvidence([])).resolves.toMatchObject({ reason: "order_evidence_endpoint_unavailable" });
+  });
+  it("collects fills only with an initialized Demo exchange and never submits orders", async () => {
+    const getFills = vi.fn(async () => ({ code: "0", data: [] }));
+    const exchange = exchangeMock({ privateGetTradeFills: getFills, privateGetTradeFillsHistory: getFills });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    const now = Date.now();
+    const input = { symbol: "BTC/USDT", from: now - 60_000, to: now };
+    await expect(executor.collectFillHistory(input)).resolves.toMatchObject({ status: "unavailable", reason: "demo_not_initialized" });
+    expect(getFills).not.toHaveBeenCalled();
+    await executor.initialize();
+    await expect(executor.collectFillHistory(input)).resolves.toMatchObject({ status: "collected", fills: [] });
+    expect(exchange.setSandboxMode).toHaveBeenCalledWith(true);
+    expect(getFills).toHaveBeenCalledWith(expect.objectContaining({ instId: "BTC-USDT", instType: "SPOT" }));
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+    await executor.close();
+    await expect(executor.collectFillHistory(input)).resolves.toMatchObject({ status: "unavailable", reason: "demo_not_initialized" });
+  });
+  it("fails closed if exchange history methods are absent", async () => {
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchangeMock());
+    await executor.initialize();
+    await expect(executor.collectFillHistory({ symbol: "BTC/USDT", from: Date.now() - 1, to: Date.now() })).resolves.toMatchObject({ status: "unavailable", reason: "history_endpoint_unavailable" });
+  });
+  it("preserves fee currencies and never invents a zero fee", () => {
+    expect(normalizedOrderFees({ fee: undefined, fees: undefined })).toEqual([]);
+    expect(normalizedOrderFees({ fee: { currency: "BTC", cost: 0.00001 }, fees: undefined })).toEqual([{ currency: "BTC", cost: 0.00001 }]);
+  });
+  it("does not discard partial or unknown terminal fills", () => {
+    expect(classifyDemoOrder("canceled", 0.01)).toBe("PENDING");
+    expect(classifyDemoOrder("canceled", undefined)).toBe("PENDING");
+    expect(classifyDemoOrder("closed", undefined)).toBe("PENDING");
+    expect(classifyDemoOrder("closed", 0)).toBe("PENDING");
+    expect(classifyDemoOrder("canceled", 0)).toBe("FAILED");
+    expect(classifyDemoOrder("closed", 0.1)).toBe("PLACED");
+  });
+
+  it("does not submit a sell using a Paper position quantity", async () => {
+    const exchange = exchangeMock({ createOrder: vi.fn() });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await executor.initialize();
+    await expect(executor.executeApprovedSell({ symbol: "BTC/USDT", quantity: 1, candleTimestamp: 1 })).rejects.toThrow("disabled");
+    expect(exchange.createOrder).not.toHaveBeenCalled();
+  });
+  it("persists the intent before submitting and retains it after an ambiguous submission failure", async () => {
+    const sequence: string[] = [];
+    const exchange = exchangeMock({ createMarketBuyOrderWithCost: vi.fn(async () => { sequence.push("submit"); throw new Error("timeout"); }) });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    executor.setIntentJournal(async () => { sequence.push("intent"); return true; });
+    await executor.initialize();
+    await expect(executor.executeApprovedBuy({ candleTimestamp: 1790197200000 })).rejects.toThrow("timeout");
+    expect(sequence).toEqual(["intent", "submit"]);
+  });
+
+  it("never submits if recording the intent fails", async () => {
+    const exchange = exchangeMock();
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    executor.setIntentJournal(async () => { throw new Error("database unavailable"); });
+    await executor.initialize();
+    await expect(executor.executeApprovedBuy({ candleTimestamp: 1790197200000 })).rejects.toThrow("database unavailable");
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
+  it("never submits if no durable intent journal is configured", async () => {
+    const exchange = exchangeMock();
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await executor.initialize();
+    await expect(executor.executeApprovedBuy({ candleTimestamp: 1790197200000 })).rejects.toThrow("persistent intent journal");
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
+  it("does not present a partial Demo portfolio valuation as total equity", async () => {
+    const exchange = exchangeMock({
+      fetchBalance: vi.fn(async () => ({ free: { USDT: 100 }, total: { USDT: 100, DOGE: 5 } })),
+      market: vi.fn((symbol: string) => {
+        if (symbol !== "BTC/USDT") throw new Error("market unavailable");
+        return { symbol, quote: "USDT", spot: true, active: true, limits: { cost: { min: 1 } } };
+      }),
+    });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await executor.initialize();
+    await expect(executor.getAccountSnapshot()).resolves.toMatchObject({ totalUsdt: 100, equityUsdt: null, unvaluedAssets: ["DOGE"] });
+  });
+  it("preserves the submitted order as pending when reconciliation fails", async () => {
+    const fetchOrder = vi.fn()
+      .mockRejectedValueOnce(new OrderNotFound("missing"))
+      .mockRejectedValueOnce(new Error("maintenance"));
+    const exchange = exchangeMock({
+      fetchOrder,
+      createMarketBuyOrderWithCost: vi.fn(async () => ({ id: "order-uncertain", status: "open" })),
+    });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange, async () => {});
+    executor.setIntentJournal(async () => true);
+    await executor.initialize();
+    await expect(executor.executeApprovedBuy({ candleTimestamp: 1790197200000 })).resolves.toMatchObject({
+      status: "PENDING", orderId: "order-uncertain", confirmed: false,
+      clientOrderId: createClientOrderId("BTC/USDT", 1790197200000),
+    });
+  });
   it("forces sandbox first and performs an authenticated balance read", async () => {
     const calls: string[] = [];
     const exchange = exchangeMock({
@@ -99,6 +258,8 @@ describe("OkxDemoExecutor", () => {
   it("places one Spot market buy with attached market TP and SL", async () => {
     const exchange = exchangeMock();
     const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    const journal = vi.fn(async () => true);
+    executor.setIntentJournal(journal);
     await executor.initialize();
 
     const candleTimestamp = 1_790_197_200_000;
@@ -117,10 +278,15 @@ describe("OkxDemoExecutor", () => {
       {
         clientOrderId: createClientOrderId("BTC/USDT", candleTimestamp),
         tdMode: "cash",
-        stopLoss: { triggerPrice: 99, type: "market" },
-        takeProfit: { triggerPrice: 102, type: "market" },
+        attachAlgoOrds: [{ attachAlgoClOrdId: `AP${createClientOrderId("BTC/USDT", candleTimestamp).slice(2)}`, slTriggerPx: "99", slOrdPx: "-1", tpTriggerPx: "102", tpOrdPx: "-1" }],
       },
     );
+    expect(journal).toHaveBeenCalledWith("BTC/USDT", candleTimestamp, createClientOrderId("BTC/USDT", candleTimestamp), `AP${createClientOrderId("BTC/USDT", candleTimestamp).slice(2)}`);
+    const actualCcxt = new ccxt.okx();
+    actualCcxt.setMarkets([{ id: "BTC-USDT", symbol: "BTC/USDT", base: "BTC", quote: "USDT", baseId: "BTC", quoteId: "USDT", type: "spot", spot: true, active: true, precision: { amount: 0.0001, price: 0.1 }, limits: {} }] as never);
+    const args = vi.mocked(exchange.createMarketBuyOrderWithCost).mock.calls[0]!;
+    const payload = actualCcxt.createOrderRequest("BTC/USDT", "market", "buy", 10, undefined, { ...args[2], tgtCcy: "quote_ccy" });
+    expect(payload).toMatchObject({ instId: "BTC-USDT", side: "buy", ordType: "market", tdMode: "cash", tgtCcy: "quote_ccy", attachAlgoOrds: [{ slTriggerPx: "99", slOrdPx: "-1", tpTriggerPx: "102", tpOrdPx: "-1", attachAlgoClOrdId: `AP${createClientOrderId("BTC/USDT", candleTimestamp).slice(2)}` }] });
   });
 
   it("skips a candle whose deterministic client order already exists", async () => {
@@ -190,3 +356,4 @@ describe("OkxDemoExecutor", () => {
     expect(exchange.fetchBalance).not.toHaveBeenCalled();
   });
 });
+
