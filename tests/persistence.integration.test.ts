@@ -13,7 +13,7 @@ integration("PostgresPersistence", () => {
     const verification = new Pool({ connectionString: databaseUrl });
     const observedAt = Date.now();
     const pendingId = `BASELINE${observedAt}`;
-    const candidate = { observedAt, balances: { BTC: 1, USDT: 5000 }, evidence: { source: "test" } };
+    const candidate = { observedAt, balances: { BTC: 1, USDT: 5000 }, evidence: { source: "test", accountIdentity: { uid: "123", mainUid: "123" } } };
     try {
       await persistence.initialize();
       await persistence.setPaused(false, "baseline-test");

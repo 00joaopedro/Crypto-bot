@@ -6,6 +6,7 @@ import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
 import { inspectDemoAccounting } from "./demo-diagnostic.js";
 import { compareDemoBaseline } from "./demo-baseline.js";
+import { sameDemoAccount } from "./okx-demo-identity.js";
 import { EmailTradeAlert } from "./email-alerts.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
@@ -156,6 +157,9 @@ async function main(): Promise<void> {
           if (baseline.status === "collected") {
             const existing = await persistence.getDemoBaselineCandidate();
             if (existing) {
+              if (!sameDemoAccount(existing.evidence.accountIdentity, baseline.evidence.accountIdentity as { uid: string; mainUid: string })) {
+                console.log(JSON.stringify({ event: "demo_baseline_comparison", status: "unavailable", reason: "account_identity_mismatch_or_missing" }));
+              } else {
               const comparison = compareDemoBaseline(existing.balances, baseline.balances);
               console.log(JSON.stringify({ event: "demo_baseline_comparison", ...comparison }));
               const startedAt = existing.evidence.startedAt;
@@ -169,6 +173,7 @@ async function main(): Promise<void> {
                 console.log(JSON.stringify({ event: "demo_since_baseline_history_observation", ...sinceBaseline }));
               } else {
                 console.log(JSON.stringify({ event: "demo_baseline_history_observation", status: "unavailable", reason: "baseline_start_time_missing" }));
+              }
               }
             } else {
               await persistence.saveDemoBaselineCandidate(baseline);

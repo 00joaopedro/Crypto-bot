@@ -9,6 +9,7 @@ import type {
   PaperTradeOpened,
 } from "./paper-trader.js";
 import { classifyDemoOrder, normalizedOrderFees, type DemoBuyResult } from "./okx-demo.js";
+import { readDemoAccountIdentity } from "./okx-demo-identity.js";
 import type { AiDecision, Candle, QuantSignal } from "./types.js";
 import { buildStatisticalReport, type StatisticalTrade } from "./analytics.js";
 
@@ -379,7 +380,7 @@ export class PostgresPersistence implements BotPersistence {
 
   /** Raw durable intent records: this does not prove exchange acceptance or ownership. */
   async saveDemoBaselineCandidate(input: { observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown> }): Promise<void> {
-    if (!Number.isSafeInteger(input.observedAt) || input.observedAt <= 0 || input.observedAt > Date.now() || !input.balances || !Object.hasOwn(input.balances, "USDT") || Object.entries(input.balances).some(([asset, amount]) => !/^[A-Z0-9]+$/.test(asset) || !Number.isFinite(amount) || amount < 0)) throw new Error("Invalid Demo baseline candidate");
+    if (!readDemoAccountIdentity({ code: "0", data: [input.evidence?.accountIdentity] }) || !Number.isSafeInteger(input.observedAt) || input.observedAt <= 0 || input.observedAt > Date.now() || !input.balances || !Object.hasOwn(input.balances, "USDT") || Object.entries(input.balances).some(([asset, amount]) => !/^[A-Z0-9]+$/.test(asset) || !Number.isFinite(amount) || amount < 0)) throw new Error("Invalid Demo baseline candidate");
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");

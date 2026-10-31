@@ -4,15 +4,19 @@ import type { JournaledDemoBuy } from "./demo-ownership.js";
 import { verifyDemoOwnership } from "./demo-ownership.js";
 import { reconcileDemoExecutions } from "./demo-reconciliation.js";
 import type { DemoFill } from "./demo-ledger.js";
+import { sameDemoAccount } from "./okx-demo-identity.js";
 
 /** On-demand read-only inspection; this intentionally does not assert P&L coverage. */
-export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory">) {
+export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity">) {
   const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
   const rows = await persistence.demoOrderJournal();
   if (!rows.length) return unavailable("journal_empty");
   if (rows.some((row) => row.status === "PENDING")) return unavailable("pending_order");
   const baseline = await persistence.getDemoBaselineCandidate();
   if (!baseline || !Number.isSafeInteger(baseline.observedAt.getTime()) || baseline.observedAt.getTime() <= 0 || baseline.observedAt.getTime() > Date.now()) return unavailable("baseline_missing");
+  const account = await executor.inspectAccountIdentity();
+  if (account.status !== "confirmed") return unavailable(account.reason);
+  if (!sameDemoAccount(baseline.evidence.accountIdentity, account.identity)) return unavailable("account_identity_mismatch_or_missing");
   if (rows.some((row) => !Number.isSafeInteger(new Date(row.created_at).getTime()))) return unavailable("invalid_journal_date");
   const periodRows = rows.filter((row) => new Date(row.created_at).getTime() >= baseline.observedAt.getTime());
   const placed = periodRows.filter((row) => row.status === "PLACED");

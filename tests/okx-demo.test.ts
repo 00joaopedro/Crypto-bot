@@ -24,6 +24,7 @@ const enabledOptions: OkxDemoOptions = {
 
 function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
   return {
+    privateGetAccountConfig: vi.fn(async () => ({ code: "0", data: [{ uid: "123", mainUid: "123", perm: "trade" }] })),
     setSandboxMode: vi.fn(),
     loadMarkets: vi.fn(async () => ({})),
     market: vi.fn(() => ({

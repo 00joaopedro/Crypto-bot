@@ -3,6 +3,7 @@ import { collectOkxDemoFills, type OkxCollectedFills, type OkxFillHistoryClient 
 import { collectOkxDemoOrderEvidence, type OkxOrderEvidenceClient, type OrderEvidenceResult } from "./okx-demo-order-evidence.js";
 import type { JournaledDemoBuy } from "./demo-ownership.js";
 import { inspectBaselineBills } from "./okx-demo-baseline-history.js";
+import { readDemoAccountIdentity, type DemoAccountIdentity } from "./okx-demo-identity.js";
 
 export type OkxDemoCredentials = {
   apiKey: string;
@@ -192,9 +193,21 @@ export class OkxDemoExecutor {
     return inspectBaselineBills({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now() });
   }
 
+  async inspectAccountIdentity(): Promise<{ status: "confirmed"; identity: DemoAccountIdentity } | { status: "unavailable"; reason: string }> {
+    if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
+    const client = this.exchange as unknown as { privateGetAccountConfig?: (params: Record<string, string>) => Promise<unknown> };
+    if (typeof client.privateGetAccountConfig !== "function") return { status: "unavailable", reason: "account_config_endpoint_unavailable" };
+    try {
+      const identity = readDemoAccountIdentity(await client.privateGetAccountConfig({}));
+      return identity ? { status: "confirmed", identity } : { status: "unavailable", reason: "account_identity_unavailable" };
+    } catch { return { status: "unavailable", reason: "account_identity_request_failed" }; }
+  }
+
   async collectBaselineCandidate(): Promise<{ status: "unavailable"; reason: string } | { status: "collected"; observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown> }> {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
     try {
+      const account = await this.inspectAccountIdentity();
+      if (account.status !== "confirmed") return { status: "unavailable", reason: account.reason };
       const startedAt = Date.now();
       const [regular, conditional, oco] = await Promise.all([
         this.exchange.fetchOpenOrders(undefined),
@@ -212,7 +225,7 @@ export class OkxDemoExecutor {
       }
       if (!Object.hasOwn(balances, "USDT")) return { status: "unavailable", reason: "usdt_balance_missing" };
       const observedAt = Date.now();
-      return { status: "collected", observedAt, balances, evidence: { startedAt, observedAt, openOrderQueries: ["regular", "conditional", "oco"], atomic: false, historyCoverageProven: false } };
+      return { status: "collected", observedAt, balances, evidence: { startedAt, observedAt, accountIdentity: account.identity, openOrderQueries: ["regular", "conditional", "oco"], atomic: false, historyCoverageProven: false } };
     } catch {
       return { status: "unavailable", reason: "baseline_request_failed" };
     }
