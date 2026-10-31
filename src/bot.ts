@@ -99,6 +99,17 @@ export class TradingBot {
       return;
     }
 
+    // Monitor an existing Demo position even when the strategy has no new BUY.
+    if (this.options.demoExecutor && this.options.verifyDemoExecutionSafety) {
+      const safety = await this.options.verifyDemoExecutionSafety();
+      if (safety.status !== "safe") {
+        this.demoExecutionBlocked = true;
+        await this.options.persistence?.setPaused(true, "system:demo_execution_safety");
+        console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
+        return;
+      }
+    }
+
     const candles = await this.market.fetchClosedCandles(
       this.options.symbol,
       this.options.candleLimit,

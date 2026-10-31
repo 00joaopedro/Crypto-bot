@@ -15,7 +15,7 @@ it("checks OKX safety before a buy and pauses when the new protection cannot be 
   const setPaused = vi.fn(async () => undefined);
   const persistence = { isPaused: async () => false, recordCycle: async () => undefined, setPaused, canEnterSymbol: async () => true } as unknown as BotPersistence;
   const executeApprovedBuy = vi.fn(async () => ({ status: "PLACED" as const, orderId: "1", clientOrderId: "CB1" }));
-  const verifyDemoExecutionSafety = vi.fn().mockResolvedValueOnce({ status: "safe" }).mockResolvedValueOnce({ status: "blocked", reason: "demo_position_without_live_protection" });
+  const verifyDemoExecutionSafety = vi.fn().mockResolvedValueOnce({ status: "safe" }).mockResolvedValueOnce({ status: "safe" }).mockResolvedValueOnce({ status: "blocked", reason: "demo_position_without_live_protection" });
   const bot = new TradingBot(market, {
     symbol: "BTC/USDT", candleLimit: 85, minimumConfidence: 0.8, aiFailureMode: "quantitative",
     paperTrader: new PaperTrader({ initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0.001, slippageRate: 0.0005, stopLossRate: 0.01, takeProfitRate: 0.02 }),
@@ -23,7 +23,7 @@ it("checks OKX safety before a buy and pauses when the new protection cannot be 
   });
   await bot.runCycle();
   expect(executeApprovedBuy).toHaveBeenCalledOnce();
-  expect(verifyDemoExecutionSafety).toHaveBeenCalledTimes(2);
+  expect(verifyDemoExecutionSafety).toHaveBeenCalledTimes(3);
   expect(setPaused).toHaveBeenCalledWith(true, "system:demo_execution_safety");
   await bot.runCycle();
   expect(executeApprovedBuy).toHaveBeenCalledOnce();
