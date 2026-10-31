@@ -299,10 +299,14 @@ export class OkxDemoExecutor {
     let latest = submitted;
     for (let attempt = 0; attempt < 5; attempt += 1) {
       await this.pause(1_000);
-      latest = await this.exchange.fetchOrder(
-        submittedId,
-        symbol,
-      );
+      try {
+        latest = await this.exchange.fetchOrder(submittedId, symbol);
+      } catch (error) {
+        // The exchange may have executed the order even when its status query
+        // fails. Keep its identifier and treat the result as unresolved.
+        console.error(JSON.stringify({ event: "okx_order_reconciliation_failed", symbol, orderId: submittedId, error: error instanceof Error ? error.message : String(error) }));
+        return latest;
+      }
       if (latest.status === "closed" || latest.status === "canceled") break;
     }
     return latest;
