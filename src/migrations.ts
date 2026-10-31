@@ -155,4 +155,13 @@ export const migrations: readonly Migration[] = [
         CHECK (max_concurrent_positions BETWEEN 1 AND 99);
     `,
   },
+  {
+    version: 6,
+    name: "demo_pending_status",
+    sql: `
+      ALTER TABLE demo_orders DROP CONSTRAINT demo_orders_status_check;
+      ALTER TABLE demo_orders ADD CONSTRAINT demo_orders_status_check
+        CHECK (status IN ('PLACED', 'SKIPPED', 'FAILED', 'PENDING'));
+    `,
+  },
 ] as const;
