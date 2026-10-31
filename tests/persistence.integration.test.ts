@@ -19,12 +19,32 @@ integration("PostgresPersistence", () => {
       expect(await persistence.canPlaceDemoOrder(99, 15)).toBe(false);
       expect(await persistence.pendingDemoOrders()).toEqual(expect.arrayContaining([expect.objectContaining({ client_order_id: id })]));
       await persistence.reconcileDemoOrder(id, { id: "exchange-id", status: "closed", filled: 0.1, cost: 10 });
+      await persistence.recordDemoOrder("BTC/USDT", Date.now(), { status: "PENDING", orderId: "exchange-id", clientOrderId: id, orderStatus: "open", filled: 0, average: null, cost: null, referencePrice: 100, stopLossPrice: 99, takeProfitPrice: 102, confirmed: false });
       const result = await verification.query("SELECT status, result FROM demo_orders WHERE client_order_id = $1", [id]);
       expect(result.rows[0]).toMatchObject({ status: "PLACED", result: { confirmed: true, orderId: "exchange-id", filled: 0.1 } });
     } finally {
       await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [id]);
       await verification.end();
       await persistence.close();
+    }
+  });
+  it("atomically allows at most one concurrent pending intent across connections", async () => {
+    const first = new PostgresPersistence(databaseUrl!);
+    const second = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const ids = [`RACEA${Date.now()}`, `RACEB${Date.now()}`];
+    try {
+      await first.initialize();
+      const results = await Promise.all([
+        first.reserveDemoOrder("BTC/USDT", Date.now(), ids[0]!, 99, 15),
+        second.reserveDemoOrder("ETH/USDT", Date.now(), ids[1]!, 99, 15),
+      ]);
+      expect(results.filter(Boolean)).toHaveLength(1);
+    } finally {
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = ANY($1::text[])", [ids]);
+      await verification.end();
+      await first.close();
+      await second.close();
     }
   });
   it("migrates idempotently and persists a recoverable cycle", async () => {
