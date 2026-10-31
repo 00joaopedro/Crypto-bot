@@ -64,6 +64,24 @@ describe("OkxDemoExecutor", () => {
     expect(exchange.fetchOpenOrders).toHaveBeenCalledTimes(3);
     expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
   });
+  it("bounds two read-only total balance snapshots and rejects malformed balances", async () => {
+    const fetchBalance = vi.fn(async () => ({ free: { USDT: 100 }, total: { USDT: 100, BTC: 0.5 } }));
+    const exchange = exchangeMock({ fetchBalance });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await expect(executor.collectAccountBalances()).resolves.toMatchObject({ reason: "demo_not_initialized" });
+    await executor.initialize();
+    const before = Date.now();
+    const result = await executor.collectAccountBalances();
+    const after = Date.now();
+    expect(result).toMatchObject({ status: "collected", balances: { USDT: 100, BTC: 0.5 } });
+    if (result.status === "collected") {
+      expect(result.startedAt).toBeGreaterThanOrEqual(before);
+      expect(result.endedAt).toBeLessThanOrEqual(after);
+    }
+    fetchBalance.mockResolvedValueOnce({ free: { USDT: 100 }, total: { USDT: 100, BTC: NaN } });
+    await expect(executor.collectAccountBalances()).resolves.toMatchObject({ reason: "invalid_balance" });
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
   it("refuses a baseline candidate when any open order is found", async () => {
     const exchange = exchangeMock({ fetchOpenOrders: vi.fn(async () => [{ id: "pending" }]) });
     const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
