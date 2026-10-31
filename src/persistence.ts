@@ -333,7 +333,7 @@ export class PostgresPersistence implements BotPersistence {
   async canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean> {
     const result = await this.pool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count FROM demo_orders
-       WHERE status = 'PLACED'
+       WHERE status IN ('PLACED', 'PENDING')
          AND created_at >= NOW() - ($1 * INTERVAL '1 minute')`,
       [intervalMinutes],
     );
@@ -531,7 +531,7 @@ export class PostgresPersistence implements BotPersistence {
         netPnlUsdt: analytics.netPnlUsdt,
         feesUsdt: Number(latestSnapshot?.totalFeesUsdt ?? 0),
         currentDrawdownPercent: Number(latestSnapshot?.currentDrawdownPercent ?? 0),
-        maxDrawdownPercent: Number(latestSnapshot?.maxDrawdownPercent ?? 0),
+        maxDrawdownPercent: Number(aggregateSnapshot.maxDrawdownPercent ?? 0),
         lastCycleAt: latestCycleAt,
         secondsSinceLastCycle: latestCycleAt ? Math.max(0, (Date.now() - new Date(String(latestCycleAt)).getTime()) / 1000) : null,
         buyAndHoldReturnPercent: Number(latestSnapshot?.buyAndHoldReturnPercent ?? 0),
