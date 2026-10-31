@@ -77,6 +77,16 @@ type Pause = (milliseconds: number) => Promise<void>;
 export class OkxDemoExecutor {
   private sandboxConfigured = false;
   private initialized = false;
+  private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string) => Promise<boolean>;
+
+  setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string) => Promise<boolean>): void {
+    this.reserveIntent = reserve;
+  }
+
+  async reconcileOrder(symbol: string, clientOrderId: string): Promise<Order | null> {
+    if (!this.initialized) throw new Error("OKX Demo executor must be initialized before reconciliation");
+    return this.findOrderByClientId(clientOrderId, symbol);
+  }
 
   constructor(
     credentials: OkxDemoCredentials,
@@ -241,6 +251,9 @@ export class OkxDemoExecutor {
     const stopLossPrice = referencePrice * (1 - (request.stopLossRate ?? this.options.stopLossRate));
     const takeProfitPrice = referencePrice * (1 + (request.takeProfitRate ?? this.options.takeProfitRate));
 
+    if (this.reserveIntent && !(await this.reserveIntent(marketSymbol, request.candleTimestamp, clientOrderId))) {
+      throw new Error(`Demo order intent already exists: ${clientOrderId}`);
+    }
     const submitted = await this.exchange.createMarketBuyOrderWithCost(
       marketSymbol,
       this.options.orderSizeUsdt,
