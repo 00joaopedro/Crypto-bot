@@ -7,7 +7,7 @@ import type { DemoFill } from "./demo-ledger.js";
 import { sameDemoAccount } from "./okx-demo-identity.js";
 
 /** On-demand read-only inspection; this intentionally does not assert P&L coverage. */
-export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity">) {
+export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity" | "collectAccountCoverage">) {
   const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
   const rows = await persistence.demoOrderJournal();
   if (!rows.length) return unavailable("journal_empty");
@@ -49,6 +49,8 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   const from = baseline.observedAt.getTime();
   if (!Number.isSafeInteger(from) || from < 0) return unavailable("invalid_journal_date");
   const to = Date.now();
+  const coverage = await executor.collectAccountCoverage(from, to, ownedIds);
+  if (coverage.status !== "covered") return unavailable(coverage.reason);
   const collectedFills: DemoFill[] = [];
   for (const symbol of new Set(journal.map((item) => item.symbol))) {
     const fills = await executor.collectFillHistory({ symbol, from, to });
@@ -63,6 +65,6 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
     fills: collectedFills,
   });
   if (consistency.status !== "confirmed") return unavailable(consistency.reason);
-  return { status: "unavailable" as const, reason: "coverage_and_positions_unconfirmed", checkedOrders: evidence.orders.length, checkedFills: collectedFills.length };
+  return { status: "unavailable" as const, reason: "positions_and_snapshot_unconfirmed", checkedOrders: evidence.orders.length, checkedFills: collectedFills.length, checkedBills: coverage.billCount };
 }
 

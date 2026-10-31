@@ -4,6 +4,7 @@ import { collectOkxDemoOrderEvidence, type OkxOrderEvidenceClient, type OrderEvi
 import type { JournaledDemoBuy } from "./demo-ownership.js";
 import { inspectBaselineBills } from "./okx-demo-baseline-history.js";
 import { readDemoAccountIdentity, type DemoAccountIdentity } from "./okx-demo-identity.js";
+import { collectDemoAccountCoverage } from "./okx-demo-account-coverage.js";
 
 export type OkxDemoCredentials = {
   apiKey: string;
@@ -191,6 +192,13 @@ export class OkxDemoExecutor {
     const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown> };
     if (typeof client.privateGetAccountBills !== "function") return { status: "unavailable" as const, reason: "baseline_history_endpoint_unavailable" };
     return inspectBaselineBills({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now() });
+  }
+
+  async collectAccountCoverage(from: number, to: number, ownedOrderIds: ReadonlySet<string>) {
+    if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable" as const, reason: "demo_not_initialized" };
+    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown> };
+    if (typeof client.privateGetAccountBills !== "function") return { status: "unavailable" as const, reason: "account_bills_endpoint_unavailable" };
+    return collectDemoAccountCoverage({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now(), ownedOrderIds });
   }
 
   async inspectAccountIdentity(): Promise<{ status: "confirmed"; identity: DemoAccountIdentity } | { status: "unavailable"; reason: string }> {
