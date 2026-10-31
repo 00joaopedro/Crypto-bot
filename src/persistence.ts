@@ -8,7 +8,7 @@ import type {
   PaperTradeClosed,
   PaperTradeOpened,
 } from "./paper-trader.js";
-import { classifyDemoOrder, type DemoBuyResult } from "./okx-demo.js";
+import { classifyDemoOrder, normalizedOrderFees, type DemoBuyResult } from "./okx-demo.js";
 import type { AiDecision, Candle, QuantSignal } from "./types.js";
 import { buildStatisticalReport, type StatisticalTrade } from "./analytics.js";
 
@@ -375,11 +375,11 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows;
   }
 
-  async reconcileDemoOrder(clientOrderId: string, order: { id?: string | undefined; status?: string | undefined; filled?: number | undefined; average?: number | undefined; cost?: number | undefined }): Promise<void> {
+  async reconcileDemoOrder(clientOrderId: string, order: { id?: string | undefined; status?: string | undefined; filled?: number | undefined; average?: number | undefined; cost?: number | undefined; side?: string | undefined; fee?: { currency?: string | undefined; cost?: number | undefined } | undefined; fees?: Array<{ currency?: string | undefined; cost?: number | undefined }> | undefined }): Promise<void> {
     const status = classifyDemoOrder(order.status, order.filled);
     await this.pool.query(
       `UPDATE demo_orders SET status = $2, result = result || $3::jsonb, updated_at = NOW() WHERE client_order_id = $1 AND status = 'PENDING'`,
-      [clientOrderId, status, JSON.stringify({ orderId: order.id ?? null, orderStatus: order.status ?? null, filled: order.filled ?? null, average: order.average ?? null, cost: order.cost ?? null, confirmed: status === "PLACED", reconciledAt: new Date().toISOString() })],
+      [clientOrderId, status, JSON.stringify({ orderId: order.id ?? null, orderStatus: order.status ?? null, filled: order.filled ?? null, average: order.average ?? null, cost: order.cost ?? null, ...(order.side ? { side: order.side } : {}), ...(order.fee || order.fees?.length ? { fees: normalizedOrderFees(order) } : {}), feesPresentOnTerminalResponse: status !== "PENDING" && normalizedOrderFees(order).length > 0, confirmed: status === "PLACED", reconciledAt: new Date().toISOString() })],
     );
   }
 
