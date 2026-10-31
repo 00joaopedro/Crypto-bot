@@ -8,10 +8,16 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
   const rows = await persistence.demoOrderJournal();
   if (!rows.length) return unavailable("journal_empty");
-  if (rows.length > 50) return unavailable("journal_too_large_for_diagnostic");
   if (rows.some((row) => row.status === "PENDING")) return unavailable("pending_order");
   const placed = rows.filter((row) => row.status === "PLACED");
-  if (!placed.length) return unavailable("no_confirmed_orders");
+  if (!placed.length) {
+    // A local failure alone does not prove that OKX rejected a submission.
+    // Do not return raw errors: exchange messages may contain sensitive data.
+    const failed = rows.filter((row) => row.status === "FAILED").length;
+    const skipped = rows.filter((row) => row.status === "SKIPPED").length;
+    return { ...unavailable("no_confirmed_orders"), journalCounts: { failed, skipped, total: rows.length } };
+  }
+  if (placed.length > 50) return unavailable("journal_too_large_for_diagnostic");
   const journal: JournaledDemoBuy[] = [];
   for (const row of placed) {
     const data = row.result as { orderId?: unknown } | null;
@@ -33,3 +39,4 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   }
   return { status: "unavailable" as const, reason: "coverage_and_positions_unconfirmed", checkedOrders: evidence.orders.length, checkedFills: fillCount };
 }
+

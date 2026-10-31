@@ -3,6 +3,15 @@ import { inspectDemoAccounting } from "../src/demo-diagnostic.js";
 
 const row = { client_order_id: "CB1", symbol: "BTC/USDT", status: "PLACED", result: { orderId: "1" }, attached_algo_client_id: "AP1", created_at: new Date(Date.now() - 120_000) };
 describe("Demo accounting diagnostic", () => {
+  it("summarizes failed and skipped journal entries without exposing errors or asserting exchange rejection", async () => {
+    const executor = { collectOrderEvidence: vi.fn(), collectFillHistory: vi.fn() };
+    const failed = { ...row, status: "FAILED", result: { error: "private error detail" } };
+    const skipped = { ...row, status: "SKIPPED" };
+    const result = await inspectDemoAccounting({ demoOrderJournal: async () => [failed, skipped] }, executor);
+    expect(result).toEqual({ status: "unavailable", reason: "no_confirmed_orders", journalCounts: { failed: 1, skipped: 1, total: 2 } });
+    expect(JSON.stringify(result)).not.toContain("private error detail");
+    expect(executor.collectOrderEvidence).not.toHaveBeenCalled();
+  });
   it("does not query the exchange for an incomplete journal", async () => {
     const executor = { collectOrderEvidence: vi.fn(), collectFillHistory: vi.fn() };
     const persistence = { demoOrderJournal: async () => [{ ...row, attached_algo_client_id: null }] };
@@ -18,3 +27,4 @@ describe("Demo accounting diagnostic", () => {
     expect(executor.collectFillHistory).toHaveBeenCalledOnce();
   });
 });
+
