@@ -2,6 +2,8 @@ import type { PostgresPersistence } from "./persistence.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
 import type { JournaledDemoBuy } from "./demo-ownership.js";
 import { verifyDemoOwnership } from "./demo-ownership.js";
+import { reconcileDemoExecutions } from "./demo-reconciliation.js";
+import type { DemoFill } from "./demo-ledger.js";
 
 /** On-demand read-only inspection; this intentionally does not assert P&L coverage. */
 export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal">, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory">) {
@@ -28,15 +30,25 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   if (evidence.status !== "collected") return unavailable(evidence.reason);
   const ownership = verifyDemoOwnership(journal, evidence.buys, evidence.protections, evidence.sells);
   if (ownership.status !== "confirmed") return unavailable(ownership.reason);
+  const ownedIds = new Set(ownership.ownedOrderIds);
+  if (evidence.orders.length !== ownedIds.size || evidence.orders.some((order) => !ownedIds.has(order.id)) || new Set(evidence.orders.map((order) => order.id)).size !== evidence.orders.length) return unavailable("order_set_mismatch");
   const from = Math.min(...placed.map((row) => new Date(row.created_at).getTime())) - 60_000;
   if (!Number.isSafeInteger(from) || from < 0) return unavailable("invalid_journal_date");
   const to = Date.now();
-  let fillCount = 0;
+  const collectedFills: DemoFill[] = [];
   for (const symbol of new Set(journal.map((item) => item.symbol))) {
     const fills = await executor.collectFillHistory({ symbol, from, to });
     if (fills.status !== "collected") return unavailable(fills.reason);
-    fillCount += fills.fills.length;
+    collectedFills.push(...fills.fills);
   }
-  return { status: "unavailable" as const, reason: "coverage_and_positions_unconfirmed", checkedOrders: evidence.orders.length, checkedFills: fillCount };
+  // This checks internal consistency only. A paginated response cannot prove
+  // coverage, baseline, or account isolation; never expose this provisional P&L.
+  const consistency = reconcileDemoExecutions({
+    historyComplete: true,
+    orders: evidence.orders.map((order) => ({ ...order, ownershipConfirmed: true })),
+    fills: collectedFills,
+  });
+  if (consistency.status !== "confirmed") return unavailable(consistency.reason);
+  return { status: "unavailable" as const, reason: "coverage_and_positions_unconfirmed", checkedOrders: evidence.orders.length, checkedFills: collectedFills.length };
 }
 

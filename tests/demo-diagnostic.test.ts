@@ -20,11 +20,18 @@ describe("Demo accounting diagnostic", () => {
   });
   it("collects evidence without claiming complete accounting", async () => {
     const executor = {
-      collectOrderEvidence: vi.fn(async () => ({ status: "collected" as const, buys: [{ id: "1", clientOrderId: "CB1", symbol: "BTC/USDT", side: "buy" as const, attachedAlgoClientIds: ["AP1"] }], sells: [], protections: [{ algoClientId: "AP1", symbol: "BTC/USDT", side: "sell" as const, spawnedOrderIds: [] }], orders: [], protectionStates: {} })),
+      collectOrderEvidence: vi.fn(async () => ({ status: "collected" as const, buys: [{ id: "1", clientOrderId: "CB1", symbol: "BTC/USDT", side: "buy" as const, attachedAlgoClientIds: ["AP1"] }], sells: [], protections: [{ algoClientId: "AP1", symbol: "BTC/USDT", side: "sell" as const, spawnedOrderIds: [] }], orders: [{ id: "1", symbol: "BTC/USDT", side: "buy" as const, filled: 0, terminal: true, ownershipConfirmed: false }], protectionStates: {} })),
       collectFillHistory: vi.fn(async () => ({ status: "collected" as const, fills: [], from: 0, to: 1 })),
     };
-    expect(await inspectDemoAccounting({ demoOrderJournal: async () => [row] }, executor)).toMatchObject({ status: "unavailable", reason: "coverage_and_positions_unconfirmed", checkedOrders: 0, checkedFills: 0 });
+    expect(await inspectDemoAccounting({ demoOrderJournal: async () => [row] }, executor)).toMatchObject({ status: "unavailable", reason: "coverage_and_positions_unconfirmed", checkedOrders: 1, checkedFills: 0 });
     expect(executor.collectFillHistory).toHaveBeenCalledOnce();
+  });
+  it("reports missing exchange fills instead of accepting an order as reconciled", async () => {
+    const executor = {
+      collectOrderEvidence: vi.fn(async () => ({ status: "collected" as const, buys: [{ id: "1", clientOrderId: "CB1", symbol: "BTC/USDT", side: "buy" as const, attachedAlgoClientIds: ["AP1"] }], sells: [], protections: [{ algoClientId: "AP1", symbol: "BTC/USDT", side: "sell" as const, spawnedOrderIds: [] }], orders: [{ id: "1", symbol: "BTC/USDT", side: "buy" as const, filled: 1, terminal: true, ownershipConfirmed: false }], protectionStates: {} })),
+      collectFillHistory: vi.fn(async () => ({ status: "collected" as const, fills: [], from: 0, to: 1 })),
+    };
+    expect(await inspectDemoAccounting({ demoOrderJournal: async () => [row] }, executor)).toMatchObject({ status: "unavailable", reason: "order_fill_total_mismatch" });
   });
 });
 
