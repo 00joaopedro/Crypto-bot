@@ -26,4 +26,8 @@ describe("Demo execution reconciliation", () => {
     expect(reconcileDemoExecutions({ historyComplete: true, orders, fills: [fills[0]!, { ...fills[1]!, orderId: "external" }] })).toMatchObject({ reason: "fill_order_mismatch" });
     expect(reconcileDemoExecutions({ historyComplete: true, orders, fills: [fills[0]!, { ...fills[1]!, side: "buy" }] })).toMatchObject({ reason: "fill_order_mismatch" });
   });
+  it("does not treat a tiny filled order with no executions as reconciled", () => {
+    const tiny = { ...orders[0]!, filled: 1e-12 };
+    expect(reconcileDemoExecutions({ historyComplete: true, orders: [tiny], fills: [] })).toMatchObject({ reason: "order_fill_total_mismatch" });
+  });
 });

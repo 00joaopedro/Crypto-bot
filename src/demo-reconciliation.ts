@@ -32,11 +32,13 @@ export function reconcileDemoExecutions(input: {
     if (!order || order.symbol !== fill.symbol || order.side !== fill.side || !Number.isFinite(fill.amount) || fill.amount <= 0) {
       return unavailable("fill_order_mismatch");
     }
-    totals.set(fill.orderId, (totals.get(fill.orderId) ?? 0) + fill.amount);
+    const total = (totals.get(fill.orderId) ?? 0) + fill.amount;
+    if (!Number.isFinite(total)) return unavailable("invalid_fill_total");
+    totals.set(fill.orderId, total);
   }
   for (const order of orders.values()) {
     const actual = totals.get(order.id) ?? 0;
-    if (Math.abs(actual - order.filled) > Math.max(1e-10, order.filled * 1e-8)) return unavailable("order_fill_total_mismatch");
+    if ((order.filled > 0 && actual === 0) || Math.abs(actual - order.filled) > Math.max(actual, order.filled) * 1e-8) return unavailable("order_fill_total_mismatch");
   }
   return calculateDemoLedger(input.fills, true);
 }
