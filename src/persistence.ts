@@ -8,7 +8,7 @@ import type {
   PaperTradeClosed,
   PaperTradeOpened,
 } from "./paper-trader.js";
-import type { DemoBuyResult } from "./okx-demo.js";
+import { classifyDemoOrder, type DemoBuyResult } from "./okx-demo.js";
 import type { AiDecision, Candle, QuantSignal } from "./types.js";
 import { buildStatisticalReport, type StatisticalTrade } from "./analytics.js";
 
@@ -376,7 +376,7 @@ export class PostgresPersistence implements BotPersistence {
   }
 
   async reconcileDemoOrder(clientOrderId: string, order: { id?: string | undefined; status?: string | undefined; filled?: number | undefined; average?: number | undefined; cost?: number | undefined }): Promise<void> {
-    const status = order.status === "closed" ? "PLACED" : order.status === "canceled" || order.status === "rejected" || order.status === "expired" ? "FAILED" : "PENDING";
+    const status = classifyDemoOrder(order.status, order.filled);
     await this.pool.query(
       `UPDATE demo_orders SET status = $2, result = result || $3::jsonb, updated_at = NOW() WHERE client_order_id = $1 AND status = 'PENDING'`,
       [clientOrderId, status, JSON.stringify({ orderId: order.id ?? null, orderStatus: order.status ?? null, filled: order.filled ?? null, average: order.average ?? null, cost: order.cost ?? null, confirmed: status === "PLACED", reconciledAt: new Date().toISOString() })],
