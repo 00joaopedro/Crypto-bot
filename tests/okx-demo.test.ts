@@ -2,6 +2,7 @@ import { OrderNotFound, type Exchange } from "ccxt";
 import { describe, expect, it, vi } from "vitest";
 import {
   createClientOrderId,
+  classifyDemoOrder,
   OkxDemoExecutor,
   type OkxDemoOptions,
 } from "../src/okx-demo.js";
@@ -50,6 +51,22 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("does not discard partial or unknown terminal fills", () => {
+    expect(classifyDemoOrder("canceled", 0.01)).toBe("PENDING");
+    expect(classifyDemoOrder("canceled", undefined)).toBe("PENDING");
+    expect(classifyDemoOrder("closed", undefined)).toBe("PENDING");
+    expect(classifyDemoOrder("closed", 0)).toBe("PENDING");
+    expect(classifyDemoOrder("canceled", 0)).toBe("FAILED");
+    expect(classifyDemoOrder("closed", 0.1)).toBe("PLACED");
+  });
+
+  it("does not submit a sell using a Paper position quantity", async () => {
+    const exchange = exchangeMock({ createOrder: vi.fn() });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await executor.initialize();
+    await expect(executor.executeApprovedSell({ symbol: "BTC/USDT", quantity: 1, candleTimestamp: 1 })).rejects.toThrow("disabled");
+    expect(exchange.createOrder).not.toHaveBeenCalled();
+  });
   it("persists the intent before submitting and retains it after an ambiguous submission failure", async () => {
     const sequence: string[] = [];
     const exchange = exchangeMock({ createMarketBuyOrderWithCost: vi.fn(async () => { sequence.push("submit"); throw new Error("timeout"); }) });
