@@ -2,6 +2,7 @@ import ccxt, { OrderNotFound, type Exchange, type Order } from "ccxt";
 import { collectOkxDemoFills, type OkxCollectedFills, type OkxFillHistoryClient } from "./okx-demo-fill-history.js";
 import { collectOkxDemoOrderEvidence, type OkxOrderEvidenceClient, type OrderEvidenceResult } from "./okx-demo-order-evidence.js";
 import type { JournaledDemoBuy } from "./demo-ownership.js";
+import { inspectBaselineBills } from "./okx-demo-baseline-history.js";
 
 export type OkxDemoCredentials = {
   apiKey: string;
@@ -184,6 +185,13 @@ export class OkxDemoExecutor {
   }
 
   /** A read-only candidate, not a proof of atomicity or complete history. */
+  async inspectBaselineHistory(from: number, to: number) {
+    if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable" as const, reason: "demo_not_initialized" };
+    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown> };
+    if (typeof client.privateGetAccountBills !== "function") return { status: "unavailable" as const, reason: "baseline_history_endpoint_unavailable" };
+    return inspectBaselineBills({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now() });
+  }
+
   async collectBaselineCandidate(): Promise<{ status: "unavailable"; reason: string } | { status: "collected"; observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown> }> {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
     try {

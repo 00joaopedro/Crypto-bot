@@ -158,6 +158,14 @@ async function main(): Promise<void> {
             if (existing) {
               const comparison = compareDemoBaseline(existing.balances, baseline.balances);
               console.log(JSON.stringify({ event: "demo_baseline_comparison", ...comparison }));
+              const startedAt = existing.evidence.startedAt;
+              const observedAt = existing.observedAt.getTime();
+              if (typeof startedAt === "number") {
+                const history = await okxDemo.inspectBaselineHistory(startedAt, observedAt);
+                console.log(JSON.stringify({ event: "demo_baseline_history_observation", ...history }));
+              } else {
+                console.log(JSON.stringify({ event: "demo_baseline_history_observation", status: "unavailable", reason: "baseline_start_time_missing" }));
+              }
             } else {
               await persistence.saveDemoBaselineCandidate(baseline);
               console.log(JSON.stringify({ event: "demo_baseline_candidate_recorded", status: "UNVERIFIED" }));

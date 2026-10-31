@@ -371,10 +371,10 @@ export class PostgresPersistence implements BotPersistence {
     } finally { client.release(); }
   }
 
-  async getDemoBaselineCandidate(): Promise<{ observedAt: Date; balances: Record<string, number>; status: string } | null> {
-    const result = await this.pool.query<{ observed_at: Date; balances: Record<string, number>; status: string }>("SELECT observed_at, balances, status FROM demo_accounting_baselines ORDER BY id DESC LIMIT 1");
+  async getDemoBaselineCandidate(): Promise<{ observedAt: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string } | null> {
+    const result = await this.pool.query<{ observed_at: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string }>("SELECT observed_at, balances, evidence, status FROM demo_accounting_baselines ORDER BY id DESC LIMIT 1");
     const row = result.rows[0];
-    return row ? { observedAt: row.observed_at, balances: row.balances, status: row.status } : null;
+    return row ? { observedAt: row.observed_at, balances: row.balances, evidence: row.evidence, status: row.status } : null;
   }
 
   /** Raw durable intent records: this does not prove exchange acceptance or ownership. */
