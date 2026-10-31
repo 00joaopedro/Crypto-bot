@@ -6,18 +6,21 @@ import { reconcileDemoExecutions } from "./demo-reconciliation.js";
 import type { DemoFill } from "./demo-ledger.js";
 
 /** On-demand read-only inspection; this intentionally does not assert P&L coverage. */
-export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal">, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory">) {
+export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory">) {
   const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
   const rows = await persistence.demoOrderJournal();
   if (!rows.length) return unavailable("journal_empty");
   if (rows.some((row) => row.status === "PENDING")) return unavailable("pending_order");
-  const placed = rows.filter((row) => row.status === "PLACED");
+  const baseline = await persistence.getDemoBaselineCandidate();
+  if (!baseline || !Number.isFinite(baseline.observedAt.getTime())) return unavailable("baseline_missing");
+  const periodRows = rows.filter((row) => new Date(row.created_at).getTime() >= baseline.observedAt.getTime());
+  const placed = periodRows.filter((row) => row.status === "PLACED");
   if (!placed.length) {
     // A local failure alone does not prove that OKX rejected a submission.
     // Do not return raw errors: exchange messages may contain sensitive data.
-    const failed = rows.filter((row) => row.status === "FAILED").length;
-    const skipped = rows.filter((row) => row.status === "SKIPPED").length;
-    return { ...unavailable("no_confirmed_orders"), journalCounts: { failed, skipped, total: rows.length } };
+    const failed = periodRows.filter((row) => row.status === "FAILED").length;
+    const skipped = periodRows.filter((row) => row.status === "SKIPPED").length;
+    return { ...unavailable("no_confirmed_orders"), journalCounts: { failed, skipped, total: periodRows.length } };
   }
   if (placed.length > 50) return unavailable("journal_too_large_for_diagnostic");
   const journal: JournaledDemoBuy[] = [];
