@@ -25,6 +25,7 @@ type BotOptions = {
   universeMaxReplacements?: number;
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
+  verifyDemoExecutionSafety?: () => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
   ai?: GeminiRiskFilter;
   persistence?: BotPersistence;
   initialLastProcessedCandle?: number;
@@ -292,6 +293,16 @@ export class TradingBot {
       await this.recordOperationalEvent("RISK_LIMIT", "WARN", { reason: riskBlock });
     }
 
+    if (approved && this.options.demoExecutor && this.options.verifyDemoExecutionSafety) {
+      const safety = await this.options.verifyDemoExecutionSafety();
+      if (safety.status !== "safe") {
+        approved = false;
+        this.demoExecutionBlocked = true;
+        await this.options.persistence?.setPaused(true, "system:demo_execution_safety");
+        console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
+      }
+    }
+
     const previousState = paperTrader.exportState();
     const paperResult = paperTrader.processCandle(
       currentCandle,
@@ -439,6 +450,21 @@ export class TradingBot {
             });
             await this.recordServiceStatus("postgresql", "unhealthy", error);
           }
+          if (demoResult.status === "PLACED" && this.options.verifyDemoExecutionSafety) {
+            const safety = await this.options.verifyDemoExecutionSafety();
+            if (safety.status !== "safe") {
+              this.demoExecutionBlocked = true;
+              try { await this.options.persistence?.setPaused(true, "system:demo_execution_safety"); }
+              catch { console.error(JSON.stringify({ event: "demo_safety_pause_write_failed" })); }
+              console.error(JSON.stringify({ event: "demo_protection_unconfirmed", reason: safety.reason }));
+            }
+          }
+          if (demoResult.status !== "PLACED") {
+            this.demoExecutionBlocked = true;
+            try { await this.options.persistence?.setPaused(true, "system:demo_order_not_confirmed"); }
+            catch { console.error(JSON.stringify({ event: "demo_safety_pause_write_failed" })); }
+            console.error(JSON.stringify({ event: "demo_execution_blocked", reason: "paper_demo_entry_mismatch" }));
+          }
           console.log(
             JSON.stringify({
               event:
@@ -456,6 +482,7 @@ export class TradingBot {
           );
         }
       } catch (error) {
+        this.demoExecutionBlocked = true;
         const message = error instanceof Error ? error.message : String(error);
         try {
           await this.options.persistence?.recordDemoOrderFailure(
@@ -492,6 +519,8 @@ export class TradingBot {
         } else {
           await this.recordServiceStatus("okx-demo", "ok");
         }
+        try { await this.options.persistence?.setPaused(true, "system:demo_order_not_confirmed"); }
+        catch { console.error(JSON.stringify({ event: "demo_safety_pause_write_failed" })); }
       }
     }
 

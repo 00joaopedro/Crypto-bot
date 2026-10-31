@@ -5,6 +5,7 @@ import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
 import { inspectDemoAccounting } from "./demo-diagnostic.js";
+import { inspectDemoExecutionSafety } from "./demo-execution-safety.js";
 import { compareDemoBaseline } from "./demo-baseline.js";
 import { sameDemoAccount } from "./okx-demo-identity.js";
 import { EmailTradeAlert } from "./email-alerts.js";
@@ -58,6 +59,7 @@ async function main(): Promise<void> {
   let okxDemo: OkxDemoExecutor | undefined;
   let bot: TradingBot;
   let reconfiguring = false;
+  let demoSafetyAudited = false;
   let activeCycle: Promise<void> | undefined;
   let reconfigurationRequested = false;
   let reconfigurationPromise: Promise<void> | undefined;
@@ -262,6 +264,7 @@ async function main(): Promise<void> {
         minimumSignalScore: config.MIN_SIGNAL_SCORE,
         paperTrader,
         ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),
+        ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: () => inspectDemoExecutionSafety(persistence, demoExecutor) } : {}),
         ...(ai ? { ai } : {}),
         ...(persistence ? { persistence } : {}),
         ...(state
@@ -378,6 +381,7 @@ async function main(): Promise<void> {
           recoveryState = nextRecoveryState;
           okxDemo = nextOkxDemo;
           bot = createBot(nextSettings, nextRecoveryState, nextOkxDemo);
+          demoSafetyAudited = false;
           await previousOkxDemo?.close();
 
           console.log(
@@ -436,6 +440,14 @@ async function main(): Promise<void> {
             } catch (error) {
               console.error(JSON.stringify({ event: "okx_reconciliation_failed", symbol: pending.symbol, clientOrderId: pending.client_order_id, error: error instanceof Error ? error.message : String(error) }));
             }
+          }
+          if (!demoSafetyAudited) {
+            const safety = await inspectDemoExecutionSafety(persistence, okxDemo);
+            if (safety.status !== "safe") {
+              await persistence.setPaused(true, "system:demo_execution_safety");
+              console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
+            }
+            demoSafetyAudited = true;
           }
         }
         if (reconfiguring) {
