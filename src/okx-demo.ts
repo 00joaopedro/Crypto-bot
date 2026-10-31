@@ -28,6 +28,8 @@ export type OkxDemoAccountSnapshot = {
   quoteCurrency: string;
   quoteFree: number | null;
   totalUsdt: number | null;
+  equityUsdt: number | null;
+  unvaluedAssets: string[];
   updatedAt: string;
 };
 
@@ -130,7 +132,26 @@ export class OkxDemoExecutor {
     const market = this.resolveActiveSpotMarket(this.options.symbol);
     const balance = await this.exchange.fetchBalance();
     const quoteCurrency = requiredString(market.quote, "market quote currency");
-    return { quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt: readTotalBalance(balance.total, quoteCurrency), updatedAt: new Date().toISOString() };
+    const totals = (balance.total ?? {}) as Record<string, unknown>;
+    let equity = 0;
+    const unvaluedAssets: string[] = [];
+    for (const [currency, raw] of Object.entries(totals)) {
+      const amount = finiteOrNull(raw);
+      if (amount === null || amount < 0) { unvaluedAssets.push(currency); continue; }
+      if (amount === 0) continue;
+      if (currency === "USDT") { equity += amount; continue; }
+      try {
+        const spot = this.resolveActiveSpotMarket(`${currency}/USDT`);
+        const ticker = await this.exchange.fetchTicker(spot.symbol);
+        const price = finiteOrNull(ticker.last);
+        if (price === null || price <= 0) throw new Error("No valid last price");
+        equity += amount * price;
+      } catch {
+        unvaluedAssets.push(currency);
+      }
+    }
+    if (readTotalBalance(balance.total, "USDT") === null) unvaluedAssets.push("USDT");
+    return { quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt: readTotalBalance(balance.total, quoteCurrency), equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, updatedAt: new Date().toISOString() };
   }
 
   async executeApprovedBuy(request: DemoBuyRequest): Promise<DemoBuyResult> {
