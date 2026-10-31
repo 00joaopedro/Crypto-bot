@@ -11,6 +11,8 @@ export function accountForDemoEvidence(input: {
   journalComplete: boolean;
   historyComplete: boolean;
   positionsReconciled: boolean;
+  /** Independently verified total balances before this accounting window. */
+  baseline: { confirmed: boolean; timestamp: number; balances: Record<string, number> };
   /** Total (free + locked) Demo balances, captured at the coverage endpoint. */
   positionBalances: Record<string, number>;
   positionBalancesTimestamp: number;
@@ -25,6 +27,10 @@ export function accountForDemoEvidence(input: {
   const unavailable = (reason: string): DemoLedgerResult => ({ status: "unavailable", reason });
   if (!input.journalComplete || !input.historyComplete || !input.positionsReconciled) return unavailable("evidence_coverage_incomplete");
   if (!Number.isSafeInteger(input.coverageStart) || !Number.isSafeInteger(input.coverageEnd) || input.coverageStart < 0 || input.coverageStart > input.coverageEnd) return unavailable("invalid_coverage_window");
+  if (!input.baseline?.confirmed || input.baseline.timestamp !== input.coverageStart || !input.baseline.balances || typeof input.baseline.balances !== "object" || Array.isArray(input.baseline.balances)) return unavailable("baseline_unconfirmed");
+  for (const [asset, balance] of Object.entries(input.baseline.balances)) {
+    if (!/^[A-Z0-9]+$/.test(asset) || typeof balance !== "number" || !Number.isFinite(balance) || balance < 0) return unavailable("invalid_baseline_balance");
+  }
   if (input.positionBalancesTimestamp !== input.coverageEnd || !input.positionBalances || typeof input.positionBalances !== "object" || Array.isArray(input.positionBalances)) return unavailable("position_snapshot_unconfirmed");
   // An empty input set cannot establish an initial accounting baseline.
   if (input.journal.length === 0) return unavailable("baseline_unconfirmed");
@@ -51,9 +57,18 @@ export function accountForDemoEvidence(input: {
     const asset = symbol.split("/")[0]!;
     if (expectedAssets.has(asset)) return unavailable("ambiguous_position_asset");
     expectedAssets.add(asset);
+    if (!Object.hasOwn(input.baseline.balances, asset)) return unavailable("baseline_balance_missing");
     const actual = input.positionBalances[asset];
     if (typeof actual !== "number" || !Number.isFinite(actual) || actual < 0) return unavailable("position_balance_missing");
-    if (Math.abs(actual - position.quantity) > Math.max(actual, position.quantity) * 1e-8) return unavailable("position_balance_mismatch");
+    const expected = input.baseline.balances[asset]! + position.quantity;
+    if (!Number.isFinite(expected) || Math.abs(actual - expected) > Math.max(actual, expected) * 1e-8) return unavailable("position_balance_mismatch");
+  }
+  for (const [asset, baseline] of Object.entries(input.baseline.balances)) {
+    if (asset === "USDT" || expectedAssets.has(asset)) continue;
+    const actual = input.positionBalances[asset];
+    if (typeof actual !== "number" || !Number.isFinite(actual) || actual < 0) return unavailable("position_balance_missing");
+    if (Math.abs(actual - baseline) > Math.max(actual, baseline) * 1e-8) return unavailable("position_balance_mismatch");
+    expectedAssets.add(asset);
   }
   for (const [asset, balance] of Object.entries(input.positionBalances)) {
     if (typeof balance !== "number" || !Number.isFinite(balance) || balance < 0) return unavailable("invalid_position_balance");
