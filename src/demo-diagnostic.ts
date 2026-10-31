@@ -12,7 +12,8 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   if (!rows.length) return unavailable("journal_empty");
   if (rows.some((row) => row.status === "PENDING")) return unavailable("pending_order");
   const baseline = await persistence.getDemoBaselineCandidate();
-  if (!baseline || !Number.isFinite(baseline.observedAt.getTime())) return unavailable("baseline_missing");
+  if (!baseline || !Number.isSafeInteger(baseline.observedAt.getTime()) || baseline.observedAt.getTime() <= 0 || baseline.observedAt.getTime() > Date.now()) return unavailable("baseline_missing");
+  if (rows.some((row) => !Number.isSafeInteger(new Date(row.created_at).getTime()))) return unavailable("invalid_journal_date");
   const periodRows = rows.filter((row) => new Date(row.created_at).getTime() >= baseline.observedAt.getTime());
   const placed = periodRows.filter((row) => row.status === "PLACED");
   if (!placed.length) {
@@ -22,6 +23,10 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
     const skipped = periodRows.filter((row) => row.status === "SKIPPED").length;
     return { ...unavailable("no_confirmed_orders"), journalCounts: { failed, skipped, total: periodRows.length } };
   }
+  // A local failure is not proof that the exchange rejected the order. This
+  // applies even if other orders in the same period were confirmed.
+  if (periodRows.some((row) => row.status === "FAILED")) return unavailable("failed_order_unconfirmed");
+  if (periodRows.some((row) => !["PLACED", "SKIPPED", "FAILED"].includes(row.status))) return unavailable("journal_status_unconfirmed");
   if (placed.length > 50) return unavailable("journal_too_large_for_diagnostic");
   const journal: JournaledDemoBuy[] = [];
   for (const row of placed) {
@@ -35,7 +40,9 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   if (ownership.status !== "confirmed") return unavailable(ownership.reason);
   const ownedIds = new Set(ownership.ownedOrderIds);
   if (evidence.orders.length !== ownedIds.size || evidence.orders.some((order) => !ownedIds.has(order.id)) || new Set(evidence.orders.map((order) => order.id)).size !== evidence.orders.length) return unavailable("order_set_mismatch");
-  const from = Math.min(...placed.map((row) => new Date(row.created_at).getTime())) - 60_000;
+  // Inspect the entire window since the baseline, not just activity near the
+  // first journaled buy; doing otherwise can omit unrelated fills beforehand.
+  const from = baseline.observedAt.getTime();
   if (!Number.isSafeInteger(from) || from < 0) return unavailable("invalid_journal_date");
   const to = Date.now();
   const collectedFills: DemoFill[] = [];

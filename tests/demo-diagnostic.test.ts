@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { inspectDemoAccounting } from "../src/demo-diagnostic.js";
 
 const row = { client_order_id: "CB1", symbol: "BTC/USDT", status: "PLACED", result: { orderId: "1" }, attached_algo_client_id: "AP1", created_at: new Date(Date.now() - 120_000) };
-const getDemoBaselineCandidate = async () => ({ observedAt: new Date(1), balances: { USDT: 0 }, evidence: {}, status: "UNVERIFIED" });
+const getDemoBaselineCandidate = async () => ({ observedAt: new Date(Date.now() - 180_000), balances: { USDT: 0 }, evidence: {}, status: "UNVERIFIED" });
 describe("Demo accounting diagnostic", () => {
   it("excludes legacy failures from the new period but still blocks old pending orders", async () => {
     const baseline = { observedAt: new Date(Date.now() - 10_000), balances: { USDT: 5000 }, evidence: {}, status: "UNVERIFIED" };
@@ -27,13 +27,26 @@ describe("Demo accounting diagnostic", () => {
     expect(await inspectDemoAccounting(persistence, executor)).toMatchObject({ reason: "journal_identity_incomplete" });
     expect(executor.collectOrderEvidence).not.toHaveBeenCalled();
   });
+  it("does not ignore an uncertain failure when another order was placed", async () => {
+    const executor = { collectOrderEvidence: vi.fn(), collectFillHistory: vi.fn() };
+    const persistence = { demoOrderJournal: async () => [row, { ...row, status: "FAILED" }], getDemoBaselineCandidate };
+    expect(await inspectDemoAccounting(persistence, executor)).toMatchObject({ reason: "failed_order_unconfirmed" });
+    expect(executor.collectOrderEvidence).not.toHaveBeenCalled();
+  });
+  it("refuses invalid journal dates and future baselines", async () => {
+    const executor = { collectOrderEvidence: vi.fn(), collectFillHistory: vi.fn() };
+    expect(await inspectDemoAccounting({ demoOrderJournal: async () => [{ ...row, created_at: new Date(NaN) }], getDemoBaselineCandidate }, executor)).toMatchObject({ reason: "invalid_journal_date" });
+    expect(await inspectDemoAccounting({ demoOrderJournal: async () => [row], getDemoBaselineCandidate: async () => ({ ...(await getDemoBaselineCandidate()), observedAt: new Date(Date.now() + 60_000) }) }, executor)).toMatchObject({ reason: "baseline_missing" });
+  });
   it("collects evidence without claiming complete accounting", async () => {
     const executor = {
       collectOrderEvidence: vi.fn(async () => ({ status: "collected" as const, buys: [{ id: "1", clientOrderId: "CB1", symbol: "BTC/USDT", side: "buy" as const, attachedAlgoClientIds: ["AP1"] }], sells: [], protections: [{ algoClientId: "AP1", symbol: "BTC/USDT", side: "sell" as const, spawnedOrderIds: [] }], orders: [{ id: "1", symbol: "BTC/USDT", side: "buy" as const, filled: 0, terminal: true, ownershipConfirmed: false }], protectionStates: {} })),
       collectFillHistory: vi.fn(async () => ({ status: "collected" as const, fills: [], from: 0, to: 1 })),
     };
-    expect(await inspectDemoAccounting({ demoOrderJournal: async () => [row], getDemoBaselineCandidate }, executor)).toMatchObject({ status: "unavailable", reason: "coverage_and_positions_unconfirmed", checkedOrders: 1, checkedFills: 0 });
+    const baseline = await getDemoBaselineCandidate();
+    expect(await inspectDemoAccounting({ demoOrderJournal: async () => [row], getDemoBaselineCandidate: async () => baseline }, executor)).toMatchObject({ status: "unavailable", reason: "coverage_and_positions_unconfirmed", checkedOrders: 1, checkedFills: 0 });
     expect(executor.collectFillHistory).toHaveBeenCalledOnce();
+    expect(executor.collectFillHistory).toHaveBeenCalledWith(expect.objectContaining({ from: baseline.observedAt.getTime() }));
   });
   it("reports missing exchange fills instead of accepting an order as reconciled", async () => {
     const executor = {
