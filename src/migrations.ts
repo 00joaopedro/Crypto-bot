@@ -174,4 +174,19 @@ export const migrations: readonly Migration[] = [
         ON demo_orders (attached_algo_client_id) WHERE attached_algo_client_id IS NOT NULL;
     `,
   },
+  {
+    version: 8,
+    name: "demo_accounting_baseline_candidates",
+    sql: `
+      CREATE TABLE demo_accounting_baselines (
+        id BIGSERIAL PRIMARY KEY,
+        observed_at TIMESTAMPTZ NOT NULL,
+        balances JSONB NOT NULL,
+        evidence JSONB NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('UNVERIFIED')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `,
+  },
 ] as const;
+

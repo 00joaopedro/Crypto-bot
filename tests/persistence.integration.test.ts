@@ -8,6 +8,31 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("stores baseline candidates as unverified only while paused with no pending orders", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const observedAt = Date.now();
+    const pendingId = `BASELINE${observedAt}`;
+    const candidate = { observedAt, balances: { BTC: 1, USDT: 5000 }, evidence: { source: "test" } };
+    try {
+      await persistence.initialize();
+      await persistence.setPaused(false, "baseline-test");
+      await expect(persistence.saveDemoBaselineCandidate(candidate)).rejects.toThrow("paused");
+      await persistence.setPaused(true, "baseline-test");
+      await expect(persistence.saveDemoBaselineCandidate({ ...candidate, balances: { BTC: NaN, USDT: 0 } })).rejects.toThrow("Invalid");
+      await persistence.reserveDemoOrder("BTC/USDT", observedAt, pendingId);
+      await expect(persistence.saveDemoBaselineCandidate(candidate)).rejects.toThrow("Pending");
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [pendingId]);
+      await persistence.saveDemoBaselineCandidate(candidate);
+      const result = await verification.query("SELECT balances, status FROM demo_accounting_baselines WHERE observed_at = to_timestamp($1 / 1000.0)", [observedAt]);
+      expect(result.rows).toEqual([expect.objectContaining({ balances: candidate.balances, status: "UNVERIFIED" })]);
+    } finally {
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [pendingId]);
+      await verification.query("DELETE FROM demo_accounting_baselines WHERE observed_at = to_timestamp($1 / 1000.0)", [observedAt]);
+      await verification.end();
+      await persistence.close();
+    }
+  });
   it("retrieves older Demo failures only when the diagnostic range includes them", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const verification = new Pool({ connectionString: databaseUrl });

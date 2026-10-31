@@ -372,6 +372,26 @@ export class PostgresPersistence implements BotPersistence {
   }
 
   /** Raw durable intent records: this does not prove exchange acceptance or ownership. */
+  async saveDemoBaselineCandidate(input: { observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown> }): Promise<void> {
+    if (!Number.isSafeInteger(input.observedAt) || input.observedAt <= 0 || input.observedAt > Date.now() || !input.balances || !Object.hasOwn(input.balances, "USDT") || Object.entries(input.balances).some(([asset, amount]) => !/^[A-Z0-9]+$/.test(asset) || !Number.isFinite(amount) || amount < 0)) throw new Error("Invalid Demo baseline candidate");
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-baseline'))");
+      const control = await client.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1 FOR UPDATE");
+      if (control.rows[0]?.paused !== true) throw new Error("Bot must be paused before recording a baseline");
+      const pending = await client.query("SELECT 1 FROM demo_orders WHERE status = 'PENDING' LIMIT 1");
+      if (pending.rowCount) throw new Error("Pending Demo orders prevent recording a baseline");
+      const existing = await client.query("SELECT 1 FROM demo_accounting_baselines LIMIT 1");
+      if (existing.rowCount) throw new Error("Demo baseline candidate already exists");
+      await client.query("INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status) VALUES (to_timestamp($1 / 1000.0), $2::jsonb, $3::jsonb, 'UNVERIFIED')", [input.observedAt, JSON.stringify(input.balances), JSON.stringify(input.evidence)]);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
+  }
+
   async demoOrderJournal(): Promise<Array<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>> {
     const result = await this.pool.query<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>(
       `SELECT client_order_id, symbol, status, result, attached_algo_client_id, created_at

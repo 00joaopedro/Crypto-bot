@@ -149,6 +149,19 @@ async function main(): Promise<void> {
         tradingSettings,
         shutdownController.signal,
       );
+      if (persistence && await persistence.isPaused()) {
+        try {
+          const baseline = await okxDemo.collectBaselineCandidate();
+          if (baseline.status === "collected") {
+            await persistence.saveDemoBaselineCandidate(baseline);
+            console.log(JSON.stringify({ event: "demo_baseline_candidate_recorded", status: "UNVERIFIED" }));
+          } else {
+            console.log(JSON.stringify({ event: "demo_baseline_candidate_unavailable", reason: baseline.reason }));
+          }
+        } catch {
+          console.log(JSON.stringify({ event: "demo_baseline_candidate_not_recorded" }));
+        }
+      }
       if (stopping) return;
       await persistence?.recordOperationalEvent({
         eventType: "SERVICE_STATUS",

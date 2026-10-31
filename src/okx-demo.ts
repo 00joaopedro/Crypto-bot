@@ -183,6 +183,33 @@ export class OkxDemoExecutor {
     return { quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt: readTotalBalance(balance.total, quoteCurrency), equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, updatedAt: new Date().toISOString() };
   }
 
+  /** A read-only candidate, not a proof of atomicity or complete history. */
+  async collectBaselineCandidate(): Promise<{ status: "unavailable"; reason: string } | { status: "collected"; observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown> }> {
+    if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
+    try {
+      const startedAt = Date.now();
+      const [regular, conditional, oco] = await Promise.all([
+        this.exchange.fetchOpenOrders(undefined),
+        this.exchange.fetchOpenOrders(undefined, undefined, undefined, { trigger: true, ordType: "conditional" }),
+        this.exchange.fetchOpenOrders(undefined, undefined, undefined, { trigger: true, ordType: "oco" }),
+      ]);
+      if (![regular, conditional, oco].every(Array.isArray)) return { status: "unavailable", reason: "open_orders_response_invalid" };
+      if (regular.length || conditional.length || oco.length) return { status: "unavailable", reason: "open_orders_present" };
+      const balance = await this.exchange.fetchBalance();
+      if (!balance.total || typeof balance.total !== "object") return { status: "unavailable", reason: "balances_unavailable" };
+      const balances: Record<string, number> = Object.create(null) as Record<string, number>;
+      for (const [asset, value] of Object.entries(balance.total)) {
+        if (!/^[A-Z0-9]+$/.test(asset) || typeof value !== "number" || !Number.isFinite(value) || value < 0) return { status: "unavailable", reason: "invalid_balance" };
+        balances[asset] = value;
+      }
+      if (!Object.hasOwn(balances, "USDT")) return { status: "unavailable", reason: "usdt_balance_missing" };
+      const observedAt = Date.now();
+      return { status: "collected", observedAt, balances, evidence: { startedAt, observedAt, openOrderQueries: ["regular", "conditional", "oco"], atomic: false, historyCoverageProven: false } };
+    } catch {
+      return { status: "unavailable", reason: "baseline_request_failed" };
+    }
+  }
+
   /** Read-only collection, not proof of history coverage or bot ownership. */
   async collectFillHistory(input: { symbol: string; from: number; to: number }): Promise<OkxCollectedFills> {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };

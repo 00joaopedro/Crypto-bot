@@ -53,6 +53,22 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("collects a Demo baseline candidate without claiming it proves history coverage", async () => {
+    const exchange = exchangeMock({ fetchBalance: vi.fn(async () => ({ free: { USDT: 5000 }, total: { BTC: 1, USDT: 5000 } })) });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await expect(executor.collectBaselineCandidate()).resolves.toMatchObject({ reason: "demo_not_initialized" });
+    await executor.initialize();
+    const result = await executor.collectBaselineCandidate();
+    expect(result).toMatchObject({ status: "collected", balances: { BTC: 1, USDT: 5000 }, evidence: { atomic: false, historyCoverageProven: false } });
+    expect(exchange.fetchOpenOrders).toHaveBeenCalledTimes(3);
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
+  it("refuses a baseline candidate when any open order is found", async () => {
+    const exchange = exchangeMock({ fetchOpenOrders: vi.fn(async () => [{ id: "pending" }]) });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await executor.initialize();
+    await expect(executor.collectBaselineCandidate()).resolves.toMatchObject({ reason: "open_orders_present" });
+  });
   it("reads Demo trading permission without disclosing account details or placing an order", async () => {
     const getConfig = vi.fn(async () => ({ code: "0", data: [{ perm: "read_only,trade", uid: "private-account-id" }] }));
     const exchange = exchangeMock({ privateGetAccountConfig: getConfig });
