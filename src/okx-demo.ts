@@ -71,6 +71,14 @@ export type OkxExecutionError = Error & {
   okxDetails?: Record<string, unknown>;
 };
 
+/** A terminal response with incomplete or partial fills needs manual reconciliation. */
+export function classifyDemoOrder(status: string | undefined, filled: number | undefined): "PLACED" | "FAILED" | "PENDING" {
+  if (typeof filled !== "number" || !Number.isFinite(filled) || filled < 0) return "PENDING";
+  if (status === "closed") return filled > 0 ? "PLACED" : "PENDING";
+  if (["canceled", "rejected", "expired"].includes(status ?? "")) return filled === 0 ? "FAILED" : "PENDING";
+  return "PENDING";
+}
+
 type Pause = (milliseconds: number) => Promise<void>;
 
 /** OKX Demo-only Spot executor. Sandbox mode is always forced first. */
@@ -266,9 +274,10 @@ export class OkxDemoExecutor {
     );
     const order = await this.waitForOrderUpdate(submitted, marketSymbol);
 
-    const confirmed = order.status === "closed";
+    const resultStatus = classifyDemoOrder(order.status, order.filled);
+    const confirmed = resultStatus === "PLACED";
     return {
-      status: confirmed ? "PLACED" : "PENDING",
+      status: resultStatus,
       orderId: requiredString(order.id, "order id"),
       clientOrderId,
       orderStatus: order.status ?? null,
@@ -284,21 +293,9 @@ export class OkxDemoExecutor {
   }
 
   async executeApprovedSell(request: DemoSellRequest): Promise<DemoBuyResult> {
-    if (!this.initialized) throw new Error("OKX Demo executor must be initialized before execution");
-    if (!Number.isFinite(request.quantity) || request.quantity <= 0) throw new Error("Sell quantity must be positive");
-    const market = this.resolveActiveSpotMarket(request.symbol ?? this.options.symbol);
-    const clientOrderId = createClientOrderId(`SELL-${market.symbol}`, request.candleTimestamp);
-    if (!this.options.tradingEnabled) return { status: "SKIPPED", reason: "demo_trading_disabled", clientOrderId };
-    const submitted = await this.exchange.createOrder(market.symbol, "market", "sell", request.quantity, undefined, { clientOrderId });
-    const order = await this.waitForOrderUpdate(submitted, market.symbol);
-    const referencePrice = finiteOrNull(order.average) ?? finiteOrNull(order.price) ?? 0;
-    const confirmed = order.status === "closed";
-    return {
-      status: confirmed ? "PLACED" : "PENDING", orderId: requiredString(order.id, "sell order id"), clientOrderId,
-      orderStatus: order.status ?? null, filled: finiteOrNull(order.filled), average: finiteOrNull(order.average),
-      cost: finiteOrNull(order.cost), referencePrice, stopLossPrice: 0, takeProfitPrice: 0, confirmed,
-      ...(confirmed ? {} : { reconciliationError: `Final OKX order status was ${order.status ?? "unknown"}` }),
-    };
+    // A Paper quantity is not an OKX position. Protective OKX orders may have
+    // already sold it, so fail closed until a dedicated exchange ledger exists.
+    throw new Error(`OKX Demo sell is disabled pending confirmed position reconciliation: ${request.symbol ?? this.options.symbol}`);
   }
 
   listSpotSymbols(quote = "USDT"): string[] {
