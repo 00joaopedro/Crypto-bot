@@ -17,6 +17,8 @@ export async function inspectDemoExecutionSafety(
     const relevant = rows.filter((row) => new Date(row.created_at).getTime() >= baseline.observedAt.getTime());
     // An ambiguous local failure may still have reached the exchange.
     if (relevant.some((row) => row.status === "FAILED")) return blocked("unresolved_demo_failure");
+    // A skipped Demo buy still leaves the Paper position opened in this cycle.
+    if (relevant.some((row) => row.status === "SKIPPED")) return blocked("paper_demo_entry_mismatch");
     if (relevant.some((row) => !["PLACED", "SKIPPED"].includes(row.status))) return blocked("unknown_demo_order_status");
     const placed = relevant.filter((row) => row.status === "PLACED");
     if (!placed.length) return { status: "safe" };

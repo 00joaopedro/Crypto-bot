@@ -27,6 +27,7 @@ describe("OKX Demo execution safety gate", () => {
     const reader = vi.fn(async () => evidence);
     expect(await inspectDemoExecutionSafety(persistence([{ ...row, status: "PENDING" }]), { collectOrderEvidence: reader })).toMatchObject({ reason: "pending_demo_order" });
     expect(await inspectDemoExecutionSafety(persistence([{ ...row, status: "FAILED" }]), { collectOrderEvidence: reader })).toMatchObject({ reason: "unresolved_demo_failure" });
+    expect(await inspectDemoExecutionSafety(persistence([{ ...row, status: "SKIPPED" }]), { collectOrderEvidence: reader })).toMatchObject({ reason: "paper_demo_entry_mismatch" });
     expect(reader).not.toHaveBeenCalled();
     expect(await inspectDemoExecutionSafety(persistence([{ ...row, status: "FAILED", created_at: new Date(0) }]), { collectOrderEvidence: reader })).toEqual({ status: "safe" });
   });
