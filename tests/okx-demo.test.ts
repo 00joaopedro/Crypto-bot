@@ -50,6 +50,24 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("persists the intent before submitting and retains it after an ambiguous submission failure", async () => {
+    const sequence: string[] = [];
+    const exchange = exchangeMock({ createMarketBuyOrderWithCost: vi.fn(async () => { sequence.push("submit"); throw new Error("timeout"); }) });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    executor.setIntentJournal(async () => { sequence.push("intent"); return true; });
+    await executor.initialize();
+    await expect(executor.executeApprovedBuy({ candleTimestamp: 1790197200000 })).rejects.toThrow("timeout");
+    expect(sequence).toEqual(["intent", "submit"]);
+  });
+
+  it("never submits if recording the intent fails", async () => {
+    const exchange = exchangeMock();
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    executor.setIntentJournal(async () => { throw new Error("database unavailable"); });
+    await executor.initialize();
+    await expect(executor.executeApprovedBuy({ candleTimestamp: 1790197200000 })).rejects.toThrow("database unavailable");
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
   it("does not present a partial Demo portfolio valuation as total equity", async () => {
     const exchange = exchangeMock({
       fetchBalance: vi.fn(async () => ({ free: { USDT: 100 }, total: { USDT: 100, DOGE: 5 } })),
