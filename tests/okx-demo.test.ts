@@ -50,6 +50,21 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("preserves the submitted order as pending when reconciliation fails", async () => {
+    const fetchOrder = vi.fn()
+      .mockRejectedValueOnce(new OrderNotFound("missing"))
+      .mockRejectedValueOnce(new Error("maintenance"));
+    const exchange = exchangeMock({
+      fetchOrder,
+      createMarketBuyOrderWithCost: vi.fn(async () => ({ id: "order-uncertain", status: "open" })),
+    });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange, async () => {});
+    await executor.initialize();
+    await expect(executor.executeApprovedBuy({ candleTimestamp: 1790197200000 })).resolves.toMatchObject({
+      status: "PENDING", orderId: "order-uncertain", confirmed: false,
+      clientOrderId: createClientOrderId("BTC/USDT", 1790197200000),
+    });
+  });
   it("forces sandbox first and performs an authenticated balance read", async () => {
     const calls: string[] = [];
     const exchange = exchangeMock({
