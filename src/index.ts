@@ -379,6 +379,7 @@ async function main(): Promise<void> {
         onSettingsChanged: reconfigure,
         ...(okxDemo ? { getOkxDemoSnapshot: () => okxDemo!.getAccountSnapshot() } : {}),
         ...(okxDemo ? { inspectDemoAccounting: () => inspectDemoAccounting(persistence, okxDemo!) } : {}),
+        ...(okxDemo ? { inspectDemoPermission: () => okxDemo!.inspectTradingPermission() } : {}),
       });
     } else {
       console.log(JSON.stringify({ event: "dashboard_disabled" }));
@@ -509,6 +510,8 @@ async function initializeOkxDemoWithBackoff(
     try {
       const status = await okxDemo.initialize();
       console.log(JSON.stringify({ event: "okx_demo_connected", ...status }));
+      const permission = await okxDemo.inspectTradingPermission();
+      console.log(JSON.stringify({ event: "okx_demo_permission_checked", ...permission }));
       console.log(
         JSON.stringify(
           status.orderExecutionEnabled
@@ -583,3 +586,4 @@ main().catch((error) => {
   );
   process.exitCode = 1;
 });
+

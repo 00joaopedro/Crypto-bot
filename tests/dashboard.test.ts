@@ -23,11 +23,13 @@ describe("dashboard authentication", () => {
       persistence,
       supportedSymbols: ["BTC/USDT"],
       onSettingsChanged,
+      inspectDemoPermission: async () => ({ status: "available", trading: true }),
     });
     const { port } = server.address() as AddressInfo;
     const base = `http://127.0.0.1:${port}`;
 
     expect((await fetch(`${base}/api/dashboard`)).status).toBe(401);
+    expect((await fetch(`${base}/api/demo-permission`)).status).toBe(401);
     expect(
       (
         await fetch(`${base}/api/login`, {
@@ -51,6 +53,8 @@ describe("dashboard authentication", () => {
       headers: { cookie: cookie!.split(";")[0]! },
     });
     expect(authenticated.status).toBe(200);
+    const permission = await fetch(`${base}/api/demo-permission`, { headers: { cookie: cookie!.split(";")[0]! } });
+    expect(await permission.json()).toEqual({ status: "available", trading: true });
 
     const settings = await fetch(`${base}/api/settings`, {
       method: "PUT",
@@ -72,3 +76,4 @@ describe("dashboard authentication", () => {
     expect(onSettingsChanged).toHaveBeenCalledOnce();
   });
 });
+

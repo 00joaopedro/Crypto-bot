@@ -207,6 +207,24 @@ export class OkxDemoExecutor {
     }, journal);
   }
 
+  /** Read account permissions without submitting orders or disclosing credentials. */
+  async inspectTradingPermission(): Promise<{ status: "available"; trading: boolean } | { status: "unavailable"; reason: string }> {
+    if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
+    const client = this.exchange as unknown as { privateGetAccountConfig?: (params: Record<string, string>) => Promise<unknown> };
+    if (typeof client.privateGetAccountConfig !== "function") return { status: "unavailable", reason: "permission_endpoint_unavailable" };
+    try {
+      const response = await client.privateGetAccountConfig({}) as { code?: unknown; data?: unknown } | null;
+      if (!response || response.code !== "0" || !Array.isArray(response.data) || response.data.length !== 1 || !response.data[0] || typeof response.data[0] !== "object") return { status: "unavailable", reason: "invalid_permission_response" };
+      const perm = (response.data[0] as Record<string, unknown>).perm;
+      if (typeof perm !== "string" || !perm.trim()) return { status: "unavailable", reason: "permission_not_reported" };
+      const permissions = perm.split(",").map((part) => part.trim());
+      if (permissions.some((part) => !["read_only", "trade", "withdraw"].includes(part))) return { status: "unavailable", reason: "unknown_permission_format" };
+      return { status: "available", trading: permissions.includes("trade") };
+    } catch {
+      return { status: "unavailable", reason: "permission_request_failed" };
+    }
+  }
+
   async executeApprovedBuy(request: DemoBuyRequest): Promise<DemoBuyResult> {
     if (!this.initialized) {
       throw new Error("OKX Demo executor must be initialized before execution");
@@ -456,3 +474,4 @@ export function createClientOrderId(
     32,
   );
 }
+

@@ -24,6 +24,7 @@ type DashboardOptions = {
   onSettingsChanged: () => void | Promise<void>;
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
   inspectDemoAccounting?: () => Promise<unknown>;
+  inspectDemoPermission?: () => Promise<unknown>;
 };
 
 const assets = new Map<string, { file: string; type: string }>([
@@ -70,6 +71,11 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         if (!options.inspectDemoAccounting) return json(response, 200, { status: "unavailable", reason: "demo_disabled" });
         try { return json(response, 200, await options.inspectDemoAccounting()); }
         catch { return json(response, 200, { status: "unavailable", reason: "diagnostic_failed" }); }
+      }
+      if (request.method === "GET" && url.pathname === "/api/demo-permission") {
+        if (!options.inspectDemoPermission) return json(response, 200, { status: "unavailable", reason: "demo_disabled" });
+        try { return json(response, 200, await options.inspectDemoPermission()); }
+        catch { return json(response, 200, { status: "unavailable", reason: "permission_request_failed" }); }
       }
       if (request.method === "GET" && url.pathname === "/api/dashboard") {
         const historySymbol = url.searchParams.get("symbol") || undefined;
@@ -196,3 +202,4 @@ function setSecurityHeaders(response: ServerResponse): void {
   response.setHeader("referrer-policy", "no-referrer");
   response.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=()");
 }
+

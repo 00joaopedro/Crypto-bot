@@ -53,6 +53,26 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("reads Demo trading permission without disclosing account details or placing an order", async () => {
+    const getConfig = vi.fn(async () => ({ code: "0", data: [{ perm: "read_only,trade", uid: "private-account-id" }] }));
+    const exchange = exchangeMock({ privateGetAccountConfig: getConfig });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await expect(executor.inspectTradingPermission()).resolves.toEqual({ status: "unavailable", reason: "demo_not_initialized" });
+    expect(getConfig).not.toHaveBeenCalled();
+    await executor.initialize();
+    await expect(executor.inspectTradingPermission()).resolves.toEqual({ status: "available", trading: true });
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
+  it("fails closed when Demo permission is missing or cannot be read", async () => {
+    const getConfig = vi.fn(async () => ({ code: "0", data: [{ perm: "read_only" }] }));
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchangeMock({ privateGetAccountConfig: getConfig }));
+    await executor.initialize();
+    await expect(executor.inspectTradingPermission()).resolves.toEqual({ status: "available", trading: false });
+    getConfig.mockResolvedValueOnce({ code: "0", data: [{ perm: "unknown" }] });
+    await expect(executor.inspectTradingPermission()).resolves.toMatchObject({ status: "unavailable" });
+    getConfig.mockRejectedValueOnce(new Error("secret should never be returned"));
+    await expect(executor.inspectTradingPermission()).resolves.toEqual({ status: "unavailable", reason: "permission_request_failed" });
+  });
   it("only queries order evidence through initialized Demo exchange methods", async () => {
     const exchange = exchangeMock();
     const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
@@ -301,3 +321,4 @@ describe("OkxDemoExecutor", () => {
     expect(exchange.fetchBalance).not.toHaveBeenCalled();
   });
 });
+
