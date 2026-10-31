@@ -5,6 +5,7 @@ import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
 import { inspectDemoAccounting } from "./demo-diagnostic.js";
+import { compareDemoBaseline } from "./demo-baseline.js";
 import { EmailTradeAlert } from "./email-alerts.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
@@ -153,8 +154,14 @@ async function main(): Promise<void> {
         try {
           const baseline = await okxDemo.collectBaselineCandidate();
           if (baseline.status === "collected") {
-            await persistence.saveDemoBaselineCandidate(baseline);
-            console.log(JSON.stringify({ event: "demo_baseline_candidate_recorded", status: "UNVERIFIED" }));
+            const existing = await persistence.getDemoBaselineCandidate();
+            if (existing) {
+              const comparison = compareDemoBaseline(existing.balances, baseline.balances);
+              console.log(JSON.stringify({ event: "demo_baseline_comparison", ...comparison }));
+            } else {
+              await persistence.saveDemoBaselineCandidate(baseline);
+              console.log(JSON.stringify({ event: "demo_baseline_candidate_recorded", status: "UNVERIFIED" }));
+            }
           } else {
             console.log(JSON.stringify({ event: "demo_baseline_candidate_unavailable", reason: baseline.reason }));
           }

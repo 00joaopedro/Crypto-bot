@@ -371,6 +371,12 @@ export class PostgresPersistence implements BotPersistence {
     } finally { client.release(); }
   }
 
+  async getDemoBaselineCandidate(): Promise<{ observedAt: Date; balances: Record<string, number>; status: string } | null> {
+    const result = await this.pool.query<{ observed_at: Date; balances: Record<string, number>; status: string }>("SELECT observed_at, balances, status FROM demo_accounting_baselines ORDER BY id DESC LIMIT 1");
+    const row = result.rows[0];
+    return row ? { observedAt: row.observed_at, balances: row.balances, status: row.status } : null;
+  }
+
   /** Raw durable intent records: this does not prove exchange acceptance or ownership. */
   async saveDemoBaselineCandidate(input: { observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown> }): Promise<void> {
     if (!Number.isSafeInteger(input.observedAt) || input.observedAt <= 0 || input.observedAt > Date.now() || !input.balances || !Object.hasOwn(input.balances, "USDT") || Object.entries(input.balances).some(([asset, amount]) => !/^[A-Z0-9]+$/.test(asset) || !Number.isFinite(amount) || amount < 0)) throw new Error("Invalid Demo baseline candidate");

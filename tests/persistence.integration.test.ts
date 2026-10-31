@@ -26,6 +26,7 @@ integration("PostgresPersistence", () => {
       await persistence.saveDemoBaselineCandidate(candidate);
       const result = await verification.query("SELECT balances, status FROM demo_accounting_baselines WHERE observed_at = to_timestamp($1 / 1000.0)", [observedAt]);
       expect(result.rows).toEqual([expect.objectContaining({ balances: candidate.balances, status: "UNVERIFIED" })]);
+      await expect(persistence.getDemoBaselineCandidate()).resolves.toMatchObject({ balances: candidate.balances, status: "UNVERIFIED" });
     } finally {
       await verification.query("DELETE FROM demo_orders WHERE client_order_id = $1", [pendingId]);
       await verification.query("DELETE FROM demo_accounting_baselines WHERE observed_at = to_timestamp($1 / 1000.0)", [observedAt]);
