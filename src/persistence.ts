@@ -331,13 +331,38 @@ export class PostgresPersistence implements BotPersistence {
   }
 
   async canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean> {
-    const result = await this.pool.query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count FROM demo_orders
-       WHERE status IN ('PLACED', 'PENDING')
-         AND created_at >= NOW() - ($1 * INTERVAL '1 minute')`,
+    const result = await this.pool.query<{ count: string; pending: boolean }>(
+      `SELECT COUNT(*)::text AS count, COALESCE(BOOL_OR(status = 'PENDING'), false) AS pending FROM demo_orders
+       WHERE status = 'PENDING' OR (status = 'PLACED'
+         AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))`,
       [intervalMinutes],
     );
-    return Number(result.rows[0]?.count ?? 0) < maxTrades;
+    return !result.rows[0]?.pending && Number(result.rows[0]?.count ?? 0) < maxTrades;
+  }
+
+  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string): Promise<boolean> {
+    const result = await this.pool.query(
+      `INSERT INTO demo_orders (client_order_id, symbol, candle_timestamp, status, result)
+       VALUES ($1, $2, $3, 'PENDING', $4::jsonb)
+       ON CONFLICT (client_order_id) DO NOTHING RETURNING client_order_id`,
+      [clientOrderId, symbol, timestamp, JSON.stringify({ clientOrderId, status: "PENDING", reason: "submission_unconfirmed" })],
+    );
+    return result.rowCount === 1;
+  }
+
+  async pendingDemoOrders(): Promise<Array<{ client_order_id: string; symbol: string }>> {
+    const result = await this.pool.query<{ client_order_id: string; symbol: string }>(
+      `SELECT client_order_id, symbol FROM demo_orders WHERE status = 'PENDING' ORDER BY created_at LIMIT 100`,
+    );
+    return result.rows;
+  }
+
+  async reconcileDemoOrder(clientOrderId: string, order: { id?: string | undefined; status?: string | undefined; filled?: number | undefined; average?: number | undefined; cost?: number | undefined }): Promise<void> {
+    const status = order.status === "closed" ? "PLACED" : order.status === "canceled" || order.status === "rejected" || order.status === "expired" ? "FAILED" : "PENDING";
+    await this.pool.query(
+      `UPDATE demo_orders SET status = $2, result = result || $3::jsonb, updated_at = NOW() WHERE client_order_id = $1 AND status = 'PENDING'`,
+      [clientOrderId, status, JSON.stringify({ orderId: order.id ?? null, orderStatus: order.status ?? null, filled: order.filled ?? null, average: order.average ?? null, cost: order.cost ?? null, confirmed: status === "PLACED", reconciledAt: new Date().toISOString() })],
+    );
   }
 
   async canEnterSymbol(symbol: string, cooldownMinutes: number): Promise<boolean> {
@@ -604,7 +629,8 @@ export class PostgresPersistence implements BotPersistence {
        ON CONFLICT (client_order_id) DO UPDATE SET
          status = EXCLUDED.status,
          result = EXCLUDED.result,
-         updated_at = NOW()`,
+         updated_at = NOW()
+       WHERE EXCLUDED.status <> 'SKIPPED' OR demo_orders.status NOT IN ('PENDING', 'PLACED')`,
       [
         result.clientOrderId,
         symbol,
