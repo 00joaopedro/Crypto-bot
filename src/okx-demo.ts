@@ -55,6 +55,9 @@ export type DemoBuyResult =
       takeProfitPrice: number;
       confirmed: boolean;
       reconciliationError?: string;
+      side?: string | null;
+      fees?: Array<{ currency: string | null; cost: number | null }>;
+      feesPresentOnTerminalResponse?: boolean;
     }
   | {
       status: "SKIPPED";
@@ -77,6 +80,11 @@ export function classifyDemoOrder(status: string | undefined, filled: number | u
   if (status === "closed") return filled > 0 ? "PLACED" : "PENDING";
   if (["canceled", "rejected", "expired"].includes(status ?? "")) return filled === 0 ? "FAILED" : "PENDING";
   return "PENDING";
+}
+
+export function normalizedOrderFees(order: { fee?: { currency?: string | undefined; cost?: number | undefined } | undefined; fees?: Array<{ currency?: string | undefined; cost?: number | undefined }> | undefined }): Array<{ currency: string | null; cost: number | null }> {
+  const fees = order.fees?.length ? order.fees : order.fee ? [order.fee] : [];
+  return fees.map((fee) => ({ currency: typeof fee.currency === "string" ? fee.currency : null, cost: finiteOrNull(fee.cost) }));
 }
 
 type Pause = (milliseconds: number) => Promise<void>;
@@ -288,6 +296,9 @@ export class OkxDemoExecutor {
       stopLossPrice,
       takeProfitPrice,
       confirmed,
+      side: order.side ?? "buy",
+      fees: normalizedOrderFees(order),
+      feesPresentOnTerminalResponse: confirmed && normalizedOrderFees(order).length > 0,
       ...(confirmed ? {} : { reconciliationError: `Final OKX order status was ${order.status ?? "unknown"}` }),
     };
   }
