@@ -53,6 +53,13 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("only queries order evidence through initialized Demo exchange methods", async () => {
+    const exchange = exchangeMock();
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+    await expect(executor.collectOrderEvidence([])).resolves.toMatchObject({ reason: "demo_not_initialized" });
+    await executor.initialize();
+    await expect(executor.collectOrderEvidence([])).resolves.toMatchObject({ reason: "order_evidence_endpoint_unavailable" });
+  });
   it("collects fills only with an initialized Demo exchange and never submits orders", async () => {
     const getFills = vi.fn(async () => ({ code: "0", data: [] }));
     const exchange = exchangeMock({ privateGetTradeFills: getFills, privateGetTradeFillsHistory: getFills });

@@ -23,6 +23,7 @@ type DashboardOptions = {
   supportedSymbols: string[];
   onSettingsChanged: () => void | Promise<void>;
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
+  inspectDemoAccounting?: () => Promise<unknown>;
 };
 
 const assets = new Map<string, { file: string; type: string }>([
@@ -64,6 +65,11 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
 
       if (!isAuthenticated(request, options.sessionSecret)) {
         return json(response, 401, { error: "Não autenticado." });
+      }
+      if (request.method === "GET" && url.pathname === "/api/demo-reconciliation") {
+        if (!options.inspectDemoAccounting) return json(response, 200, { status: "unavailable", reason: "demo_disabled" });
+        try { return json(response, 200, await options.inspectDemoAccounting()); }
+        catch { return json(response, 200, { status: "unavailable", reason: "diagnostic_failed" }); }
       }
       if (request.method === "GET" && url.pathname === "/api/dashboard") {
         const historySymbol = url.searchParams.get("symbol") || undefined;

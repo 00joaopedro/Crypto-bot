@@ -1,5 +1,7 @@
 import ccxt, { OrderNotFound, type Exchange, type Order } from "ccxt";
 import { collectOkxDemoFills, type OkxCollectedFills, type OkxFillHistoryClient } from "./okx-demo-fill-history.js";
+import { collectOkxDemoOrderEvidence, type OkxOrderEvidenceClient, type OrderEvidenceResult } from "./okx-demo-order-evidence.js";
+import type { JournaledDemoBuy } from "./demo-ownership.js";
 
 export type OkxDemoCredentials = {
   apiKey: string;
@@ -192,6 +194,17 @@ export class OkxDemoExecutor {
       privateGetTradeFills: (params) => client.privateGetTradeFills!(params),
       privateGetTradeFillsHistory: (params) => client.privateGetTradeFillsHistory!(params),
     }, { ...input, now: Date.now() });
+  }
+
+  /** Read-only attribution evidence; it does not establish complete coverage. */
+  async collectOrderEvidence(journal: JournaledDemoBuy[]): Promise<OrderEvidenceResult> {
+    if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
+    const client = this.exchange as unknown as Partial<OkxOrderEvidenceClient>;
+    if (typeof client.privateGetTradeOrder !== "function" || typeof client.privateGetTradeOrderAlgo !== "function") return { status: "unavailable", reason: "order_evidence_endpoint_unavailable" };
+    return collectOkxDemoOrderEvidence({
+      privateGetTradeOrder: (params) => client.privateGetTradeOrder!(params),
+      privateGetTradeOrderAlgo: (params) => client.privateGetTradeOrderAlgo!(params),
+    }, journal);
   }
 
   async executeApprovedBuy(request: DemoBuyRequest): Promise<DemoBuyResult> {

@@ -4,6 +4,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
+import { inspectDemoAccounting } from "./demo-diagnostic.js";
 import { EmailTradeAlert } from "./email-alerts.js";
 import { GeminiRiskFilter } from "./gemini.js";
 import { PublicMarketData } from "./market-data.js";
@@ -377,6 +378,7 @@ async function main(): Promise<void> {
         supportedSymbols,
         onSettingsChanged: reconfigure,
         ...(okxDemo ? { getOkxDemoSnapshot: () => okxDemo!.getAccountSnapshot() } : {}),
+        ...(okxDemo ? { inspectDemoAccounting: () => inspectDemoAccounting(persistence, okxDemo!) } : {}),
       });
     } else {
       console.log(JSON.stringify({ event: "dashboard_disabled" }));
