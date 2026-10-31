@@ -16,4 +16,9 @@ describe("baseline account bill observation", () => {
     await expect(inspectBaselineBills(client([{}]), window)).resolves.toMatchObject({ reason: "invalid_baseline_history_record" });
     await expect(inspectBaselineBills(client([]), { ...window, from: now - 7 * 86_400_000 })).resolves.toMatchObject({ reason: "baseline_history_window_unsupported" });
   });
+  it("does not report an empty history when the exchange returns an error or oversized page", async () => {
+    await expect(inspectBaselineBills({ privateGetAccountBills: async () => ({ code: "50001", data: [] }) }, window)).resolves.toMatchObject({ status: "unavailable", reason: "invalid_baseline_history_response" });
+    await expect(inspectBaselineBills({ privateGetAccountBills: async () => ({ code: "0", data: Array(101).fill({ ts: String(window.from) }) }) }, window)).resolves.toMatchObject({ status: "unavailable", reason: "invalid_baseline_history_response" });
+    await expect(inspectBaselineBills({ privateGetAccountBills: async () => { throw new Error("network"); } }, window)).resolves.toMatchObject({ status: "unavailable", reason: "baseline_history_request_failed" });
+  });
 });

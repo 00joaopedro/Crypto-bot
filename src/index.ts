@@ -163,6 +163,10 @@ async function main(): Promise<void> {
               if (typeof startedAt === "number") {
                 const history = await okxDemo.inspectBaselineHistory(startedAt, observedAt);
                 console.log(JSON.stringify({ event: "demo_baseline_history_observation", ...history }));
+                // This second bounded query checks the period after the saved
+                // snapshot. Empty results do not prove exchange-wide coverage.
+                const sinceBaseline = await okxDemo.inspectBaselineHistory(observedAt, baseline.observedAt);
+                console.log(JSON.stringify({ event: "demo_since_baseline_history_observation", ...sinceBaseline }));
               } else {
                 console.log(JSON.stringify({ event: "demo_baseline_history_observation", status: "unavailable", reason: "baseline_start_time_missing" }));
               }
