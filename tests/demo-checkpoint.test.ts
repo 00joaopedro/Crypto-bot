@@ -14,3 +14,13 @@ it('continues a flat checkpoint without re-reading old fills and retains total P
   expect(await inspectDemoAccounting(persistence, { ...executor, collectAccountCoverage: async () => ({ status: 'unavailable' as const, reason: 'unattributed_account_bill' }) })).toMatchObject({ status: 'unavailable', reason: 'unattributed_account_bill' });
   expect(saveDemoAccountingCheckpoint).toHaveBeenCalledOnce();
 });
+
+it('starts a zero-P&L checkpoint only after proving an unchanged account with no orders', async () => {
+  const now = Date.now(); const identity = { uid: '1', mainUid: '1' };
+  const baseline = { observedAt: new Date(now-60000), balances: { USDT: 100 }, evidence: { startedAt: now-61000, accountIdentity: identity }, status: 'UNVERIFIED' };
+  const saveDemoAccountingCheckpoint = vi.fn();
+  const persistence = { demoOrderJournal: async () => [], getDemoBaselineCandidate: async () => baseline, saveDemoAccountingCheckpoint };
+  const executor = { inspectAccountIdentity: async () => ({ status: 'confirmed' as const, identity }), collectOrderEvidence: vi.fn(), collectFillHistory: vi.fn(), collectAccountBalances: async () => ({ status: 'collected' as const, startedAt: now-1000, endedAt: now-900, balances: { USDT: 100 } }), collectAccountCoverage: async () => ({ status: 'covered' as const, billCount: 0 }) };
+  expect(await inspectDemoAccounting(persistence, executor)).toMatchObject({ status: 'confirmed', realizedPnlUsdt: 0 });
+  expect(saveDemoAccountingCheckpoint).toHaveBeenCalledOnce();
+});

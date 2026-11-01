@@ -11,7 +11,7 @@ import { accountForDemoEvidence } from "./demo-accounting-evidence.js";
 export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint" | "saveDemoAccountingCheckpoint">>, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity" | "collectAccountCoverage" | "collectAccountBalances">) {
   const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
   const rows = await persistence.demoOrderJournal();
-  if (!rows.length) return unavailable("journal_empty");
+  if (!rows.length && !persistence.saveDemoAccountingCheckpoint) return unavailable("journal_empty");
   if (rows.some((row) => row.status === "PENDING")) return unavailable("pending_order");
   const originalBaseline = await persistence.getDemoBaselineCandidate();
   const checkpoint = originalBaseline ? await persistence.getDemoAccountingCheckpoint?.(originalBaseline.observedAt) : null;
@@ -30,7 +30,7 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   if (rows.some((row) => !Number.isSafeInteger(new Date(row.created_at).getTime()))) return unavailable("invalid_journal_date");
   const periodRows = rows.filter((row) => new Date(row.created_at).getTime() >= baseline.observedAt.getTime());
   const placed = periodRows.filter((row) => row.status === "PLACED");
-  if (!placed.length && checkpoint && periodRows.every(row => row.status === "REJECTED_CONFIRMED")) {
+  if (!placed.length && (checkpoint || persistence.saveDemoAccountingCheckpoint) && periodRows.every(row => row.status === "REJECTED_CONFIRMED")) {
     const before = await executor.collectAccountBalances();
     if (before.status !== "collected") return unavailable(before.reason);
     const after = await executor.collectAccountBalances();
