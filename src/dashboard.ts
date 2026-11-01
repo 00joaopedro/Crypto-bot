@@ -25,6 +25,7 @@ type DashboardOptions = {
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
   inspectDemoAccounting?: () => Promise<unknown>;
   inspectDemoPermission?: () => Promise<unknown>;
+  inspectDemoPositions?: () => Promise<unknown>;
   onResume?: () => Promise<{ status: "resumed" } | { status: "blocked"; reason: string }>;
 };
 
@@ -51,6 +52,15 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
       accountingRequest = Promise.resolve().then(() => options.inspectDemoAccounting?.() ?? { status: "unavailable", reason: "demo_disabled" }).catch(() => ({ status: "unavailable", reason: "diagnostic_failed" }));
     }
     return accountingRequest;
+  };
+  let positionsRequest: Promise<unknown> | undefined;
+  let positionsExpiresAt = 0;
+  const demoPositions = (): Promise<unknown> => {
+    if (!positionsRequest || Date.now() >= positionsExpiresAt) {
+      positionsExpiresAt = Date.now() + 60_000;
+      positionsRequest = Promise.resolve().then(() => options.inspectDemoPositions?.() ?? { status: "blocked", reason: "demo_disabled" }).catch(() => ({ status: "blocked", reason: "diagnostic_failed" }));
+    }
+    return positionsRequest;
   };
   const server = createServer(async (request, response) => {
     setSecurityHeaders(response);
@@ -105,7 +115,7 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
             okxDemo = { ...okxDemo, status: "unhealthy", lastError: error instanceof Error ? error.message : String(error) };
           }
         }
-        return json(response, 200, { ...data, okxDemo, demoAccounting: await accounting(), supportedSymbols: options.supportedSymbols });
+        return json(response, 200, { ...data, okxDemo, demoAccounting: await accounting(), demoPositions: await demoPositions(), supportedSymbols: options.supportedSymbols });
       }
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);

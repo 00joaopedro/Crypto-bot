@@ -1,11 +1,12 @@
 import type { Server } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 
+import { inspectDemoEntry } from "./demo-entry.js";
 import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
 import { inspectDemoAccounting } from "./demo-diagnostic.js";
-import { inspectDemoExecutionSafety } from "./demo-execution-safety.js";
+import { inspectDemoExecutionSafety, inspectDemoExecutionState } from "./demo-execution-safety.js";
 import { inspectDemoResume } from "./demo-resume.js";
 import { reconcilePendingDemoOrders } from "./demo-pending-reconciliation.js";
 import { compareDemoBaseline } from "./demo-baseline.js";
@@ -267,6 +268,11 @@ async function main(): Promise<void> {
         paperTrader,
         ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),
         ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: () => inspectDemoExecutionSafety(persistence, demoExecutor) } : {}),
+        ...(demoExecutor && persistence ? { inspectDemoEntry: (symbol: string, stopLossRate: number) => inspectDemoEntry(persistence, demoExecutor, {
+          symbol, stopLossRate, size: settings.orderSizeUsdt, cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
+          maxPositions: settings.maxConcurrentPositions, maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
+          riskPerTrade: config.RISK_PER_TRADE_PERCENT,
+        }) } : {}),
         ...(ai ? { ai } : {}),
         ...(persistence ? { persistence } : {}),
         ...(state
@@ -441,6 +447,16 @@ async function main(): Promise<void> {
         ...(okxDemo ? { getOkxDemoSnapshot: () => okxDemo!.getAccountSnapshot() } : {}),
         ...(okxDemo ? { inspectDemoAccounting: () => inspectDemoAccounting(persistence, okxDemo!) } : {}),
         ...(okxDemo ? { inspectDemoPermission: () => okxDemo!.inspectTradingPermission() } : {}),
+        ...(okxDemo ? { inspectDemoPositions: async () => {
+          const executor = okxDemo;
+          if (!executor || reconfiguring) return { status: "blocked" as const, reason: "bot_reconfiguring" };
+          const baseline = await persistence.getDemoBaselineCandidate();
+          const account = await executor.inspectAccountIdentity();
+          if (!baseline || account.status !== "confirmed" || !sameDemoAccount(baseline.evidence.accountIdentity, account.identity)) return { status: "blocked" as const, reason: "demo_account_identity_unconfirmed" };
+          const result = await inspectDemoExecutionState(persistence, executor);
+          if (executor !== okxDemo || reconfiguring) return { status: "blocked" as const, reason: "bot_reconfiguring" };
+          return result;
+        } } : {}),
       });
     } else {
       console.log(JSON.stringify({ event: "dashboard_disabled" }));

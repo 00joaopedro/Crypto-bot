@@ -26,6 +26,7 @@ type BotOptions = {
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
   verifyDemoExecutionSafety?: () => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
+  inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<{ allowed: boolean; reason?: string }>;
   ai?: GeminiRiskFilter;
   persistence?: BotPersistence;
   initialLastProcessedCandle?: number;
@@ -239,7 +240,7 @@ export class TradingBot {
       }));
     }
 
-    if (signal.action === "BUY" && currentSymbolSelected && !cooldownBlocked && !stopLossCooldownBlocked && this.options.ai) {
+    if (signal.action === "BUY" && currentSymbolSelected && (!cooldownBlocked || this.options.inspectDemoEntry) && !stopLossCooldownBlocked && this.options.ai) {
       try {
         aiDecision = await withTimeout(this.options.ai.evaluate(signal), 8_000, "Gemini request timed out");
         await this.recordServiceStatus("gemini", "ok");
@@ -284,6 +285,13 @@ export class TradingBot {
       !cooldownBlocked &&
       !stopLossCooldownBlocked &&
       this.consecutiveLosses < (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY);
+
+    // Demo admission is independent of Paper position and Paper cooldown.
+    // Shared loss latches remain conservative circuit breakers.
+    const demoCandidate = Boolean(this.options.inspectDemoEntry) &&
+      signal.action === "BUY" && currentSymbolSelected &&
+      (quantitativeFallback || (aiDecision.approve && aiDecision.confidence >= this.options.minimumConfidence)) &&
+      !stopLossCooldownBlocked && this.consecutiveLosses < (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY);
 
     const managerBlock = approved && this.options.tradeManager
       ? this.options.tradeManager.canEnter(
@@ -399,7 +407,16 @@ export class TradingBot {
     }
 
     const paperOpened = paperResult.events.some((event) => event.type === "OPENED");
-    if (approved && this.options.demoExecutor && paperOpened) {
+    let demoApproved = approved && paperOpened;
+    if (this.options.demoExecutor && this.options.inspectDemoEntry) {
+      demoApproved = false;
+      if (demoCandidate && !this.demoExecutionBlocked && !(await this.options.persistence?.isPaused())) {
+        const admission = await this.options.inspectDemoEntry(executionSymbol, exitRates.stopLossRate);
+        demoApproved = admission.allowed;
+        if (!admission.allowed) await this.recordOperationalEvent("DEMO_ENTRY_BLOCKED", "WARN", { reason: admission.reason });
+      }
+    }
+    if (demoApproved && this.options.demoExecutor) {
       try {
         const intervalLimitReached = Boolean(
           this.options.persistence &&
@@ -538,7 +555,7 @@ export class TradingBot {
       }
     }
 
-    if (approved && this.options.demoExecutor && !paperOpened) {
+    if (approved && this.options.demoExecutor && !paperOpened && !this.options.inspectDemoEntry) {
       console.log(
         JSON.stringify({
           event: "okx_demo_order_skipped",
@@ -674,7 +691,7 @@ export class TradingBot {
       }
     }
 
-    const blockedSymbols = new Set(this.options.tradeManager?.activePositions.map((position) => position.symbol));
+    const blockedSymbols = new Set(this.options.inspectDemoEntry ? [] : this.options.tradeManager?.activePositions.map((position) => position.symbol));
     const ranked = rankSignals(candidates, this.options.minimumSignalScore, blockedSymbols);
     const activeSymbols = await this.updateUniverse(ranked, configuredSymbols, currentCandles.at(-1)?.timestamp ?? Date.now(), universeSize);
     return ranked.filter((candidate) => activeSymbols.has(candidate.symbol));
