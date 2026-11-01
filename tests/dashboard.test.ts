@@ -9,6 +9,33 @@ describe("dashboard authentication", () => {
 
   afterEach(async () => stopDashboard(server));
 
+  networkTest("applies a later pause after an in-flight resume", async () => {
+    let paused = true;
+    const operations: string[] = [];
+    let resumeStarted!: () => void;
+    let releaseResume!: () => void;
+    const started = new Promise<void>((resolve) => { resumeStarted = resolve; });
+    const gate = new Promise<void>((resolve) => { releaseResume = resolve; });
+    const persistence = { setPaused: vi.fn(async (value: boolean) => { paused = value; operations.push(value ? "pause" : "resume"); }) } as unknown as PostgresPersistence;
+    server = await startDashboard({ port: 0, host: "127.0.0.1", password: "password", sessionSecret: "s".repeat(32), persistence, supportedSymbols: [], onSettingsChanged: () => undefined,
+      onResume: async () => { resumeStarted(); await gate; await persistence.setPaused(false, "dashboard"); return { status: "resumed" }; } });
+    const { port } = server.address() as AddressInfo;
+    const base = `http://127.0.0.1:${port}`;
+    const login = await fetch(`${base}/api/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "password" }) });
+    const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
+    const control = (value: boolean) => fetch(`${base}/api/control`, { method: "POST", headers: { cookie, origin: base, "content-type": "application/json" }, body: JSON.stringify({ paused: value }) });
+    const resume = control(false);
+    await started;
+    const pause = control(true);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(operations).toEqual([]);
+    releaseResume();
+    expect((await resume).status).toBe(200);
+    expect((await pause).status).toBe(200);
+    expect(operations).toEqual(["resume", "pause"]);
+    expect(paused).toBe(true);
+  });
+
   networkTest("keeps data private and creates an authenticated session", async () => {
     const onSettingsChanged = vi.fn();
     const onResume = vi.fn().mockResolvedValueOnce({ status: "blocked", reason: "pending_demo_order" }).mockResolvedValueOnce({ status: "resumed" });
