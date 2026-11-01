@@ -649,15 +649,21 @@ export class TradingBot {
       for (const candle of candles.filter(c => c.timestamp > last)) {
         const before = trader.exportState();
         const index = candles.findIndex(c => c.timestamp === candle.timestamp);
-        const signal = index >= 49 ? evaluateStrategy(candles.slice(0, index + 1)) : undefined;
+        const signal = index >= 49 ? evaluateStrategy(candles.slice(0, index + 1), this.options.minimumSignalScore === undefined ? undefined : { minimumScore: this.options.minimumSignalScore }) : undefined;
+        const riskBefore = this.exportRiskState();
         const result = trader.processCandle(candle, false, undefined, signal?.action === "SELL");
+        await this.applyLossControls(result.events, candle.timestamp);
         try {
           await this.options.persistence?.recordCycle({ symbol: position.symbol, candle, replayed: true, paperResult: result, paperState: trader.exportState(), riskState: this.exportRiskState() });
-        } catch (error) { trader.restoreState(before); throw error; }
+        } catch (error) {
+          trader.restoreState(before);
+          this.consecutiveLosses = riskBefore.consecutiveLosses;
+          this.stopLossCooldownUntil = riskBefore.stopLossCooldownUntil;
+          throw error;
+        }
         this.lastProcessedCandleBySymbol.set(position.symbol, candle.timestamp);
         if (result.events.some(e => e.type === "CLOSED")) {
           this.options.tradeManager?.recordExit(position.symbol);
-          await this.applyLossControls(result.events, candle.timestamp);
           break;
         }
       }
