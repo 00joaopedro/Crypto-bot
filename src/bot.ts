@@ -111,6 +111,7 @@ export class TradingBot {
       if (safety.status !== "safe") {
         this.demoExecutionBlocked = true;
         await this.options.persistence?.setPaused(true, "system:demo_execution_safety");
+        await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "WARN", { symbol: this.options.symbol, approved: false, reason: safety.reason });
         console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
         return;
       }
