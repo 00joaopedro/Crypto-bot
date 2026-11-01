@@ -6,6 +6,8 @@ import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
 import { inspectDemoAccounting } from "./demo-diagnostic.js";
 import { inspectDemoExecutionSafety } from "./demo-execution-safety.js";
+import { inspectDemoResume } from "./demo-resume.js";
+import { reconcilePendingDemoOrders } from "./demo-pending-reconciliation.js";
 import { compareDemoBaseline } from "./demo-baseline.js";
 import { sameDemoAccount } from "./okx-demo-identity.js";
 import { EmailTradeAlert } from "./email-alerts.js";
@@ -422,6 +424,20 @@ async function main(): Promise<void> {
         persistence,
         supportedSymbols,
         onSettingsChanged: reconfigure,
+        ...(okxDemo ? { onResume: async () => {
+          if (reconfiguring || !okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
+          await activeCycle;
+          if (reconfiguring || !okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
+          const currentBot = bot;
+          const currentExecutor = okxDemo;
+          await reconcilePendingDemoOrders(persistence, currentExecutor);
+          const safety = await inspectDemoResume(persistence, currentExecutor);
+          if (safety.status !== "safe") { await persistence.setPaused(true, "system:demo_execution_safety"); return safety; }
+          if (reconfiguring || currentBot !== bot || currentExecutor !== okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
+          await persistence.setPaused(false, "dashboard");
+          currentBot.clearDemoExecutionBlock();
+          return { status: "resumed" as const };
+        } } : {}),
         ...(okxDemo ? { getOkxDemoSnapshot: () => okxDemo!.getAccountSnapshot() } : {}),
         ...(okxDemo ? { inspectDemoAccounting: () => inspectDemoAccounting(persistence, okxDemo!) } : {}),
         ...(okxDemo ? { inspectDemoPermission: () => okxDemo!.inspectTradingPermission() } : {}),
@@ -433,14 +449,7 @@ async function main(): Promise<void> {
     while (!stopping) {
       try {
         if (!reconfiguring && okxDemo && persistence) {
-          for (const pending of await persistence.pendingDemoOrders()) {
-            try {
-              const order = await okxDemo.reconcileOrder(pending.symbol, pending.client_order_id);
-              if (order) await persistence.reconcileDemoOrder(pending.client_order_id, order);
-            } catch (error) {
-              console.error(JSON.stringify({ event: "okx_reconciliation_failed", symbol: pending.symbol, clientOrderId: pending.client_order_id, error: error instanceof Error ? error.message : String(error) }));
-            }
-          }
+          await reconcilePendingDemoOrders(persistence, okxDemo);
           if (!demoSafetyAudited) {
             const safety = await inspectDemoExecutionSafety(persistence, okxDemo);
             if (safety.status !== "safe") {

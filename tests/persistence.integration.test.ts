@@ -8,6 +8,31 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("reconciles only a correlated explicit permission rejection and keeps both audit records", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const verification = new Pool({ connectionString: databaseUrl });
+    const timestamp = Date.now();
+    const id = `REJECT${timestamp}`;
+    const failed = `FAILED:ETH/USDT:${timestamp}`;
+    try {
+      await persistence.initialize();
+      await verification.query("INSERT INTO demo_orders (client_order_id,symbol,candle_timestamp,status,result) VALUES ($1,'ETH/USDT',$2,'PENDING',$3::jsonb),($4,'ETH/USDT',$2,'FAILED',$5::jsonb)", [id, timestamp, JSON.stringify({ status: "PENDING" }), failed, JSON.stringify({ error: 'okx {"msg":"This API Key does not have trading permission for the Crypto","code":"50001"}' })]);
+      expect(await persistence.confirmMissingPermissionRejectedOrder(id)).toBe(false);
+      await verification.query("UPDATE demo_orders SET result = $2::jsonb WHERE client_order_id = $1", [failed, JSON.stringify({ error: 'okx {"msg":"This API Key does not have trading permission for the Crypto","code":"50123"}' })]);
+      expect(await persistence.confirmMissingPermissionRejectedOrder(id)).toBe(true);
+      expect(await persistence.confirmMissingPermissionRejectedOrder(id)).toBe(false);
+      await persistence.recordDemoOrderFailure("ETH/USDT", timestamp, "retry must not replace evidence");
+      const rows = await verification.query("SELECT client_order_id,status,result FROM demo_orders WHERE client_order_id = ANY($1::text[]) ORDER BY client_order_id", [[id, failed]]);
+      expect(rows.rows).toHaveLength(2);
+      expect(rows.rows.every((row) => row.status === "REJECTED_CONFIRMED" && row.result.reconciliation.method === "okx_50123_and_order_not_found")).toBe(true);
+      expect(rows.rows.find((row) => row.client_order_id === failed)?.result.error).toContain("50123");
+      expect((await verification.query("SELECT 1 FROM audit_events WHERE event_type = 'DEMO_REJECTION_RECONCILED' AND details->>'clientOrderId' = $1", [id])).rowCount).toBe(1);
+    } finally {
+      await verification.query("DELETE FROM audit_events WHERE event_type = 'DEMO_REJECTION_RECONCILED' AND details->>'clientOrderId' = $1", [id]);
+      await verification.query("DELETE FROM demo_orders WHERE client_order_id = ANY($1::text[])", [[id, failed]]);
+      await verification.end(); await persistence.close();
+    }
+  });
   it("replaces only an idle identity-less baseline while retaining its audit row", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const verification = new Pool({ connectionString: databaseUrl });

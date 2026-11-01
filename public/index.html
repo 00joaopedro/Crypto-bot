@@ -34,6 +34,7 @@
       <section class="hero panel">
         <div><p class="eyebrow">CONTROLE OPERACIONAL</p><h2>Visão geral da estratégia</h2><p class="muted">Dados do PostgreSQL atualizados automaticamente.</p></div>
         <button id="toggle-bot" class="danger">Pausar bot</button>
+        <p id="control-message" class="message" role="status"></p>
       </section>
 
       <section class="metrics" aria-label="Indicadores principais">
@@ -80,7 +81,7 @@
             <label>Par negociado<select id="symbol" required></select></label>
             <div class="form-grid">
               <label>Valor por trade (USDT)<input id="order-size" type="number" min="1" max="100" step="0.01" required></label>
-              <label>Máximo de trades<input id="max-trades" type="number" min="1" max="100" required></label>
+              <label>Máximo de trades<input id="max-trades" type="number" min="1" max="5" required></label>
               <label>Posições simultâneas<input id="max-positions" type="number" min="1" max="99" required></label>
             </div>
             <label>Intervalo do limite<select id="interval"><option value="15">15 minutos</option><option value="60">1 hora</option><option value="240">4 horas</option><option value="1440">1 dia</option><option value="10080">1 semana</option></select></label>

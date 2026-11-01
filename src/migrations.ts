@@ -197,5 +197,14 @@ export const migrations: readonly Migration[] = [
         CHECK (status IN ('UNVERIFIED', 'SUPERSEDED'));
     `,
   },
+  {
+    version: 10,
+    name: "demo_confirmed_rejection_status",
+    sql: `
+      ALTER TABLE demo_orders DROP CONSTRAINT demo_orders_status_check;
+      ALTER TABLE demo_orders ADD CONSTRAINT demo_orders_status_check
+        CHECK (status IN ('PLACED', 'SKIPPED', 'FAILED', 'PENDING', 'REJECTED_CONFIRMED'));
+    `,
+  },
 ] as const;
 
