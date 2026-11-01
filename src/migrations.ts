@@ -1,0 +1,201 @@
+export type Migration = {
+  version: number;
+  name: string;
+  sql: string;
+};
+
+export const migrations: readonly Migration[] = [
+  {
+    version: 1,
+    name: "database_foundation",
+    sql: `
+      CREATE TABLE bot_runs (
+        id UUID PRIMARY KEY,
+        started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        stopped_at TIMESTAMPTZ,
+        stop_reason TEXT,
+        metadata JSONB NOT NULL
+      );
+
+      CREATE TABLE decisions (
+        id BIGSERIAL PRIMARY KEY,
+        symbol TEXT NOT NULL,
+        candle_timestamp BIGINT NOT NULL,
+        mode TEXT NOT NULL,
+        signal JSONB NOT NULL,
+        ai_decision JSONB NOT NULL,
+        approved BOOLEAN NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (symbol, candle_timestamp)
+      );
+
+      CREATE TABLE portfolio_snapshots (
+        id BIGSERIAL PRIMARY KEY,
+        symbol TEXT NOT NULL,
+        candle_timestamp BIGINT NOT NULL,
+        replayed BOOLEAN NOT NULL,
+        equity_usdt DOUBLE PRECISION NOT NULL,
+        realized_pnl_usdt DOUBLE PRECISION NOT NULL,
+        unrealized_pnl_usdt DOUBLE PRECISION NOT NULL,
+        current_drawdown_percent DOUBLE PRECISION NOT NULL,
+        max_drawdown_percent DOUBLE PRECISION NOT NULL,
+        snapshot JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (symbol, candle_timestamp)
+      );
+
+      CREATE TABLE paper_trades (
+        event_key TEXT PRIMARY KEY,
+        symbol TEXT NOT NULL,
+        event_type TEXT NOT NULL CHECK (event_type IN ('OPENED', 'CLOSED')),
+        candle_timestamp BIGINT NOT NULL,
+        replayed BOOLEAN NOT NULL,
+        trade JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE paper_trader_state (
+        symbol TEXT PRIMARY KEY,
+        last_processed_candle BIGINT NOT NULL,
+        state JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE demo_orders (
+        client_order_id TEXT PRIMARY KEY,
+        symbol TEXT NOT NULL,
+        candle_timestamp BIGINT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('PLACED', 'SKIPPED', 'FAILED')),
+        result JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE bot_control (
+        id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        paused BOOLEAN NOT NULL DEFAULT FALSE,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_by TEXT NOT NULL DEFAULT 'system'
+      );
+
+      INSERT INTO bot_control (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+      CREATE TABLE audit_events (
+        id BIGSERIAL PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        actor TEXT NOT NULL,
+        details JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX decisions_created_at_idx ON decisions (created_at DESC);
+      CREATE INDEX portfolio_snapshots_timestamp_idx
+        ON portfolio_snapshots (symbol, candle_timestamp DESC);
+      CREATE INDEX paper_trades_timestamp_idx
+        ON paper_trades (symbol, candle_timestamp DESC);
+      CREATE INDEX demo_orders_timestamp_idx
+        ON demo_orders (symbol, candle_timestamp DESC);
+      CREATE INDEX audit_events_created_at_idx ON audit_events (created_at DESC);
+    `,
+  },
+  {
+    version: 2,
+    name: "dashboard_controls",
+    sql: `
+      CREATE TABLE dashboard_settings (
+        id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        symbol TEXT NOT NULL,
+        order_size_usdt DOUBLE PRECISION NOT NULL CHECK (order_size_usdt > 0 AND order_size_usdt <= 100),
+        max_trades INTEGER NOT NULL CHECK (max_trades BETWEEN 1 AND 100),
+        interval_minutes INTEGER NOT NULL CHECK (interval_minutes BETWEEN 15 AND 10080),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_by TEXT NOT NULL DEFAULT 'system'
+      );
+
+      CREATE INDEX portfolio_snapshots_created_at_idx
+        ON portfolio_snapshots (created_at DESC);
+      CREATE INDEX demo_orders_created_at_idx
+        ON demo_orders (created_at DESC);
+    `,
+  },
+  {
+    version: 3,
+    name: "paper_trade_size_override",
+    sql: `
+      ALTER TABLE dashboard_settings
+        ADD COLUMN paper_trade_size_usdt DOUBLE PRECISION
+        CHECK (paper_trade_size_usdt IS NULL OR (paper_trade_size_usdt > 0 AND paper_trade_size_usdt <= 100));
+    `,
+  },
+  {
+    version: 4,
+    name: "operational_events",
+    sql: `
+      CREATE TABLE operational_events (
+        id BIGSERIAL PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        severity TEXT NOT NULL CHECK (severity IN ('INFO', 'WARN', 'ERROR')),
+        symbol TEXT,
+        details JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX operational_events_created_at_idx
+        ON operational_events (created_at DESC);
+      CREATE INDEX operational_events_type_idx
+        ON operational_events (event_type, created_at DESC);
+    `,
+  },
+  {
+    version: 5,
+    name: "dashboard_concurrent_positions",
+    sql: `
+      ALTER TABLE dashboard_settings
+        ADD COLUMN max_concurrent_positions INTEGER NOT NULL DEFAULT 2
+        CHECK (max_concurrent_positions BETWEEN 1 AND 99);
+    `,
+  },
+  {
+    version: 6,
+    name: "demo_pending_status",
+    sql: `
+      ALTER TABLE demo_orders DROP CONSTRAINT demo_orders_status_check;
+      ALTER TABLE demo_orders ADD CONSTRAINT demo_orders_status_check
+        CHECK (status IN ('PLACED', 'SKIPPED', 'FAILED', 'PENDING'));
+    `,
+  },
+  {
+    version: 7,
+    name: "demo_protection_intent_identity",
+    sql: `
+      ALTER TABLE demo_orders ADD COLUMN attached_algo_client_id TEXT
+        CHECK (attached_algo_client_id IS NULL OR attached_algo_client_id ~ '^[A-Za-z0-9]{1,32}$');
+      CREATE UNIQUE INDEX demo_orders_attached_algo_client_id_idx
+        ON demo_orders (attached_algo_client_id) WHERE attached_algo_client_id IS NOT NULL;
+    `,
+  },
+  {
+    version: 8,
+    name: "demo_accounting_baseline_candidates",
+    sql: `
+      CREATE TABLE demo_accounting_baselines (
+        id BIGSERIAL PRIMARY KEY,
+        observed_at TIMESTAMPTZ NOT NULL,
+        balances JSONB NOT NULL,
+        evidence JSONB NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('UNVERIFIED')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `,
+  },
+  {
+    version: 9,
+    name: "demo_baseline_superseded_audit",
+    sql: `
+      ALTER TABLE demo_accounting_baselines DROP CONSTRAINT demo_accounting_baselines_status_check;
+      ALTER TABLE demo_accounting_baselines ADD CONSTRAINT demo_accounting_baselines_status_check
+        CHECK (status IN ('UNVERIFIED', 'SUPERSEDED'));
+    `,
+  },
+] as const;
+

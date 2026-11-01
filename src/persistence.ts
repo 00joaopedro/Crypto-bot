@@ -1,0 +1,817 @@
+import { createHash, randomUUID } from "node:crypto";
+
+import { Pool, type PoolClient } from "pg";
+import { migrations } from "./migrations.js";
+import type {
+  PaperCycleResult,
+  PaperTraderState,
+  PaperTradeClosed,
+  PaperTradeOpened,
+} from "./paper-trader.js";
+import { classifyDemoOrder, normalizedOrderFees, type DemoBuyResult } from "./okx-demo.js";
+import { readDemoAccountIdentity } from "./okx-demo-identity.js";
+import type { AiDecision, Candle, QuantSignal } from "./types.js";
+import { buildStatisticalReport, type StatisticalTrade } from "./analytics.js";
+
+export type PersistedCycle = {
+  symbol: string;
+  candle: Candle;
+  replayed: boolean;
+  paperResult: PaperCycleResult;
+  paperState: PaperTraderState;
+  riskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
+  decision?: {
+    mode: "PAPER" | "PAPER_WITH_OKX_DEMO";
+    signal: QuantSignal;
+    aiDecision: AiDecision;
+    approved: boolean;
+  };
+};
+
+export type RecoveryState = {
+  symbol: string;
+  lastProcessedCandle: number;
+  paperState: PaperTraderState;
+  riskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
+};
+
+export type DashboardSettings = {
+  symbol: string;
+  orderSizeUsdt: number;
+  paperTradeSizeUsdt?: number | null;
+  maxTrades: number;
+  intervalMinutes: number;
+  maxConcurrentPositions: number;
+};
+
+export type DashboardData = {
+  paused: boolean;
+  settings: DashboardSettings;
+  latestDecision: Record<string, unknown> | null;
+  latestSnapshot: Record<string, unknown> | null;
+  snapshots: Array<Record<string, unknown>>;
+  trades: Array<Record<string, unknown>>;
+  orders: Array<Record<string, unknown>>;
+  metrics: Record<string, unknown>;
+  portfoliosBySymbol: Array<Record<string, unknown>>;
+  health: Record<string, unknown>;
+  analytics: ReturnType<typeof buildStatisticalReport>;
+  okxDemo: { quoteFree: number | null; totalUsdt: number | null; updatedAt: string | null; status: string; lastError?: string };
+};
+
+const MAX_SAFE_TRADES_PER_HOUR = 5;
+
+export type OperationalEvent = {
+  eventType: string;
+  severity: "INFO" | "WARN" | "ERROR";
+  symbol?: string;
+  details?: Record<string, unknown>;
+};
+
+export interface BotPersistence {
+  isPaused(): Promise<boolean>;
+  loadRecoveryState?(symbol: string): Promise<RecoveryState | null>;
+  setPaused(paused: boolean, actor: string): Promise<void>;
+  recordCycle(cycle: PersistedCycle): Promise<void>;
+  recordDemoOrder(
+    symbol: string,
+    candleTimestamp: number,
+    result: DemoBuyResult,
+  ): Promise<void>;
+  recordDemoOrderFailure(
+    symbol: string,
+    candleTimestamp: number,
+    error: string,
+  ): Promise<void>;
+  canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean>;
+  canEnterSymbol?(symbol: string, cooldownMinutes: number): Promise<boolean>;
+  recordOperationalEvent(event: OperationalEvent): Promise<void>;
+  getDailyStartEquity?(symbol: string): Promise<number | undefined>;
+  getDiagnosticLogs?(hours?: number, limit?: number): Promise<string>;
+}
+
+type StateRow = {
+  last_processed_candle: string;
+  state: unknown;
+};
+
+type AppliedMigrationRow = {
+  version: number;
+  name: string;
+  checksum: string;
+};
+
+function isRiskState(value: unknown): value is { consecutiveLosses: number; stopLossCooldownUntil: number } {
+  if (!value || typeof value !== "object") return false;
+  const state = value as Record<string, unknown>;
+  return typeof state.consecutiveLosses === "number" &&
+    Number.isFinite(state.consecutiveLosses) &&
+    typeof state.stopLossCooldownUntil === "number" &&
+    Number.isFinite(state.stopLossCooldownUntil);
+}
+
+export class PostgresPersistence implements BotPersistence {
+  private readonly pool: Pool;
+
+  constructor(connectionString: string, connectionTimeoutMs = 10_000) {
+    this.pool = new Pool({
+      connectionString,
+      connectionTimeoutMillis: connectionTimeoutMs,
+      max: 5,
+      application_name: "crypto-bot",
+    });
+  }
+
+  async initialize(): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtext('crypto-bot-schema-migrations'))",
+      );
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+          version INTEGER PRIMARY KEY,
+          name TEXT NOT NULL,
+          checksum TEXT NOT NULL,
+          applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      const applied = await client.query<AppliedMigrationRow>(
+        "SELECT version, name, checksum FROM schema_migrations",
+      );
+      const appliedByVersion = new Map(
+        applied.rows.map((row) => [row.version, row]),
+      );
+      for (const migration of migrations) {
+        const checksum = createHash("sha256")
+          .update(migration.sql)
+          .digest("hex");
+        const existing = appliedByVersion.get(migration.version);
+        if (existing) {
+          if (
+            existing.name !== migration.name ||
+            existing.checksum !== checksum
+          ) {
+            throw new Error(
+              `Applied migration ${migration.version} no longer matches source`,
+            );
+          }
+          continue;
+        }
+        await client.query(migration.sql);
+        await client.query(
+          `INSERT INTO schema_migrations (version, name, checksum)
+           VALUES ($1, $2, $3)`,
+          [migration.version, migration.name, checksum],
+        );
+      }
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async startRun(metadata: Record<string, unknown>): Promise<string> {
+    const id = randomUUID();
+    await this.pool.query(
+      "INSERT INTO bot_runs (id, metadata) VALUES ($1, $2::jsonb)",
+      [id, JSON.stringify(metadata)],
+    );
+    return id;
+  }
+
+  async stopRun(runId: string, reason: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE bot_runs
+       SET stopped_at = NOW(), stop_reason = $2
+       WHERE id = $1 AND stopped_at IS NULL`,
+      [runId, reason],
+    );
+  }
+
+  async loadRecoveryState(symbol: string): Promise<RecoveryState | null> {
+    const result = await this.pool.query<StateRow>(
+      `SELECT last_processed_candle, state
+       FROM paper_trader_state
+       WHERE symbol = $1`,
+      [symbol],
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+
+    const lastProcessedCandle = Number(row.last_processed_candle);
+    if (!Number.isSafeInteger(lastProcessedCandle) || lastProcessedCandle < 0) {
+      throw new Error("Database contains an invalid last_processed_candle");
+    }
+
+    const storedState = row.state as PaperTraderState & { symbol?: unknown };
+    const { symbol: _storedSymbol, ...paperState } = storedState;
+    const recoverySymbol = row.state && typeof row.state === "object" && "symbol" in row.state && typeof row.state.symbol === "string" ? row.state.symbol : symbol;
+    const recovery = {
+      lastProcessedCandle,
+      paperState: paperState as PaperTraderState,
+      ...(isRiskState(row.state) ? { riskState: row.state } : {}),
+    } as RecoveryState;
+    Object.defineProperty(recovery, "symbol", { value: recoverySymbol, enumerable: false });
+    return recovery;
+  }
+
+  async isPaused(): Promise<boolean> {
+    const result = await this.pool.query<{ paused: boolean }>(
+      "SELECT paused FROM bot_control WHERE id = 1",
+    );
+    return result.rows[0]?.paused ?? true;
+  }
+
+  async setPaused(paused: boolean, actor: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `UPDATE bot_control
+         SET paused = $1, updated_at = NOW(), updated_by = $2
+         WHERE id = 1`,
+        [paused, actor],
+      );
+      await client.query(
+        `INSERT INTO audit_events (event_type, actor, details)
+         VALUES ('BOT_PAUSE_CHANGED', $1, $2::jsonb)`,
+        [actor, JSON.stringify({ paused })],
+      );
+      await client.query(
+        `INSERT INTO operational_events (event_type, severity, details)
+         VALUES ('BOT_PAUSED', 'WARN', $1::jsonb)`,
+        [JSON.stringify({ paused, actor })],
+      );
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async ensureDashboardSettings(defaults: DashboardSettings): Promise<DashboardSettings> {
+    await this.pool.query(
+      `INSERT INTO dashboard_settings (
+         id, symbol, order_size_usdt, max_trades, interval_minutes, max_concurrent_positions
+       ) VALUES (1, $1, $2, $3, $4, $5)
+       ON CONFLICT (id) DO NOTHING`,
+      [defaults.symbol, defaults.orderSizeUsdt, defaults.maxTrades, defaults.intervalMinutes, defaults.maxConcurrentPositions],
+    );
+    // Existing dashboard rows predate the safety cap. Normalize them during
+    // startup so a persisted value cannot bypass the configured hourly limit.
+    await this.pool.query(
+      `UPDATE dashboard_settings
+       SET max_trades = LEAST(max_trades, $1), updated_at = NOW()
+       WHERE id = 1 AND max_trades > $1`,
+      [MAX_SAFE_TRADES_PER_HOUR],
+    );
+    return this.getDashboardSettings();
+  }
+
+  async getDashboardSettings(): Promise<DashboardSettings> {
+    const result = await this.pool.query<{
+      symbol: string;
+      order_size_usdt: number;
+      paper_trade_size_usdt: number | null;
+      max_trades: number;
+      interval_minutes: number;
+      max_concurrent_positions: number;
+    }>(
+      `SELECT symbol, order_size_usdt, paper_trade_size_usdt, max_trades, interval_minutes, max_concurrent_positions
+       FROM dashboard_settings WHERE id = 1`,
+    );
+    const row = result.rows[0];
+    if (!row) throw new Error("Dashboard settings are not initialized");
+    return {
+      symbol: row.symbol,
+      orderSizeUsdt: Number(row.order_size_usdt),
+      paperTradeSizeUsdt: row.paper_trade_size_usdt === null ? null : Number(row.paper_trade_size_usdt),
+      maxTrades: Math.min(row.max_trades, MAX_SAFE_TRADES_PER_HOUR),
+      intervalMinutes: row.interval_minutes,
+      maxConcurrentPositions: Math.min(99, Math.max(1, Number(row.max_concurrent_positions))),
+    };
+  }
+
+  async updateDashboardSettings(settings: DashboardSettings, actor: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `UPDATE dashboard_settings SET
+           symbol = $1, order_size_usdt = $2, max_trades = $3,
+           interval_minutes = $4, max_concurrent_positions = $5,
+           updated_at = NOW(), updated_by = $6
+         WHERE id = 1`,
+        [settings.symbol, settings.orderSizeUsdt, Math.min(settings.maxTrades, MAX_SAFE_TRADES_PER_HOUR), settings.intervalMinutes, settings.maxConcurrentPositions, actor],
+      );
+      await client.query(
+        `INSERT INTO audit_events (event_type, actor, details)
+        VALUES ('TRADING_SETTINGS_CHANGED', $1, $2::jsonb)`,
+        [actor, JSON.stringify(settings)],
+      );
+      await client.query(
+        `INSERT INTO operational_events (event_type, severity, symbol, details)
+         VALUES ('TRADING_SETTINGS_CHANGED', 'INFO', $1, $2::jsonb)`,
+        [settings.symbol, JSON.stringify({ actor, settings })],
+      );
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean> {
+    const result = await this.pool.query<{ count: string; pending: boolean }>(
+      `SELECT COUNT(*)::text AS count, COALESCE(BOOL_OR(status = 'PENDING'), false) AS pending FROM demo_orders
+       WHERE status = 'PENDING' OR (status = 'PLACED'
+         AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))`,
+      [intervalMinutes],
+    );
+    return !result.rows[0]?.pending && Number(result.rows[0]?.count ?? 0) < maxTrades;
+  }
+
+  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = 1, intervalMinutes = 60, attachedAlgoClientId: string | null = null): Promise<boolean> {
+    if (attachedAlgoClientId !== null && !/^[A-Za-z0-9]{1,32}$/.test(attachedAlgoClientId)) {
+      throw new Error("Invalid Demo protection client ID");
+    }
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-order-reservation'))");
+      const counts = await client.query<{ pending: boolean; recent: string }>(
+        `SELECT COALESCE(BOOL_OR(status = 'PENDING'), false) AS pending,
+          COUNT(*) FILTER (WHERE status = 'PLACED' AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))::text AS recent
+         FROM demo_orders`, [intervalMinutes],
+      );
+      if (counts.rows[0]?.pending || Number(counts.rows[0]?.recent ?? 0) >= maxTrades) {
+        await client.query("COMMIT");
+        return false;
+      }
+      const result = await client.query(
+      `INSERT INTO demo_orders (client_order_id, symbol, candle_timestamp, status, result, attached_algo_client_id)
+       VALUES ($1, $2, $3, 'PENDING', $4::jsonb, $5)
+       ON CONFLICT (client_order_id) DO NOTHING RETURNING client_order_id`,
+      [clientOrderId, symbol, timestamp, JSON.stringify({ clientOrderId, status: "PENDING", reason: "submission_unconfirmed" }), attachedAlgoClientId],
+      );
+      await client.query("COMMIT");
+      return result.rowCount === 1;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
+  }
+
+  async getDemoBaselineCandidate(): Promise<{ observedAt: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string } | null> {
+    const result = await this.pool.query<{ observed_at: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string }>("SELECT observed_at, balances, evidence, status FROM demo_accounting_baselines WHERE status = 'UNVERIFIED' ORDER BY id DESC LIMIT 1");
+    const row = result.rows[0];
+    return row ? { observedAt: row.observed_at, balances: row.balances, evidence: row.evidence, status: row.status } : null;
+  }
+
+  /** Raw durable intent records: this does not prove exchange acceptance or ownership. */
+  async saveDemoBaselineCandidate(input: { observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown> }): Promise<void> {
+    if (!readDemoAccountIdentity({ code: "0", data: [input.evidence?.accountIdentity] }) || !Number.isSafeInteger(input.observedAt) || input.observedAt <= 0 || input.observedAt > Date.now() || !input.balances || !Object.hasOwn(input.balances, "USDT") || Object.entries(input.balances).some(([asset, amount]) => !/^[A-Z0-9]+$/.test(asset) || !Number.isFinite(amount) || amount < 0)) throw new Error("Invalid Demo baseline candidate");
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-baseline'))");
+      const control = await client.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1 FOR UPDATE");
+      if (control.rows[0]?.paused !== true) throw new Error("Bot must be paused before recording a baseline");
+      const pending = await client.query("SELECT 1 FROM demo_orders WHERE status = 'PENDING' LIMIT 1");
+      if (pending.rowCount) throw new Error("Pending Demo orders prevent recording a baseline");
+      const existing = await client.query<{ id: string; observed_at: Date; evidence: Record<string, unknown> }>("SELECT id, observed_at, evidence FROM demo_accounting_baselines WHERE status = 'UNVERIFIED' ORDER BY id DESC LIMIT 1 FOR UPDATE");
+      if (existing.rows[0]) {
+        const previous = existing.rows[0];
+        if (previous.evidence?.accountIdentity) throw new Error("Demo baseline candidate already has an account identity");
+        const activity = await client.query("SELECT 1 FROM demo_orders WHERE created_at >= $1 LIMIT 1", [previous.observed_at]);
+        if (activity.rowCount) throw new Error("Demo order activity prevents replacing the legacy baseline");
+        await client.query("UPDATE demo_accounting_baselines SET status = 'SUPERSEDED' WHERE id = $1", [previous.id]);
+      }
+      await client.query("INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status) VALUES (to_timestamp($1 / 1000.0), $2::jsonb, $3::jsonb, 'UNVERIFIED')", [input.observedAt, JSON.stringify(input.balances), JSON.stringify(input.evidence)]);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
+  }
+
+  async demoOrderJournal(since?: Date): Promise<Array<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>> {
+    if (since && !Number.isFinite(since.getTime())) throw new Error("Invalid Demo journal start date");
+    const result = await this.pool.query<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>(
+      `SELECT client_order_id, symbol, status, result, attached_algo_client_id, created_at
+       FROM demo_orders WHERE ($1::timestamptz IS NULL OR created_at >= $1) ORDER BY created_at, client_order_id`,
+      [since ?? null],
+    );
+    return result.rows;
+  }
+
+  async pendingDemoOrders(): Promise<Array<{ client_order_id: string; symbol: string }>> {
+    const result = await this.pool.query<{ client_order_id: string; symbol: string }>(
+      `SELECT client_order_id, symbol FROM demo_orders WHERE status = 'PENDING' ORDER BY created_at LIMIT 100`,
+    );
+    return result.rows;
+  }
+
+  async reconcileDemoOrder(clientOrderId: string, order: { id?: string | undefined; status?: string | undefined; filled?: number | undefined; average?: number | undefined; cost?: number | undefined; side?: string | undefined; fee?: { currency?: string | undefined; cost?: number | undefined } | undefined; fees?: Array<{ currency?: string | undefined; cost?: number | undefined }> | undefined }): Promise<void> {
+    const status = classifyDemoOrder(order.status, order.filled);
+    await this.pool.query(
+      `UPDATE demo_orders SET status = $2, result = result || $3::jsonb, updated_at = NOW() WHERE client_order_id = $1 AND status = 'PENDING'`,
+      [clientOrderId, status, JSON.stringify({ orderId: order.id ?? null, orderStatus: order.status ?? null, filled: order.filled ?? null, average: order.average ?? null, cost: order.cost ?? null, ...(order.side ? { side: order.side } : {}), ...(order.fee || order.fees?.length ? { fees: normalizedOrderFees(order) } : {}), feesPresentOnTerminalResponse: status !== "PENDING" && normalizedOrderFees(order).length > 0, confirmed: status === "PLACED", reconciledAt: new Date().toISOString() })],
+    );
+  }
+
+  async canEnterSymbol(symbol: string, cooldownMinutes: number): Promise<boolean> {
+    const result = await this.pool.query<{ last_trade: Date | null }>(
+      `SELECT MAX(to_timestamp((trade->>
+         CASE WHEN event_type = 'CLOSED' THEN 'exitTimestamp' ELSE 'entryTimestamp' END
+       )::double precision / 1000)) AS last_trade
+       FROM paper_trades
+       WHERE symbol = $1
+         AND to_timestamp((trade->>
+           CASE WHEN event_type = 'CLOSED' THEN 'exitTimestamp' ELSE 'entryTimestamp' END
+         )::double precision / 1000) >= NOW() - ($2 * INTERVAL '1 minute')`,
+      [symbol, cooldownMinutes],
+    );
+    return !result.rows[0]?.last_trade;
+  }
+
+  async recordOperationalEvent(event: OperationalEvent): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO operational_events (event_type, severity, symbol, details)
+       VALUES ($1, $2, $3, $4::jsonb)`,
+      [event.eventType, event.severity, event.symbol ?? null, JSON.stringify(event.details ?? {})],
+    );
+  }
+
+  async getDiagnosticLogs(hours = 6, limit = 500): Promise<string> {
+    const safeHours = Number.isFinite(hours) ? Math.min(2160, Math.max(1, Math.trunc(hours))) : 6;
+    const safeLimit = Number.isFinite(limit) ? Math.min(500, Math.max(50, Math.trunc(limit))) : 500;
+    const [events, decisions, trades, orders] = await Promise.all([
+      this.pool.query(`SELECT created_at, event_type, severity, symbol, details FROM operational_events WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, symbol, candle_timestamp, mode, signal, ai_decision, approved FROM decisions WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, symbol, candle_timestamp, event_type, trade FROM paper_trades WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, symbol, candle_timestamp, status, result FROM demo_orders WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+    ]);
+    const lines = [
+      { section: "operational_events", rows: events.rows },
+      { section: "decisions", rows: decisions.rows },
+      { section: "paper_trades", rows: trades.rows },
+      { section: "demo_orders", rows: orders.rows },
+    ].flatMap(({ section, rows }) => rows.map((row) => JSON.stringify({ section, ...row })));
+    return JSON.stringify({ generatedAt: new Date().toISOString(), scope: { hours: safeHours, maxRowsPerSection: safeLimit }, records: lines.map((line) => JSON.parse(line)) }, null, 2);
+  }
+
+  async getDailyStartEquity(symbol: string): Promise<number | undefined> {
+    const result = await this.pool.query<{ equity_usdt: number }>(
+      `SELECT equity_usdt FROM portfolio_snapshots
+       WHERE symbol = $1 AND created_at >= date_trunc('day', NOW())
+       ORDER BY created_at ASC LIMIT 1`,
+      [symbol],
+    );
+    const equity = result.rows[0]?.equity_usdt;
+    return equity === undefined ? undefined : Number(equity);
+  }
+
+  async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
+    const settings = await this.getDashboardSettings();
+    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades, okxEvents] = await Promise.all([
+      this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
+         FROM decisions WHERE symbol = $1 ORDER BY created_at DESC LIMIT 1`,
+        [settings.symbol],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT symbol, candle_timestamp, snapshot, created_at
+         FROM portfolio_snapshots WHERE symbol = $1 ORDER BY created_at DESC LIMIT 1`,
+        [settings.symbol],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT symbol, candle_timestamp, equity_usdt, realized_pnl_usdt,
+                current_drawdown_percent, snapshot, created_at
+         FROM portfolio_snapshots WHERE symbol = $1 ORDER BY created_at DESC LIMIT $2`,
+        [settings.symbol, limit],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT symbol, event_type, candle_timestamp, trade, created_at
+         FROM paper_trades
+         WHERE ($1::text IS NULL OR symbol = $1)
+         ORDER BY created_at DESC LIMIT $2`,
+        [historySymbol ?? null, limit],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT client_order_id, symbol, status, result, created_at
+         FROM demo_orders
+         WHERE ($1::text IS NULL OR symbol = $1)
+         ORDER BY created_at DESC LIMIT $2`,
+        [historySymbol ?? null, limit],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT COUNT(*)::int AS decisions,
+                COUNT(*) FILTER (WHERE approved)::int AS approved,
+                COUNT(*) FILTER (WHERE NOT approved)::int AS rejected
+         FROM decisions WHERE symbol = $1`,
+        [settings.symbol],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT COUNT(*) FILTER (WHERE event_type = 'OPENED')::int AS entries,
+                COUNT(*) FILTER (WHERE event_type = 'CLOSED')::int AS exits,
+                COUNT(*) FILTER (WHERE event_type = 'CLOSED' AND (trade->>'netPnlUsdt')::double precision > 0)::int AS wins,
+                COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED'), 0)::double precision AS net_pnl
+         FROM paper_trades WHERE symbol = $1`,
+        [settings.symbol],
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT COUNT(*) FILTER (WHERE severity = 'ERROR')::int AS errors,
+                MAX(created_at) AS last_event_at
+         FROM operational_events`,
+      ),
+      this.pool.query<{ service: string; status: string }>(
+        `SELECT DISTINCT ON (details->>'service')
+                details->>'service' AS service, details->>'status' AS status
+         FROM operational_events
+         WHERE event_type = 'SERVICE_STATUS'
+         ORDER BY details->>'service', created_at DESC`,
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT DISTINCT ON (symbol) symbol, snapshot, created_at
+         FROM portfolio_snapshots ORDER BY symbol, created_at DESC`,
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT
+           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND to_timestamp((trade->>'exitTimestamp')::double precision / 1000) >= date_trunc('day', NOW())), 0)::double precision AS daily,
+           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND to_timestamp((trade->>'exitTimestamp')::double precision / 1000) >= date_trunc('week', NOW())), 0)::double precision AS weekly,
+           COALESCE(SUM((trade->>'netPnlUsdt')::double precision) FILTER (WHERE event_type = 'CLOSED' AND to_timestamp((trade->>'exitTimestamp')::double precision / 1000) >= date_trunc('month', NOW())), 0)::double precision AS monthly
+         FROM paper_trades`,
+      ),
+      this.pool.query<Record<string, unknown>>(`SELECT pt.symbol, pt.trade, d.signal, d.ai_decision FROM paper_trades pt LEFT JOIN LATERAL (SELECT signal, ai_decision FROM decisions WHERE decisions.symbol = pt.symbol AND decisions.candle_timestamp = (pt.trade->>'entryTimestamp')::bigint ORDER BY decisions.created_at DESC LIMIT 1) d ON TRUE WHERE pt.event_type = 'CLOSED'`),
+      this.pool.query<Record<string, unknown>>(`SELECT event_type, severity, details, created_at FROM operational_events WHERE details->>'service' = 'okx-demo' ORDER BY created_at DESC LIMIT 20`),
+    ]);
+    const decisionRow = decisionMetrics.rows[0] ?? {};
+    const tradeRow = tradeMetrics.rows[0] ?? {};
+    const eventRow = eventMetrics.rows[0] ?? {};
+    const latestSnapshot = snapshot.rows[0]?.snapshot as Record<string, unknown> | undefined;
+    const aggregateSnapshot = portfolioRows.rows.reduce<Record<string, unknown>>((aggregate, row) => {
+      const current = (row.snapshot ?? {}) as Record<string, unknown>;
+      for (const key of ["equityUsdt", "realizedPnlUsdt", "unrealizedPnlUsdt", "totalFeesUsdt"])
+        aggregate[key] = Number(aggregate[key] ?? 0) + Number(current[key] ?? 0);
+      aggregate.closedTrades = Number(aggregate.closedTrades ?? 0) + Number(current.closedTrades ?? 0);
+      aggregate.wins = Number(aggregate.wins ?? 0) + Number(current.wins ?? 0);
+      aggregate.losses = Number(aggregate.losses ?? 0) + Number(current.losses ?? 0);
+      aggregate.currentDrawdownPercent = Math.max(Number(aggregate.currentDrawdownPercent ?? 0), Number(current.currentDrawdownPercent ?? 0));
+      aggregate.maxDrawdownPercent = Math.max(Number(aggregate.maxDrawdownPercent ?? 0), Number(current.maxDrawdownPercent ?? 0));
+      aggregate.buyAndHoldReturnPercent = Number(aggregate.buyAndHoldReturnPercent ?? 0) + Number(current.buyAndHoldReturnPercent ?? 0);
+      return aggregate;
+    }, {});
+    const portfolioCount = portfolioRows.rows.length || 1;
+    const totalEquity = Number(aggregateSnapshot.equityUsdt ?? 0);
+    const totalPositionValue = portfolioRows.rows.reduce((sum, row) => sum + Number(((row.snapshot ?? {}) as Record<string, unknown>).positionMarketValueUsdt ?? 0), 0);
+    const periodRow = periodPnl.rows[0] ?? {};
+    const periodMetrics = Object.fromEntries(["daily", "weekly", "monthly"].map((period) => {
+      const value = Number(periodRow[period] ?? 0);
+      return [period, { usdt: value, percent: totalEquity ? (value / totalEquity) * 100 : 0 }];
+    }));
+    aggregateSnapshot.strategyReturnPercent = Number(aggregateSnapshot.equityUsdt ?? 0) / (portfolioCount * 1000) * 100 - 100;
+    aggregateSnapshot.buyAndHoldReturnPercent = Number(aggregateSnapshot.buyAndHoldReturnPercent ?? 0) / portfolioCount;
+    aggregateSnapshot.excessReturnVsBuyAndHoldPercent = Number(aggregateSnapshot.strategyReturnPercent) - Number(aggregateSnapshot.buyAndHoldReturnPercent);
+    const latestCycleAt = snapshot.rows[0]?.created_at ?? null;
+    const health = Object.fromEntries(serviceEvents.rows.map((row) => [row.service, row.status]));
+    health.postgresql ??= "ok";
+    const statisticalTrades: StatisticalTrade[] = analyticsTrades.rows.map((row) => {
+      const trade = (row.trade ?? {}) as Record<string, unknown>;
+      const exitTimestamp = Number(trade.exitTimestamp ?? 0);
+      const signal = (row.signal ?? {}) as Record<string, unknown>;
+      const breakdown = (signal.scoreBreakdown ?? {}) as Record<string, unknown>;
+      const aiReason = String((row.ai_decision as Record<string, unknown> | undefined)?.reason ?? "");
+      const trend = Number(breakdown.trend ?? 0); const volatility = Number(signal.volatilityPercent ?? 0);
+      return { symbol: String(row.symbol), netPnlUsdt: Number(trade.netPnlUsdt ?? 0), exitTimestamp, regime: Math.abs(trend) >= 2 ? "trend" : volatility > 2 ? "volatile" : "lateral", aiState: aiReason.includes("UNAVAILABLE") ? "AI_UNAVAILABLE" : aiReason.includes("disabled") ? "AI_DISABLED" : "AI_AVAILABLE" };
+    });
+    const analytics = buildStatisticalReport(statisticalTrades);
+    const closedTrades = analytics.trades;
+    const wins = analytics.wins;
+    return {
+      paused: control.rows[0]?.paused ?? true,
+      settings,
+      latestDecision: decision.rows[0] ?? null,
+      latestSnapshot: snapshot.rows[0] ? { ...snapshot.rows[0], snapshot: { ...latestSnapshot, ...aggregateSnapshot } } : null,
+      snapshots: snapshots.rows.reverse(),
+      portfoliosBySymbol: portfolioRows.rows,
+      trades: trades.rows,
+      orders: orders.rows,
+      metrics: {
+        decisions: Number(decisionRow.decisions ?? 0),
+        approvedDecisions: Number(decisionRow.approved ?? 0),
+        rejectedDecisions: Number(decisionRow.rejected ?? 0),
+        entries: Number(tradeRow.entries ?? 0),
+        exits: Number(tradeRow.exits ?? 0),
+        closedTrades,
+        wins,
+        losses: Math.max(0, closedTrades - wins),
+        winRate: closedTrades ? (wins / closedTrades) * 100 : 0,
+        netPnlUsdt: analytics.netPnlUsdt,
+        feesUsdt: Number(latestSnapshot?.totalFeesUsdt ?? 0),
+        currentDrawdownPercent: Number(latestSnapshot?.currentDrawdownPercent ?? 0),
+        maxDrawdownPercent: Number(aggregateSnapshot.maxDrawdownPercent ?? 0),
+        lastCycleAt: latestCycleAt,
+        secondsSinceLastCycle: latestCycleAt ? Math.max(0, (Date.now() - new Date(String(latestCycleAt)).getTime()) / 1000) : null,
+        buyAndHoldReturnPercent: Number(latestSnapshot?.buyAndHoldReturnPercent ?? 0),
+        strategyReturnPercent: Number(latestSnapshot?.strategyReturnPercent ?? 0),
+        excessReturnVsBuyAndHoldPercent: Number(latestSnapshot?.excessReturnVsBuyAndHoldPercent ?? 0),
+        errorCount: Number(eventRow.errors ?? 0),
+        periodPnl: periodMetrics,
+        totalPositionValueUsdt: totalPositionValue,
+        totalPositionValuePercent: totalEquity ? (totalPositionValue / totalEquity) * 100 : 0,
+      },
+      health: { ...health, lastOperationalEventAt: eventRow.last_event_at ?? null },
+      analytics,
+      okxDemo: (() => {
+        const event = okxEvents.rows.find((row) => (row.details as Record<string, unknown> | undefined)?.balance) ?? okxEvents.rows.find((row) => (row.details as Record<string, unknown> | undefined)?.status === "ok");
+        const details = (event?.details ?? {}) as Record<string, unknown>;
+        const balance = (details.balance ?? {}) as Record<string, unknown>;
+        const errorEvent = okxEvents.rows.find((row) => row.severity === "ERROR");
+        return { quoteFree: Number.isFinite(Number(balance.quoteFree)) ? Number(balance.quoteFree) : null, totalUsdt: Number.isFinite(Number(balance.totalUsdt)) ? Number(balance.totalUsdt) : null, updatedAt: event?.created_at ? String(event.created_at) : null, status: String(details.status ?? "unknown"), ...(errorEvent ? { lastError: String(((errorEvent.details ?? {}) as Record<string, unknown>).error ?? "") } : {}) };
+      })(),
+    };
+  }
+
+  async recordCycle(cycle: PersistedCycle): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      if (cycle.decision) await this.upsertDecision(client, cycle);
+      await this.upsertSnapshot(client, cycle);
+      for (const trade of cycle.paperResult.events) {
+        await this.upsertPaperTrade(client, cycle, trade);
+      }
+      const checkpoint = await client.query(
+        `INSERT INTO paper_trader_state (
+           symbol, last_processed_candle, state
+         ) VALUES ($1, $2, $3::jsonb)
+         ON CONFLICT (symbol) DO UPDATE SET
+           last_processed_candle = EXCLUDED.last_processed_candle,
+           state = EXCLUDED.state,
+           updated_at = NOW()
+         WHERE paper_trader_state.last_processed_candle <=
+           EXCLUDED.last_processed_candle
+         RETURNING last_processed_candle`,
+        [
+          cycle.symbol,
+          cycle.candle.timestamp,
+           JSON.stringify({ symbol: cycle.symbol, ...cycle.paperState, ...(cycle.riskState ?? {}) }),
+        ],
+      );
+      if (checkpoint.rowCount !== 1) {
+        throw new Error("Refusing to overwrite a newer portfolio checkpoint");
+      }
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async recordDemoOrder(
+    symbol: string,
+    candleTimestamp: number,
+    result: DemoBuyResult,
+  ): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO demo_orders (
+         client_order_id, symbol, candle_timestamp, status, result
+       ) VALUES ($1, $2, $3, $4, $5::jsonb)
+       ON CONFLICT (client_order_id) DO UPDATE SET
+         status = EXCLUDED.status,
+         result = EXCLUDED.result,
+         updated_at = NOW()
+       WHERE (EXCLUDED.status <> 'SKIPPED' OR demo_orders.status NOT IN ('PENDING', 'PLACED'))
+         AND NOT (EXCLUDED.status = 'PENDING' AND demo_orders.status IN ('PLACED', 'FAILED'))`,
+      [
+        result.clientOrderId,
+        symbol,
+        candleTimestamp,
+        result.status,
+        JSON.stringify(result),
+      ],
+    );
+  }
+
+  async recordDemoOrderFailure(
+    symbol: string,
+    candleTimestamp: number,
+    error: string,
+  ): Promise<void> {
+    const clientOrderId = `FAILED:${symbol}:${candleTimestamp}`;
+    await this.pool.query(
+      `INSERT INTO demo_orders (
+         client_order_id, symbol, candle_timestamp, status, result
+       ) VALUES ($1, $2, $3, 'FAILED', $4::jsonb)
+       ON CONFLICT (client_order_id) DO UPDATE SET
+         result = EXCLUDED.result,
+         updated_at = NOW()`,
+      [clientOrderId, symbol, candleTimestamp, JSON.stringify({ error })],
+    );
+  }
+
+  async close(): Promise<void> {
+    await this.pool.end();
+  }
+
+  private async upsertDecision(
+    client: PoolClient,
+    cycle: PersistedCycle,
+  ): Promise<void> {
+    const decision = cycle.decision!;
+    await client.query(
+      `INSERT INTO decisions (
+         symbol, candle_timestamp, mode, signal, ai_decision, approved
+       ) VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6)
+       ON CONFLICT (symbol, candle_timestamp) DO UPDATE SET
+         mode = EXCLUDED.mode,
+         signal = EXCLUDED.signal,
+         ai_decision = EXCLUDED.ai_decision,
+         approved = EXCLUDED.approved,
+         updated_at = NOW()`,
+      [
+        cycle.symbol,
+        cycle.candle.timestamp,
+        decision.mode,
+        JSON.stringify(decision.signal),
+        JSON.stringify(decision.aiDecision),
+        decision.approved,
+      ],
+    );
+  }
+
+  private async upsertSnapshot(
+    client: PoolClient,
+    cycle: PersistedCycle,
+  ): Promise<void> {
+    const snapshot = cycle.paperResult.snapshot;
+    await client.query(
+      `INSERT INTO portfolio_snapshots (
+         symbol, candle_timestamp, replayed, equity_usdt,
+         realized_pnl_usdt, unrealized_pnl_usdt,
+         current_drawdown_percent, max_drawdown_percent, snapshot
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+       ON CONFLICT (symbol, candle_timestamp) DO UPDATE SET
+         replayed = EXCLUDED.replayed,
+         equity_usdt = EXCLUDED.equity_usdt,
+         realized_pnl_usdt = EXCLUDED.realized_pnl_usdt,
+         unrealized_pnl_usdt = EXCLUDED.unrealized_pnl_usdt,
+         current_drawdown_percent = EXCLUDED.current_drawdown_percent,
+         max_drawdown_percent = EXCLUDED.max_drawdown_percent,
+         snapshot = EXCLUDED.snapshot`,
+      [
+        cycle.symbol,
+        cycle.candle.timestamp,
+        cycle.replayed,
+        snapshot.equityUsdt,
+        snapshot.realizedPnlUsdt,
+        snapshot.unrealizedPnlUsdt,
+        snapshot.currentDrawdownPercent,
+        snapshot.maxDrawdownPercent,
+        JSON.stringify(snapshot),
+      ],
+    );
+  }
+
+  private async upsertPaperTrade(
+    client: PoolClient,
+    cycle: PersistedCycle,
+    trade: PaperTradeOpened | PaperTradeClosed,
+  ): Promise<void> {
+    const eventKey =
+      trade.type === "OPENED"
+        ? `${cycle.symbol}:OPENED:${trade.timestamp}`
+        : `${cycle.symbol}:CLOSED:${trade.entryTimestamp}:${trade.exitTimestamp}`;
+    await client.query(
+      `INSERT INTO paper_trades (
+         event_key, symbol, event_type, candle_timestamp, replayed, trade
+       ) VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+       ON CONFLICT (event_key) DO UPDATE SET
+         replayed = EXCLUDED.replayed,
+         trade = EXCLUDED.trade`,
+      [
+        eventKey,
+        cycle.symbol,
+        trade.type,
+        cycle.candle.timestamp,
+        cycle.replayed,
+        JSON.stringify(trade),
+      ],
+    );
+  }
+}
+
