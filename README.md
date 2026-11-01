@@ -4,6 +4,12 @@ Bot experimental de negociação **Spot**, escrito em Node.js + TypeScript.
 
 > Aviso: software experimental, não é recomendação financeira. Ordens externas são limitadas tecnicamente ao ambiente OKX Demo com saldo virtual. Não existe modo de negociação real neste código.
 
+## Validação histórica fora da amostra
+
+Execute `npm run build` e depois `npm run --silent strategy:validate -- caminho/dados.json`. O arquivo deve conter `candles` com candles OHLCV de 15 minutos ordenados e sem lacunas, e `options` com `trainCandles`, `testCandles`, um único item em `candidates` e `base`. Em `base`, informe `initialBalanceUsdt`, `tradeSizeUsdt`, `feeRate`, `slippageRate`, `stopLossRate`, `takeProfitRate` e `executionProfile: "demo-proxy"`.
+
+Cada janela de teste é posterior ao seu treino e não se sobrepõe às demais. O aquecimento não abre posições. O perfil Demo simula somente stop e alvo, pois a venda por sinal contrário está bloqueada. Esse relatório é uma aproximação: não reproduz seleção dinâmica de pares, filtros de risco de carteira, IA, saídas ATR ou execuções e taxas reais da OKX. Ele não habilita trading real nem comprova rentabilidade.
+
 ## Arquitetura atual
 
 1. Busca candles públicos fechados de 15 minutos via CCXT.

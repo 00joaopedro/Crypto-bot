@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "strategy:validate": "node dist/validate-strategy-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

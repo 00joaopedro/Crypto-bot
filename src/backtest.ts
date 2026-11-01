@@ -14,6 +14,8 @@ export type BacktestOptions = {
   /** Number of leading candles used only to warm indicators/state. */
   warmupCandles?: number;
   qualityFilters?: boolean;
+  /** Demo-compatible exits simulate only exchange stop/target orders. */
+  executionProfile?: "paper" | "demo-proxy";
 };
 
 export type BacktestMetrics = {
@@ -51,7 +53,8 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   const closedTrades: PaperTradeClosed[] = [];
   const equities: number[] = [];
   const pending = new Map<number, boolean>();
-  const filtersEnabled = options.qualityFilters === true;
+  const filtersEnabled = options.qualityFilters !== false;
+  if (options.executionProfile !== undefined && !["paper", "demo-proxy"].includes(options.executionProfile)) throw new Error("Unknown execution profile");
   for (let index = 0; index < candles.length; index += 1) {
     const candle = candles[index]!;
     const signal = index >= (filtersEnabled ? 84 : 50) ? evaluateStrategy(candles.slice(0, index + 1), {
@@ -60,9 +63,9 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     }) : undefined;
     // A signal uses the just-closed candle; the earliest honest fill is the
     // next candle, even when no additional artificial delay is requested.
-    if (signal?.action === "BUY") pending.set(index + Math.max(1, delay), true);
-    const sellSignal = signal?.action === "SELL";
-    const result = trader.processCandle(candle, pending.get(index) === true, undefined, sellSignal);
+    if (index >= warmup && signal?.action === "BUY") pending.set(index + Math.max(1, delay), true);
+    const sellSignal = options.executionProfile !== "demo-proxy" && signal?.action === "SELL";
+    const result = trader.processCandle(candle, index >= warmup && pending.get(index) === true, undefined, sellSignal);
     pending.delete(index);
     if (index >= warmup) {
       closedTrades.push(...result.events.filter((event): event is PaperTradeClosed => event.type === "CLOSED"));

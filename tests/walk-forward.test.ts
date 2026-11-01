@@ -13,7 +13,7 @@ describe("runWalkForward", () => {
       trainCandles: 60,
       testCandles: 20,
       candidates: [{ minimumSignalScore: 5 }, { minimumSignalScore: 6 }],
-      base: { initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0.001, slippageRate: 0.001, stopLossRate: 0.01, takeProfitRate: 0.02 },
+      base: { initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0.001, slippageRate: 0.001, stopLossRate: 0.01, takeProfitRate: 0.02, qualityFilters: false },
     });
     expect(result.testedWindows).toBe(3);
     expect(result.windows[0]!.testStart).toBe(60);
@@ -24,7 +24,7 @@ describe("runWalkForward", () => {
   it("rejects insufficient history", () => {
     expect(() => runWalkForward(candles(60), {
       trainCandles: 50, testCandles: 20, candidates: [{ minimumSignalScore: 5 }],
-      base: { initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0.001, slippageRate: 0.001, stopLossRate: 0.01, takeProfitRate: 0.02 },
+      base: { initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0.001, slippageRate: 0.001, stopLossRate: 0.01, takeProfitRate: 0.02, qualityFilters: false },
     })).toThrow("trainCandles must be at least");
   });
 });
