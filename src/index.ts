@@ -1,0 +1,642 @@
+import type { Server } from "node:http";
+import { setTimeout as delay } from "node:timers/promises";
+
+import { TradingBot } from "./bot.js";
+import { config } from "./config.js";
+import { startDashboard, stopDashboard } from "./dashboard.js";
+import { inspectDemoAccounting } from "./demo-diagnostic.js";
+import { inspectDemoExecutionSafety } from "./demo-execution-safety.js";
+import { compareDemoBaseline } from "./demo-baseline.js";
+import { sameDemoAccount } from "./okx-demo-identity.js";
+import { EmailTradeAlert } from "./email-alerts.js";
+import { GeminiRiskFilter } from "./gemini.js";
+import { PublicMarketData } from "./market-data.js";
+import { OkxDemoExecutor } from "./okx-demo.js";
+import { PaperTrader } from "./paper-trader.js";
+import { PostgresPersistence } from "./persistence.js";
+import type { DashboardSettings } from "./persistence.js";
+import { CentralTradeManager } from "./trade-manager.js";
+import { ExecutionQueue } from "./execution-queue.js";
+
+async function sleep(
+  milliseconds: number,
+  signal: AbortSignal,
+): Promise<boolean> {
+  try {
+    await delay(milliseconds, undefined, { signal });
+    return true;
+  } catch (error) {
+    if (signal.aborted && error instanceof Error && error.name === "AbortError") {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+async function main(): Promise<void> {
+  let stopping = false;
+  const shutdownController = new AbortController();
+  const stop = () => {
+    stopping = true;
+    shutdownController.abort();
+  };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+
+  const market = new PublicMarketData(
+    config.MARKET_DATA_PROVIDER,
+    config.MARKET_DATA_FALLBACK_PROVIDER === "none" ? undefined : config.MARKET_DATA_FALLBACK_PROVIDER,
+  );
+  const persistence = config.DATABASE_URL
+    ? new PostgresPersistence(
+        config.DATABASE_URL,
+        config.DATABASE_CONNECTION_TIMEOUT_MS,
+      )
+    : undefined;
+  let runId: string | undefined;
+  let dashboardServer: Server | undefined;
+  let okxDemo: OkxDemoExecutor | undefined;
+  let bot: TradingBot;
+  let reconfiguring = false;
+  let demoSafetyAudited = false;
+  let activeCycle: Promise<void> | undefined;
+  let reconfigurationRequested = false;
+  let reconfigurationPromise: Promise<void> | undefined;
+  const tradeManager = new CentralTradeManager({
+    maxConcurrentPositions: config.MAX_CONCURRENT_POSITIONS,
+    maxExposurePercent: config.RISK_MAX_EXPOSURE_PERCENT,
+  });
+  let tradingSettings: DashboardSettings = {
+    symbol: config.SYMBOL,
+    orderSizeUsdt: config.OKX_DEMO_ORDER_SIZE_USDT,
+    paperTradeSizeUsdt: null,
+    maxTrades: config.RISK_MAX_TRADES_PER_HOUR,
+    intervalMinutes: 60,
+    maxConcurrentPositions: config.MAX_CONCURRENT_POSITIONS,
+  };
+
+  try {
+    let recoveryState = null;
+    if (persistence) {
+      await initializeDatabaseWithBackoff(
+        persistence,
+        shutdownController.signal,
+      );
+      if (stopping) return;
+      tradingSettings =
+        await persistence.ensureDashboardSettings(tradingSettings);
+      recoveryState = await persistence.loadRecoveryState(tradingSettings.symbol);
+      runId = await persistence.startRun({
+        environment: config.ENVIRONMENT,
+        executionProvider: config.EXECUTION_PROVIDER,
+        symbol: tradingSettings.symbol,
+        timeframe: config.TIMEFRAME,
+      });
+      console.log(
+        JSON.stringify({
+          event: "database_connected",
+          migrationsApplied: true,
+          recovery: recoveryState
+            ? {
+                restored: true,
+                lastProcessedCandle: recoveryState.lastProcessedCandle,
+              }
+            : { restored: false },
+        }),
+      );
+      await persistence.recordOperationalEvent({
+        eventType: "SERVICE_STATUS",
+        severity: "INFO",
+        details: { service: "postgresql", status: "ok" },
+      });
+      await persistence.recordOperationalEvent({
+        eventType: "SERVICE_RESTARTED",
+        severity: "INFO",
+        details: { reason: "process_started" },
+      });
+    } else {
+      console.log(JSON.stringify({ event: "persistence_disabled" }));
+    }
+
+    await initializeWithBackoff(market, shutdownController.signal);
+    if (stopping) return;
+    await persistence?.recordOperationalEvent({
+      eventType: "SERVICE_STATUS",
+      severity: "INFO",
+      details: { service: `market-data-${market.active}`, status: "ok", provider: market.active },
+    });
+
+    okxDemo =
+      config.EXECUTION_PROVIDER === "okx-demo"
+        ? new OkxDemoExecutor(
+            {
+              apiKey: config.OKX_API_KEY!,
+              secretKey: config.OKX_SECRET_KEY!,
+              passphrase: config.OKX_PASSPHRASE!,
+            },
+            {
+              symbol: tradingSettings.symbol,
+              tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
+              orderSizeUsdt: tradingSettings.orderSizeUsdt,
+              stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
+              takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
+            },
+          )
+        : undefined;
+
+    if (okxDemo) {
+      if (config.OKX_DEMO_TRADING_ENABLED && !persistence) throw new Error("OKX Demo execution requires persistent order journal");
+      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes, protectionId));
+      await initializeOkxDemoWithBackoff(
+        okxDemo,
+        tradingSettings,
+        shutdownController.signal,
+      );
+      if (persistence && await persistence.isPaused()) {
+        try {
+          const baseline = await okxDemo.collectBaselineCandidate();
+          if (baseline.status === "collected") {
+            const existing = await persistence.getDemoBaselineCandidate();
+            if (existing) {
+              if (!sameDemoAccount(existing.evidence.accountIdentity, baseline.evidence.accountIdentity as { uid: string; mainUid: string })) {
+                console.log(JSON.stringify({ event: "demo_baseline_comparison", status: "unavailable", reason: "account_identity_mismatch_or_missing" }));
+                if (!existing.evidence.accountIdentity) {
+                  await persistence.saveDemoBaselineCandidate(baseline);
+                  console.log(JSON.stringify({ event: "demo_baseline_candidate_recorded", status: "UNVERIFIED", reason: "legacy_baseline_superseded" }));
+                }
+              } else {
+              const comparison = compareDemoBaseline(existing.balances, baseline.balances);
+              console.log(JSON.stringify({ event: "demo_baseline_comparison", ...comparison }));
+              const startedAt = existing.evidence.startedAt;
+              const observedAt = existing.observedAt.getTime();
+              if (typeof startedAt === "number") {
+                const history = await okxDemo.inspectBaselineHistory(startedAt, observedAt);
+                console.log(JSON.stringify({ event: "demo_baseline_history_observation", ...history }));
+                // This second bounded query checks the period after the saved
+                // snapshot. Empty results do not prove exchange-wide coverage.
+                const sinceBaseline = await okxDemo.inspectBaselineHistory(observedAt, baseline.observedAt);
+                console.log(JSON.stringify({ event: "demo_since_baseline_history_observation", ...sinceBaseline }));
+              } else {
+                console.log(JSON.stringify({ event: "demo_baseline_history_observation", status: "unavailable", reason: "baseline_start_time_missing" }));
+              }
+              }
+            } else {
+              await persistence.saveDemoBaselineCandidate(baseline);
+              console.log(JSON.stringify({ event: "demo_baseline_candidate_recorded", status: "UNVERIFIED" }));
+            }
+          } else {
+            console.log(JSON.stringify({ event: "demo_baseline_candidate_unavailable", reason: baseline.reason }));
+          }
+        } catch {
+          console.log(JSON.stringify({ event: "demo_baseline_candidate_not_recorded" }));
+        }
+      }
+      if (stopping) return;
+      await persistence?.recordOperationalEvent({
+        eventType: "SERVICE_STATUS",
+        severity: "INFO",
+        details: { service: "okx-demo", status: "ok" },
+      });
+    }
+
+    const ai = config.AI_MODE === "filter" && config.GEMINI_ENABLED
+      ? new GeminiRiskFilter(config.GEMINI_API_KEY!, config.GEMINI_MODEL)
+      : undefined;
+    const emailAlerts = config.EMAIL_ALERTS_ENABLED
+      ? new EmailTradeAlert({
+          apiKey: config.RESEND_API_KEY!,
+          from: config.EMAIL_FROM!,
+          to: config.EMAIL_ALERT_TO!,
+        })
+      : undefined;
+    await persistence?.recordOperationalEvent({
+      eventType: "SERVICE_STATUS",
+      severity: "INFO",
+      details: {
+        service: "gemini",
+        status: ai ? "configured" : "disabled",
+        mode: config.AI_MODE,
+      },
+    });
+    const marketSymbols = new Set(market.listSpotSymbols());
+    const executionSymbols = okxDemo?.listSpotSymbols() ?? [...marketSymbols];
+    const scanSymbols = config.SIGNAL_SCAN_SYMBOLS
+      .split(",")
+      .map((symbol) => symbol.trim().toUpperCase())
+      .filter((symbol) => marketSymbols.has(symbol) && executionSymbols.includes(symbol));
+    const signalScanSymbolsFor = (symbol: string): string[] => [
+      ...new Set([symbol, ...scanSymbols]),
+    ];
+    const createBot = (
+      settings: DashboardSettings,
+      state: Awaited<ReturnType<PostgresPersistence["loadRecoveryState"]>>,
+      demoExecutor: OkxDemoExecutor | undefined,
+    ): TradingBot => {
+      if (state?.paperState.position) {
+        tradeManager.restorePositions([{
+          symbol: state.symbol,
+          notionalUsdt: state.paperState.position.entryNotional,
+          openedAt: state.paperState.position.entryTimestamp,
+        }]);
+      }
+      const paperTrader = new PaperTrader(
+        {
+          initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
+          tradeSizeUsdt:
+            settings.paperTradeSizeUsdt ?? config.PAPER_TRADE_SIZE_USDT,
+          feeRate: config.PAPER_FEE_RATE,
+          slippageRate: config.PAPER_SLIPPAGE_RATE,
+          stopLossRate: config.PAPER_STOP_LOSS_RATE,
+          takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+        },
+        state?.paperState,
+      );
+
+      const queuedExecutor = demoExecutor
+        ? new ExecutionQueue(demoExecutor)
+        : undefined;
+      return new TradingBot(market, {
+        symbol: settings.symbol,
+        candleLimit: config.CANDLE_LIMIT,
+        minimumConfidence: config.MIN_AI_CONFIDENCE,
+        aiFailureMode: config.AI_MODE === "quantitative" ? "quantitative" : config.AI_FAILURE_MODE,
+        minimumSignalScore: config.MIN_SIGNAL_SCORE,
+        paperTrader,
+        ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),
+        ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: () => inspectDemoExecutionSafety(persistence, demoExecutor) } : {}),
+        ...(ai ? { ai } : {}),
+        ...(persistence ? { persistence } : {}),
+        ...(state
+          ? { initialLastProcessedCandle: state.lastProcessedCandle }
+          : {}),
+        ...(state?.riskState ? { initialRiskState: state.riskState } : {}),
+        maxTradesPerInterval: settings.maxTrades,
+        tradeIntervalMinutes: settings.intervalMinutes,
+        demoOrderSizeUsdt: settings.orderSizeUsdt,
+        atrPeriod: config.ATR_PERIOD,
+        atrStopMultiplier: config.ATR_STOP_MULTIPLIER,
+        atrTakeProfitMultiplier: config.ATR_TAKE_PROFIT_MULTIPLIER,
+        atrMinStopRate: config.ATR_MIN_STOP_RATE,
+        atrMaxStopRate: config.ATR_MAX_STOP_RATE,
+        fallbackStopLossRate: config.PAPER_STOP_LOSS_RATE,
+        fallbackTakeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+        entryCooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
+        maxExposurePercent: config.RISK_MAX_EXPOSURE_PERCENT,
+        riskPerTradePercent: config.RISK_PER_TRADE_PERCENT,
+        maxDailyLossPercent: config.RISK_MAX_DAILY_LOSS_PERCENT,
+        maxDrawdownPercent: config.RISK_MAX_DRAWDOWN_PERCENT,
+        maxConsecutiveLosses: config.RISK_MAX_CONSECUTIVE_LOSSES,
+        stopLossCooldownMinutes: config.STOP_LOSS_COOLDOWN_MINUTES,
+        tradeManager,
+        signalScanSymbols: signalScanSymbolsFor(settings.symbol),
+        dynamicUniverseSize: config.DYNAMIC_UNIVERSE_SIZE,
+        marketMinQuoteVolumeUsdt: config.MARKET_MIN_QUOTE_VOLUME_USDT,
+        marketMaxSpreadPercent: config.MARKET_MAX_SPREAD_PERCENT,
+        universeSwitchCooldownMinutes: config.UNIVERSE_SWITCH_COOLDOWN_MINUTES,
+        universeSwitchMinScoreAdvantage: config.UNIVERSE_SWITCH_MIN_SCORE_ADVANTAGE,
+        universeMaxReplacements: config.UNIVERSE_MAX_REPLACEMENTS,
+        ...(emailAlerts ? { emailAlerts } : {}),
+      });
+    };
+
+    bot = createBot(tradingSettings, recoveryState, okxDemo);
+
+    console.log(
+      JSON.stringify({
+        event: "bot_started",
+        environment: config.ENVIRONMENT,
+        executionMode: config.OKX_DEMO_TRADING_ENABLED
+          ? "PAPER_AND_OKX_DEMO"
+          : "PAPER",
+        executionProvider: config.EXECUTION_PROVIDER,
+        liveTradingEnabled: config.LIVE_TRADING_ENABLED,
+        okxDemoTradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
+        marketDataProvider: config.MARKET_DATA_PROVIDER,
+        symbol: tradingSettings.symbol,
+        timeframe: config.TIMEFRAME,
+        aiEnabled: config.AI_MODE === "filter" && config.GEMINI_ENABLED,
+        signalEngineMode: config.AI_MODE,
+        persistenceEnabled: Boolean(persistence),
+        paperTrading: {
+          initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
+          tradeSizeUsdt:
+            tradingSettings.paperTradeSizeUsdt ?? config.PAPER_TRADE_SIZE_USDT,
+          feeRate: config.PAPER_FEE_RATE,
+          slippageRate: config.PAPER_SLIPPAGE_RATE,
+          stopLossRate: config.PAPER_STOP_LOSS_RATE,
+          takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+        },
+        minimumSignalScore: config.MIN_SIGNAL_SCORE,
+      }),
+    );
+
+    if (
+      persistence &&
+      config.DASHBOARD_PASSWORD &&
+      config.DASHBOARD_SESSION_SECRET
+    ) {
+      const supportedSymbols = executionSymbols.filter((symbol) =>
+        marketSymbols.has(symbol),
+      );
+
+      const applyLatestSettings = async (): Promise<void> => {
+        reconfiguring = true;
+        let nextOkxDemo: OkxDemoExecutor | undefined;
+        try {
+          // Wait for the current cycle before replacing the bot or closing its
+          // executor. A cycle may still be placing an order or persisting it.
+          await activeCycle;
+          const nextSettings = await persistence.getDashboardSettings();
+          const nextRecoveryState = await persistence.loadRecoveryState(
+            nextSettings.symbol,
+          );
+
+          if (config.EXECUTION_PROVIDER === "okx-demo") {
+            nextOkxDemo = new OkxDemoExecutor(
+              {
+                apiKey: config.OKX_API_KEY!,
+                secretKey: config.OKX_SECRET_KEY!,
+                passphrase: config.OKX_PASSPHRASE!,
+              },
+              {
+                symbol: nextSettings.symbol,
+                tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
+                orderSizeUsdt: nextSettings.orderSizeUsdt,
+                stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
+                takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
+              },
+            );
+            nextOkxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes, protectionId));
+            await initializeOkxDemoWithBackoff(
+              nextOkxDemo,
+              nextSettings,
+              shutdownController.signal,
+            );
+          }
+
+          const previousOkxDemo = okxDemo;
+          tradingSettings = nextSettings;
+          tradeManager.setMaxConcurrentPositions(nextSettings.maxConcurrentPositions);
+          recoveryState = nextRecoveryState;
+          okxDemo = nextOkxDemo;
+          bot = createBot(nextSettings, nextRecoveryState, nextOkxDemo);
+          demoSafetyAudited = false;
+          await previousOkxDemo?.close();
+
+          console.log(
+            JSON.stringify({
+              event: "bot_reconfigured",
+              symbol: nextSettings.symbol,
+              orderSizeUsdt: nextSettings.orderSizeUsdt,
+              maxTrades: nextSettings.maxTrades,
+              intervalMinutes: nextSettings.intervalMinutes,
+            }),
+          );
+        } finally {
+          reconfiguring = false;
+        }
+      };
+
+      const reconfigure = (): Promise<void> => {
+        // Serialize concurrent dashboard saves and apply the latest persisted
+        // settings instead of dropping a request received during initialization.
+        reconfigurationRequested = true;
+        if (!reconfigurationPromise) {
+          reconfigurationPromise = (async () => {
+            while (reconfigurationRequested && !stopping) {
+              reconfigurationRequested = false;
+              await applyLatestSettings();
+            }
+          })().finally(() => {
+            reconfigurationPromise = undefined;
+          });
+        }
+        return reconfigurationPromise;
+      };
+
+      dashboardServer = await startDashboard({
+        port: config.PORT,
+        password: config.DASHBOARD_PASSWORD,
+        sessionSecret: config.DASHBOARD_SESSION_SECRET,
+        persistence,
+        supportedSymbols,
+        onSettingsChanged: reconfigure,
+        ...(okxDemo ? { getOkxDemoSnapshot: () => okxDemo!.getAccountSnapshot() } : {}),
+        ...(okxDemo ? { inspectDemoAccounting: () => inspectDemoAccounting(persistence, okxDemo!) } : {}),
+        ...(okxDemo ? { inspectDemoPermission: () => okxDemo!.inspectTradingPermission() } : {}),
+      });
+    } else {
+      console.log(JSON.stringify({ event: "dashboard_disabled" }));
+    }
+
+    while (!stopping) {
+      try {
+        if (!reconfiguring && okxDemo && persistence) {
+          for (const pending of await persistence.pendingDemoOrders()) {
+            try {
+              const order = await okxDemo.reconcileOrder(pending.symbol, pending.client_order_id);
+              if (order) await persistence.reconcileDemoOrder(pending.client_order_id, order);
+            } catch (error) {
+              console.error(JSON.stringify({ event: "okx_reconciliation_failed", symbol: pending.symbol, clientOrderId: pending.client_order_id, error: error instanceof Error ? error.message : String(error) }));
+            }
+          }
+          if (!demoSafetyAudited) {
+            const safety = await inspectDemoExecutionSafety(persistence, okxDemo);
+            if (safety.status !== "safe") {
+              await persistence.setPaused(true, "system:demo_execution_safety");
+              console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
+            }
+            demoSafetyAudited = true;
+          }
+        }
+        if (reconfiguring) {
+          console.log(JSON.stringify({ event: "cycle_skipped", reason: "bot_reconfiguring" }));
+        } else {
+          const cycle = bot.runCycle();
+          activeCycle = cycle;
+          try {
+            await cycle;
+          } finally {
+            if (activeCycle === cycle) activeCycle = undefined;
+          }
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(
+          JSON.stringify({
+            event: "cycle_failed",
+            error: message,
+          }),
+        );
+        await persistence?.recordOperationalEvent({
+          eventType: message.includes("no closed candles") ? "CANDLES_MISSING" : "CYCLE_ERROR",
+          severity: "ERROR",
+          symbol: tradingSettings.symbol,
+          details: { error: message },
+        }).catch((persistError) => {
+          console.error(JSON.stringify({
+            event: "operational_event_persist_failed",
+            error: persistError instanceof Error ? persistError.message : String(persistError),
+          }));
+        });
+        if (message.includes("no closed candles") || message.toLowerCase().includes("market")) {
+          await persistence?.recordOperationalEvent({
+            eventType: "SERVICE_STATUS",
+            severity: "ERROR",
+            details: {
+              service: config.MARKET_DATA_PROVIDER,
+              status: "unhealthy",
+              error: message,
+            },
+          }).catch((persistError) => {
+            console.error(JSON.stringify({
+              event: "operational_event_persist_failed",
+              error: persistError instanceof Error ? persistError.message : String(persistError),
+            }));
+          });
+        }
+      }
+
+      if (!stopping) {
+        await sleep(config.LOOP_DELAY_MS, shutdownController.signal);
+      }
+    }
+  } finally {
+    if (persistence && runId) {
+      try {
+        await persistence.stopRun(
+          runId,
+          stopping ? "signal_shutdown" : "unexpected_shutdown",
+        );
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            event: "database_write_failed",
+            operation: "stop_run",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
+    }
+    await Promise.allSettled([
+      stopDashboard(dashboardServer),
+      market.close(),
+      okxDemo?.close(),
+      persistence?.close(),
+    ]);
+  }
+}
+
+async function initializeDatabaseWithBackoff(
+  persistence: PostgresPersistence,
+  signal: AbortSignal,
+): Promise<void> {
+  let delayMs = 5_000;
+
+  while (!signal.aborted) {
+    try {
+      await persistence.initialize();
+      return;
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: "database_initialization_failed",
+          retryInMs: delayMs,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      if (!(await sleep(delayMs, signal))) return;
+      delayMs = Math.min(delayMs * 2, 60_000);
+    }
+  }
+}
+
+async function initializeOkxDemoWithBackoff(
+  okxDemo: OkxDemoExecutor,
+  tradingSettings: DashboardSettings,
+  signal: AbortSignal,
+): Promise<void> {
+  let delayMs = 15_000;
+
+  while (!signal.aborted) {
+    try {
+      const status = await okxDemo.initialize();
+      console.log(JSON.stringify({ event: "okx_demo_connected", ...status }));
+      const permission = await okxDemo.inspectTradingPermission();
+      console.log(JSON.stringify({ event: "okx_demo_permission_checked", ...permission }));
+      console.log(
+        JSON.stringify(
+          status.orderExecutionEnabled
+            ? {
+                event: "okx_demo_execution_armed",
+                provider: "okx-demo",
+                orderSizeUsdt: tradingSettings.orderSizeUsdt,
+                maxTrades: tradingSettings.maxTrades,
+                intervalMinutes: tradingSettings.intervalMinutes,
+                stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
+                takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
+              }
+            : {
+                event: "execution_disabled",
+                provider: "okx-demo",
+                reason: "OKX_DEMO_TRADING_ENABLED=false",
+              },
+        ),
+      );
+      return;
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: "okx_demo_initialization_failed",
+          provider: "okx-demo",
+          retryInMs: delayMs,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+
+      if (!(await sleep(delayMs, signal))) return;
+      delayMs = Math.min(delayMs * 2, 5 * 60_000);
+    }
+  }
+}
+
+async function initializeWithBackoff(
+  market: PublicMarketData,
+  signal: AbortSignal,
+): Promise<void> {
+  let delayMs = 15_000;
+
+  while (!signal.aborted) {
+    try {
+      await market.initialize();
+      return;
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: "market_initialization_failed",
+          provider: market.provider,
+          retryInMs: delayMs,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+
+      if (!(await sleep(delayMs, signal))) {
+        return;
+      }
+
+      delayMs = Math.min(delayMs * 2, 5 * 60_000);
+    }
+  }
+}
+
+main().catch((error) => {
+  console.error(
+    JSON.stringify({
+      event: "fatal_error",
+      error: error instanceof Error ? error.message : String(error),
+    }),
+  );
+  process.exitCode = 1;
+});
+

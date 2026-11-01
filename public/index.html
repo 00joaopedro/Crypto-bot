@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Crypto Bot · Controle</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <section id="login" class="login-shell">
+    <form id="login-form" class="login-card">
+      <div class="brand-mark">CB</div>
+      <p class="eyebrow">PAINEL PROTEGIDO</p>
+      <h1>Crypto Bot</h1>
+      <p class="muted">Acompanhe e controle suas operações no ambiente Demo.</p>
+      <label>Senha do painel<input id="password" type="password" autocomplete="current-password" required></label>
+      <button class="primary" type="submit">Entrar no painel</button>
+      <p id="login-error" class="error" role="alert"></p>
+    </form>
+  </section>
+
+  <div id="dashboard" class="app" hidden>
+    <header class="topbar">
+      <div><p class="eyebrow">OKX DEMO</p><h1>Crypto Bot</h1></div>
+      <div class="top-actions">
+        <span id="connection" class="status"><i></i> Online</span>
+        <button id="theme" class="icon-button" aria-label="Alternar tema">☾</button>
+        <button id="logout" class="ghost">Sair</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero panel">
+        <div><p class="eyebrow">CONTROLE OPERACIONAL</p><h2>Visão geral da estratégia</h2><p class="muted">Dados do PostgreSQL atualizados automaticamente.</p></div>
+        <button id="toggle-bot" class="danger">Pausar bot</button>
+      </section>
+
+      <section class="metrics" aria-label="Indicadores principais">
+        <article class="metric"><span>Patrimônio paper</span><strong id="equity">—</strong><small id="strategy-return">Retorno —</small></article>
+        <article class="metric"><span>Saldo USDT OKX Demo</span><strong id="okx-equity">—</strong><small id="okx-equity-status">Não inclui outros ativos</small></article>
+        <article class="metric"><span>Patrimônio Spot OKX Demo</span><strong id="okx-total-equity">—</strong><small id="okx-total-equity-status">Aguardando avaliação</small></article>
+        <article class="metric"><span>P&amp;L realizado OKX Demo</span><strong id="demo-pnl">—</strong><small id="demo-pnl-status">Aguardando reconciliação</small></article>
+        <article class="metric"><span>P&amp;L realizado Paper</span><strong id="pnl">—</strong><small id="unrealized">Não realizado —</small></article>
+        <article class="metric"><span>Win rate</span><strong id="win-rate">—</strong><small id="closed-trades">0 trades fechados</small></article>
+        <article class="metric"><span>Drawdown máximo</span><strong id="drawdown">—</strong><small id="fees">Taxas —</small></article>
+      </section>
+
+      <section class="metrics secondary-metrics" aria-label="Métricas operacionais">
+        <article class="metric"><span>Decisões</span><strong id="decisions">—</strong><small id="decision-breakdown">Aprovadas — · rejeitadas —</small></article>
+        <article class="metric"><span>Entradas / saídas</span><strong id="trade-count">—</strong><small id="trade-result">Acerto —</small></article>
+        <article class="metric"><span>Último ciclo</span><strong id="last-cycle">—</strong><small id="error-count">Erros —</small></article>
+        <article class="metric"><span>Buy &amp; Hold</span><strong id="benchmark-return">—</strong><small id="excess-return">Diferença —</small></article>
+      </section>
+
+      <section class="metrics period-metrics" aria-label="Lucro por período e posição atual">
+        <button type="button" class="metric metric-toggle" data-metric="daily"><span>P&amp;L diário Paper</span><strong id="pnl-daily">US$ 0,00</strong><small id="pnl-daily-mode">USDT · clique para %</small></button>
+        <button type="button" class="metric metric-toggle" data-metric="weekly"><span>P&amp;L semanal Paper</span><strong id="pnl-weekly">US$ 0,00</strong><small id="pnl-weekly-mode">USDT · clique para %</small></button>
+        <button type="button" class="metric metric-toggle" data-metric="monthly"><span>P&amp;L mensal Paper</span><strong id="pnl-monthly">US$ 0,00</strong><small id="pnl-monthly-mode">USDT · clique para %</small></button>
+        <button type="button" class="metric metric-toggle" data-metric="position"><span>Posição Paper</span><strong id="position-total">US$ 0,00</strong><small id="position-total-mode">USDT · clique para %</small></button>
+      </section>
+
+      <section class="panel health-panel">
+        <div class="section-head"><div><p class="eyebrow">SAÚDE DO SISTEMA</p><h2>Conexões e alertas</h2></div><span class="pill">Atualização automática</span></div>
+        <div id="health" class="health-grid"></div>
+      </section>
+      <section class="panel diagnostic-panel"><div class="section-head"><div><p class="eyebrow">DIAGNÓSTICO</p><h2>Logs do bot</h2><p class="muted">Até 500 registros mais recentes por categoria; dados antigos dependem da retenção.</p><label>Período <select id="logs-hours"><option value="6">6 horas</option><option value="24">24 horas</option><option value="168">7 dias</option><option value="720">30 dias</option><option value="2160">90 dias</option></select></label></div><div class="top-actions diagnostic-actions"><button id="copy-logs" class="ghost">Copiar logs</button><button id="download-logs" class="ghost">Baixar logs</button><button id="check-demo" class="ghost">Verificar OKX Demo</button><button id="check-permission" class="ghost">Verificar permissão Demo</button></div></div><p id="logs-message" class="message" role="status"></p></section>
+      <section class="panel"><div class="section-head"><div><p class="eyebrow">ESTATÍSTICA CONTÍNUA</p><h2>Qualidade dos resultados</h2><p class="muted">Separação por par, horário UTC, regime e disponibilidade da IA.</p></div></div><div id="analytics-summary" class="decision-copy">Aguardando trades fechados…</div><div id="analytics-breakdown" class="table-scroll"></div></section>
+
+      <section class="layout">
+        <article class="panel chart-panel">
+          <div class="section-head"><div><p class="eyebrow">DESEMPENHO</p><h2>Estratégia × comprar e manter</h2></div><span id="chart-range" class="pill">Últimos registros</span></div>
+          <div class="chart-wrap"><canvas id="performance-chart" aria-label="Gráfico de desempenho"></canvas></div>
+          <div class="legend"><span><i class="strategy-dot"></i>Estratégia</span><span><i class="benchmark-dot"></i>Buy &amp; Hold</span></div>
+        </article>
+
+        <article class="panel settings-panel">
+          <div class="section-head"><div><p class="eyebrow">ESTRATÉGIA</p><h2>Configuração</h2></div><span class="pill">Spot · 15m</span></div>
+          <form id="settings-form">
+            <label>Par negociado<select id="symbol" required></select></label>
+            <div class="form-grid">
+              <label>Valor por trade (USDT)<input id="order-size" type="number" min="1" max="100" step="0.01" required></label>
+              <label>Máximo de trades<input id="max-trades" type="number" min="1" max="100" required></label>
+              <label>Posições simultâneas<input id="max-positions" type="number" min="1" max="99" required></label>
+            </div>
+            <label>Intervalo do limite<select id="interval"><option value="15">15 minutos</option><option value="60">1 hora</option><option value="240">4 horas</option><option value="1440">1 dia</option><option value="10080">1 semana</option></select></label>
+            <p class="hint">O limite conta apenas ordens Demo efetivamente enviadas. Salvar reinicia o worker de forma controlada.</p>
+            <button class="primary" type="submit">Salvar e aplicar</button>
+            <p id="settings-message" class="message" role="status"></p>
+          </form>
+        </article>
+      </section>
+
+      <section class="panel"><div class="section-head"><div><p class="eyebrow">CARTEIRA</p><h2>Posições abertas por par</h2></div></div><div id="positions" class="decision-copy">Nenhuma posição aberta.</div></section>
+
+      <section class="bottom-grid">
+        <article class="panel"><div class="section-head"><div><p class="eyebrow">SINAL ATUAL</p><h2>Última decisão</h2></div><span id="decision-action" class="pill">—</span></div><div id="decision" class="decision-copy">Aguardando dados…</div></article>
+        <article class="panel table-panel"><div class="section-head"><div><p class="eyebrow">ATIVIDADE</p><h2>Ordens e trades recentes</h2></div><select id="history-symbol" aria-label="Filtrar histórico por par"><option value="">Todos os pares</option></select></div><div class="table-scroll"><table><thead><tr><th>Data</th><th>Par</th><th>Tipo</th><th>Status / Resultado</th></tr></thead><tbody id="activity"></tbody></table></div></article>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
+
