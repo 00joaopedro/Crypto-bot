@@ -10,6 +10,7 @@ import type {
 } from "./paper-trader.js";
 import { classifyDemoOrder, normalizedOrderFees, type DemoBuyResult } from "./okx-demo.js";
 import { readDemoAccountIdentity } from "./okx-demo-identity.js";
+import { isExplicitDemoPermissionRejection } from "./demo-rejection.js";
 import type { AiDecision, Candle, QuantSignal } from "./types.js";
 import { buildStatisticalReport, type StatisticalTrade } from "./analytics.js";
 
@@ -422,6 +423,27 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows;
   }
 
+  /** Caller must have confirmed the account identity and received OrderNotFound
+   * from OKX for this exact client ID. Keep both original rows for audit. */
+  async confirmMissingPermissionRejectedOrder(clientOrderId: string): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-order-reservation'))");
+      const pending = await client.query<{ symbol: string; candle_timestamp: string }>("SELECT symbol, candle_timestamp FROM demo_orders WHERE client_order_id = $1 AND status = 'PENDING' FOR UPDATE", [clientOrderId]);
+      const row = pending.rows[0];
+      if (!row) { await client.query("ROLLBACK"); return false; }
+      const failureId = `FAILED:${row.symbol}:${row.candle_timestamp}`;
+      const failure = await client.query<{ result: unknown }>("SELECT result FROM demo_orders WHERE client_order_id = $1 AND symbol = $2 AND candle_timestamp = $3 AND status = 'FAILED' FOR UPDATE", [failureId, row.symbol, row.candle_timestamp]);
+      if (failure.rows.length !== 1 || !isExplicitDemoPermissionRejection(failure.rows[0]!.result)) { await client.query("ROLLBACK"); return false; }
+      await client.query("UPDATE demo_orders SET status = 'REJECTED_CONFIRMED', result = result || $2::jsonb, updated_at = NOW() WHERE client_order_id IN ($1, $3)", [clientOrderId, JSON.stringify({ reconciliation: { method: "okx_50123_and_order_not_found", confirmedAt: new Date().toISOString() } }), failureId]);
+      await client.query("INSERT INTO audit_events (event_type, actor, details) VALUES ('DEMO_REJECTION_RECONCILED', 'system', $1::jsonb)", [JSON.stringify({ clientOrderId, failureId, symbol: row.symbol, method: "okx_50123_and_order_not_found" })]);
+      await client.query("COMMIT");
+      return true;
+    } catch (error) { await client.query("ROLLBACK"); throw error; }
+    finally { client.release(); }
+  }
+
   async reconcileDemoOrder(clientOrderId: string, order: { id?: string | undefined; status?: string | undefined; filled?: number | undefined; average?: number | undefined; cost?: number | undefined; side?: string | undefined; fee?: { currency?: string | undefined; cost?: number | undefined } | undefined; fees?: Array<{ currency?: string | undefined; cost?: number | undefined }> | undefined }): Promise<void> {
     const status = classifyDemoOrder(order.status, order.filled);
     await this.pool.query(
@@ -696,7 +718,8 @@ export class PostgresPersistence implements BotPersistence {
          result = EXCLUDED.result,
          updated_at = NOW()
        WHERE (EXCLUDED.status <> 'SKIPPED' OR demo_orders.status NOT IN ('PENDING', 'PLACED'))
-         AND NOT (EXCLUDED.status = 'PENDING' AND demo_orders.status IN ('PLACED', 'FAILED'))`,
+         AND NOT (EXCLUDED.status = 'PENDING' AND demo_orders.status IN ('PLACED', 'FAILED'))
+         AND demo_orders.status <> 'REJECTED_CONFIRMED'`,
       [
         result.clientOrderId,
         symbol,
@@ -719,7 +742,8 @@ export class PostgresPersistence implements BotPersistence {
        ) VALUES ($1, $2, $3, 'FAILED', $4::jsonb)
        ON CONFLICT (client_order_id) DO UPDATE SET
          result = EXCLUDED.result,
-         updated_at = NOW()`,
+         updated_at = NOW()
+       WHERE demo_orders.status <> 'REJECTED_CONFIRMED'`,
       [clientOrderId, symbol, candleTimestamp, JSON.stringify({ error })],
     );
   }

@@ -37,7 +37,7 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   // A local failure is not proof that the exchange rejected the order. This
   // applies even if other orders in the same period were confirmed.
   if (periodRows.some((row) => row.status === "FAILED")) return unavailable("failed_order_unconfirmed");
-  if (periodRows.some((row) => !["PLACED", "SKIPPED", "FAILED"].includes(row.status))) return unavailable("journal_status_unconfirmed");
+  if (periodRows.some((row) => !["PLACED", "SKIPPED", "FAILED", "REJECTED_CONFIRMED"].includes(row.status))) return unavailable("journal_status_unconfirmed");
   if (placed.length > 50) return unavailable("journal_too_large_for_diagnostic");
   const journal: JournaledDemoBuy[] = [];
   for (const row of placed) {

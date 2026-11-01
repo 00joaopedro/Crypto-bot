@@ -11,6 +11,7 @@ describe("dashboard authentication", () => {
 
   networkTest("keeps data private and creates an authenticated session", async () => {
     const onSettingsChanged = vi.fn();
+    const onResume = vi.fn().mockResolvedValueOnce({ status: "blocked", reason: "pending_demo_order" }).mockResolvedValueOnce({ status: "resumed" });
     const inspectDemoAccounting = vi.fn(async () => ({ status: "unavailable", reason: "no_confirmed_orders" }));
     const persistence = {
       getDashboardData: async () => ({ paused: false }),
@@ -24,6 +25,7 @@ describe("dashboard authentication", () => {
       persistence,
       supportedSymbols: ["BTC/USDT"],
       onSettingsChanged,
+      onResume,
       inspectDemoAccounting,
       inspectDemoPermission: async () => ({ status: "available", trading: true }),
     });
@@ -77,9 +79,26 @@ describe("dashboard authentication", () => {
         maxConcurrentPositions: 2,
       }),
     });
-    expect(settings.status).toBe(200);
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(settings.status).toBe(202);
+    const submitted = await settings.json() as { revision: number };
+    const status = await fetch(`${base}/api/settings-status`, { headers: { cookie: cookie!.split(";")[0]! } });
+    expect(await status.json()).toEqual({ revision: submitted.revision, status: "applied" });
     expect(onSettingsChanged).toHaveBeenCalledOnce();
+    const control = () => fetch(`${base}/api/control`, { method: "POST", headers: { cookie: cookie!.split(";")[0]!, origin: base, "content-type": "application/json" }, body: JSON.stringify({ paused: false }) });
+    const blocked = await control();
+    expect(blocked.status).toBe(409);
+    expect(await blocked.json()).toMatchObject({ reason: "pending_demo_order" });
+    expect((await control()).status).toBe(200);
+    onSettingsChanged.mockRejectedValueOnce(new Error("reconfigure failed"));
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const failedSettings = await fetch(`${base}/api/settings`, {
+      method: "PUT", headers: { cookie: cookie!.split(";")[0]!, origin: base, "content-type": "application/json" },
+      body: JSON.stringify({ symbol: "BTC/USDT", orderSizeUsdt: 10, maxTrades: 1, intervalMinutes: 60, maxConcurrentPositions: 2 }),
+    });
+    expect(failedSettings.status).toBe(202);
+    const failedStatus = await fetch(`${base}/api/settings-status`, { headers: { cookie: cookie!.split(";")[0]! } });
+    expect(await failedStatus.json()).toMatchObject({ status: "failed" });
+    log.mockRestore();
   });
 });
 

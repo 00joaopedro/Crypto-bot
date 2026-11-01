@@ -67,6 +67,9 @@ export class TradingBot {
   private readonly loadedPaperSymbols = new Set<string>();
   private readonly lastProcessedCandleBySymbol = new Map<string, number>();
 
+  /** Only call after the exchange safety gate and persistent resume succeed. */
+  clearDemoExecutionBlock(): void { this.demoExecutionBlocked = false; }
+
   constructor(
     private readonly market: PublicMarketData,
     private readonly options: BotOptions,

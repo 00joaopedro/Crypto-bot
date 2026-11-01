@@ -25,6 +25,7 @@ type DashboardOptions = {
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
   inspectDemoAccounting?: () => Promise<unknown>;
   inspectDemoPermission?: () => Promise<unknown>;
+  onResume?: () => Promise<{ status: "resumed" } | { status: "blocked"; reason: string }>;
 };
 
 const assets = new Map<string, { file: string; type: string }>([
@@ -34,6 +35,7 @@ const assets = new Map<string, { file: string; type: string }>([
 ]);
 
 export async function startDashboard(options: DashboardOptions): Promise<Server> {
+  let settingsApply: { revision: number; status: "idle" | "pending" | "applied" | "failed" } = { revision: 0, status: "idle" };
   let accountingRequest: Promise<unknown> | undefined;
   let accountingExpiresAt = 0;
   const accounting = (): Promise<unknown> => {
@@ -110,9 +112,15 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         requireSameOrigin(request);
         const body = await readJson(request);
         if (typeof body.paused !== "boolean") return json(response, 400, { error: "Ação inválida." });
+        if (!body.paused && options.onResume) {
+          const result = await options.onResume();
+          if (result.status === "blocked") return json(response, 409, { error: "Bot permanece pausado: verifique a segurança Demo.", reason: result.reason });
+          return json(response, 200, { paused: false });
+        }
         await options.persistence.setPaused(body.paused, "dashboard");
         return json(response, 200, { paused: body.paused });
       }
+      if (request.method === "GET" && url.pathname === "/api/settings-status") return json(response, 200, settingsApply);
       if (request.method === "PUT" && url.pathname === "/api/settings") {
         requireSameOrigin(request);
         const parsed = settingsSchema.safeParse(await readJson(request));
@@ -120,16 +128,18 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
           return json(response, 400, { error: "Configuração ou par não suportado." });
         }
         await options.persistence.updateDashboardSettings(parsed.data, "dashboard");
-        json(response, 200, { ok: true, reconfiguring: true });
-        setTimeout(() => {
-          void Promise.resolve(options.onSettingsChanged()).catch((error) => {
+        const revision = settingsApply.revision + 1;
+        settingsApply = { revision, status: "pending" };
+        void Promise.resolve().then(() => options.onSettingsChanged()).then(() => {
+          if (settingsApply.revision === revision) settingsApply = { revision, status: "applied" };
+        }).catch((error) => {
+            if (settingsApply.revision === revision) settingsApply = { revision, status: "failed" };
             console.error(JSON.stringify({
               event: "dashboard_reconfiguration_failed",
               error: error instanceof Error ? error.message : String(error),
             }));
           });
-        }, 500);
-        return;
+        return json(response, 202, { ok: true, revision, status: "pending" });
       }
       return json(response, 404, { error: "Rota não encontrada." });
     } catch (error) {

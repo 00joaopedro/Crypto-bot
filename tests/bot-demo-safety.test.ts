@@ -27,5 +27,10 @@ it("checks OKX safety before a buy and pauses when the new protection cannot be 
   expect(setPaused).toHaveBeenCalledWith(true, "system:demo_execution_safety");
   await bot.runCycle();
   expect(executeApprovedBuy).toHaveBeenCalledOnce();
+  verifyDemoExecutionSafety.mockResolvedValue({ status: "safe" });
+  bot.clearDemoExecutionBlock();
+  await bot.runCycle();
+  expect(verifyDemoExecutionSafety).toHaveBeenCalledTimes(4);
+  expect(executeApprovedBuy).toHaveBeenCalledOnce();
   vi.restoreAllMocks();
 });

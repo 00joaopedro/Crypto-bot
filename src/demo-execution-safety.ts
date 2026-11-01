@@ -19,7 +19,7 @@ export async function inspectDemoExecutionSafety(
     if (relevant.some((row) => row.status === "FAILED")) return blocked("unresolved_demo_failure");
     // A skipped Demo buy still leaves the Paper position opened in this cycle.
     if (relevant.some((row) => row.status === "SKIPPED")) return blocked("paper_demo_entry_mismatch");
-    if (relevant.some((row) => !["PLACED", "SKIPPED"].includes(row.status))) return blocked("unknown_demo_order_status");
+    if (relevant.some((row) => !["PLACED", "SKIPPED", "REJECTED_CONFIRMED"].includes(row.status))) return blocked("unknown_demo_order_status");
     const placed = relevant.filter((row) => row.status === "PLACED");
     if (!placed.length) return { status: "safe" };
     if (placed.length > 500) return blocked("demo_journal_too_large");

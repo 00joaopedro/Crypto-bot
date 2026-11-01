@@ -30,5 +30,6 @@ describe("OKX Demo execution safety gate", () => {
     expect(await inspectDemoExecutionSafety(persistence([{ ...row, status: "SKIPPED" }]), { collectOrderEvidence: reader })).toMatchObject({ reason: "paper_demo_entry_mismatch" });
     expect(reader).not.toHaveBeenCalled();
     expect(await inspectDemoExecutionSafety(persistence([{ ...row, status: "FAILED", created_at: new Date(0) }]), { collectOrderEvidence: reader })).toEqual({ status: "safe" });
+    expect(await inspectDemoExecutionSafety(persistence([{ ...row, status: "REJECTED_CONFIRMED" }]), { collectOrderEvidence: reader })).toEqual({ status: "safe" });
   });
 });
