@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { inspectDemoExecutionSafety } from "../src/demo-execution-safety.js";
+import { inspectDemoExecutionSafety, inspectDemoExecutionState } from "../src/demo-execution-safety.js";
 
 const baseline = { observedAt: new Date(1000), balances: { USDT: 100 }, evidence: {}, status: "UNVERIFIED" };
 const row = { status: "PLACED", result: { orderId: "1" }, attached_algo_client_id: "AP1", client_order_id: "CB1", symbol: "BTC/USDT", created_at: new Date(2000) };
@@ -17,6 +17,18 @@ describe("OKX Demo execution safety gate", () => {
     expect(await inspectDemoExecutionSafety(persistence(), { collectOrderEvidence: async () => evidence })).toEqual({ status: "safe" });
     const closed = { ...evidence, protectionStates: { AP1: "effective" }, orders: [evidence.orders[0]!, { ...evidence.orders[1]!, filled: 1 }] };
     expect(await inspectDemoExecutionSafety(persistence(), { collectOrderEvidence: async () => closed })).toEqual({ status: "safe" });
+  });
+  it("derives verified Demo exposure from exchange fills, independently of Paper", async () => {
+    expect(await inspectDemoExecutionState(persistence(), { collectOrderEvidence: async () => evidence })).toEqual({ status: "safe", positions: [{ symbol: "BTC/USDT", quantity: 0.5 }] });
+    const closed = { ...evidence, protectionStates: { AP1: "effective" }, orders: [evidence.orders[0]!, { ...evidence.orders[1]!, filled: 1 }] };
+    expect(await inspectDemoExecutionState(persistence(), { collectOrderEvidence: async () => closed })).toEqual({ status: "safe", positions: [] });
+    expect(await inspectDemoExecutionState(persistence([{ ...row, status: "REJECTED_CONFIRMED" }]), { collectOrderEvidence: async () => evidence })).toEqual({ status: "safe", positions: [] });
+  });
+  it("does not infer zero exposure from an unfinished order", async () => {
+    const unknown = { ...evidence, orders: [{ ...evidence.orders[0]!, terminal: false, filled: 0 }, { ...evidence.orders[1]!, filled: 0 }] };
+    expect(await inspectDemoExecutionState(persistence(), { collectOrderEvidence: async () => unknown })).toMatchObject({ status: "blocked", reason: "demo_buy_not_terminal" });
+    const selling = { ...evidence, orders: [evidence.orders[0]!, { ...evidence.orders[1]!, terminal: false }] };
+    expect(await inspectDemoExecutionState(persistence(), { collectOrderEvidence: async () => selling })).toMatchObject({ status: "blocked", reason: "demo_sell_not_terminal" });
   });
   it("blocks partial exits without a remaining live protection, overfills, and unknown ownership", async () => {
     expect(await inspectDemoExecutionSafety(persistence(), { collectOrderEvidence: async () => ({ ...evidence, protectionStates: { AP1: "effective" } }) })).toMatchObject({ reason: "demo_position_without_live_protection" });
