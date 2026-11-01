@@ -2,6 +2,8 @@ import { verifyDemoOwnership } from "./demo-ownership.js";
 import type { PostgresPersistence } from "./persistence.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
 
+/** Gross filled quantity; exchange fees in the base asset are not subtracted.
+ * This is unsuitable for sizing sells or proving available balances. */
 export type VerifiedDemoPosition = { symbol: string; quantity: number };
 export type DemoExecutionState =
   | { status: "safe"; positions: VerifiedDemoPosition[] }

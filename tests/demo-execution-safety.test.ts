@@ -35,6 +35,13 @@ describe("OKX Demo execution safety gate", () => {
     expect(await inspectDemoExecutionSafety(persistence(), { collectOrderEvidence: async () => ({ ...evidence, orders: [evidence.orders[0]!, { ...evidence.orders[1]!, filled: 1.1 }] }) })).toMatchObject({ reason: "demo_oversold_position" });
     expect(await inspectDemoExecutionSafety(persistence(), { collectOrderEvidence: async () => ({ ...evidence, buys: [{ ...buy, clientOrderId: "manual" }] }) })).toMatchObject({ reason: "buy_identity_mismatch" });
   });
+  it("fails closed after restart if a previously submitted order is unresolved", async () => {
+    const unresolved = persistence([{ ...row, status: "PENDING" }]);
+    const exchange = { collectOrderEvidence: vi.fn(async () => evidence) };
+    expect(await inspectDemoExecutionState(unresolved, exchange)).toMatchObject({ status: "blocked", reason: "pending_demo_order" });
+    expect(await inspectDemoExecutionState(unresolved, exchange)).toMatchObject({ status: "blocked", reason: "pending_demo_order" });
+    expect(exchange.collectOrderEvidence).not.toHaveBeenCalled();
+  });
   it("fails closed on pending or failed submission, but ignores a pre-baseline legacy failure", async () => {
     const reader = vi.fn(async () => evidence);
     expect(await inspectDemoExecutionSafety(persistence([{ ...row, status: "PENDING" }]), { collectOrderEvidence: reader })).toMatchObject({ reason: "pending_demo_order" });
