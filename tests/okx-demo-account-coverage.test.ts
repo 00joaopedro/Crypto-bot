@@ -18,3 +18,13 @@ describe("bounded Demo account history coverage", () => {
     expect(await collectDemoAccountCoverage({ privateGetAccountBills: async () => ({ code: "0", data: [bill("9")] }) }, input)).toMatchObject({ reason: "account_bills_cursor_invalid" });
   });
 });
+
+it('covers a gap longer than six days using historical bills and refuses missing history', async () => {
+  const boundary = now - 6 * 86400000;
+  const historical = vi.fn(async (params: Record<string,string>) => ({ code: '0', data: params.after ? [] : [{ billId: '1', ordId: 'buy1', ts: String(boundary-1) }] }));
+  const recent = vi.fn(async (params: Record<string,string>) => ({ code: '0', data: params.after ? [] : [{ billId: '2', ordId: 'buy1', ts: String(boundary) }] }));
+  expect(await collectDemoAccountCoverage({ privateGetAccountBills: recent, privateGetAccountBillsHistory: historical }, { ...input, from: now-10*86400000 })).toEqual({ status: 'covered', billCount: 2 });
+  expect(historical).toHaveBeenCalledWith(expect.objectContaining({ end: String(boundary-1) }));
+  expect(recent).toHaveBeenCalledWith(expect.objectContaining({ begin: String(boundary) }));
+  expect(await collectDemoAccountCoverage({ privateGetAccountBills: recent, privateGetAccountBillsHistory: async () => { throw Error('unavailable'); } }, { ...input, from: now-10*86400000 })).toMatchObject({ status: 'unavailable' });
+});

@@ -189,16 +189,16 @@ export class OkxDemoExecutor {
   /** A read-only candidate, not a proof of atomicity or complete history. */
   async inspectBaselineHistory(from: number, to: number) {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable" as const, reason: "demo_not_initialized" };
-    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown> };
+    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown>; privateGetAccountBillsHistory?: (params: Record<string, string>) => Promise<unknown> };
     if (typeof client.privateGetAccountBills !== "function") return { status: "unavailable" as const, reason: "baseline_history_endpoint_unavailable" };
     return inspectBaselineBills({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now() });
   }
 
   async collectAccountCoverage(from: number, to: number, ownedOrderIds: ReadonlySet<string>, quiescentFrom?: number) {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable" as const, reason: "demo_not_initialized" };
-    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown> };
+    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown>; privateGetAccountBillsHistory?: (params: Record<string, string>) => Promise<unknown> };
     if (typeof client.privateGetAccountBills !== "function") return { status: "unavailable" as const, reason: "account_bills_endpoint_unavailable" };
-    return collectDemoAccountCoverage({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now(), ownedOrderIds, ...(quiescentFrom === undefined ? {} : { quiescentFrom }) });
+    return collectDemoAccountCoverage({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params), ...(client.privateGetAccountBillsHistory ? { privateGetAccountBillsHistory: (params: Record<string, string>) => client.privateGetAccountBillsHistory!(params) } : {}) }, { from, to, now: Date.now(), ownedOrderIds, ...(quiescentFrom === undefined ? {} : { quiescentFrom }) });
   }
 
   /** Total Spot balances bounded by local request times; never a claimed atomic exchange timestamp. */

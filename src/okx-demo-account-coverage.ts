@@ -1,13 +1,13 @@
 /** Complete, bounded scan of account balance-changing bills since a Demo baseline.
  * This proves only coverage of the supported window, not snapshot atomicity.
  */
-export async function collectDemoAccountCoverage(
+async function scanCoverage(
   client: { privateGetAccountBills(params: Record<string, string>): Promise<unknown> },
   input: { from: number; to: number; now: number; ownedOrderIds: ReadonlySet<string>; quiescentFrom?: number; maxPages?: number },
 ): Promise<{ status: "covered"; billCount: number } | { status: "unavailable"; reason: string }> {
   const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
   const maxPages = input.maxPages ?? 100;
-  if (![input.from, input.to, input.now].every(Number.isSafeInteger) || input.from <= 0 || input.from > input.to || input.to > input.now || input.from < input.now - 6 * 86_400_000 || (input.quiescentFrom !== undefined && (!Number.isSafeInteger(input.quiescentFrom) || input.quiescentFrom < input.from || input.quiescentFrom > input.to)) || !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 1000) return unavailable("account_coverage_window_unsupported");
+  if (![input.from, input.to, input.now].every(Number.isSafeInteger) || input.from <= 0 || input.from > input.to || input.to > input.now || input.from < input.now - 80 * 86_400_000 || (input.quiescentFrom !== undefined && (!Number.isSafeInteger(input.quiescentFrom) || input.quiescentFrom < input.from || input.quiescentFrom > input.to)) || !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 1000) return unavailable("account_coverage_window_unsupported");
   let cursor: bigint | undefined;
   let count = 0;
   try {
@@ -35,4 +35,23 @@ export async function collectDemoAccountCoverage(
     }
     return unavailable("account_bills_page_limit");
   } catch { return unavailable("account_bills_request_failed"); }
+}
+
+/** Historical and recent account bills cover adjacent, non-overlapping windows. */
+export async function collectDemoAccountCoverage(
+  client: { privateGetAccountBills(params: Record<string, string>): Promise<unknown>; privateGetAccountBillsHistory?: (params: Record<string, string>) => Promise<unknown> },
+  input: { from: number; to: number; now: number; ownedOrderIds: ReadonlySet<string>; quiescentFrom?: number; maxPages?: number },
+): Promise<{ status: "covered"; billCount: number } | { status: "unavailable"; reason: string }> {
+  const boundary = input.now - 6 * 86_400_000;
+  if (input.from >= boundary) return scanCoverage(client, input);
+  if (!client.privateGetAccountBillsHistory) return { status: "unavailable", reason: "account_coverage_window_unsupported" };
+  // Validate the entire request before issuing either half.
+  if (![input.from, input.to, input.now].every(Number.isSafeInteger) || input.from <= 0 || input.from > input.to || input.to > input.now || input.from < input.now - 80 * 86_400_000 || (input.quiescentFrom !== undefined && (input.quiescentFrom < input.from || input.quiescentFrom > input.to))) return { status: "unavailable", reason: "account_coverage_window_unsupported" };
+  const oldTo = Math.min(input.to, boundary - 1);
+  const older = await scanCoverage({ privateGetAccountBills: params => client.privateGetAccountBillsHistory!(params) }, {
+    ...input, to: oldTo, ...(input.quiescentFrom !== undefined && input.quiescentFrom > oldTo ? { quiescentFrom: undefined } : {}),
+  } as typeof input);
+  if (older.status !== "covered" || input.to < boundary) return older;
+  const recent = await scanCoverage(client, { ...input, from: boundary, ...(input.quiescentFrom !== undefined && input.quiescentFrom < boundary ? { quiescentFrom: boundary } : {}) });
+  return recent.status === "covered" ? { status: "covered", billCount: older.billCount + recent.billCount } : recent;
 }

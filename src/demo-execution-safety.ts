@@ -1,3 +1,4 @@
+import { collectDemoEvidenceBatches } from "./demo-evidence-batches.js";
 import { verifyDemoOwnership } from "./demo-ownership.js";
 import type { PostgresPersistence } from "./persistence.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
@@ -25,7 +26,8 @@ export async function inspectDemoExecutionState(
     const checkpoint = originalBaseline ? await persistence.getDemoAccountingCheckpoint?.(originalBaseline.observedAt) : null;
     const baseline = checkpoint ?? originalBaseline;
     if (!baseline) return blocked("demo_baseline_missing");
-    const relevant = rows.filter((row) => new Date(row.created_at).getTime() >= baseline.observedAt.getTime());
+    const carry = baseline.evidence.ledgerCarry as { from?: number } | undefined;
+    const relevant = rows.filter((row) => new Date(row.created_at).getTime() >= (carry?.from ?? baseline.observedAt.getTime()));
     // An ambiguous local failure may still have reached the exchange.
     if (relevant.some((row) => row.status === "FAILED")) return blocked("unresolved_demo_failure");
     // A skipped Demo buy still leaves the Paper position opened in this cycle.
@@ -33,14 +35,13 @@ export async function inspectDemoExecutionState(
     if (relevant.some((row) => !["PLACED", "SKIPPED", "REJECTED_CONFIRMED"].includes(row.status))) return blocked("unknown_demo_order_status");
     const placed = relevant.filter((row) => row.status === "PLACED");
     if (!placed.length) return { status: "safe", positions: [] };
-    if (placed.length > 500) return blocked("demo_journal_too_large");
     const journal = [];
     for (const row of placed) {
       const orderId = (row.result as { orderId?: unknown } | null)?.orderId;
       if (typeof orderId !== "string" || !orderId || !row.attached_algo_client_id) return blocked("demo_order_identity_missing");
       journal.push({ orderId, clientOrderId: row.client_order_id, symbol: row.symbol, attachedAlgoClientId: row.attached_algo_client_id });
     }
-    const evidence = await executor.collectOrderEvidence(journal);
+    const evidence = await collectDemoEvidenceBatches(executor, journal);
     if (evidence.status !== "collected") return blocked(evidence.reason);
     const ownership = verifyDemoOwnership(journal, evidence.buys, evidence.protections, evidence.sells);
     if (ownership.status !== "confirmed") return blocked(ownership.reason);
