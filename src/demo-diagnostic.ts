@@ -8,12 +8,15 @@ import { sameDemoAccount } from "./okx-demo-identity.js";
 import { accountForDemoEvidence } from "./demo-accounting-evidence.js";
 
 /** On-demand read-only inspection; confirms P&L only with a stable bounded balance window. */
-export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity" | "collectAccountCoverage" | "collectAccountBalances">) {
+export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint" | "saveDemoAccountingCheckpoint">>, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity" | "collectAccountCoverage" | "collectAccountBalances">) {
   const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
   const rows = await persistence.demoOrderJournal();
   if (!rows.length) return unavailable("journal_empty");
   if (rows.some((row) => row.status === "PENDING")) return unavailable("pending_order");
-  const baseline = await persistence.getDemoBaselineCandidate();
+  const originalBaseline = await persistence.getDemoBaselineCandidate();
+  const checkpoint = originalBaseline ? await persistence.getDemoAccountingCheckpoint?.(originalBaseline.observedAt) : null;
+  const baseline = checkpoint ?? originalBaseline;
+  const pnlOffset = checkpoint?.realizedPnlOffset ?? 0;
   if (!baseline || !Number.isSafeInteger(baseline.observedAt.getTime()) || baseline.observedAt.getTime() <= 0 || baseline.observedAt.getTime() > Date.now()) return unavailable("baseline_missing");
   const account = await executor.inspectAccountIdentity();
   if (account.status !== "confirmed") return unavailable(account.reason);
@@ -27,6 +30,19 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   if (rows.some((row) => !Number.isSafeInteger(new Date(row.created_at).getTime()))) return unavailable("invalid_journal_date");
   const periodRows = rows.filter((row) => new Date(row.created_at).getTime() >= baseline.observedAt.getTime());
   const placed = periodRows.filter((row) => row.status === "PLACED");
+  if (!placed.length && checkpoint && periodRows.every(row => row.status === "REJECTED_CONFIRMED")) {
+    const before = await executor.collectAccountBalances();
+    if (before.status !== "collected") return unavailable(before.reason);
+    const after = await executor.collectAccountBalances();
+    if (after.status !== "collected") return unavailable(after.reason);
+    const coverage = await executor.collectAccountCoverage(baseline.observedAt.getTime(), after.endedAt, new Set(), before.startedAt);
+    if (coverage.status !== "covered") return unavailable(coverage.reason);
+    const assets = new Set([...Object.keys(baseline.balances), ...Object.keys(before.balances), ...Object.keys(after.balances)]);
+    if ([...assets].some(asset => (baseline.balances[asset] ?? 0) !== (before.balances[asset] ?? 0) || (before.balances[asset] ?? 0) !== (after.balances[asset] ?? 0))) return unavailable("balance_changed_since_checkpoint");
+    await persistence.saveDemoAccountingCheckpoint?.({ baselineAt: originalBaseline!.observedAt, observedAt: after.endedAt,
+      balances: after.balances, evidence: { ...baseline.evidence, startedAt: before.startedAt }, realizedPnl: pnlOffset });
+    return { status: "confirmed" as const, realizedPnlUsdt: pnlOffset, positions: {}, checkedOrders: 0, checkedFills: 0, checkedBills: coverage.billCount };
+  }
   if (!placed.length) {
     // A local failure alone does not prove that OKX rejected a submission.
     // Do not return raw errors: exchange messages may contain sensitive data.
@@ -89,6 +105,11 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
     sells: evidence.sells.map(withExecution), fills: collectedFills,
   });
   if (accounting.status !== "confirmed") return unavailable(accounting.reason);
-  return { status: "confirmed" as const, realizedPnlUsdt: accounting.realizedPnlUsdt, positions: accounting.positions, checkedOrders: evidence.orders.length, checkedFills: collectedFills.length, checkedBills: coverage.billCount };
+  const totalPnl = pnlOffset + accounting.realizedPnlUsdt;
+  if (originalBaseline && Object.values(accounting.positions).every(position => position.quantity === 0)) {
+    await persistence.saveDemoAccountingCheckpoint?.({ baselineAt: originalBaseline.observedAt, observedAt: after.endedAt,
+      balances: after.balances, evidence: { ...baseline.evidence, startedAt: before.startedAt, reconciledFills: collectedFills, ownedOrderIds: [...ownedIds], reconciledOrders: evidence.orders, checkedBills: coverage.billCount }, realizedPnl: totalPnl });
+  }
+  return { status: "confirmed" as const, realizedPnlUsdt: totalPnl, positions: accounting.positions, checkedOrders: evidence.orders.length, checkedFills: collectedFills.length, checkedBills: coverage.billCount };
 }
 

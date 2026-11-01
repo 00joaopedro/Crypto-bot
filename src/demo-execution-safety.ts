@@ -13,7 +13,7 @@ export type DemoExecutionState =
  * This snapshot is evidence for diagnostics; it does not authorize a new order.
  */
 export async function inspectDemoExecutionState(
-  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">,
+  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint">>,
   executor: Pick<OkxDemoExecutor, "collectOrderEvidence">,
 ): Promise<DemoExecutionState> {
   const blocked = (reason: string) => ({ status: "blocked" as const, reason });
@@ -21,7 +21,9 @@ export async function inspectDemoExecutionState(
     const rows = await persistence.demoOrderJournal();
     if (rows.some((row) => row.status === "PENDING")) return blocked("pending_demo_order");
     if (rows.some((row) => !Number.isSafeInteger(new Date(row.created_at).getTime()))) return blocked("demo_journal_date_invalid");
-    const baseline = await persistence.getDemoBaselineCandidate();
+    const originalBaseline = await persistence.getDemoBaselineCandidate();
+    const checkpoint = originalBaseline ? await persistence.getDemoAccountingCheckpoint?.(originalBaseline.observedAt) : null;
+    const baseline = checkpoint ?? originalBaseline;
     if (!baseline) return blocked("demo_baseline_missing");
     const relevant = rows.filter((row) => new Date(row.created_at).getTime() >= baseline.observedAt.getTime());
     // An ambiguous local failure may still have reached the exchange.
@@ -70,7 +72,7 @@ export async function inspectDemoExecutionState(
 
 /** Compatibility gate: consumers must explicitly opt in to the position snapshot. */
 export async function inspectDemoExecutionSafety(
-  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">,
+  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint">>,
   executor: Pick<OkxDemoExecutor, "collectOrderEvidence">,
 ): Promise<{ status: "safe" } | { status: "blocked"; reason: string }> {
   const result = await inspectDemoExecutionState(persistence, executor);

@@ -8,6 +8,29 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("restores Demo equity risk and appends safe checkpoints without replacing older evidence", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const now = Date.now();
+    const key = `test-risk-${now}`;
+    const baselineAt = new Date(now - 60000);
+    try {
+      await persistence.initialize();
+      await persistence.observeDemoRisk(key, 100, now);
+      const restored = await persistence.observeDemoRisk(key, 90, now + 1);
+      expect(restored.peakEquity).toBe(100);
+      expect(restored.dayStartEquity).toBe(100);
+      const input = { baselineAt, observedAt: now + 1000, balances: { USDT: 90 }, evidence: { test: true }, realizedPnl: -10 };
+      await persistence.saveDemoAccountingCheckpoint(input);
+      await persistence.saveDemoAccountingCheckpoint({ ...input, observedAt: now + 2000 });
+      expect((await persistence.getDemoAccountingCheckpoint(baselineAt))?.realizedPnlOffset).toBe(-10);
+      expect((await db.query("SELECT 1 FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt])).rowCount).toBe(2);
+    } finally {
+      await db.query("DELETE FROM demo_risk_state WHERE account_id = $1", [key]);
+      await db.query("DELETE FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt]);
+      await db.end(); await persistence.close();
+    }
+  });
   it("reconciles only a correlated explicit permission rejection and keeps both audit records", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const verification = new Pool({ connectionString: databaseUrl });

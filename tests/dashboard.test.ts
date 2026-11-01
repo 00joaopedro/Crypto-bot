@@ -42,6 +42,7 @@ describe("dashboard authentication", () => {
     const inspectDemoAccounting = vi.fn(async () => ({ status: "unavailable", reason: "no_confirmed_orders" }));
     const persistence = {
       getDashboardData: async () => ({ paused: false }),
+      latestDemoDecision: async () => null,
       updateDashboardSettings: vi.fn(async () => undefined),
     } as unknown as PostgresPersistence;
     server = await startDashboard({
