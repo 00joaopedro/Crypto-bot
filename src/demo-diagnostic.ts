@@ -1,3 +1,4 @@
+import type { CachedDemoParent } from "./okx-demo-order-evidence.js";
 import { collectDemoEvidenceBatches } from "./demo-evidence-batches.js";
 import type { PostgresPersistence } from "./persistence.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
@@ -44,9 +45,10 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
     if (coverage.status !== "covered") return unavailable(coverage.reason);
     const assets = new Set([...Object.keys(baseline.balances), ...Object.keys(before.balances), ...Object.keys(after.balances)]);
     if ([...assets].some(asset => (baseline.balances[asset] ?? 0) !== (before.balances[asset] ?? 0) || (before.balances[asset] ?? 0) !== (after.balances[asset] ?? 0))) return unavailable("balance_changed_since_checkpoint");
-    await persistence.saveDemoAccountingCheckpoint?.({ baselineAt: originalBaseline!.observedAt, observedAt: after.endedAt,
+    const saved = await persistence.saveDemoAccountingCheckpoint?.({ baselineAt: originalBaseline!.observedAt, previousObservedAt: baseline.observedAt.getTime(), observedAt: after.endedAt,
       balances: after.balances, evidence: { ...baseline.evidence, startedAt: before.startedAt }, realizedPnl: pnlOffset });
-    return { status: "confirmed" as const, realizedPnlUsdt: pnlOffset, positions: {}, checkedOrders: 0, checkedFills: 0, checkedBills: coverage.billCount };
+    if (saved === false) return unavailable("checkpoint_changed_retry");
+    return { status: "confirmed" as const, realizedPnlUsdt: pnlOffset, confirmedThrough: after.endedAt, positions: {}, checkedOrders: 0, checkedFills: 0, checkedBills: coverage.billCount };
   }
   if (!placed.length) {
     // A local failure alone does not prove that OKX rejected a submission.
@@ -66,7 +68,7 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
     if (!data || typeof data.orderId !== "string" || !data.orderId || !row.attached_algo_client_id) return unavailable("journal_identity_incomplete");
     journal.push({ orderId: data.orderId, clientOrderId: row.client_order_id, symbol: row.symbol, attachedAlgoClientId: row.attached_algo_client_id });
   }
-  const evidence = await collectDemoEvidenceBatches(executor, journal);
+  const evidence = await collectDemoEvidenceBatches(executor, journal, (checkpoint?.evidence.parentOrderEvidence as CachedDemoParent[] | undefined) ?? []);
   if (evidence.status !== "collected") return unavailable(evidence.reason);
   const ownership = verifyDemoOwnership(journal, evidence.buys, evidence.protections, evidence.sells);
   if (ownership.status !== "confirmed") return unavailable(ownership.reason);
@@ -123,12 +125,14 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   if (accounting.status !== "confirmed") return unavailable(accounting.reason);
   const totalPnl = pnlOffset + accounting.realizedPnlUsdt;
   if (originalBaseline) {
-    await persistence.saveDemoAccountingCheckpoint?.({ baselineAt: originalBaseline.observedAt, observedAt: after.endedAt,
-      balances: after.balances, evidence: { ...baseline.evidence, startedAt: before.startedAt, reconciledFills: collectedFills, ownedOrderIds: [...ownedIds], reconciledOrders: evidence.orders, checkedBills: coverage.billCount,
+    const saved = await persistence.saveDemoAccountingCheckpoint?.({ baselineAt: originalBaseline.observedAt, previousObservedAt: baseline.observedAt.getTime(), observedAt: after.endedAt,
+      balances: after.balances, evidence: { ...baseline.evidence, startedAt: before.startedAt, reconciledFills: collectedFills, ownedOrderIds: [...ownedIds], reconciledOrders: evidence.orders,
+        parentOrderEvidence: evidence.buys.map(order => ({ order, evidence: evidence.orders.find(item => item.id === order.id)! })), checkedBills: coverage.billCount,
         ...(Object.values(accounting.positions).some(position => position.quantity > 0) ? {
           ledgerCarry: { from, balances: originBalances, pnlOffset, fills: collectedFills }
         } : { ledgerCarry: undefined }) }, realizedPnl: totalPnl });
+    if (saved === false) return unavailable("checkpoint_changed_retry");
   }
-  return { status: "confirmed" as const, realizedPnlUsdt: totalPnl, positions: accounting.positions, checkedOrders: evidence.orders.length, checkedFills: collectedFills.length, checkedBills: coverage.billCount };
+  return { status: "confirmed" as const, realizedPnlUsdt: totalPnl, confirmedThrough: after.endedAt, positions: accounting.positions, checkedOrders: evidence.orders.length, checkedFills: collectedFills.length, checkedBills: coverage.billCount };
 }
 

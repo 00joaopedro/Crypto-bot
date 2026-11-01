@@ -459,22 +459,32 @@ export class PostgresPersistence implements BotPersistence {
     return row ? { observedAt: row.observed_at, balances: row.balances, evidence: row.evidence, status: "UNVERIFIED", realizedPnlOffset: Number(row.realized_pnl) } : null;
   }
 
-  /** Save only a flat, fully reconciled observation; preserve original baseline. */
-  async saveDemoAccountingCheckpoint(input: { baselineAt: Date; observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown>; realizedPnl: number }): Promise<void> {
+  /** Commit a reconciled observation only if its predecessor and order journal remain current. */
+  async saveDemoAccountingCheckpoint(input: { baselineAt: Date; observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown>; realizedPnl: number; previousObservedAt?: number }): Promise<boolean> {
     if (!Number.isSafeInteger(input.observedAt) || input.observedAt <= input.baselineAt.getTime() || !Number.isFinite(input.realizedPnl)) throw new Error("Invalid Demo checkpoint");
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-order-reservation'))");
+      const latest = await client.query<{ observed_at: Date }>("SELECT observed_at FROM demo_accounting_checkpoints WHERE baseline_at = $1 ORDER BY observed_at DESC LIMIT 1", [input.baselineAt]);
+      const predecessor = latest.rows[0]?.observed_at.getTime() ?? input.baselineAt.getTime();
+      if (predecessor >= input.observedAt || (input.previousObservedAt !== undefined && predecessor !== input.previousObservedAt)) { await client.query("ROLLBACK"); return false; }
       const changed = await client.query("SELECT 1 FROM demo_orders WHERE status = 'PENDING' OR updated_at > to_timestamp($1 / 1000.0) LIMIT 1", [input.observedAt]);
-      if (changed.rows.length) { await client.query("ROLLBACK"); return; }
+      if (changed.rows.length) { await client.query("ROLLBACK"); return false; }
       await client.query(`INSERT INTO demo_accounting_checkpoints (baseline_at, observed_at, balances, evidence, realized_pnl)
         VALUES ($1, to_timestamp($2 / 1000.0), $3::jsonb, $4::jsonb, $5)
         ON CONFLICT (baseline_at, observed_at) DO NOTHING`,
         [input.baselineAt, input.observedAt, JSON.stringify(input.balances), JSON.stringify(input.evidence), input.realizedPnl]);
       await client.query("COMMIT");
+      return true;
     } catch (error) { await client.query("ROLLBACK"); throw error; }
     finally { client.release(); }
+  }
+
+  async latestDemoReconciliation(): Promise<{ confirmedThrough: string; realizedPnlUsdt: number } | null> {
+    const result = await this.pool.query("SELECT c.observed_at, c.realized_pnl FROM demo_accounting_checkpoints c JOIN demo_accounting_baselines b ON b.observed_at = c.baseline_at WHERE b.status = 'UNVERIFIED' ORDER BY c.observed_at DESC LIMIT 1");
+    const row = result.rows[0];
+    return row ? { confirmedThrough: row.observed_at.toISOString(), realizedPnlUsdt: Number(row.realized_pnl) } : null;
   }
 
   async latestDemoDecision(): Promise<Record<string, unknown> | null> {

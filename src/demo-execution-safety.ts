@@ -1,3 +1,4 @@
+import type { CachedDemoParent } from "./okx-demo-order-evidence.js";
 import { collectDemoEvidenceBatches } from "./demo-evidence-batches.js";
 import { verifyDemoOwnership } from "./demo-ownership.js";
 import type { PostgresPersistence } from "./persistence.js";
@@ -41,7 +42,7 @@ export async function inspectDemoExecutionState(
       if (typeof orderId !== "string" || !orderId || !row.attached_algo_client_id) return blocked("demo_order_identity_missing");
       journal.push({ orderId, clientOrderId: row.client_order_id, symbol: row.symbol, attachedAlgoClientId: row.attached_algo_client_id });
     }
-    const evidence = await collectDemoEvidenceBatches(executor, journal);
+    const evidence = await collectDemoEvidenceBatches(executor, journal, (checkpoint?.evidence.parentOrderEvidence as CachedDemoParent[] | undefined) ?? []);
     if (evidence.status !== "collected") return blocked(evidence.reason);
     const ownership = verifyDemoOwnership(journal, evidence.buys, evidence.protections, evidence.sells);
     if (ownership.status !== "confirmed") return blocked(ownership.reason);
