@@ -452,6 +452,15 @@ export class PostgresPersistence implements BotPersistence {
     );
   }
 
+  async canEnterDemoSymbol(symbol: string, cooldownMinutes: number): Promise<boolean> {
+    const result = await this.pool.query(
+      `SELECT 1 FROM demo_orders WHERE symbol = $1 AND
+       (status = 'PENDING' OR (status = 'PLACED' AND created_at >= NOW() - ($2 * INTERVAL '1 minute'))) LIMIT 1`,
+      [symbol, cooldownMinutes],
+    );
+    return result.rows.length === 0;
+  }
+
   async canEnterSymbol(symbol: string, cooldownMinutes: number): Promise<boolean> {
     const result = await this.pool.query<{ last_trade: Date | null }>(
       `SELECT MAX(to_timestamp((trade->>

@@ -1,6 +1,7 @@
 import type { Server } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 
+import { inspectDemoEntry } from "./demo-entry.js";
 import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
@@ -267,6 +268,11 @@ async function main(): Promise<void> {
         paperTrader,
         ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),
         ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: () => inspectDemoExecutionSafety(persistence, demoExecutor) } : {}),
+        ...(demoExecutor && persistence ? { inspectDemoEntry: (symbol: string, stopLossRate: number) => inspectDemoEntry(persistence, demoExecutor, {
+          symbol, stopLossRate, size: settings.orderSizeUsdt, cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
+          maxPositions: settings.maxConcurrentPositions, maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
+          riskPerTrade: config.RISK_PER_TRADE_PERCENT,
+        }) } : {}),
         ...(ai ? { ai } : {}),
         ...(persistence ? { persistence } : {}),
         ...(state

@@ -34,3 +34,22 @@ it("checks OKX safety before a buy and pauses when the new protection cannot be 
   expect(executeApprovedBuy).toHaveBeenCalledOnce();
   vi.restoreAllMocks();
 });
+
+it('admits Demo independently of an existing Paper position and applies the Demo gate again after restart', async () => {
+  vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  const candles = Array.from({ length: 85 }, (_, i) => ({ timestamp: i * 900_000, open: 100, high: 100.1, low: 99.9, close: 100, volume: 1 }));
+  const paper = new PaperTrader({ initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0.001, slippageRate: 0, stopLossRate: 0.1, takeProfitRate: 0.2 });
+  paper.processCandle(candles[83]!, true);
+  const executeApprovedBuy = vi.fn(async () => ({ status: 'PLACED' as const, orderId: '1', clientOrderId: 'CB1' }));
+  const inspectDemoEntry = vi.fn().mockResolvedValueOnce({ allowed: true }).mockResolvedValue({ allowed: false, reason: 'pending_demo_order' });
+  const persistence = { isPaused: async () => false, recordCycle: async () => undefined, recordDemoOrder: async () => undefined, canEnterSymbol: async () => false } as unknown as BotPersistence;
+  const options = { symbol: 'BTC/USDT', candleLimit: 85, minimumConfidence: 0.8, aiFailureMode: 'quantitative' as const, paperTrader: paper, persistence, entryCooldownMinutes: 60, inspectDemoEntry, demoExecutor: { executeApprovedBuy } as unknown as OkxDemoExecutor, verifyDemoExecutionSafety: async () => ({ status: 'safe' as const }) };
+  const market = { fetchClosedCandles: async () => candles } as unknown as PublicMarketData;
+  await new TradingBot(market, options).runCycle();
+  expect(executeApprovedBuy).toHaveBeenCalledOnce();
+  expect(paper.hasOpenPosition).toBe(true);
+  await new TradingBot(market, options).runCycle();
+  expect(inspectDemoEntry).toHaveBeenCalledTimes(2);
+  expect(executeApprovedBuy).toHaveBeenCalledOnce();
+  vi.restoreAllMocks();
+});
