@@ -8,6 +8,53 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("serializes competing checkpoints and preserves the last checkpoint on pending orders or write failure", async () => {
+    const persistence=new PostgresPersistence(databaseUrl!);
+    const db=new Pool({connectionString:databaseUrl});
+    const now=Date.now(), baselineAt=new Date(now-60000), id=`CPRACE${now}`;
+    const input={baselineAt,observedAt:now+1000,balances:{USDT:100},evidence:{test:true},realizedPnl:0,previousObservedAt:baselineAt.getTime()};
+    try {
+      await persistence.initialize();
+      const outcomes=await Promise.all([persistence.saveDemoAccountingCheckpoint(input),persistence.saveDemoAccountingCheckpoint({...input,observedAt:now+2000})]);
+      expect(outcomes.filter(Boolean)).toHaveLength(1);
+      const saved=await persistence.getDemoAccountingCheckpoint(baselineAt);
+      expect(saved).not.toBeNull();
+      expect((await db.query("SELECT 1 FROM demo_accounting_checkpoints WHERE baseline_at=$1",[baselineAt])).rowCount).toBe(1);
+      expect(await persistence.saveDemoAccountingCheckpoint({...input,observedAt:now+3000})).toBe(false);
+      await db.query("INSERT INTO demo_orders (client_order_id,symbol,candle_timestamp,status,result) VALUES ($1,'BTC/USDT',$2,'PENDING','{}'::jsonb)",[id,now]);
+      expect(await persistence.saveDemoAccountingCheckpoint({...input,observedAt:now+4000,previousObservedAt:saved!.observedAt.getTime()})).toBe(false);
+      await db.query("DELETE FROM demo_orders WHERE client_order_id=$1",[id]);
+      await expect(persistence.saveDemoAccountingCheckpoint({...input,observedAt:now+5000,previousObservedAt:saved!.observedAt.getTime(),balances:undefined as unknown as Record<string,number>})).rejects.toThrow();
+      expect((await persistence.getDemoAccountingCheckpoint(baselineAt))!.observedAt).toEqual(saved!.observedAt);
+    } finally {
+      await db.query("DELETE FROM demo_orders WHERE client_order_id=$1",[id]);
+      await db.query("DELETE FROM demo_accounting_checkpoints WHERE baseline_at=$1",[baselineAt]);
+      await db.end();await persistence.close();
+    }
+  });
+  it("restores Demo equity risk and appends safe checkpoints without replacing older evidence", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const now = Date.now();
+    const key = `test-risk-${now}`;
+    const baselineAt = new Date(now - 60000);
+    try {
+      await persistence.initialize();
+      await persistence.observeDemoRisk(key, 100, now);
+      const restored = await persistence.observeDemoRisk(key, 90, now + 1);
+      expect(restored.peakEquity).toBe(100);
+      expect(restored.dayStartEquity).toBe(100);
+      const input = { baselineAt, observedAt: now + 1000, balances: { USDT: 90 }, evidence: { test: true }, realizedPnl: -10 };
+      await persistence.saveDemoAccountingCheckpoint(input);
+      await persistence.saveDemoAccountingCheckpoint({ ...input, observedAt: now + 2000 });
+      expect((await persistence.getDemoAccountingCheckpoint(baselineAt))?.realizedPnlOffset).toBe(-10);
+      expect((await db.query("SELECT 1 FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt])).rowCount).toBe(2);
+    } finally {
+      await db.query("DELETE FROM demo_risk_state WHERE account_id = $1", [key]);
+      await db.query("DELETE FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt]);
+      await db.end(); await persistence.close();
+    }
+  });
   it("reconciles only a correlated explicit permission rejection and keeps both audit records", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const verification = new Pool({ connectionString: databaseUrl });

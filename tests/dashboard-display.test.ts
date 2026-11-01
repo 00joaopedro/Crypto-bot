@@ -21,3 +21,14 @@ describe('dashboard Paper and Demo display', () => {
     expect(label({ status: 'FAILED', result: { error: 'okx {broken' } })).toBe('FAILED');
   });
 });
+
+it('shows current reconciliation failure separately from the last confirmed timestamp', () => {
+  const fn=source.match(/function renderDemoAccounting\(\)\{[^\n]+\}/)?.[0];
+  const label={textContent:''};let shown='';
+  const context={state:{demoAccounting:{status:'unavailable',reason:'checkpoint_changed_retry'},lastDemoReconciliation:{confirmedThrough:'2026-11-01T12:00:00Z',realizedPnlUsdt:12.85}},$:()=>label,setMetric:(_id:string,text:string)=>{shown=text},money:String};
+  runInNewContext(`${fn}; renderDemoAccounting()`,context);
+  expect(shown).toBe('—');
+  expect(label.textContent).toContain('Última confirmação:');
+  expect(label.textContent).toContain('histórico mudou');
+  expect(label.textContent).not.toContain('P&L confirmado');
+});

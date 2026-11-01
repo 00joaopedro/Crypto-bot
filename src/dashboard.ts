@@ -115,7 +115,8 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
             okxDemo = { ...okxDemo, status: "unhealthy", lastError: error instanceof Error ? error.message : String(error) };
           }
         }
-        return json(response, 200, { ...data, okxDemo, demoAccounting: await accounting(), demoPositions: await demoPositions(), supportedSymbols: options.supportedSymbols });
+        const decisionLogs = await options.persistence.latestDemoDecision();
+        return json(response, 200, { ...data, latestDemoDecision: decisionLogs, lastDemoReconciliation: await options.persistence.latestDemoReconciliation(), okxDemo, demoAccounting: await accounting(), demoPositions: await demoPositions(), supportedSymbols: options.supportedSymbols });
       }
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);

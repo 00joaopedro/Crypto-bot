@@ -1,3 +1,4 @@
+import { advanceDemoRisk, type DemoRiskState } from "./demo-risk.js";
 import { createHash, randomUUID } from "node:crypto";
 
 import { Pool, type PoolClient } from "pg";
@@ -450,6 +451,59 @@ export class PostgresPersistence implements BotPersistence {
       `UPDATE demo_orders SET status = $2, result = result || $3::jsonb, updated_at = NOW() WHERE client_order_id = $1 AND status = 'PENDING'`,
       [clientOrderId, status, JSON.stringify({ orderId: order.id ?? null, orderStatus: order.status ?? null, filled: order.filled ?? null, average: order.average ?? null, cost: order.cost ?? null, ...(order.side ? { side: order.side } : {}), ...(order.fee || order.fees?.length ? { fees: normalizedOrderFees(order) } : {}), feesPresentOnTerminalResponse: status !== "PENDING" && normalizedOrderFees(order).length > 0, confirmed: status === "PLACED", reconciledAt: new Date().toISOString() })],
     );
+  }
+
+  async getDemoAccountingCheckpoint(baselineAt: Date): Promise<{ observedAt: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string; realizedPnlOffset: number } | null> {
+    const result = await this.pool.query("SELECT * FROM demo_accounting_checkpoints WHERE baseline_at = $1 ORDER BY observed_at DESC LIMIT 1", [baselineAt]);
+    const row = result.rows[0];
+    return row ? { observedAt: row.observed_at, balances: row.balances, evidence: row.evidence, status: "UNVERIFIED", realizedPnlOffset: Number(row.realized_pnl) } : null;
+  }
+
+  /** Commit a reconciled observation only if its predecessor and order journal remain current. */
+  async saveDemoAccountingCheckpoint(input: { baselineAt: Date; observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown>; realizedPnl: number; previousObservedAt?: number }): Promise<boolean> {
+    if (!Number.isSafeInteger(input.observedAt) || input.observedAt <= input.baselineAt.getTime() || !Number.isFinite(input.realizedPnl)) throw new Error("Invalid Demo checkpoint");
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-order-reservation'))");
+      const latest = await client.query<{ observed_at: Date }>("SELECT observed_at FROM demo_accounting_checkpoints WHERE baseline_at = $1 ORDER BY observed_at DESC LIMIT 1", [input.baselineAt]);
+      const predecessor = latest.rows[0]?.observed_at.getTime() ?? input.baselineAt.getTime();
+      if (predecessor >= input.observedAt || (input.previousObservedAt !== undefined && predecessor !== input.previousObservedAt)) { await client.query("ROLLBACK"); return false; }
+      const changed = await client.query("SELECT 1 FROM demo_orders WHERE status = 'PENDING' OR updated_at > to_timestamp($1 / 1000.0) LIMIT 1", [input.observedAt]);
+      if (changed.rows.length) { await client.query("ROLLBACK"); return false; }
+      await client.query(`INSERT INTO demo_accounting_checkpoints (baseline_at, observed_at, balances, evidence, realized_pnl)
+        VALUES ($1, to_timestamp($2 / 1000.0), $3::jsonb, $4::jsonb, $5)
+        ON CONFLICT (baseline_at, observed_at) DO NOTHING`,
+        [input.baselineAt, input.observedAt, JSON.stringify(input.balances), JSON.stringify(input.evidence), input.realizedPnl]);
+      await client.query("COMMIT");
+      return true;
+    } catch (error) { await client.query("ROLLBACK"); throw error; }
+    finally { client.release(); }
+  }
+
+  async latestDemoReconciliation(): Promise<{ confirmedThrough: string; realizedPnlUsdt: number } | null> {
+    const result = await this.pool.query("SELECT c.observed_at, c.realized_pnl FROM demo_accounting_checkpoints c JOIN demo_accounting_baselines b ON b.observed_at = c.baseline_at WHERE b.status = 'UNVERIFIED' ORDER BY c.observed_at DESC LIMIT 1");
+    const row = result.rows[0];
+    return row ? { confirmedThrough: row.observed_at.toISOString(), realizedPnlUsdt: Number(row.realized_pnl) } : null;
+  }
+
+  async latestDemoDecision(): Promise<Record<string, unknown> | null> {
+    const result = await this.pool.query("SELECT details, created_at FROM operational_events WHERE event_type = 'DEMO_ENTRY_DECISION' ORDER BY created_at DESC LIMIT 1");
+    return result.rows[0] ?? null;
+  }
+
+  async observeDemoRisk(accountId: string, equity: number, observedAt: number): Promise<DemoRiskState> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`demo-risk:${accountId}`]);
+      const result = await client.query<{ state: DemoRiskState }>("SELECT state FROM demo_risk_state WHERE account_id = $1 FOR UPDATE", [accountId]);
+      const state = advanceDemoRisk(result.rows[0]?.state ?? null, equity, observedAt);
+      await client.query("INSERT INTO demo_risk_state (account_id, state) VALUES ($1, $2::jsonb) ON CONFLICT (account_id) DO UPDATE SET state = EXCLUDED.state, updated_at = NOW()", [accountId, JSON.stringify(state)]);
+      await client.query("COMMIT");
+      return state;
+    } catch (error) { await client.query("ROLLBACK"); throw error; }
+    finally { client.release(); }
   }
 
   async canEnterDemoSymbol(symbol: string, cooldownMinutes: number): Promise<boolean> {

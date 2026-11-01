@@ -1,7 +1,7 @@
 import type { Server } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 
-import { inspectDemoEntry } from "./demo-entry.js";
+import { inspectDemoEntry, inspectDemoEquityRisk } from "./demo-entry.js";
 import { TradingBot } from "./bot.js";
 import { config } from "./config.js";
 import { startDashboard, stopDashboard } from "./dashboard.js";
@@ -63,6 +63,7 @@ async function main(): Promise<void> {
   let bot: TradingBot;
   let reconfiguring = false;
   let demoSafetyAudited = false;
+  let lastAccountingCheck = 0;
   let activeCycle: Promise<void> | undefined;
   let reconfigurationRequested = false;
   let reconfigurationPromise: Promise<void> | undefined;
@@ -267,11 +268,17 @@ async function main(): Promise<void> {
         minimumSignalScore: config.MIN_SIGNAL_SCORE,
         paperTrader,
         ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),
-        ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: () => inspectDemoExecutionSafety(persistence, demoExecutor) } : {}),
+        ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: async () => {
+          const safety = await inspectDemoExecutionSafety(persistence, demoExecutor);
+          if (safety.status !== "safe") return safety;
+          return inspectDemoEquityRisk(persistence, demoExecutor, config.RISK_MAX_DAILY_LOSS_PERCENT, config.RISK_MAX_DRAWDOWN_PERCENT);
+        } } : {}),
+        ...(demoExecutor && persistence ? { inspectDemoPositions: () => inspectDemoExecutionState(persistence, demoExecutor) } : {}),
         ...(demoExecutor && persistence ? { inspectDemoEntry: (symbol: string, stopLossRate: number) => inspectDemoEntry(persistence, demoExecutor, {
           symbol, stopLossRate, size: settings.orderSizeUsdt, cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
           maxPositions: settings.maxConcurrentPositions, maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
           riskPerTrade: config.RISK_PER_TRADE_PERCENT,
+          maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT, maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
         }) } : {}),
         ...(ai ? { ai } : {}),
         ...(persistence ? { persistence } : {}),
@@ -466,6 +473,13 @@ async function main(): Promise<void> {
       try {
         if (!reconfiguring && okxDemo && persistence) {
           await reconcilePendingDemoOrders(persistence, okxDemo);
+          if (Date.now() - lastAccountingCheck >= 15 * 60_000) {
+            lastAccountingCheck = Date.now();
+            try {
+              const accounting = await inspectDemoAccounting(persistence, okxDemo);
+              console.log(JSON.stringify({ event: "demo_continuous_accounting", status: accounting.status, reason: "reason" in accounting ? accounting.reason : undefined }));
+            } catch { console.error(JSON.stringify({ event: "demo_continuous_accounting_failed" })); }
+          }
           if (!demoSafetyAudited) {
             const safety = await inspectDemoExecutionSafety(persistence, okxDemo);
             if (safety.status !== "safe") {

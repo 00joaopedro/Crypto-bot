@@ -1,9 +1,10 @@
 import { expect, it, vi } from 'vitest';
+import { advanceDemoRisk } from '../src/demo-risk.js';
 import { inspectDemoEntry } from '../src/demo-entry.js';
 const identity = { uid: '1', mainUid: '1' };
 const baseline = { observedAt: new Date(1000), balances: { USDT: 100 }, evidence: { accountIdentity: identity }, status: 'UNVERIFIED' };
-const input = { symbol: 'BTC/USDT', size: 10, stopLossRate: 0.01, cooldownMinutes: 60, maxPositions: 2, maxExposure: 0.5, riskPerTrade: 0.01 };
-const persistence = { getDemoBaselineCandidate: async () => baseline, demoOrderJournal: async () => [], canEnterDemoSymbol: async () => true };
+const input = { symbol: 'BTC/USDT', size: 10, stopLossRate: 0.01, cooldownMinutes: 60, maxPositions: 2, maxExposure: 0.5, riskPerTrade: 0.01, maxDailyLoss: 0.05, maxDrawdown: 0.1 };
+const persistence = { getDemoBaselineCandidate: async () => baseline, demoOrderJournal: async () => [], observeDemoRisk: async (_id: string, equity: number, at: number) => advanceDemoRisk(null, equity, at), canEnterDemoSymbol: async () => true };
 const executor = { inspectAccountIdentity: async () => ({ status: 'confirmed' as const, identity }), collectOrderEvidence: vi.fn(), getAccountSnapshot: async () => ({ equityUsdt: 100, quoteFree: 100, totalUsdt: 100, quoteCurrency: 'USDT', unvaluedAssets: [], updatedAt: '' }) };
 it('admits a verified empty Demo journal without consulting Paper', async () => {
   expect(await inspectDemoEntry(persistence, executor, input)).toEqual({ allowed: true });

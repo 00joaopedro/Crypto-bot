@@ -1,3 +1,5 @@
+import type { CachedDemoParent } from "./okx-demo-order-evidence.js";
+import { collectDemoEvidenceBatches } from "./demo-evidence-batches.js";
 import { verifyDemoOwnership } from "./demo-ownership.js";
 import type { PostgresPersistence } from "./persistence.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
@@ -13,7 +15,7 @@ export type DemoExecutionState =
  * This snapshot is evidence for diagnostics; it does not authorize a new order.
  */
 export async function inspectDemoExecutionState(
-  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">,
+  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint">>,
   executor: Pick<OkxDemoExecutor, "collectOrderEvidence">,
 ): Promise<DemoExecutionState> {
   const blocked = (reason: string) => ({ status: "blocked" as const, reason });
@@ -21,9 +23,12 @@ export async function inspectDemoExecutionState(
     const rows = await persistence.demoOrderJournal();
     if (rows.some((row) => row.status === "PENDING")) return blocked("pending_demo_order");
     if (rows.some((row) => !Number.isSafeInteger(new Date(row.created_at).getTime()))) return blocked("demo_journal_date_invalid");
-    const baseline = await persistence.getDemoBaselineCandidate();
+    const originalBaseline = await persistence.getDemoBaselineCandidate();
+    const checkpoint = originalBaseline ? await persistence.getDemoAccountingCheckpoint?.(originalBaseline.observedAt) : null;
+    const baseline = checkpoint ?? originalBaseline;
     if (!baseline) return blocked("demo_baseline_missing");
-    const relevant = rows.filter((row) => new Date(row.created_at).getTime() >= baseline.observedAt.getTime());
+    const carry = baseline.evidence.ledgerCarry as { from?: number } | undefined;
+    const relevant = rows.filter((row) => new Date(row.created_at).getTime() >= (carry?.from ?? baseline.observedAt.getTime()));
     // An ambiguous local failure may still have reached the exchange.
     if (relevant.some((row) => row.status === "FAILED")) return blocked("unresolved_demo_failure");
     // A skipped Demo buy still leaves the Paper position opened in this cycle.
@@ -31,14 +36,13 @@ export async function inspectDemoExecutionState(
     if (relevant.some((row) => !["PLACED", "SKIPPED", "REJECTED_CONFIRMED"].includes(row.status))) return blocked("unknown_demo_order_status");
     const placed = relevant.filter((row) => row.status === "PLACED");
     if (!placed.length) return { status: "safe", positions: [] };
-    if (placed.length > 500) return blocked("demo_journal_too_large");
     const journal = [];
     for (const row of placed) {
       const orderId = (row.result as { orderId?: unknown } | null)?.orderId;
       if (typeof orderId !== "string" || !orderId || !row.attached_algo_client_id) return blocked("demo_order_identity_missing");
       journal.push({ orderId, clientOrderId: row.client_order_id, symbol: row.symbol, attachedAlgoClientId: row.attached_algo_client_id });
     }
-    const evidence = await executor.collectOrderEvidence(journal);
+    const evidence = await collectDemoEvidenceBatches(executor, journal, (checkpoint?.evidence.parentOrderEvidence as CachedDemoParent[] | undefined) ?? []);
     if (evidence.status !== "collected") return blocked(evidence.reason);
     const ownership = verifyDemoOwnership(journal, evidence.buys, evidence.protections, evidence.sells);
     if (ownership.status !== "confirmed") return blocked(ownership.reason);
@@ -70,7 +74,7 @@ export async function inspectDemoExecutionState(
 
 /** Compatibility gate: consumers must explicitly opt in to the position snapshot. */
 export async function inspectDemoExecutionSafety(
-  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">,
+  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint">>,
   executor: Pick<OkxDemoExecutor, "collectOrderEvidence">,
 ): Promise<{ status: "safe" } | { status: "blocked"; reason: string }> {
   const result = await inspectDemoExecutionState(persistence, executor);

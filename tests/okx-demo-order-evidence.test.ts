@@ -34,3 +34,19 @@ describe("OKX Demo order evidence", () => {
     expect(await collectOkxDemoOrderEvidence(error, journal)).toMatchObject({ reason: "order_evidence_request_failed" });
   });
 });
+
+it('reuses a checkpoint-proven terminal buy but always reads live protection and spawned sells', async () => {
+  const client=setup();
+  const first=await collectOkxDemoOrderEvidence(client,journal);
+  if(first.status!=='collected')throw Error('fixture');
+  const parent={order:first.buys[0]!,evidence:first.orders.find(o=>o.id==='101')!};
+  client.privateGetTradeOrder.mockClear();
+  client.privateGetTradeOrder.mockImplementation(async params=>{if(params.ordId==='101')throw Error('expired parent history');return order('202','sell')});
+  expect((await collectOkxDemoOrderEvidence(client,journal,[parent])).status).toBe('collected');
+  expect(client.privateGetTradeOrder).not.toHaveBeenCalledWith(expect.objectContaining({ordId:'101'}));
+  expect(client.privateGetTradeOrderAlgo).toHaveBeenCalledWith({algoClOrdId:'AP1'});
+  expect(client.privateGetTradeOrder).toHaveBeenCalledWith(expect.objectContaining({ordId:'202'}));
+  expect(await collectOkxDemoOrderEvidence(client,journal,[{...parent,order:{...parent.order,clientOrderId:'different'}}])).toMatchObject({reason:'invalid_cached_parent'});
+  client.privateGetTradeOrderAlgo.mockRejectedValueOnce(Error('protection unavailable'));
+  expect(await collectOkxDemoOrderEvidence(client,journal,[parent])).toMatchObject({status:'unavailable'});
+});

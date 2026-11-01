@@ -1,6 +1,6 @@
 import ccxt, { OrderNotFound, type Exchange, type Order } from "ccxt";
 import { collectOkxDemoFills, type OkxCollectedFills, type OkxFillHistoryClient } from "./okx-demo-fill-history.js";
-import { collectOkxDemoOrderEvidence, type OkxOrderEvidenceClient, type OrderEvidenceResult } from "./okx-demo-order-evidence.js";
+import { collectOkxDemoOrderEvidence, type OkxOrderEvidenceClient, type OrderEvidenceResult, type CachedDemoParent } from "./okx-demo-order-evidence.js";
 import type { JournaledDemoBuy } from "./demo-ownership.js";
 import { inspectBaselineBills } from "./okx-demo-baseline-history.js";
 import { readDemoAccountIdentity, type DemoAccountIdentity } from "./okx-demo-identity.js";
@@ -189,16 +189,16 @@ export class OkxDemoExecutor {
   /** A read-only candidate, not a proof of atomicity or complete history. */
   async inspectBaselineHistory(from: number, to: number) {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable" as const, reason: "demo_not_initialized" };
-    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown> };
+    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown>; privateGetAccountBillsHistory?: (params: Record<string, string>) => Promise<unknown> };
     if (typeof client.privateGetAccountBills !== "function") return { status: "unavailable" as const, reason: "baseline_history_endpoint_unavailable" };
     return inspectBaselineBills({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now() });
   }
 
   async collectAccountCoverage(from: number, to: number, ownedOrderIds: ReadonlySet<string>, quiescentFrom?: number) {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable" as const, reason: "demo_not_initialized" };
-    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown> };
+    const client = this.exchange as unknown as { privateGetAccountBills?: (params: Record<string, string>) => Promise<unknown>; privateGetAccountBillsHistory?: (params: Record<string, string>) => Promise<unknown> };
     if (typeof client.privateGetAccountBills !== "function") return { status: "unavailable" as const, reason: "account_bills_endpoint_unavailable" };
-    return collectDemoAccountCoverage({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params) }, { from, to, now: Date.now(), ownedOrderIds, ...(quiescentFrom === undefined ? {} : { quiescentFrom }) });
+    return collectDemoAccountCoverage({ privateGetAccountBills: (params) => client.privateGetAccountBills!(params), ...(client.privateGetAccountBillsHistory ? { privateGetAccountBillsHistory: (params: Record<string, string>) => client.privateGetAccountBillsHistory!(params) } : {}) }, { from, to, now: Date.now(), ownedOrderIds, ...(quiescentFrom === undefined ? {} : { quiescentFrom }) });
   }
 
   /** Total Spot balances bounded by local request times; never a claimed atomic exchange timestamp. */
@@ -271,14 +271,14 @@ export class OkxDemoExecutor {
   }
 
   /** Read-only attribution evidence; it does not establish complete coverage. */
-  async collectOrderEvidence(journal: JournaledDemoBuy[]): Promise<OrderEvidenceResult> {
+  async collectOrderEvidence(journal: JournaledDemoBuy[], cachedParents: CachedDemoParent[] = []): Promise<OrderEvidenceResult> {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
     const client = this.exchange as unknown as Partial<OkxOrderEvidenceClient>;
     if (typeof client.privateGetTradeOrder !== "function" || typeof client.privateGetTradeOrderAlgo !== "function") return { status: "unavailable", reason: "order_evidence_endpoint_unavailable" };
     return collectOkxDemoOrderEvidence({
       privateGetTradeOrder: (params) => client.privateGetTradeOrder!(params),
       privateGetTradeOrderAlgo: (params) => client.privateGetTradeOrderAlgo!(params),
-    }, journal);
+    }, journal, cachedParents);
   }
 
   /** Read account permissions without submitting orders or disclosing credentials. */
