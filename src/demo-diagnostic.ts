@@ -87,10 +87,12 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
     if (fills.status !== "collected") return unavailable(fills.reason);
     collectedFills.push(...fills.fills);
   }
+  const fillSignature = (fill: DemoFill) => JSON.stringify([fill.id, fill.orderId, fill.symbol, fill.side,
+    fill.timestamp, fill.amount, fill.costUsdt, fill.fees.map(fee => [fee.currency, fee.cost]).sort()]);
   const mergedFills = new Map<string, DemoFill>();
   for (const fill of [...(carried?.fills ?? []), ...collectedFills]) {
     const previous = mergedFills.get(fill.id);
-    if (previous && JSON.stringify(previous) !== JSON.stringify(fill)) return unavailable("checkpoint_fill_conflict");
+    if (previous && fillSignature(previous) !== fillSignature(fill)) return unavailable("checkpoint_fill_conflict");
     mergedFills.set(fill.id, fill);
   }
   const incrementalFillCount = collectedFills.filter(fill => fill.timestamp >= baseline.observedAt.getTime()).length;

@@ -47,6 +47,7 @@ it('retains an open purchase and its fees across checkpoints and reconciles a la
   expect(executor.collectFillHistory).toHaveBeenCalledWith(expect.objectContaining({ from: at-1000 }));
   const saved = saveDemoAccountingCheckpoint.mock.calls[0]?.[0];
   expect(saved.evidence.ledgerCarry.fills).toHaveLength(2);
+  saved.evidence.ledgerCarry.fills = saved.evidence.ledgerCarry.fills.map((fill: Record<string, unknown>) => Object.fromEntries(Object.entries(fill).sort(([a], [b]) => a.localeCompare(b))));
   const replayed = await inspectDemoAccounting({ ...persistence, getDemoAccountingCheckpoint: async () => ({ observedAt: new Date(saved.observedAt), balances: saved.balances, evidence: saved.evidence, status: 'UNVERIFIED', realizedPnlOffset: saved.realizedPnl }) }, { ...executor, collectFillHistory: async () => ({ status: 'collected' as const, fills: [sellFill], from: saved.observedAt-1000, to: now }) });
   expect(replayed.status).toBe('confirmed');
   if (replayed.status === 'confirmed') expect(replayed.realizedPnlUsdt).toBeCloseTo(8.9);
