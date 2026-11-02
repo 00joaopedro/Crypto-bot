@@ -1,3 +1,4 @@
+import { quantizeQuantityDown } from "./decimal-quantity.js";
 import type { Candle } from "./types.js";
 
 export type PaperTraderOptions = {
@@ -193,8 +194,9 @@ export class PaperTrader {
     let quantity = entryNotional / entryPrice;
     const constraints = this.options.executionConstraints;
     if (constraints) {
-      quantity = Math.floor(quantity / constraints.quantityStep) * constraints.quantityStep;
-      entryNotional = quantity * entryPrice;
+      const rounded = quantizeQuantityDown(entryNotional, entryPrice, constraints.quantityStep);
+      quantity = rounded.quantity;
+      entryNotional = rounded.notional;
       if (quantity <= 0 || quantity < constraints.minimumQuantity || entryNotional < constraints.minimumNotionalUsdt) return undefined;
     }
     const entryFee = entryNotional * this.options.feeRate;
