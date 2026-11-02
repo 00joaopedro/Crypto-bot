@@ -1,3 +1,4 @@
+import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
 import { evaluateStrategy } from "./strategy.js";
 import type { Candle } from "./types.js";
@@ -15,6 +16,7 @@ export type BacktestOptions = {
   warmupCandles?: number;
   qualityFilters?: boolean;
   /** Demo-compatible exits simulate only exchange stop/target orders. */
+  exitPolicy?: ExitPolicy;
   executionConstraints?: { minimumNotionalUsdt: number; minimumQuantity: number; quantityStep: number };
   liquidity?: { assumedDepthUsdt: number; maxParticipationRate: number };
   executionProfile?: "paper" | "demo-proxy";
@@ -81,7 +83,9 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
         rejectedEntries++;
       }
     }
-    const result = trader.processCandle(candle, approved, undefined, sellSignal, candle.open);
+    const rates = options.exitPolicy ? initialExitRates(candles.slice(0, index), candle.open, options.exitPolicy, options) : undefined;
+    const result = trader.processCandle(candle, approved, rates, options.exitPolicy ? false : sellSignal, candle.open);
+    trader.advanceManagedExit(candles.slice(0, index + 1));
     if (approved && !result.events.some((event) => event.type === "OPENED")) rejectedEntries++;
     pending.delete(index);
     if (index >= warmup) {

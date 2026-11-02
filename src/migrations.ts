@@ -218,5 +218,13 @@ export const migrations: readonly Migration[] = [
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (baseline_at, observed_at)
     );
   ` },
+  { version: 13, name: "demo_exit_supervision", sql: `
+    CREATE TABLE demo_exit_state (
+      algo_client_id TEXT PRIMARY KEY,
+      client_order_id TEXT NOT NULL UNIQUE REFERENCES demo_orders(client_order_id),
+      symbol TEXT NOT NULL, state JSONB NOT NULL, version INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  ` },
 ] as const;
 
