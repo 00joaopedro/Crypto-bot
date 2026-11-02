@@ -1,3 +1,5 @@
+import { calculateDemoLedger, type DemoFill } from "./demo-ledger.js";
+import type { ExitPolicy } from "./exit-policy.js";
 import ccxt, { OrderNotFound, type Exchange, type Order } from "ccxt";
 import { collectOkxDemoFills, type OkxCollectedFills, type OkxFillHistoryClient } from "./okx-demo-fill-history.js";
 import { collectOkxDemoOrderEvidence, type OkxOrderEvidenceClient, type OrderEvidenceResult, type CachedDemoParent } from "./okx-demo-order-evidence.js";
@@ -18,6 +20,7 @@ export type OkxDemoOptions = {
   orderSizeUsdt: number;
   stopLossRate: number;
   takeProfitRate: number;
+  exitPolicy?: ExitPolicy;
 };
 
 export type OkxDemoStatus = {
@@ -100,6 +103,12 @@ export class OkxDemoExecutor {
   private sandboxConfigured = false;
   private initialized = false;
   private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string) => Promise<boolean>;
+
+  private exitJournal?: (clientOrderId: string, algoId: string, symbol: string, candle: number, policy: ExitPolicy) => Promise<void>;
+  setExitJournal(save: NonNullable<OkxDemoExecutor["exitJournal"]>): void { this.exitJournal = save; }
+  private verifyExitReservation?: (algoClientId: string, requestId: string, stop: number) => Promise<boolean>;
+  setExitReservationCheck(check: NonNullable<OkxDemoExecutor["verifyExitReservation"]>): void { this.verifyExitReservation = check; }
+  get exitManagementEnabled(): boolean { return this.options.tradingEnabled && !!this.options.exitPolicy; }
 
   setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string) => Promise<boolean>): void {
     this.reserveIntent = reserve;
@@ -392,11 +401,15 @@ export class OkxDemoExecutor {
     const attachAlgoOrds = [{
       attachAlgoClOrdId: attachedAlgoClientId,
       slTriggerPx: this.exchange.priceToPrecision(marketSymbol, stopLossPrice), slOrdPx: "-1",
-      tpTriggerPx: this.exchange.priceToPrecision(marketSymbol, takeProfitPrice), tpOrdPx: "-1",
+      ...(this.options.exitPolicy?.mode === "trailing_atr" ? {} : { tpTriggerPx: this.exchange.priceToPrecision(marketSymbol, takeProfitPrice), tpOrdPx: "-1" }),
     }];
     if (!this.reserveIntent) throw new Error("Demo order requires a persistent intent journal");
     if (!(await this.reserveIntent(marketSymbol, request.candleTimestamp, clientOrderId, attachedAlgoClientId))) {
       throw new Error(`Demo order intent already exists: ${clientOrderId}`);
+    }
+    if (this.options.exitPolicy) {
+      if (!this.exitJournal) throw new Error("Managed exits require a persistent exit journal");
+      await this.exitJournal(clientOrderId, attachedAlgoClientId, marketSymbol, request.candleTimestamp, this.options.exitPolicy);
     }
     const submitted = await this.exchange.createMarketBuyOrderWithCost(
       marketSymbol,
@@ -428,6 +441,74 @@ export class OkxDemoExecutor {
       feesPresentOnTerminalResponse: confirmed && normalizedOrderFees(order).length > 0,
       ...(confirmed ? {} : { reconciliationError: `Final OKX order status was ${order.status ?? "unknown"}` }),
     };
+  }
+
+  /** Fresh attribution, fills, base fees and remaining protective quantity. Never sizes a new sell. */
+  async inspectExitProtection(journal: JournaledDemoBuy, from: number, cached?: { parents: CachedDemoParent[]; fills: DemoFill[]; from: number }) {
+    const blocked = (reason: string) => ({ status: "blocked" as const, reason });
+    if (!this.initialized || !this.sandboxConfigured) return blocked("demo_not_initialized");
+    const evidence = await this.collectOrderEvidence([journal], cached?.parents);
+    if (evidence.status !== "collected") return blocked(evidence.reason);
+    const parent = evidence.orders.find(o => o.id === journal.orderId);
+    if (!parent?.terminal) return blocked("partial_buy_or_parent_pending");
+    if (evidence.orders.some(o => !o.terminal)) return blocked("partial_sell_or_child_pending");
+    const history = await this.collectFillHistory({ symbol: journal.symbol, from: cached?.from ?? from, to: Date.now() });
+    if (history.status !== "collected") return blocked(history.reason);
+    const ids = new Set(evidence.orders.map(o => o.id));
+    const fillSignature = (f: DemoFill) => JSON.stringify([f.id,f.orderId,f.symbol,f.side,f.timestamp,f.amount,f.costUsdt,f.fees.map(fee => [fee.currency,fee.cost])]);
+    const allFills = new Map<string, DemoFill>();
+    for (const fill of [...(cached?.fills ?? []), ...history.fills].filter(f => ids.has(f.orderId))) {
+      const previous = allFills.get(fill.id);
+      if (previous && fillSignature(previous) !== fillSignature(fill)) return blocked("exit_fill_conflict");
+      allFills.set(fill.id,fill);
+    }
+    const fills = [...allFills.values()];
+    for (const order of evidence.orders) {
+      const filled = fills.filter(f => f.orderId === order.id).reduce((n,f) => n + f.amount, 0);
+      if (Math.abs(order.filled - filled) > order.filled * 1e-10) return blocked("exit_fills_incomplete");
+    }
+    const ledger = calculateDemoLedger(fills, true);
+    if (ledger.status !== "confirmed") return blocked(ledger.reason);
+    const position = ledger.positions[journal.symbol];
+    const state = evidence.protectionStates[journal.attachedAlgoClientId!];
+    if (!position || position.quantity <= 0) return state === "live" ? blocked("live_protection_without_position") : { status: "closed" as const };
+    if (state !== "live" || evidence.sells.length) return blocked("partial_exit_without_live_coverage");
+    const client = this.exchange as unknown as { privateGetTradeOrderAlgo(params: Record<string,string>): Promise<unknown> };
+    const payload = await client.privateGetTradeOrderAlgo({ algoClOrdId: journal.attachedAlgoClientId! }) as { code?: string; data?: Array<Record<string,unknown>> };
+    const row = payload?.data?.[0];
+    if (payload?.code !== "0" || payload.data?.length !== 1 || !row || row.instType !== "SPOT" || row.instId !== journal.symbol.replace("/","-") || row.algoClOrdId !== journal.attachedAlgoClientId || row.side !== "sell" || row.state !== "live" || row.slOrdPx !== "-1" || row.slTriggerPxType !== "last" || !["conditional","oco"].includes(String(row.ordType)) || !Array.isArray(row.ordIdList) || row.ordIdList.length) return blocked("exit_protection_not_live");
+    const quantity = Number(row.sz), stop = Number(row.slTriggerPx);
+    const market = this.resolveActiveSpotMarket(journal.symbol);
+    const step = Number(market.precision.amount);
+    if (this.exchange.precisionMode !== ccxt.TICK_SIZE || !Number.isFinite(step) || step <= 0 || typeof row.algoId !== "string" || !/^[A-Za-z0-9]{1,64}$/.test(row.algoId) || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(stop) || stop <= 0 || quantity > position.quantity * (1 + 1e-10) || position.quantity - quantity >= step * (1 - 1e-10)) return blocked("exit_quantity_not_covered");
+    const balance = await this.exchange.fetchBalance();
+    const total = readTotalBalance(balance.total, market.base);
+    if (total === null || total < quantity * (1 - 1e-10)) return blocked("exit_balance_unconfirmed");
+    const buys = fills.filter(f => f.side === "buy");
+    const entryPrice = buys.reduce((n,f)=>n+f.costUsdt,0) / buys.reduce((n,f)=>n+f.amount,0);
+    let takerFeeRate: number | null = null;
+    try { const fee = await this.exchange.fetchTradingFee(journal.symbol); if (typeof fee.taker === "number" && Number.isFinite(fee.taker) && fee.taker >= 0 && fee.taker < .1) takerFeeRate = fee.taker; } catch { /* Breakeven will fail closed; fixed protection can still be audited. */ }
+    return { status: "live" as const, unprotectedDustQuantity: Math.max(0,position.quantity-quantity), takerFeeRate, algoId: row.algoId, stop, quantity, costUsdt: position.costUsdt, netQuantity: position.quantity, entryPrice, entryCandle: Math.floor(Math.max(...buys.map(f => f.timestamp)) / 900000) * 900000, requestId: typeof row.reqId === "string" ? row.reqId : null };
+  }
+
+  formatExitStop(symbol: string, stop: number): number { return Number(this.exchange.priceToPrecision(symbol, stop)); }
+
+  /** Amend the SAME existing algo. Never cancel, replace, change size, or submit a sale. */
+  async amendExitStop(journal: JournaledDemoBuy, from: number, stop: number, requestId: string, cached?: { parents: CachedDemoParent[]; fills: DemoFill[]; from: number }) {
+    if (!this.exitManagementEnabled || !/^[A-Za-z0-9]{1,32}$/.test(requestId)) return "blocked" as const;
+    if (!journal.attachedAlgoClientId || !this.verifyExitReservation || !await this.verifyExitReservation(journal.attachedAlgoClientId,requestId,stop)) return "blocked" as const;
+    const fresh = await this.inspectExitProtection(journal, from, cached);
+    if (fresh.status !== "live" || stop <= fresh.stop) return "blocked" as const;
+    const price = (await this.exchange.fetchTicker(journal.symbol)).bid;
+    if (!Number.isFinite(price) || price! <= stop || !Number.isFinite(stop) || stop <= 0) return "blocked" as const;
+    const client = this.exchange as unknown as { privatePostTradeAmendAlgos(params: Record<string,unknown>): Promise<unknown> };
+    if (typeof client.privatePostTradeAmendAlgos !== "function") return "blocked" as const;
+    const response = await client.privatePostTradeAmendAlgos({ instId: journal.symbol.replace("/","-"), algoId: fresh.algoId, reqId: requestId, newSlTriggerPx: String(stop), newSlOrdPx: "-1", cxlOnFail: false }) as { code?: string; data?: Array<{ algoId?: string; reqId?: string; sCode?: string }> };
+    // An acknowledgement is not proof that the amendment was applied.
+    const item = response?.data?.length === 1 ? response.data[0] : undefined;
+    if (item?.algoId !== fresh.algoId || item?.reqId !== requestId) return "uncertain" as const;
+    if (typeof item.sCode === "string" && /^\d+$/.test(item.sCode) && item.sCode !== "0") return "rejected" as const;
+    return response.code === "0" && item.sCode === "0" ? "acknowledged" as const : "uncertain" as const;
   }
 
   async executeApprovedSell(request: DemoSellRequest): Promise<DemoBuyResult> {

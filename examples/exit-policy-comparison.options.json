@@ -1,0 +1,69 @@
+{
+  "symbol": "BTC/USDT",
+  "dataSource": "REPLACE with provenance of closed 15m candles; volume in base asset",
+  "trainCandles": 672,
+  "testCandles": 672,
+  "initialBalanceUsdt": 1000,
+  "tradeSizeUsdt": 10,
+  "constraints": {
+    "minimumNotionalUsdt": 5,
+    "minimumQuantity": 1e-05,
+    "quantityStep": 1e-05
+  },
+  "baseline": {
+    "stopLossRate": 0.01,
+    "takeProfitRate": 0.02,
+    "minimumSignalScore": 5,
+    "executionDelayCandles": 1,
+    "exitPolicy": {
+      "mode": "fixed",
+      "breakeven": false
+    }
+  },
+  "alternatives": [
+    {
+      "name": "trailing-atr",
+      "parameters": {
+        "stopLossRate": 0.01,
+        "takeProfitRate": 0.02,
+        "minimumSignalScore": 5,
+        "executionDelayCandles": 1,
+        "exitPolicy": {
+          "mode": "trailing_atr",
+          "breakeven": false
+        }
+      }
+    },
+    {
+      "name": "trailing-atr-breakeven",
+      "parameters": {
+        "stopLossRate": 0.01,
+        "takeProfitRate": 0.02,
+        "minimumSignalScore": 5,
+        "executionDelayCandles": 1,
+        "exitPolicy": {
+          "mode": "trailing_atr",
+          "breakeven": true
+        }
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "assumed-standard",
+      "feeRate": 0.001,
+      "slippageRate": 0.001,
+      "spreadRate": 0.001,
+      "assumedDepthUsdt": 1000,
+      "maxParticipationRate": 0.001
+    },
+    {
+      "name": "assumed-stress",
+      "feeRate": 0.002,
+      "slippageRate": 0.003,
+      "spreadRate": 0.003,
+      "assumedDepthUsdt": 500,
+      "maxParticipationRate": 0.0005
+    }
+  ]
+}

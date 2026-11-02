@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
+import { exitPolicySchema } from "../src/exit-policy.js";
 import { PaperTrader } from "../src/paper-trader.js";
 import { PostgresPersistence } from "../src/persistence.js";
 import type { Candle, QuantSignal } from "../src/types.js";
@@ -8,6 +9,35 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("persists an exit policy before execution and arbitrates concurrent amendments across connections", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const other = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const now = Date.now(), client = `EXIT${now}`, algo = `APEXIT${now}`;
+    let baselineId: string | undefined;
+    try {
+      await persistence.initialize();
+      const baseline = await db.query(`INSERT INTO demo_accounting_baselines (observed_at,balances,evidence,status) VALUES (NOW(),'{}','{"accountIdentity":{"uid":"123","mainUid":"123"}}','UNVERIFIED') RETURNING id`);
+      baselineId = baseline.rows[0].id;
+      expect(await persistence.reserveDemoOrder("BTC/USDT",now,client,5,60,algo)).toBe(true);
+      await persistence.registerDemoExit(client,algo,"BTC/USDT",now,exitPolicySchema.parse({ mode:"trailing_atr" }));
+      const row = (await other.managedDemoExits()).find(row => row.algo_client_id === algo)!;
+      expect(row.state.policy.mode).toBe("trailing_atr");
+      const state = { ...row.state,pending:{requestId:"REQ1",stop:105},highWatermark:110 };
+      const results = await Promise.all([persistence.saveDemoExitState(algo,row.version,state),other.saveDemoExitState(algo,row.version,state)]);
+      expect(results.filter(Boolean)).toHaveLength(1);
+      expect(await other.isDemoExitReserved(algo,"REQ1",105)).toBe(true);
+      expect(await other.isDemoExitReserved(algo,"OTHER",105)).toBe(false);
+      const restored=(await other.managedDemoExits()).find(row => row.algo_client_id === algo)!;
+      expect(restored.state.pending).toEqual({requestId:"REQ1",stop:105});
+      expect(await other.saveDemoExitState(algo,row.version,{...row.state,pending:null})).toBe(false);
+    } finally {
+      await db.query("DELETE FROM demo_exit_state WHERE algo_client_id=$1",[algo]);
+      await db.query("DELETE FROM demo_orders WHERE client_order_id=$1",[client]);
+      if (baselineId) await db.query("DELETE FROM demo_accounting_baselines WHERE id=$1",[baselineId]);
+      await db.end(); await persistence.close(); await other.close();
+    }
+  });
   it("serializes competing checkpoints and preserves the last checkpoint on pending orders or write failure", async () => {
     const persistence=new PostgresPersistence(databaseUrl!);
     const db=new Pool({connectionString:databaseUrl});

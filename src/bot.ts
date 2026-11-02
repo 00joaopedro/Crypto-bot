@@ -1,3 +1,4 @@
+import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import type { PublicMarketData } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
 import { PaperTrader, type PaperCycleResult } from "./paper-trader.js";
@@ -35,6 +36,7 @@ type BotOptions = {
   maxTradesPerInterval?: number;
   tradeIntervalMinutes?: number;
   demoOrderSizeUsdt?: number;
+  exitPolicy?: ExitPolicy;
   atrPeriod?: number;
   atrStopMultiplier?: number;
   atrTakeProfitMultiplier?: number;
@@ -183,6 +185,7 @@ export class TradingBot {
         ? evaluateStrategy(executionCandles.slice(0, replayIndex + 1), this.options.minimumSignalScore === undefined ? undefined : { minimumScore: this.options.minimumSignalScore })
         : undefined;
       const paperResult = paperTrader.processCandle(candle, false, undefined, replaySignal?.action === "SELL" && paperTrader.hasOpenPosition);
+      paperTrader.advanceManagedExit(executionCandles.slice(0, replayIndex + 1));
       await this.applyLossControls(paperResult.events, candle.timestamp);
       if (paperResult.events.some((event) => event.type === "CLOSED")) {
         this.lastTradeAtBySymbol.set(executionSymbol, candle.timestamp);
@@ -345,8 +348,9 @@ export class TradingBot {
       currentCandle,
       approved,
       exitRates,
-      signal.action === "SELL" && paperTrader.hasOpenPosition,
+      !this.options.exitPolicy && signal.action === "SELL" && paperTrader.hasOpenPosition,
     );
+    paperTrader.advanceManagedExit(signalCandles);
     await this.applyLossControls(paperResult.events, currentCandle.timestamp);
     try {
       await this.options.persistence?.recordCycle({
@@ -652,6 +656,7 @@ export class TradingBot {
         const signal = index >= 49 ? evaluateStrategy(candles.slice(0, index + 1), this.options.minimumSignalScore === undefined ? undefined : { minimumScore: this.options.minimumSignalScore }) : undefined;
         const riskBefore = this.exportRiskState();
         const result = trader.processCandle(candle, false, undefined, signal?.action === "SELL");
+        trader.advanceManagedExit(candles.slice(0, index + 1));
         await this.applyLossControls(result.events, candle.timestamp);
         try {
           await this.options.persistence?.recordCycle({ symbol: position.symbol, candle, replayed: true, paperResult: result, paperState: trader.exportState(), riskState: this.exportRiskState() });
@@ -830,6 +835,7 @@ export class TradingBot {
   }
 
   private calculateVolatilityExitRates(candles: Candle[], referencePrice: number, trader = this.options.paperTrader): { stopLossRate: number; takeProfitRate: number; trailingStopRate: number } {
+    if (this.options.exitPolicy) return { ...initialExitRates(candles, referencePrice, this.options.exitPolicy, { stopLossRate: this.options.fallbackStopLossRate ?? trader.stopLossRate, takeProfitRate: this.options.fallbackTakeProfitRate ?? .02 }), trailingStopRate: 0 };
     const atr = averageTrueRange(candles, this.options.atrPeriod ?? 14);
     if (atr <= 0) {
       return {

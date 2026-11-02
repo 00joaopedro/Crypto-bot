@@ -5,7 +5,7 @@ import type { Candle } from "./types.js";
 export function validateDemoStrategy(candles: Candle[], options: WalkForwardOptions) {
   if (options.candidates.length !== 1) throw new Error("Use exactly one fixed candidate for out-of-sample validation");
   const candidate = options.candidates[0];
-  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate) || Object.keys(candidate).some((key) => !["stopLossRate", "takeProfitRate", "minimumSignalScore", "executionDelayCandles"].includes(key))) throw new Error("Invalid fixed candidate fields");
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate) || Object.keys(candidate).some((key) => !["stopLossRate", "takeProfitRate", "minimumSignalScore", "executionDelayCandles", "exitPolicy"].includes(key))) throw new Error("Invalid fixed candidate fields");
   if ((options.stepCandles ?? options.testCandles) < options.testCandles) throw new Error("Test windows must not overlap");
   if (options.base.qualityFilters === false) throw new Error("Demo validation requires the production quality filters");
   if (options.base.executionProfile !== "demo-proxy") throw new Error("Demo validation requires demo-proxy execution profile");
@@ -21,7 +21,7 @@ export function validateDemoStrategy(candles: Candle[], options: WalkForwardOpti
     limitations: [
       "Simulated fills and fees are assumptions; OKX execution is not verified.",
       "Demo stop and target are approximated; bid/ask, exchange precision and intrabar order are unknown.",
-      "Portfolio risk, cooldowns, AI, dynamic symbol selection and ATR exits are not reproduced.",
+      "Portfolio risk, cooldowns, AI and dynamic symbol selection are not reproduced. Shared ATR exits require an explicit exitPolicy.",
       "This report cannot establish production readiness or profitability.",
     ],
   };

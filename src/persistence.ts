@@ -1,3 +1,5 @@
+import { demoExitStateSchema, type DemoExitState } from "./demo-exit-state.js";
+import type { ExitPolicy } from "./exit-policy.js";
 import { advanceDemoRisk, type DemoRiskState } from "./demo-risk.js";
 import { createHash, randomUUID } from "node:crypto";
 
@@ -405,6 +407,35 @@ export class PostgresPersistence implements BotPersistence {
       await client.query("ROLLBACK");
       throw error;
     } finally { client.release(); }
+  }
+
+  async registerDemoExit(clientOrderId: string, algoClientId: string, symbol: string, candle: number, policy: ExitPolicy): Promise<void> {
+    const baseline = await this.getDemoBaselineCandidate();
+    const state = demoExitStateSchema.parse({ policy, accountIdentity: baseline?.evidence.accountIdentity, lastCandle: candle, highWatermark: 0 });
+    const result = await this.pool.query(`INSERT INTO demo_exit_state (algo_client_id,client_order_id,symbol,state)
+      SELECT $1,client_order_id,symbol,$4::jsonb FROM demo_orders
+      WHERE client_order_id=$2 AND attached_algo_client_id=$1 AND symbol=$3 AND status='PENDING'
+      ON CONFLICT DO NOTHING RETURNING algo_client_id`, [algoClientId,clientOrderId,symbol,JSON.stringify(state)]);
+    if (result.rowCount !== 1) throw new Error("Exit policy reservation failed");
+  }
+
+  async isDemoExitReserved(algoClientId: string, requestId: string, stop: number): Promise<boolean> {
+    const result = await this.pool.query(`SELECT 1 FROM demo_exit_state WHERE algo_client_id=$1 AND state->'pending'->>'requestId'=$2 AND (state->'pending'->>'stop')::double precision=$3 AND state->>'closed'='false'`, [algoClientId,requestId,stop]);
+    return result.rowCount === 1;
+  }
+
+  async managedDemoExits(): Promise<Array<{ algo_client_id: string; client_order_id: string; symbol: string; version: number; state: DemoExitState; result: unknown; status: string; created_at: Date }>> {
+    const result = await this.pool.query(`SELECT e.algo_client_id,e.client_order_id,e.symbol,e.version,e.state,o.result,o.status,o.created_at
+      FROM demo_exit_state e JOIN demo_orders o ON o.client_order_id=e.client_order_id
+      WHERE e.state->>'closed' IS DISTINCT FROM 'true' ORDER BY e.algo_client_id`);
+    return result.rows.map(row => ({ ...row, state: demoExitStateSchema.parse(row.state) }));
+  }
+
+  async saveDemoExitState(algoClientId: string, version: number, state: DemoExitState): Promise<boolean> {
+    const parsed = demoExitStateSchema.parse(state);
+    const result = await this.pool.query(`UPDATE demo_exit_state SET state=$3::jsonb,version=version+1,updated_at=NOW()
+      WHERE algo_client_id=$1 AND version=$2 RETURNING version`, [algoClientId,version,JSON.stringify(parsed)]);
+    return result.rowCount === 1;
   }
 
   async demoOrderJournal(since?: Date): Promise<Array<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>> {

@@ -1,3 +1,4 @@
+import { exitPolicySchema } from "../src/exit-policy.js";
 import ccxt, { OrderNotFound, type Exchange } from "ccxt";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -54,6 +55,32 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("persists a new managed exit before buying and omits the fixed target only for trailing mode", async () => {
+    for (const mode of ["fixed", "trailing_atr"] as const) {
+      const exchange = exchangeMock();
+      const executor = new OkxDemoExecutor(credentials,{...enabledOptions,exitPolicy:exitPolicySchema.parse({mode})},exchange);
+      const sequence:string[]=[];
+      executor.setIntentJournal(async()=>{sequence.push("intent");return true;});
+      executor.setExitJournal(async()=>{sequence.push("policy");});
+      const original=exchange.createMarketBuyOrderWithCost;
+      exchange.createMarketBuyOrderWithCost=vi.fn(async(...args:Parameters<typeof original>)=>{sequence.push("buy");return original(...args);});
+      await executor.initialize();
+      await executor.executeApprovedBuy({candleTimestamp:1700000000000});
+      expect(sequence).toEqual(["intent","policy","buy"]);
+      const params=vi.mocked(exchange.createMarketBuyOrderWithCost).mock.calls[0]![2]!;
+      const attached=params.attachAlgoOrds[0];
+      expect(attached.slOrdPx).toBe("-1");
+      expect(attached.tpTriggerPx !== undefined).toBe(mode === "fixed");
+    }
+  });
+  it("submits no buy when the managed exit policy cannot be saved", async () => {
+    const exchange=exchangeMock();
+    const executor=new OkxDemoExecutor(credentials,{...enabledOptions,exitPolicy:exitPolicySchema.parse({})},exchange);
+    executor.setIntentJournal(async()=>true);executor.setExitJournal(async()=>{throw Error("storage unavailable");});
+    await executor.initialize();
+    await expect(executor.executeApprovedBuy({candleTimestamp:1700000000000})).rejects.toThrow("storage unavailable");
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
   it("collects a Demo baseline candidate without claiming it proves history coverage", async () => {
     const exchange = exchangeMock({ fetchBalance: vi.fn(async () => ({ free: { USDT: 5000 }, total: { BTC: 1, USDT: 5000 } })) });
     const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
