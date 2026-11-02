@@ -27,6 +27,7 @@ type BotOptions = {
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
   verifyDemoExecutionSafety?: () => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
   inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<{ allowed: boolean; reason?: string }>;
+  inspectDemoPositions?: () => Promise<{ status: "safe"; positions: Array<{ symbol: string }> } | { status: "blocked"; reason: string }>;
   ai?: GeminiRiskFilter;
   persistence?: BotPersistence;
   initialLastProcessedCandle?: number;
@@ -62,6 +63,7 @@ export class TradingBot {
   private consecutiveLosses: number;
   private stopLossCooldownUntil: number;
   private observedPaused = false;
+  private demoOccupiedSymbols = new Set<string>();
   private activeUniverse: string[] = [];
   private lastUniverseSwitchAt = 0;
   private readonly paperTraders = new Map<string, PaperTrader>();
@@ -109,11 +111,21 @@ export class TradingBot {
       if (safety.status !== "safe") {
         this.demoExecutionBlocked = true;
         await this.options.persistence?.setPaused(true, "system:demo_execution_safety");
+        await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "WARN", { symbol: this.options.symbol, approved: false, reason: safety.reason });
         console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
         return;
       }
     }
 
+    if (this.options.inspectDemoPositions) {
+      const state = await this.options.inspectDemoPositions();
+      if (state.status !== "safe") {
+        this.demoExecutionBlocked = true;
+        await this.options.persistence?.setPaused(true, "system:demo_position_uncertain");
+        return;
+      }
+      this.demoOccupiedSymbols = new Set(state.positions.map(position => position.symbol));
+    }
     const candles = await this.market.fetchClosedCandles(
       this.options.symbol,
       this.options.candleLimit,
@@ -142,7 +154,10 @@ export class TradingBot {
     // signal with insufficient market quality must not fall through merely
     // because the ranking has no selected symbol.
     const managedPositionSymbol = this.options.tradeManager?.activePositions[0]?.symbol;
-    const executionSymbol = managedPositionSymbol ?? selectedEligibleSymbol ?? this.options.symbol;
+    const executionSymbol = this.options.inspectDemoEntry
+      ? selectedEligibleSymbol ?? managedPositionSymbol ?? this.options.symbol
+      : managedPositionSymbol ?? selectedEligibleSymbol ?? this.options.symbol;
+    await this.monitorOtherPaperPositions(executionSymbol);
     const paperTrader = await this.getPaperTrader(executionSymbol);
     const executionCandles = executionSymbol === this.options.symbol
       ? candles
@@ -413,8 +428,16 @@ export class TradingBot {
       if (demoCandidate && !this.demoExecutionBlocked && !(await this.options.persistence?.isPaused())) {
         const admission = await this.options.inspectDemoEntry(executionSymbol, exitRates.stopLossRate);
         demoApproved = admission.allowed;
-        if (!admission.allowed) await this.recordOperationalEvent("DEMO_ENTRY_BLOCKED", "WARN", { reason: admission.reason });
+        await this.recordOperationalEvent("DEMO_ENTRY_DECISION", admission.allowed ? "INFO" : "WARN", {
+          symbol: executionSymbol, candleTimestamp: currentCandle.timestamp,
+          approved: admission.allowed, reason: admission.reason ?? "demo_preflight_passed",
+        });
       }
+    }
+    if (!demoCandidate && this.options.inspectDemoEntry) {
+      await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", { symbol: executionSymbol,
+        candleTimestamp: currentCandle.timestamp, approved: false,
+        reason: signal.action !== "BUY" ? `signal_${signal.action.toLowerCase()}` : "entry_filter_or_risk_circuit_breaker" });
     }
     if (demoApproved && this.options.demoExecutor) {
       try {
@@ -616,6 +639,37 @@ export class TradingBot {
     }
   }
 
+  private async monitorOtherPaperPositions(selectedSymbol: string): Promise<void> {
+    if (!this.options.inspectDemoEntry) return;
+    for (const position of this.options.tradeManager?.activePositions ?? []) {
+      if (position.symbol === selectedSymbol) continue;
+      const trader = await this.getPaperTrader(position.symbol);
+      const candles = await this.market.fetchClosedCandles(position.symbol, this.options.candleLimit);
+      const last = this.lastProcessedCandleBySymbol.get(position.symbol) ?? position.openedAt;
+      for (const candle of candles.filter(c => c.timestamp > last)) {
+        const before = trader.exportState();
+        const index = candles.findIndex(c => c.timestamp === candle.timestamp);
+        const signal = index >= 49 ? evaluateStrategy(candles.slice(0, index + 1), this.options.minimumSignalScore === undefined ? undefined : { minimumScore: this.options.minimumSignalScore }) : undefined;
+        const riskBefore = this.exportRiskState();
+        const result = trader.processCandle(candle, false, undefined, signal?.action === "SELL");
+        await this.applyLossControls(result.events, candle.timestamp);
+        try {
+          await this.options.persistence?.recordCycle({ symbol: position.symbol, candle, replayed: true, paperResult: result, paperState: trader.exportState(), riskState: this.exportRiskState() });
+        } catch (error) {
+          trader.restoreState(before);
+          this.consecutiveLosses = riskBefore.consecutiveLosses;
+          this.stopLossCooldownUntil = riskBefore.stopLossCooldownUntil;
+          throw error;
+        }
+        this.lastProcessedCandleBySymbol.set(position.symbol, candle.timestamp);
+        if (result.events.some(e => e.type === "CLOSED")) {
+          this.options.tradeManager?.recordExit(position.symbol);
+          break;
+        }
+      }
+    }
+  }
+
   private async getPaperTrader(symbol: string): Promise<PaperTrader> {
     const existing = this.paperTraders.get(symbol);
     if (existing && this.loadedPaperSymbols.has(symbol)) return existing;
@@ -691,7 +745,7 @@ export class TradingBot {
       }
     }
 
-    const blockedSymbols = new Set(this.options.inspectDemoEntry ? [] : this.options.tradeManager?.activePositions.map((position) => position.symbol));
+    const blockedSymbols = new Set(this.options.inspectDemoEntry ? this.demoOccupiedSymbols : this.options.tradeManager?.activePositions.map((position) => position.symbol));
     const ranked = rankSignals(candidates, this.options.minimumSignalScore, blockedSymbols);
     const activeSymbols = await this.updateUniverse(ranked, configuredSymbols, currentCandles.at(-1)?.timestamp ?? Date.now(), universeSize);
     return ranked.filter((candidate) => activeSymbols.has(candidate.symbol));

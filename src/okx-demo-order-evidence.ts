@@ -6,6 +6,7 @@ export type OkxOrderEvidenceClient = {
   privateGetTradeOrder(params: Record<string, string>): Promise<unknown>;
   privateGetTradeOrderAlgo(params: Record<string, string>): Promise<unknown>;
 };
+export type CachedDemoParent = { order: ExchangeDemoOrder; evidence: ConfirmedDemoOrder };
 export type OrderEvidenceResult =
   | { status: "unavailable"; reason: string }
   | { status: "collected"; buys: ExchangeDemoOrder[]; sells: ExchangeDemoOrder[]; protections: ExchangeProtection[]; orders: ConfirmedDemoOrder[]; protectionStates: Record<string, string> };
@@ -14,7 +15,7 @@ export type OrderEvidenceResult =
  * ID. This is attribution evidence, not proof of complete history, no external
  * transactions, current balance, or P&L. Live orders retain terminal=false.
  */
-export async function collectOkxDemoOrderEvidence(client: OkxOrderEvidenceClient, journal: JournaledDemoBuy[]): Promise<OrderEvidenceResult> {
+export async function collectOkxDemoOrderEvidence(client: OkxOrderEvidenceClient, journal: JournaledDemoBuy[], cachedParents: CachedDemoParent[] = []): Promise<OrderEvidenceResult> {
   const unavailable = (reason: string): OrderEvidenceResult => ({ status: "unavailable", reason });
   if (!Array.isArray(journal) || journal.length === 0 || journal.length > 500) return unavailable("journal_empty_or_too_large");
   const orderIds = new Set<string>(), algoIds = new Set<string>();
@@ -49,7 +50,13 @@ export async function collectOkxDemoOrderEvidence(client: OkxOrderEvidenceClient
     for (const item of journal) {
       if (!item || !/^([A-Z0-9]+)\/USDT$/.test(item.symbol) || !validId(item.orderId) || !validId(item.clientOrderId) || !validId(item.attachedAlgoClientId) || orderIds.has(item.orderId) || algoIds.has(item.attachedAlgoClientId)) return unavailable("invalid_or_incomplete_journal");
       orderIds.add(item.orderId); algoIds.add(item.attachedAlgoClientId);
-      const buy = await readOrder(item.symbol, item.orderId, "buy");
+      // A terminal parent already proven in this account's checkpoint can be
+      // retained beyond provider history retention. Protection is always fresh.
+      const cached = cachedParents.filter(parent => parent.order?.id === item.orderId);
+      if (cached.length > 1) return unavailable("duplicate_cached_parent");
+      const candidate = cached[0];
+      if (candidate && (candidate.order.symbol !== item.symbol || candidate.order.side !== "buy" || candidate.order.clientOrderId !== item.clientOrderId || !candidate.order.attachedAlgoClientIds?.includes(item.attachedAlgoClientId) || candidate.evidence?.id !== item.orderId || candidate.evidence.symbol !== item.symbol || candidate.evidence.side !== "buy" || candidate.evidence.terminal !== true || !Number.isFinite(candidate.evidence.filled) || candidate.evidence.filled < 0)) return unavailable("invalid_cached_parent");
+      const buy = candidate ?? await readOrder(item.symbol, item.orderId, "buy");
       if (!buy || buy.order.clientOrderId !== item.clientOrderId || !buy.order.attachedAlgoClientIds?.includes(item.attachedAlgoClientId)) return unavailable("parent_order_unconfirmed");
       const row = one(await client.privateGetTradeOrderAlgo({ algoClOrdId: item.attachedAlgoClientId }));
       if (!row || row.instType !== "SPOT" || row.instId !== item.symbol.replace("/", "-") || row.algoClOrdId !== item.attachedAlgoClientId || row.side !== "sell" || !validId(row.algoId) || typeof row.state !== "string" || !["live", "effective", "canceled", "order_failed"].includes(row.state) || !Array.isArray(row.ordIdList)) return unavailable("protective_order_unconfirmed");

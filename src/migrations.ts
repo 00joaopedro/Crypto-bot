@@ -206,5 +206,17 @@ export const migrations: readonly Migration[] = [
         CHECK (status IN ('PLACED', 'SKIPPED', 'FAILED', 'PENDING', 'REJECTED_CONFIRMED'));
     `,
   },
+  { version: 11, name: "demo_equity_risk_observations", sql: `
+    CREATE TABLE demo_risk_state (
+      account_id TEXT PRIMARY KEY, state JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  ` },
+  { version: 12, name: "demo_accounting_checkpoints", sql: `
+    CREATE TABLE demo_accounting_checkpoints (
+      baseline_at TIMESTAMPTZ NOT NULL, observed_at TIMESTAMPTZ NOT NULL,
+      balances JSONB NOT NULL, evidence JSONB NOT NULL, realized_pnl DOUBLE PRECISION NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (baseline_at, observed_at)
+    );
+  ` },
 ] as const;
 

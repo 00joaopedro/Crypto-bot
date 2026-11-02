@@ -1,3 +1,4 @@
+import { demoRiskBlock } from './demo-risk.js';
 import { inspectDemoExecutionState } from './demo-execution-safety.js';
 import { sameDemoAccount } from './okx-demo-identity.js';
 import type { PostgresPersistence } from './persistence.js';
@@ -5,9 +6,9 @@ import type { OkxDemoExecutor } from './okx-demo.js';
 
 /** Fresh, read-only admission. Paper positions never establish Demo exposure. */
 export async function inspectDemoEntry(
-  persistence: Pick<PostgresPersistence, 'demoOrderJournal' | 'getDemoBaselineCandidate' | 'canEnterDemoSymbol'>,
+  persistence: Pick<PostgresPersistence, 'demoOrderJournal' | 'getDemoBaselineCandidate' | 'canEnterDemoSymbol' | 'observeDemoRisk'>,
   executor: Pick<OkxDemoExecutor, 'collectOrderEvidence' | 'inspectAccountIdentity' | 'getAccountSnapshot'>,
-  input: { symbol: string; size: number; stopLossRate: number; cooldownMinutes: number; maxPositions: number; maxExposure: number; riskPerTrade: number },
+  input: { symbol: string; size: number; stopLossRate: number; cooldownMinutes: number; maxPositions: number; maxExposure: number; riskPerTrade: number; maxDailyLoss: number; maxDrawdown: number },
 ): Promise<{ allowed: boolean; reason?: string }> {
   const no = (reason: string) => ({ allowed: false, reason });
   try {
@@ -23,10 +24,31 @@ export async function inspectDemoEntry(
     const snapshot = await executor.getAccountSnapshot();
     const equity = snapshot.equityUsdt, free = snapshot.quoteFree;
     if (equity === null || free === null || !Number.isFinite(equity) || !Number.isFinite(free) || equity <= 0 || free < 0 || free > equity) return no('demo_balance_unconfirmed');
+    const risk = await persistence.observeDemoRisk(`${account.identity.mainUid}:${account.identity.uid}`, equity, Date.now());
+    const lossBlock = demoRiskBlock(risk, input.maxDailyLoss, input.maxDrawdown);
+    if (lossBlock) return no(lossBlock);
     if (free < input.size) return no('demo_insufficient_quote_balance');
     // Includes non-bot holdings and reserved quote funds conservatively.
     if ((equity - free + input.size) / equity > input.maxExposure) return no('demo_max_exposure');
     if (input.size * input.stopLossRate / equity > input.riskPerTrade) return no('demo_risk_per_trade');
     return { allowed: true };
   } catch { return no('demo_entry_check_failed'); }
+}
+
+/** Monitor account equity even when no new entry signal is present. */
+export async function inspectDemoEquityRisk(
+  persistence: Pick<PostgresPersistence, 'getDemoBaselineCandidate' | 'observeDemoRisk'>,
+  executor: Pick<OkxDemoExecutor, 'inspectAccountIdentity' | 'getAccountSnapshot'>,
+  maxDailyLoss: number, maxDrawdown: number,
+): Promise<{ status: 'safe' } | { status: 'blocked'; reason: string }> {
+  try {
+    const baseline = await persistence.getDemoBaselineCandidate();
+    const account = await executor.inspectAccountIdentity();
+    if (!baseline || account.status !== 'confirmed' || !sameDemoAccount(baseline.evidence.accountIdentity, account.identity)) return { status: 'blocked', reason: 'demo_account_identity_unconfirmed' };
+    const snapshot = await executor.getAccountSnapshot();
+    if (snapshot.equityUsdt === null) return { status: 'blocked', reason: 'demo_balance_unconfirmed' };
+    const state = await persistence.observeDemoRisk(`${account.identity.mainUid}:${account.identity.uid}`, snapshot.equityUsdt, Date.now());
+    const reason = demoRiskBlock(state, maxDailyLoss, maxDrawdown);
+    return reason ? { status: 'blocked', reason } : { status: 'safe' };
+  } catch { return { status: 'blocked', reason: 'demo_equity_risk_unconfirmed' }; }
 }

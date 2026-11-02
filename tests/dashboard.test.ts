@@ -42,6 +42,8 @@ describe("dashboard authentication", () => {
     const inspectDemoAccounting = vi.fn(async () => ({ status: "unavailable", reason: "no_confirmed_orders" }));
     const persistence = {
       getDashboardData: async () => ({ paused: false }),
+      latestDemoDecision: async () => null,
+      latestDemoReconciliation: async () => ({ confirmedThrough: "2026-11-01T12:00:00.000Z", realizedPnlUsdt: 12.85 }),
       updateDashboardSettings: vi.fn(async () => undefined),
     } as unknown as PostgresPersistence;
     server = await startDashboard({
@@ -84,7 +86,9 @@ describe("dashboard authentication", () => {
       headers: { cookie: cookie!.split(";")[0]! },
     });
     expect(authenticated.status).toBe(200);
-    expect((await authenticated.json()).demoAccounting).toEqual({ status: "unavailable", reason: "no_confirmed_orders" });
+    const dashboardData = await authenticated.json();
+    expect(dashboardData.lastDemoReconciliation.confirmedThrough).toBe("2026-11-01T12:00:00.000Z");
+    expect(dashboardData.demoAccounting).toEqual({ status: "unavailable", reason: "no_confirmed_orders" });
     const reconciliation = await fetch(`${base}/api/demo-reconciliation`, { headers: { cookie: cookie!.split(";")[0]! } });
     expect(await reconciliation.json()).toEqual({ status: "unavailable", reason: "no_confirmed_orders" });
     expect(inspectDemoAccounting).toHaveBeenCalledOnce();
