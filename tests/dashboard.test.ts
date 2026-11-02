@@ -9,6 +9,24 @@ describe("dashboard authentication", () => {
 
   afterEach(async () => stopDashboard(server));
 
+  networkTest("exports complete UTF-8 JSON and TXT with matching byte length", async () => {
+    const content = JSON.stringify({ generatedAt: "2026-11-02T17:48:40Z", scope: { hours: 24 }, records: [{ details: "Proteção e ação" }] }, null, 2);
+    const persistence = { getDiagnosticLogs: vi.fn(async () => content) } as unknown as PostgresPersistence;
+    server = await startDashboard({ port: 0, host: "127.0.0.1", password: "password", sessionSecret: "s".repeat(32), persistence, supportedSymbols: [], onSettingsChanged: () => undefined });
+    const { port } = server.address() as AddressInfo;
+    const base = `http://127.0.0.1:${port}`;
+    expect((await fetch(`${base}/api/logs`)).status).toBe(401);
+    const login = await fetch(`${base}/api/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "password" }) });
+    const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
+    for (const format of ["json", "txt"]) {
+      const response = await fetch(`${base}/api/logs?hours=24&format=${format}`, { headers: { cookie } });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-disposition")).toContain(`.${format}`);
+      expect(Number(response.headers.get("content-length"))).toBe(Buffer.byteLength(content));
+      expect(await response.text()).toBe(content);
+    }
+  });
+
   networkTest("applies a later pause after an in-flight resume", async () => {
     let paused = true;
     const operations: string[] = [];

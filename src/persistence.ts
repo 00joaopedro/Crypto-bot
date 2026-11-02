@@ -553,7 +553,7 @@ export class PostgresPersistence implements BotPersistence {
       { section: "paper_trades", rows: trades.rows },
       { section: "demo_orders", rows: orders.rows },
     ].flatMap(({ section, rows }) => rows.map((row) => JSON.stringify({ section, ...row })));
-    return JSON.stringify({ generatedAt: new Date().toISOString(), scope: { hours: safeHours, maxRowsPerSection: safeLimit }, records: lines.map((line) => JSON.parse(line)) }, null, 2);
+    return JSON.stringify({ generatedAt: new Date().toISOString(), scope: { hours: safeHours, maxRowsPerSection: safeLimit, sectionsAtLimit: [{ name: "operational_events", count: events.rows.length }, { name: "decisions", count: decisions.rows.length }, { name: "paper_trades", count: trades.rows.length }, { name: "demo_orders", count: orders.rows.length }].filter((section) => section.count === safeLimit).map((section) => section.name) }, records: lines.map((line) => JSON.parse(line)) }, null, 2);
   }
 
   async getDailyStartEquity(symbol: string): Promise<number | undefined> {

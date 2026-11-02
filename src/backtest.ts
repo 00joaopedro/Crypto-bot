@@ -15,6 +15,8 @@ export type BacktestOptions = {
   warmupCandles?: number;
   qualityFilters?: boolean;
   /** Demo-compatible exits simulate only exchange stop/target orders. */
+  executionConstraints?: { minimumNotionalUsdt: number; minimumQuantity: number; quantityStep: number };
+  liquidity?: { assumedDepthUsdt: number; maxParticipationRate: number };
   executionProfile?: "paper" | "demo-proxy";
 };
 
@@ -37,6 +39,8 @@ export type BacktestMetrics = {
   losses: number;
   maxDrawdownPercent: number;
   executionDelayCandles: number;
+  rejectedEntries: number;
+  openPositionAtEnd: boolean;
 };
 
 export type BacktestResult = { metrics: BacktestMetrics; trades: PaperTradeClosed[] };
@@ -49,6 +53,8 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   if (!Number.isInteger(warmup) || warmup < 0 || warmup >= candles.length - 1) throw new Error("warmupCandles must leave at least two test candles");
   if (!Number.isInteger(delay) || delay < 0) throw new Error("executionDelayCandles must be a non-negative integer");
 
+  if (options.liquidity && (!Number.isFinite(options.liquidity.assumedDepthUsdt) || options.liquidity.assumedDepthUsdt < 0 || !Number.isFinite(options.liquidity.maxParticipationRate) || options.liquidity.maxParticipationRate <= 0 || options.liquidity.maxParticipationRate > 1)) throw new Error("Invalid liquidity assumptions");
+  let rejectedEntries = 0;
   const trader = new PaperTrader(options);
   const closedTrades: PaperTradeClosed[] = [];
   const equities: number[] = [];
@@ -65,7 +71,18 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     // next candle, even when no additional artificial delay is requested.
     if (index >= warmup && signal?.action === "BUY") pending.set(index + Math.max(1, delay), true);
     const sellSignal = options.executionProfile !== "demo-proxy" && signal?.action === "SELL";
-    const result = trader.processCandle(candle, index >= warmup && pending.get(index) === true, undefined, sellSignal);
+    let approved = index >= warmup && pending.get(index) === true && !trader.hasOpenPosition;
+    if (approved && options.liquidity) {
+      // Only the PREVIOUS closed candle is available at the next open.
+      const previous = candles[index - 1];
+      const previousVolumeUsdt = previous ? previous.volume * previous.close : 0;
+      if (options.tradeSizeUsdt > Math.min(options.liquidity.assumedDepthUsdt, previousVolumeUsdt * options.liquidity.maxParticipationRate)) {
+        approved = false;
+        rejectedEntries++;
+      }
+    }
+    const result = trader.processCandle(candle, approved, undefined, sellSignal, candle.open);
+    if (approved && !result.events.some((event) => event.type === "OPENED")) rejectedEntries++;
     pending.delete(index);
     if (index >= warmup) {
       closedTrades.push(...result.events.filter((event): event is PaperTradeClosed => event.type === "CLOSED"));
@@ -97,7 +114,7 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     profitFactor: grossLossUsdt === 0 ? (grossProfitUsdt > 0 ? Number.POSITIVE_INFINITY : 0) : grossProfitUsdt / grossLossUsdt,
     expectancyUsdt: closedTrades.length ? closedTrades.reduce((sum, trade) => sum + trade.netPnlUsdt, 0) / closedTrades.length : 0,
     winRate: closedTrades.length ? (wins / closedTrades.length) * 100 : 0,
-    trades: closedTrades.length, wins, losses, maxDrawdownPercent, executionDelayCandles: delay,
+    trades: closedTrades.length, wins, losses, maxDrawdownPercent, executionDelayCandles: delay, rejectedEntries, openPositionAtEnd: trader.hasOpenPosition,
   }, trades: closedTrades };
 }
 

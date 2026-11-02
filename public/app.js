@@ -15,7 +15,25 @@ $('settings-form').addEventListener('submit',async(event)=>{event.preventDefault
 $('history-symbol').addEventListener('change',event=>{historySymbol=event.target.value;load()});
 $all('.metric-toggle').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.metric;metricModes[key]=metricModes[key]==='usdt'?'percent':'usdt';renderPeriodMetrics()}));
 $('copy-logs').addEventListener('click',async()=>{try{const response=await fetch(`/api/logs?hours=${encodeURIComponent($('logs-hours').value)}&limit=500`);if(!response.ok)throw new Error('Falha ao obter logs');const text=await response.text();await navigator.clipboard.writeText(text);$('logs-message').textContent='Logs copiados.'}catch(error){$('logs-message').textContent='Não foi possível copiar os logs.'}});
-$('download-logs').addEventListener('click',()=>{const link=document.createElement('a');link.href=`/api/logs?hours=${encodeURIComponent($('logs-hours').value)}&limit=500`;link.download='crypto-bot-diagnostic-logs.json';link.click();$('logs-message').textContent='Download iniciado.'});
+async function downloadLogs(format){
+  const message=$('logs-message');
+  try{
+    message.textContent='Preparando arquivo...';
+    const response=await fetch(`/api/logs?hours=${encodeURIComponent($('logs-hours').value)}&limit=500&format=${format}`);
+    if(!response.ok)throw new Error('Não foi possível baixar os logs. Verifique sua sessão e tente novamente.');
+    const text=await response.text();
+    const parsed=JSON.parse(text);
+    if(!Array.isArray(parsed.records)||!parsed.scope||!parsed.generatedAt)throw new Error('O servidor retornou um histórico inválido.');
+    const blob=new Blob([text],{type:format==='txt'?'text/plain;charset=utf-8':'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob);const link=document.createElement('a');
+    link.href=url;link.download=`crypto-bot-diagnostic-logs-${parsed.generatedAt.replace(/[^0-9]/g,'')}.${format}`;
+    document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    message.textContent=`Arquivo preparado (${blob.size} bytes, ${parsed.records.length} registros). TXT contém o mesmo JSON para facilitar o compartilhamento.`;
+  }catch(error){message.textContent=error instanceof Error?error.message:'Falha ao preparar os logs.';}
+}
+$('download-logs').addEventListener('click',()=>downloadLogs('json'));
+$('download-logs-txt').addEventListener('click',()=>downloadLogs('txt'));
 $('check-permission').addEventListener('click',async()=>{const button=$('check-permission');button.disabled=true;try{const result=await api('/api/demo-permission');$('logs-message').textContent=result.status==='available'?(result.trading?'OKX informa permissão geral de negociação. Isso não confirma que uma ordem será aceita; confira rejeições recentes e a configuração Demo.':'OKX não informa permissão de negociação para esta chave.'):'Não foi possível confirmar a permissão na OKX.'}catch{$('logs-message').textContent='Não foi possível confirmar a permissão na OKX.'}finally{button.disabled=false}});
 $('check-demo').addEventListener('click',async()=>{const button=$('check-demo');button.disabled=true;$('logs-message').textContent='Consultando ordens e execuções da OKX Demo…';try{const result=await api('/api/demo-reconciliation');const messages={journal_empty:'Não há ordens registradas.',journal_identity_incomplete:'Há ordens antigas sem identificação comprovada da proteção.',pending_order:'Há uma ordem pendente de confirmação.',order_fill_total_mismatch:'Execuções obtidas não conferem com a quantidade informada pela OKX.',order_evidence_incomplete:'Há ordens sem confirmação final ou com dados incompletos.',fill_order_mismatch:'Há execução sem correspondência com as ordens verificadas.',order_set_mismatch:'As ordens verificadas não conferem com a identificação registrada.',no_confirmed_orders:`Não há ordens confirmadas desde o marco inicial. Falhas locais: ${Number(result.journalCounts?.failed)||0}; ignoradas: ${Number(result.journalCounts?.skipped)||0}. Confira as falhas e a OKX antes de concluir que não houve envio.`,baseline_snapshot_unconfirmed:'O marco inicial não tem intervalo de leitura comprovado.',account_movement_during_snapshot:'A conta mudou durante a leitura dos saldos; tente novamente.',balance_changed_during_snapshot:'Os saldos mudaram durante a verificação.',fills_not_covered_by_account_bills:'As execuções não estão cobertas pelos lançamentos da conta.',demo_disabled:'OKX Demo indisponível.'};$('logs-message').textContent=result.status==='confirmed'?'P&L Demo confirmado com histórico, taxas e saldos da conta.':messages[result.reason]||'Não foi possível confirmar todos os dados da OKX Demo.'}catch{$('logs-message').textContent='Não foi possível consultar a OKX Demo.'}finally{button.disabled=false}});
 

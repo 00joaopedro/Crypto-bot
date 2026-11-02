@@ -122,7 +122,11 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         const hours = Number(url.searchParams.get("hours") ?? 6);
         const limit = Number(url.searchParams.get("limit") ?? 500);
         const content = await options.persistence.getDiagnosticLogs(hours, limit);
-        response.writeHead(200, { "content-type": "application/json; charset=utf-8", "content-disposition": `attachment; filename="crypto-bot-diagnostic-logs.json"`, "cache-control": "no-store" });
+        // Validate the complete document before starting the attachment response.
+        const parsed = JSON.parse(content) as { records?: unknown };
+        if (!parsed || !Array.isArray(parsed.records)) throw new Error("Invalid diagnostic export");
+        const extension = url.searchParams.get("format") === "txt" ? "txt" : "json";
+        response.writeHead(200, { "content-type": extension === "txt" ? "text/plain; charset=utf-8" : "application/json; charset=utf-8", "content-disposition": `attachment; filename="crypto-bot-diagnostic-logs.${extension}"`, "content-length": Buffer.byteLength(content), "x-content-type-options": "nosniff", "cache-control": "no-store" });
         response.end(content);
         return;
       }

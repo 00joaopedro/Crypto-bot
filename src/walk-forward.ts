@@ -52,7 +52,7 @@ export function runWalkForward(candles: Candle[], options: WalkForwardOptions): 
       return { candidate, metrics, score: metrics.netReturnPercent - metrics.maxDrawdownPercent * 0.5 };
     }).sort((left, right) => right.score - left.score);
     const winner = evaluated[0]!;
-    const warmup = Math.min(requiredWarmup, train.length);
+    const warmup = train.length;
     const testWithWarmup = [...train.slice(-warmup), ...test];
     const testMetrics = runBacktest(testWithWarmup, { ...options.base, ...winner.candidate, warmupCandles: warmup }).metrics;
     windows.push({ trainStart, trainEnd, testStart: trainEnd, testEnd, selected: winner.candidate, trainMetrics: winner.metrics, testMetrics });
