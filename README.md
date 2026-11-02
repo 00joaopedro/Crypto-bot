@@ -176,3 +176,54 @@ Se Stop-Loss e Take-Profit forem tocados no mesmo candle, o simulador escolhe St
 Antes de habilitar qualquer conta real ainda serão necessários autenticação forte
 do painel, confirmação/reconciliação de preenchimentos, limites de exposição e
 perda diária e uma etapa de validação prolongada em ambiente Demo.
+
+### Comparação offline com custos e liquidez (PR 1)
+
+Após `npm run build`, execute `npm run strategy:validate -- --compare input.json`.
+O documento de entrada tem `{ "candles": [...], "options": {...} }`. Cada candle
+contém `timestamp` (milissegundos), `open`, `high`, `low`, `close` e `volume`
+(em ativo base). Apenas candles fechados, contíguos e ordenados de 15 minutos
+são aceitos. Logs operacionais exportados pelo painel não são candles e não
+servem como conjunto de backtest.
+
+`examples/strategy-comparison.options.json` mostra o formato de `options`.
+Os números são exemplos, não taxas, mínimos ou liquidez verificados da OKX,
+nem uma cópia certificada da configuração atual. Registre os parâmetros atuais
+como `baseline`, a origem dos dados em `dataSource` e as alternativas **antes**
+de observar os resultados. Inclua ao menos um cenário estritamente pior de
+custos/liquidez. Alternativas não passam por busca de melhor parâmetro no teste.
+
+O relatório inclui SHA-256 dos candles, parâmetros, resultados por janela e
+cenário, retorno líquido, expectativa por trade fechado, taxas, drawdown máximo
+por janela, estabilidade, entradas rejeitadas e posições abertas ao fim. Até 29
+trades ou menos de três janelas recebem `insufficient_sample`; ultrapassar isso
+não comprova vantagem estatística. Separe outro período intocado para validar
+qualquer hipótese escolhida após a comparação. Não há escolha automática de
+vencedor nem aplicação de configuração na operação.
+
+A simulação compra na abertura seguinte ao sinal; não usa o fechamento futuro
+como preço de entrada. A quantidade é arredondada para baixo sem elevar o valor
+para atingir mínimos. Se stop e alvo forem tocados no mesmo candle, assume stop
+primeiro, inclusive no candle de entrada. O spread assumido é acrescentado ao
+slippage por lado. A liquidez limita entradas pela profundidade **assumida** e
+pela participação no volume do candle anterior, sem consultar volume futuro.
+Profundidade histórica real e preenchimentos parciais não são reconstruídos.
+
+Cada janela começa sem posição e com capital novo. O retorno médio não é lucro
+acumulado de uma carteira contínua. Posições abertas têm marcação a mercado com
+estimativa de taxa de saída, sem liquidar artificialmente como trade fechado.
+ATR, rotação de pares, IA e risco agregado de carteira permanecem fora deste
+modelo. Este PR entrega a ferramenta; a avaliação empírica ainda exige candles
+históricos reais, origem e custos verificáveis. Nenhuma ordem é enviada.
+
+### Compartilhamento do histórico de diagnóstico
+
+O painel oferece JSON e TXT com o mesmo documento JSON em UTF-8. O download
+confere status HTTP, estrutura e JSON completo antes de criar o arquivo, usa
+nome com data e informa bytes e registros. O servidor valida o documento antes
+de enviar, informa o tamanho em bytes e mantém autenticação e `no-store`.
+`scope.sectionsAtLimit` lista categorias que atingiram o limite e podem conter
+mais eventos além dos exportados; isso é recorte de consulta, não corrupção do
+JSON. Falhas de upload em outro aplicativo não podem ser diagnosticadas apenas
+com um trecho colado; TXT é uma alternativa de compartilhamento, sem garantia
+de aceitação por esse aplicativo.

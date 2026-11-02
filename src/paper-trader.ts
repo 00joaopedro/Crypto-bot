@@ -1,3 +1,4 @@
+import { quantizeQuantityDown } from "./decimal-quantity.js";
 import type { Candle } from "./types.js";
 
 export type PaperTraderOptions = {
@@ -7,6 +8,8 @@ export type PaperTraderOptions = {
   slippageRate: number;
   stopLossRate: number;
   takeProfitRate: number;
+  /** Offline execution constraints; omitted by the operational bot. */
+  executionConstraints?: { minimumNotionalUsdt: number; minimumQuantity: number; quantityStep: number };
 };
 export type DynamicExitRates = { stopLossRate: number; takeProfitRate: number; trailingStopRate?: number };
 
@@ -111,6 +114,11 @@ export class PaperTrader {
     assertRate(options.stopLossRate, "stopLossRate");
     assertRate(options.takeProfitRate, "takeProfitRate");
 
+    if (options.executionConstraints) {
+      for (const [key, value] of Object.entries(options.executionConstraints)) {
+        if (!Number.isFinite(value) || value < 0 || (key === "quantityStep" && value === 0)) throw new Error("Invalid execution constraints");
+      }
+    }
     this.cashUsdt = options.initialBalanceUsdt;
     this.peakEquityUsdt = options.initialBalanceUsdt;
     if (restoredState) this.restoreState(restoredState);
@@ -152,7 +160,7 @@ export class PaperTrader {
 
   get hasOpenPosition(): boolean { return this.position !== undefined; }
 
-  processCandle(candle: Candle, buyApproved: boolean, exitRates?: DynamicExitRates, signalContrary = false): PaperCycleResult {
+  processCandle(candle: Candle, buyApproved: boolean, exitRates?: DynamicExitRates, signalContrary = false, entryReferencePrice?: number): PaperCycleResult {
     this.benchmarkStartPrice ??= candle.close;
     const events: Array<PaperTradeOpened | PaperTradeClosed> = [];
     const closedThisCandle = this.tryClosePosition(candle, signalContrary);
@@ -160,8 +168,15 @@ export class PaperTrader {
     if (closedThisCandle) {
       events.push(closedThisCandle);
     } else if (!this.position && buyApproved) {
-      const opened = this.tryOpenPosition(candle, exitRates);
-      if (opened) events.push(opened);
+      const opened = this.tryOpenPosition(candle, exitRates, entryReferencePrice ?? candle.close);
+      if (opened) {
+        events.push(opened);
+        // Offline next-open fills may hit their stop/target within this candle.
+        if (entryReferencePrice !== undefined) {
+          const immediateExit = this.tryClosePosition(candle, false, true);
+          if (immediateExit) events.push(immediateExit);
+        }
+      }
     }
 
     return {
@@ -170,13 +185,20 @@ export class PaperTrader {
     };
   }
 
-  private tryOpenPosition(candle: Candle, exitRates?: DynamicExitRates): PaperTradeOpened | undefined {
+  private tryOpenPosition(candle: Candle, exitRates: DynamicExitRates | undefined, entryReferencePrice: number): PaperTradeOpened | undefined {
     const affordableNotional = this.cashUsdt / (1 + this.options.feeRate);
-    const entryNotional = Math.min(this.options.tradeSizeUsdt, affordableNotional);
+    let entryNotional = Math.min(this.options.tradeSizeUsdt, affordableNotional);
     if (entryNotional <= 0) return undefined;
 
-    const entryPrice = candle.close * (1 + this.options.slippageRate);
-    const quantity = entryNotional / entryPrice;
+    const entryPrice = entryReferencePrice * (1 + this.options.slippageRate);
+    let quantity = entryNotional / entryPrice;
+    const constraints = this.options.executionConstraints;
+    if (constraints) {
+      const rounded = quantizeQuantityDown(entryNotional, entryPrice, constraints.quantityStep);
+      quantity = rounded.quantity;
+      entryNotional = rounded.notional;
+      if (quantity <= 0 || quantity < constraints.minimumQuantity || entryNotional < constraints.minimumNotionalUsdt) return undefined;
+    }
     const entryFee = entryNotional * this.options.feeRate;
     const stopLossRate = exitRates?.stopLossRate ?? this.options.stopLossRate;
     const takeProfitRate = exitRates?.takeProfitRate ?? this.options.takeProfitRate;
@@ -212,9 +234,9 @@ export class PaperTrader {
     };
   }
 
-  private tryClosePosition(candle: Candle, signalContrary = false): PaperTradeClosed | undefined {
+  private tryClosePosition(candle: Candle, signalContrary = false, allowSameCandle = false): PaperTradeClosed | undefined {
     const position = this.position;
-    if (!position || candle.timestamp <= position.entryTimestamp) return undefined;
+    if (!position || candle.timestamp < position.entryTimestamp || (!allowSameCandle && candle.timestamp === position.entryTimestamp)) return undefined;
 
     if (position.trailingStopPrice !== undefined) {
       // Keep the trailing level monotonic. The initial level is derived from the
