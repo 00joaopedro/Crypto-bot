@@ -1,3 +1,4 @@
+import { exitPolicySchema } from "../src/exit-policy.js";
 import ccxt, { OrderNotFound, type Exchange } from "ccxt";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -54,6 +55,67 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it.each([
+    { minimum: 0.01, reserved: true, expected: "PLACED" },
+    { minimum: 0.06, reserved: true, expected: "SKIPPED" },
+    { minimum: 0.01, reserved: false, expected: "SKIPPED" },
+  ])("uses the risk budget and refuses minimum or stale-revision failures (%o)", async ({ minimum, reserved, expected }) => {
+    const exchange = exchangeMock({
+      market: vi.fn(() => ({ symbol: "BTC/USDT", base: "BTC", quote: "USDT", spot: true, active: true,
+        limits: { cost: { min: 1 }, amount: { min: minimum } } })),
+      fetchBalance: vi.fn(async () => ({ free: { USDT: 100 }, total: { USDT: 100 } })),
+      fetchTradingFee: vi.fn(async () => ({ taker: 0.001 })),
+      fetchOrderBook: vi.fn(async () => ({ asks: [[100, 0.05]] })),
+      costToPrecision: (_symbol: string, size: number) => size.toFixed(2),
+      amountToPrecision: (_symbol: string, amount: number) => String(Math.floor(amount * 1000) / 1000),
+    });
+    const executor = new OkxDemoExecutor(credentials, {
+      ...enabledOptions,
+      riskSizing: { riskPerTrade: 0.001, maxExposure: 0.25, maxAltExposure: 0.1, maxSymbolExposure: 0.15, slippage: 0.001 },
+    }, exchange);
+    const reserve = vi.fn(async () => reserved);
+    executor.setIntentJournal(reserve);
+    await executor.initialize();
+    const result = await executor.executeApprovedBuy({ candleTimestamp: 1700000000000, entryRevision: "3" });
+    expect(result.status).toBe(expected);
+    if (minimum > 0.05) {
+      expect(reserve).not.toHaveBeenCalled();
+    } else {
+      expect(reserve).toHaveBeenCalledWith("BTC/USDT", 1700000000000, expect.any(String), expect.any(String), "3");
+    }
+    if (expected === "PLACED") {
+      expect(exchange.createMarketBuyOrderWithCost).toHaveBeenCalledWith("BTC/USDT", 5, expect.any(Object));
+    } else {
+      expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+    }
+  });
+
+  it("persists a new managed exit before buying and omits the fixed target only for trailing mode", async () => {
+    for (const mode of ["fixed", "trailing_atr"] as const) {
+      const exchange = exchangeMock();
+      const executor = new OkxDemoExecutor(credentials,{...enabledOptions,exitPolicy:exitPolicySchema.parse({mode})},exchange);
+      const sequence:string[]=[];
+      executor.setIntentJournal(async()=>{sequence.push("intent");return true;});
+      executor.setExitJournal(async()=>{sequence.push("policy");});
+      const original=exchange.createMarketBuyOrderWithCost;
+      exchange.createMarketBuyOrderWithCost=vi.fn(async(...args:Parameters<typeof original>)=>{sequence.push("buy");return original(...args);});
+      await executor.initialize();
+      await executor.executeApprovedBuy({candleTimestamp:1700000000000});
+      expect(sequence).toEqual(["intent","policy","buy"]);
+      const params=vi.mocked(exchange.createMarketBuyOrderWithCost).mock.calls[0]![2]!;
+      const attached=params.attachAlgoOrds[0];
+      expect(attached.slOrdPx).toBe("-1");
+      expect(attached.tpTriggerPx !== undefined).toBe(mode === "fixed");
+    }
+  });
+  it("submits no buy when the managed exit policy cannot be saved", async () => {
+    const exchange=exchangeMock();
+    const executor=new OkxDemoExecutor(credentials,{...enabledOptions,exitPolicy:exitPolicySchema.parse({})},exchange);
+    executor.setIntentJournal(async()=>true);executor.setExitJournal(async()=>{throw Error("storage unavailable");});
+    await executor.initialize();
+    await expect(executor.executeApprovedBuy({candleTimestamp:1700000000000})).rejects.toThrow("storage unavailable");
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
   it("collects a Demo baseline candidate without claiming it proves history coverage", async () => {
     const exchange = exchangeMock({ fetchBalance: vi.fn(async () => ({ free: { USDT: 5000 }, total: { BTC: 1, USDT: 5000 } })) });
     const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);

@@ -227,3 +227,94 @@ mais eventos além dos exportados; isso é recorte de consulta, não corrupção
 JSON. Falhas de upload em outro aplicativo não podem ser diagnosticadas apenas
 com um trecho colado; TXT é uma alternativa de compartilhamento, sem garantia
 de aceitação por esse aplicativo.
+
+### PR 2 — saídas gerenciadas e supervisão Demo
+
+`EXIT_MANAGEMENT_ENABLED=false` mantém o caminho operacional anterior.
+A supervisão de cobertura continua em cada ciclo, mesmo com entradas pausadas;
+ela nunca liga o bot. Ela verifica identidade, compras e vendas comprovadas,
+taxas em ativo base, quantidade líquida, saldo e tamanho da proteção ativa.
+Resíduo inferior a um lote mínimo de quantidade pode permanecer como dust;
+um lote inteiro descoberto bloqueia a entrada, sem aumentar a venda à força.
+Uma compra parcial ainda pendente, uma saída parcial sem cobertura do restante,
+proteção ausente ou evidência incompleta bloqueiam novas entradas com motivo
+em `DEMO_PROTECTION_BLOCKED`. Não há venda de emergência, reposição de stop ou
+cancelamento automático baseado em quantidade Paper. Uma situação descoberta
+sem proteção exige intervenção; pausar entradas não elimina a exposição já aberta.
+
+A habilitação é deliberadamente separada: `EXIT_MANAGEMENT_ENABLED=true` permite
+usar a política persistida em **novas** posições gerenciadas. `EXIT_MODE=fixed`
+mantém o alvo; `EXIT_MODE=trailing_atr` omite o alvo fixo da nova proteção e aperta
+o stop após candles fechados, com distância `ATR × EXIT_TRAILING_ATR_MULTIPLIER`.
+Isso é um stop atualizado pelo servidor, não o trailing nativo da OKX. A primeira
+proteção continua hospedada na exchange; com o servidor desligado não há novos
+apertos. Posições antigas são auditadas e não são convertidas para trailing.
+
+A ativação usa `EXIT_ACTIVATION_RATE`. `EXIT_BREAKEVEN_ENABLED=true` acrescenta
+piso de preço calculado pelo custo real de aquisição dividido pela quantidade
+líquida e pelos fatores de taxa/slippage de saída. A taxa Demo é o maior valor
+entre o piso configurado e a taxa taker consultada na conta; se essa consulta
+falhar, não se presume breakeven. Slippage continua sendo hipótese. Gaps, taxas
+alteradas e execução real podem produzir perda mesmo com esse piso.
+
+A política de ATR inicial, alvo/stop e avanço após fechamento é compartilhada
+pelo modo gerenciado Paper, pelo backtest e pela Demo. O Paper também ignora
+venda por sinal contrário nesse modo. A política de cada posição e seu pico
+ficam salvos; mudanças de configuração afetam novas posições. Desligar a gestão
+interrompe novos apertos, sem remover os stops já ativos. A recuperação de candles
+exige histórico OKX contíguo e aquecimento do ATR; lacunas não são inventadas.
+O candle do preenchimento Demo é excluído dos picos para não usar máximas que
+podem ter ocorrido antes da compra. Backtest usa abertura seguinte e Paper
+operacional usa fechamento; essa diferença de execução ainda existe.
+
+A migração 13 cria `demo_exit_state`. Cada alteração reserva uma versão da linha
+e um `reqId` antes da chamada de rede. Atualiza o **mesmo** algo com
+`cxlOnFail=false`, sem trocar tamanho, remover alvo existente, cancelar ou criar
+outra venda. ACK não confirma aplicação: outra leitura precisa comprovar o novo
+stop. Uma resposta incerta deixa a reserva persistida, inclusive após reinício,
+sem reenvio automático por timeout. Rejeição explicitamente correlacionada libera
+a reserva e bloqueia entradas para revisão; a proteção anterior é preservada.
+Durante a espera normal de readback, o ciclo apenas suspende novas entradas e
+não altera a pausa manual. Checkpoints do PR50 fornecem pais e fills já provados;
+a supervisão não publica P&L nem atribui negociações manuais ao bot.
+
+`examples/exit-policy-comparison.options.json` compara alvo fixo, trailing e
+trailing com breakeven, alterando apenas a política de saída. Os valores ainda
+são exemplos e não uma configuração aprovada.
+
+Para comparar alvo fixo e trailing, cada `baseline`/alternativa do comando
+`--compare` pode conter `exitPolicy` com `mode`, `breakeven`, `atrPeriod`,
+`stopMultiplier`, `targetMultiplier`, `minStopRate`, `maxStopRate`,
+`trailingMultiplier`, `activationRate`, `exitFeeRate` e `exitSlippageRate`.
+Os demais campos recebem os defaults do schema. Fixe os dois modos antes de
+observar o resultado e use os mesmos cenários; os custos do cenário substituem
+taxa/slippage da política na simulação. Isso compartilha regras, sem reproduzir
+latência, fills parciais, risco de carteira ou certificar lucro. Não foi enviada
+nenhuma ordem para validar essas opções na conta do usuário.
+
+Referência do protocolo: https://www.okx.com/docs-v5/en/#order-book-trading-algo-trading-post-amend-algo-order
+
+### Optional risk-based sizing
+
+Keep `RISK_SIZING_ENABLED=false` until comparing the alternatives and verifying
+Demo behavior. When enabled, the dashboard order size is a ceiling. The bot
+divides the per-trade loss budget by the stop distance plus estimated entry and
+exit costs, then caps the size by available cash and remaining portfolio limits.
+`RISK_MAX_ALT_EXPOSURE_PERCENT` caps all assets other than BTC and the USDT
+reserve together. `RISK_MAX_SYMBOL_EXPOSURE_PERCENT` caps each asset.
+
+Demo uses account equity and holdings, including manually held assets. Reserved
+USDT counts conservatively toward aggregate and altcoin exposure. It uses the
+account taker fee for the instrument and visible ask depth within
+`EXIT_SLIPPAGE_RATE`. The order is skipped if it would be below the OKX minimum
+after precision and estimated base fee, or if required market data is unavailable.
+A change in the Demo order journal between admission and reservation also skips
+the entry. Depth and slippage are estimates and market fills or gaps can exceed
+the estimated loss.
+
+Paper uses simulated fees, cash, and the tracked positions' entry costs as an
+exposure estimate. For comparisons, add an optional `riskSizing` object to an
+alternative with `riskPerTrade`, `maxExposure`, `maxAltExposure`, and
+`maxSymbolExposure`. Offline comparisons use the scenario's costs, liquidity
+and instrument minimums. A single-symbol backtest cannot reproduce simultaneous
+portfolio concentration across instruments.

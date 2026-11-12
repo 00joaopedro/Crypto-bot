@@ -1,3 +1,5 @@
+import { exitPolicySchema } from "./exit-policy.js";
+import { auditDemoProtections, superviseDemoExits } from "./demo-exit-supervisor.js";
 import type { Server } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 
@@ -62,11 +64,18 @@ async function main(): Promise<void> {
   let okxDemo: OkxDemoExecutor | undefined;
   let bot: TradingBot;
   let reconfiguring = false;
-  let demoSafetyAudited = false;
+  const exitPolicy = config.EXIT_MANAGEMENT_ENABLED ? exitPolicySchema.parse({ mode: config.EXIT_MODE, breakeven: config.EXIT_BREAKEVEN_ENABLED, atrPeriod: config.ATR_PERIOD, stopMultiplier: config.ATR_STOP_MULTIPLIER, targetMultiplier: config.ATR_TAKE_PROFIT_MULTIPLIER, minStopRate: config.ATR_MIN_STOP_RATE, maxStopRate: config.ATR_MAX_STOP_RATE, trailingMultiplier: config.EXIT_TRAILING_ATR_MULTIPLIER, activationRate: config.EXIT_ACTIVATION_RATE, exitFeeRate: config.EXIT_FEE_RATE, exitSlippageRate: config.EXIT_SLIPPAGE_RATE }) : undefined;
   let lastAccountingCheck = 0;
   let activeCycle: Promise<void> | undefined;
   let reconfigurationRequested = false;
   let reconfigurationPromise: Promise<void> | undefined;
+  const riskSizing = config.RISK_SIZING_ENABLED ? {
+    riskPerTrade: config.RISK_PER_TRADE_PERCENT,
+    maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
+    maxAltExposure: config.RISK_MAX_ALT_EXPOSURE_PERCENT,
+    maxSymbolExposure: config.RISK_MAX_SYMBOL_EXPOSURE_PERCENT,
+  } : undefined;
+  const demoRiskSizing = riskSizing ? { riskSizing: { ...riskSizing, slippage: config.EXIT_SLIPPAGE_RATE } } : {};
   const tradeManager = new CentralTradeManager({
     maxConcurrentPositions: config.MAX_CONCURRENT_POSITIONS,
     maxExposurePercent: config.RISK_MAX_EXPOSURE_PERCENT,
@@ -91,6 +100,7 @@ async function main(): Promise<void> {
       tradingSettings =
         await persistence.ensureDashboardSettings(tradingSettings);
       recoveryState = await persistence.loadRecoveryState(tradingSettings.symbol);
+      if (riskSizing) tradeManager.restorePositions(await persistence.loadOpenPaperPositions());
       runId = await persistence.startRun({
         environment: config.ENVIRONMENT,
         executionProvider: config.EXECUTION_PROVIDER,
@@ -143,15 +153,19 @@ async function main(): Promise<void> {
               symbol: tradingSettings.symbol,
               tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
               orderSizeUsdt: tradingSettings.orderSizeUsdt,
+              ...demoRiskSizing,
               stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
               takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
+              ...(exitPolicy ? { exitPolicy } : {}),
             },
           )
         : undefined;
 
     if (okxDemo) {
       if (config.OKX_DEMO_TRADING_ENABLED && !persistence) throw new Error("OKX Demo execution requires persistent order journal");
-      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes, protectionId));
+      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id, protectionId, revision) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes, protectionId, revision));
+      if (persistence) okxDemo.setExitReservationCheck((algo,request,stop) => persistence.isDemoExitReserved(algo,request,stop));
+      if (persistence) okxDemo.setExitJournal((client,algo,symbol,candle,policy) => persistence.registerDemoExit(client,algo,symbol,candle,policy));
       await initializeOkxDemoWithBackoff(
         okxDemo,
         tradingSettings,
@@ -253,6 +267,8 @@ async function main(): Promise<void> {
           slippageRate: config.PAPER_SLIPPAGE_RATE,
           stopLossRate: config.PAPER_STOP_LOSS_RATE,
           takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+          ...(riskSizing ? { riskSizing } : {}),
+          ...(exitPolicy ? { exitPolicy } : {}),
         },
         state?.paperState,
       );
@@ -275,7 +291,7 @@ async function main(): Promise<void> {
         } } : {}),
         ...(demoExecutor && persistence ? { inspectDemoPositions: () => inspectDemoExecutionState(persistence, demoExecutor) } : {}),
         ...(demoExecutor && persistence ? { inspectDemoEntry: (symbol: string, stopLossRate: number) => inspectDemoEntry(persistence, demoExecutor, {
-          symbol, stopLossRate, size: settings.orderSizeUsdt, cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
+          symbol, stopLossRate, size: settings.orderSizeUsdt, riskSizing: Boolean(riskSizing), cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
           maxPositions: settings.maxConcurrentPositions, maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
           riskPerTrade: config.RISK_PER_TRADE_PERCENT,
           maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT, maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
@@ -289,6 +305,7 @@ async function main(): Promise<void> {
         maxTradesPerInterval: settings.maxTrades,
         tradeIntervalMinutes: settings.intervalMinutes,
         demoOrderSizeUsdt: settings.orderSizeUsdt,
+        ...(exitPolicy ? { exitPolicy } : {}),
         atrPeriod: config.ATR_PERIOD,
         atrStopMultiplier: config.ATR_STOP_MULTIPLIER,
         atrTakeProfitMultiplier: config.ATR_TAKE_PROFIT_MULTIPLIER,
@@ -341,6 +358,7 @@ async function main(): Promise<void> {
           slippageRate: config.PAPER_SLIPPAGE_RATE,
           stopLossRate: config.PAPER_STOP_LOSS_RATE,
           takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+          ...(exitPolicy ? { exitPolicy } : {}),
         },
         minimumSignalScore: config.MIN_SIGNAL_SCORE,
       }),
@@ -378,11 +396,15 @@ async function main(): Promise<void> {
                 symbol: nextSettings.symbol,
                 tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
                 orderSizeUsdt: nextSettings.orderSizeUsdt,
+                ...demoRiskSizing,
                 stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
                 takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
+              ...(exitPolicy ? { exitPolicy } : {}),
               },
             );
-            nextOkxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes, protectionId));
+            nextOkxDemo.setIntentJournal((symbol, timestamp, id, protectionId, revision) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes, protectionId, revision));
+            nextOkxDemo.setExitReservationCheck((algo,request,stop) => persistence.isDemoExitReserved(algo,request,stop));
+            nextOkxDemo.setExitJournal((client,algo,symbol,candle,policy) => persistence.registerDemoExit(client,algo,symbol,candle,policy));
             await initializeOkxDemoWithBackoff(
               nextOkxDemo,
               nextSettings,
@@ -396,7 +418,6 @@ async function main(): Promise<void> {
           recoveryState = nextRecoveryState;
           okxDemo = nextOkxDemo;
           bot = createBot(nextSettings, nextRecoveryState, nextOkxDemo);
-          demoSafetyAudited = false;
           await previousOkxDemo?.close();
 
           console.log(
@@ -471,34 +492,32 @@ async function main(): Promise<void> {
 
     while (!stopping) {
       try {
-        if (!reconfiguring && okxDemo && persistence) {
-          await reconcilePendingDemoOrders(persistence, okxDemo);
-          if (Date.now() - lastAccountingCheck >= 15 * 60_000) {
-            lastAccountingCheck = Date.now();
-            try {
-              const accounting = await inspectDemoAccounting(persistence, okxDemo);
-              console.log(JSON.stringify({ event: "demo_continuous_accounting", status: accounting.status, reason: "reason" in accounting ? accounting.reason : undefined }));
-            } catch { console.error(JSON.stringify({ event: "demo_continuous_accounting_failed" })); }
-          }
-          if (!demoSafetyAudited) {
-            const safety = await inspectDemoExecutionSafety(persistence, okxDemo);
-            if (safety.status !== "safe") {
-              await persistence.setPaused(true, "system:demo_execution_safety");
-              console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
-            }
-            demoSafetyAudited = true;
-          }
-        }
         if (reconfiguring) {
           console.log(JSON.stringify({ event: "cycle_skipped", reason: "bot_reconfiguring" }));
         } else {
-          const cycle = bot.runCycle();
+          const cycle = (async () => {
+            let exitsReady = true;
+            if (okxDemo && persistence) {
+              await reconcilePendingDemoOrders(persistence, okxDemo);
+              // Runs even while entries are paused. Existing exchange stops stay active.
+              const exits = await superviseDemoExits(persistence, okxDemo, market, Math.max(config.CANDLE_LIMIT, 200));
+              const coverage = await auditDemoProtections(persistence, okxDemo);
+              const safety = await inspectDemoExecutionSafety(persistence, okxDemo);
+              if (exits.status !== "safe" || coverage.status !== "safe" || safety.status !== "safe") {
+                exitsReady = false;
+                const awaitingReadback = exits.status === "blocked" && ["exit_amendment_awaiting_readback", "exit_amendment_unconfirmed", "exit_amendment_not_submitted"].includes(exits.reason);
+                if (!awaitingReadback || coverage.status !== "safe" || safety.status !== "safe") await persistence.setPaused(true, "system:demo_exit_supervision");
+                await persistence.recordOperationalEvent({ eventType: "DEMO_PROTECTION_BLOCKED", severity: "WARN", details: { reason: exits.status !== "safe" ? exits.reason : coverage.status !== "safe" ? coverage.reason : safety.status !== "safe" ? safety.reason : "unknown" } });
+              }
+              if (Date.now() - lastAccountingCheck >= 15 * 60_000) {
+                lastAccountingCheck = Date.now();
+                try { await inspectDemoAccounting(persistence, okxDemo); } catch { console.error(JSON.stringify({ event: "demo_continuous_accounting_failed" })); }
+              }
+            }
+            if (exitsReady) await bot.runCycle();
+          })();
           activeCycle = cycle;
-          try {
-            await cycle;
-          } finally {
-            if (activeCycle === cycle) activeCycle = undefined;
-          }
+          try { await cycle; } finally { if (activeCycle === cycle) activeCycle = undefined; }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

@@ -1,14 +1,18 @@
+import { positionSize, positionSizingSchema, type PositionSizingLimits } from "./position-sizing.js";
+import { advanceExitStop, exitPolicySchema, type ExitPolicy } from "./exit-policy.js";
 import { quantizeQuantityDown } from "./decimal-quantity.js";
 import type { Candle } from "./types.js";
 
 export type PaperTraderOptions = {
   initialBalanceUsdt: number;
   tradeSizeUsdt: number;
+  riskSizing?: PositionSizingLimits;
   feeRate: number;
   slippageRate: number;
   stopLossRate: number;
   takeProfitRate: number;
   /** Offline execution constraints; omitted by the operational bot. */
+  exitPolicy?: ExitPolicy;
   executionConstraints?: { minimumNotionalUsdt: number; minimumQuantity: number; quantityStep: number };
 };
 export type DynamicExitRates = { stopLossRate: number; takeProfitRate: number; trailingStopRate?: number };
@@ -23,6 +27,9 @@ export type PaperPosition = {
   takeProfitPrice: number;
   trailingStopPrice?: number;
   trailingStopRate?: number;
+  exitPolicy?: ExitPolicy;
+  highWatermark?: number;
+  entryAtOpen?: boolean;
 };
 
 export type PaperTraderState = {
@@ -121,6 +128,8 @@ export class PaperTrader {
     }
     this.cashUsdt = options.initialBalanceUsdt;
     this.peakEquityUsdt = options.initialBalanceUsdt;
+    if (options.riskSizing) positionSizingSchema.parse(options.riskSizing);
+    if (options.exitPolicy) exitPolicySchema.parse(options.exitPolicy);
     if (restoredState) this.restoreState(restoredState);
   }
 
@@ -160,15 +169,24 @@ export class PaperTrader {
 
   get hasOpenPosition(): boolean { return this.position !== undefined; }
 
-  processCandle(candle: Candle, buyApproved: boolean, exitRates?: DynamicExitRates, signalContrary = false, entryReferencePrice?: number): PaperCycleResult {
+  planEntrySize(stopRate: number, altcoin: boolean, exposure = 0, altExposure = 0, liquidity = this.tradeSizeUsdt): number {
+    if (!this.options.riskSizing) return this.tradeSizeUsdt;
+    return positionSize({
+      limits: this.options.riskSizing, equity: this.cashUsdt, free: Math.max(0, this.cashUsdt - exposure),
+      exposure, altExposure, symbolExposure: 0, altcoin, ceiling: this.tradeSizeUsdt, stopRate,
+      fee: this.options.feeRate, slippage: this.options.slippageRate, liquidity,
+    });
+  }
+
+  processCandle(candle: Candle, buyApproved: boolean, exitRates?: DynamicExitRates, signalContrary = false, entryReferencePrice?: number, plannedSize?: number): PaperCycleResult {
     this.benchmarkStartPrice ??= candle.close;
     const events: Array<PaperTradeOpened | PaperTradeClosed> = [];
-    const closedThisCandle = this.tryClosePosition(candle, signalContrary);
+    const closedThisCandle = this.tryClosePosition(candle, !this.position?.exitPolicy && signalContrary);
 
     if (closedThisCandle) {
       events.push(closedThisCandle);
     } else if (!this.position && buyApproved) {
-      const opened = this.tryOpenPosition(candle, exitRates, entryReferencePrice ?? candle.close);
+      const opened = this.tryOpenPosition(candle, exitRates, entryReferencePrice ?? candle.close, entryReferencePrice !== undefined, plannedSize);
       if (opened) {
         events.push(opened);
         // Offline next-open fills may hit their stop/target within this candle.
@@ -185,10 +203,18 @@ export class PaperTrader {
     };
   }
 
-  private tryOpenPosition(candle: Candle, exitRates: DynamicExitRates | undefined, entryReferencePrice: number): PaperTradeOpened | undefined {
+  advanceManagedExit(candles: Candle[]): void {
+    const position = this.position;
+    if (!position?.exitPolicy || (!position.entryAtOpen && candles.at(-1)?.timestamp === position.entryTimestamp)) return;
+    const next = advanceExitStop({ stop: position.stopLossPrice, highWatermark: position.highWatermark ?? position.entryPrice, entryPrice: position.entryPrice, quantity: position.quantity, costUsdt: position.entryNotional + position.entryFee, candles, policy: position.exitPolicy });
+    position.stopLossPrice = next.stop;
+    position.highWatermark = next.highWatermark;
+  }
+
+  private tryOpenPosition(candle: Candle, exitRates: DynamicExitRates | undefined, entryReferencePrice: number, entryAtOpen: boolean, plannedSize?: number): PaperTradeOpened | undefined {
     const affordableNotional = this.cashUsdt / (1 + this.options.feeRate);
-    let entryNotional = Math.min(this.options.tradeSizeUsdt, affordableNotional);
-    if (entryNotional <= 0) return undefined;
+    let entryNotional = Math.min(this.options.tradeSizeUsdt, plannedSize ?? (this.options.riskSizing ? 0 : this.tradeSizeUsdt), affordableNotional);
+    if (!Number.isFinite(entryNotional) || entryNotional <= 0) return undefined;
 
     const entryPrice = entryReferencePrice * (1 + this.options.slippageRate);
     let quantity = entryNotional / entryPrice;
@@ -212,7 +238,8 @@ export class PaperTrader {
       entryFee,
       stopLossPrice: entryPrice * (1 - stopLossRate),
       takeProfitPrice: entryPrice * (1 + takeProfitRate),
-      ...(exitRates?.trailingStopRate ? {
+      ...(this.options.exitPolicy ? { exitPolicy: { ...this.options.exitPolicy }, highWatermark: entryPrice, entryAtOpen } : {}),
+      ...(!this.options.exitPolicy && exitRates?.trailingStopRate ? {
         trailingStopPrice: entryPrice * (1 - exitRates.trailingStopRate),
         trailingStopRate: exitRates.trailingStopRate,
       } : {}),
@@ -246,7 +273,7 @@ export class PaperTrader {
     }
 
     const stopTouched = candle.low <= position.stopLossPrice;
-    const takeProfitTouched = candle.high >= position.takeProfitPrice;
+    const takeProfitTouched = position.exitPolicy?.mode !== "trailing_atr" && candle.high >= position.takeProfitPrice;
     const trailingTouched = position.trailingStopPrice !== undefined && candle.close <= position.trailingStopPrice;
     if (!stopTouched && !takeProfitTouched && !trailingTouched && !signalContrary) return undefined;
 
@@ -382,6 +409,9 @@ function assertPaperTraderState(state: PaperTraderState): void {
   }
 
   if (state.position) {
+    if (state.position.exitPolicy) exitPolicySchema.parse(state.position.exitPolicy);
+    if (state.position.entryAtOpen !== undefined && typeof state.position.entryAtOpen !== "boolean") throw new Error("Invalid entry reference type");
+    if (state.position.highWatermark !== undefined && (!Number.isFinite(state.position.highWatermark) || state.position.highWatermark <= 0)) throw new Error("Invalid exit high watermark");
     const positionFields = [
       "entryTimestamp",
       "entryPrice",

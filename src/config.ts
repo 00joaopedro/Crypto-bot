@@ -66,6 +66,13 @@ const schema = z
     PAPER_SLIPPAGE_RATE: z.coerce.number().min(0).max(0.1).default(0.0005),
     PAPER_STOP_LOSS_RATE: z.coerce.number().gt(0).lt(1).default(0.01),
     PAPER_TAKE_PROFIT_RATE: z.coerce.number().gt(0).lt(1).default(0.02),
+    EXIT_MANAGEMENT_ENABLED: booleanString,
+    EXIT_MODE: z.enum(["fixed", "trailing_atr"]).default("fixed"),
+    EXIT_BREAKEVEN_ENABLED: booleanString,
+    EXIT_TRAILING_ATR_MULTIPLIER: z.coerce.number().positive().max(20).default(2),
+    EXIT_ACTIVATION_RATE: z.coerce.number().positive().lt(1).default(.02),
+    EXIT_FEE_RATE: z.coerce.number().nonnegative().lt(.1).default(.001),
+    EXIT_SLIPPAGE_RATE: z.coerce.number().nonnegative().lt(.1).default(.001),
     ATR_PERIOD: z.coerce.number().int().min(5).max(100).default(14),
     ATR_STOP_MULTIPLIER: z.coerce.number().gt(0).max(10).default(1.5),
     ATR_TAKE_PROFIT_MULTIPLIER: z.coerce.number().gt(0).max(20).default(3),
@@ -74,6 +81,9 @@ const schema = z
     // Initial safety profile: no more than two simultaneous positions and
     // 20–30% aggregate exposure. Enforce the envelope at startup so a
     // dashboard or Railway edit cannot silently widen it.
+    RISK_SIZING_ENABLED: booleanString,
+    RISK_MAX_ALT_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(0.3).default(0.10),
+    RISK_MAX_SYMBOL_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(0.3).default(0.15),
     RISK_MAX_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(0.3).default(0.25),
     MAX_CONCURRENT_POSITIONS: z.coerce.number().int().min(1).max(99).default(2),
     RISK_PER_TRADE_PERCENT: z.coerce.number().gt(0).max(0.01).default(0.01),
