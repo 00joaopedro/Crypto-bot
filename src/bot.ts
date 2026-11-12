@@ -27,7 +27,7 @@ type BotOptions = {
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
   verifyDemoExecutionSafety?: () => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
-  inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<{ allowed: boolean; reason?: string }>;
+  inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<{ allowed: boolean; reason?: string; entryRevision?: string }>;
   inspectDemoPositions?: () => Promise<{ status: "safe"; positions: Array<{ symbol: string }> } | { status: "blocked"; reason: string }>;
   ai?: GeminiRiskFilter;
   persistence?: BotPersistence;
@@ -311,17 +311,25 @@ export class TradingBot {
       (quantitativeFallback || (aiDecision.approve && aiDecision.confidence >= this.options.minimumConfidence)) &&
       !stopLossCooldownBlocked && this.consecutiveLosses < (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY);
 
+    const riskSizing = paperTrader.configuration.riskSizing;
+    const positions = this.options.tradeManager?.activePositions ?? [];
+    const plannedPaperSize = riskSizing ? paperTrader.planEntrySize(
+      exitRates.stopLossRate,
+      executionSymbol.split("/")[0] !== "BTC",
+      this.options.tradeManager?.totalExposureUsdt ?? 0,
+      positions.filter(p => p.symbol.split("/")[0] !== "BTC").reduce((sum, p) => sum + p.notionalUsdt, 0),
+    ) : undefined;
     const managerBlock = approved && this.options.tradeManager
       ? this.options.tradeManager.canEnter(
           executionSymbol,
-          this.options.demoExecutor
+          plannedPaperSize ?? (this.options.demoExecutor
             ? this.options.demoOrderSizeUsdt ?? paperTrader.tradeSizeUsdt
-            : paperTrader.tradeSizeUsdt,
+            : paperTrader.tradeSizeUsdt),
         this.paperEquityEstimate(executionSymbol),
         ).reason
       : undefined;
     const riskBlock = approved
-      ? managerBlock ?? this.riskBlockReason(exitRates, paperTrader)
+      ? managerBlock ?? (plannedPaperSize === undefined ? this.riskBlockReason(exitRates, paperTrader) : plannedPaperSize <= 0 ? "paper_risk_size_unavailable" : undefined)
       : undefined;
     if (riskBlock) {
       approved = false;
@@ -349,6 +357,8 @@ export class TradingBot {
       approved,
       exitRates,
       !this.options.exitPolicy && signal.action === "SELL" && paperTrader.hasOpenPosition,
+      undefined,
+      plannedPaperSize,
     );
     paperTrader.advanceManagedExit(signalCandles);
     await this.applyLossControls(paperResult.events, currentCandle.timestamp);
@@ -372,11 +382,12 @@ export class TradingBot {
       paperTrader.restoreState(previousState);
       throw error;
     }
-    if (paperResult.events.some((event) => event.type === "OPENED")) {
+    const opened = paperResult.events.find((event) => event.type === "OPENED");
+    if (opened) {
       this.lastTradeAtBySymbol.set(executionSymbol, currentCandle.timestamp);
       this.options.tradeManager?.recordEntry({
         symbol: executionSymbol,
-        notionalUsdt: this.options.demoExecutor
+        notionalUsdt: riskSizing ? opened.notionalUsdt : this.options.demoExecutor
           ? this.options.demoOrderSizeUsdt ?? paperTrader.tradeSizeUsdt
           : paperTrader.tradeSizeUsdt,
         openedAt: currentCandle.timestamp,
@@ -427,11 +438,13 @@ export class TradingBot {
 
     const paperOpened = paperResult.events.some((event) => event.type === "OPENED");
     let demoApproved = approved && paperOpened;
+    let entryRevision: string | undefined;
     if (this.options.demoExecutor && this.options.inspectDemoEntry) {
       demoApproved = false;
       if (demoCandidate && !this.demoExecutionBlocked && !(await this.options.persistence?.isPaused())) {
         const admission = await this.options.inspectDemoEntry(executionSymbol, exitRates.stopLossRate);
         demoApproved = admission.allowed;
+        entryRevision = admission.entryRevision;
         await this.recordOperationalEvent("DEMO_ENTRY_DECISION", admission.allowed ? "INFO" : "WARN", {
           symbol: executionSymbol, candleTimestamp: currentCandle.timestamp,
           approved: admission.allowed, reason: admission.reason ?? "demo_preflight_passed",
@@ -485,7 +498,14 @@ export class TradingBot {
             symbol: executionSymbol,
             candleTimestamp: currentCandle.timestamp,
             ...exitRates,
+            ...(entryRevision !== undefined ? { entryRevision } : {}),
           });
+          if (demoResult.status === "SKIPPED" && ["risk_size_unavailable", "risk_entry_changed"].includes(demoResult.reason)) {
+            await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", {
+              symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, approved: false, reason: demoResult.reason,
+            });
+            return;
+          }
           try {
             await this.options.persistence?.recordDemoOrder(
               executionSymbol,
@@ -644,7 +664,7 @@ export class TradingBot {
   }
 
   private async monitorOtherPaperPositions(selectedSymbol: string): Promise<void> {
-    if (!this.options.inspectDemoEntry) return;
+    if (!this.options.inspectDemoEntry && !this.options.paperTrader.configuration.riskSizing) return;
     for (const position of this.options.tradeManager?.activePositions ?? []) {
       if (position.symbol === selectedSymbol) continue;
       const trader = await this.getPaperTrader(position.symbol);

@@ -198,6 +198,19 @@ export class PostgresPersistence implements BotPersistence {
     );
   }
 
+  async loadOpenPaperPositions(): Promise<Array<{ symbol: string; notionalUsdt: number; openedAt: number }>> {
+    const result = await this.pool.query<{ symbol: string; state: PaperTraderState }>(
+      "SELECT symbol, state FROM paper_trader_state WHERE jsonb_typeof(state->'position') = 'object'",
+    );
+    return result.rows.map(({ symbol, state }) => {
+      const position = state.position;
+      if (!position || !Number.isFinite(position.entryNotional) || position.entryNotional <= 0 || !Number.isSafeInteger(position.entryTimestamp)) {
+        throw new Error("Database contains an invalid open Paper position");
+      }
+      return { symbol, notionalUsdt: position.entryNotional, openedAt: position.entryTimestamp };
+    });
+  }
+
   async loadRecoveryState(symbol: string): Promise<RecoveryState | null> {
     const result = await this.pool.query<StateRow>(
       `SELECT last_processed_candle, state
@@ -345,7 +358,14 @@ export class PostgresPersistence implements BotPersistence {
     return !result.rows[0]?.pending && Number(result.rows[0]?.count ?? 0) < maxTrades;
   }
 
-  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = 1, intervalMinutes = 60, attachedAlgoClientId: string | null = null): Promise<boolean> {
+  async readDemoEntryRevision(): Promise<string> {
+    const result = await this.pool.query<{ revision: string }>(
+      "SELECT COUNT(*)::text AS revision FROM demo_orders WHERE status = 'PLACED'",
+    );
+    return result.rows[0]!.revision;
+  }
+
+  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = 1, intervalMinutes = 60, attachedAlgoClientId: string | null = null, expectedEntryRevision?: string): Promise<boolean> {
     if (attachedAlgoClientId !== null && !/^[A-Za-z0-9]{1,32}$/.test(attachedAlgoClientId)) {
       throw new Error("Invalid Demo protection client ID");
     }
@@ -353,12 +373,13 @@ export class PostgresPersistence implements BotPersistence {
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-order-reservation'))");
-      const counts = await client.query<{ pending: boolean; recent: string }>(
+      const counts = await client.query<{ pending: boolean; recent: string; revision: string }>(
         `SELECT COALESCE(BOOL_OR(status = 'PENDING'), false) AS pending,
+          COUNT(*) FILTER (WHERE status = 'PLACED')::text AS revision,
           COUNT(*) FILTER (WHERE status = 'PLACED' AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))::text AS recent
          FROM demo_orders`, [intervalMinutes],
       );
-      if (counts.rows[0]?.pending || Number(counts.rows[0]?.recent ?? 0) >= maxTrades) {
+      if ((expectedEntryRevision !== undefined && counts.rows[0]?.revision !== expectedEntryRevision) || counts.rows[0]?.pending || Number(counts.rows[0]?.recent ?? 0) >= maxTrades) {
         await client.query("COMMIT");
         return false;
       }

@@ -9,6 +9,28 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("rejects an entry reservation after another admitted order fills", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const now = Date.now();
+    const firstId = "RISKFIRST" + now;
+    const secondId = "RISKSECOND" + now;
+    try {
+      await persistence.initialize();
+      const revision = await persistence.readDemoEntryRevision();
+      expect(await persistence.reserveDemoOrder("BTC/USDT", now, firstId, 99, 60, null, revision)).toBe(true);
+      await db.query("UPDATE demo_orders SET status = 'PLACED' WHERE client_order_id = $1", [firstId]);
+      expect(await persistence.reserveDemoOrder("ETH/USDT", now, secondId, 99, 60, null, revision)).toBe(false);
+      const freshRevision = await persistence.readDemoEntryRevision();
+      expect(await persistence.reserveDemoOrder("ETH/USDT", now, secondId, 99, 60, null, freshRevision)).toBe(true);
+    } finally {
+      await db.query("DELETE FROM demo_orders WHERE client_order_id = ANY($1::text[])", [[firstId, secondId]]);
+      await db.end();
+      await persistence.close();
+    }
+  });
+
+
   it("persists an exit policy before execution and arbitrates concurrent amendments across connections", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const other = new PostgresPersistence(databaseUrl!);

@@ -55,6 +55,41 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it.each([
+    { minimum: 0.01, reserved: true, expected: "PLACED" },
+    { minimum: 0.06, reserved: true, expected: "SKIPPED" },
+    { minimum: 0.01, reserved: false, expected: "SKIPPED" },
+  ])("uses the risk budget and refuses minimum or stale-revision failures (%o)", async ({ minimum, reserved, expected }) => {
+    const exchange = exchangeMock({
+      market: vi.fn(() => ({ symbol: "BTC/USDT", base: "BTC", quote: "USDT", spot: true, active: true,
+        limits: { cost: { min: 1 }, amount: { min: minimum } } })),
+      fetchBalance: vi.fn(async () => ({ free: { USDT: 100 }, total: { USDT: 100 } })),
+      fetchTradingFee: vi.fn(async () => ({ taker: 0.001 })),
+      fetchOrderBook: vi.fn(async () => ({ asks: [[100, 0.05]] })),
+      costToPrecision: (_symbol: string, size: number) => size.toFixed(2),
+      amountToPrecision: (_symbol: string, amount: number) => String(Math.floor(amount * 1000) / 1000),
+    });
+    const executor = new OkxDemoExecutor(credentials, {
+      ...enabledOptions,
+      riskSizing: { riskPerTrade: 0.001, maxExposure: 0.25, maxAltExposure: 0.1, maxSymbolExposure: 0.15, slippage: 0.001 },
+    }, exchange);
+    const reserve = vi.fn(async () => reserved);
+    executor.setIntentJournal(reserve);
+    await executor.initialize();
+    const result = await executor.executeApprovedBuy({ candleTimestamp: 1700000000000, entryRevision: "3" });
+    expect(result.status).toBe(expected);
+    if (minimum > 0.05) {
+      expect(reserve).not.toHaveBeenCalled();
+    } else {
+      expect(reserve).toHaveBeenCalledWith("BTC/USDT", 1700000000000, expect.any(String), expect.any(String), "3");
+    }
+    if (expected === "PLACED") {
+      expect(exchange.createMarketBuyOrderWithCost).toHaveBeenCalledWith("BTC/USDT", 5, expect.any(Object));
+    } else {
+      expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+    }
+  });
+
   it("persists a new managed exit before buying and omits the fixed target only for trailing mode", async () => {
     for (const mode of ["fixed", "trailing_atr"] as const) {
       const exchange = exchangeMock();

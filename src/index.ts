@@ -69,6 +69,13 @@ async function main(): Promise<void> {
   let activeCycle: Promise<void> | undefined;
   let reconfigurationRequested = false;
   let reconfigurationPromise: Promise<void> | undefined;
+  const riskSizing = config.RISK_SIZING_ENABLED ? {
+    riskPerTrade: config.RISK_PER_TRADE_PERCENT,
+    maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
+    maxAltExposure: config.RISK_MAX_ALT_EXPOSURE_PERCENT,
+    maxSymbolExposure: config.RISK_MAX_SYMBOL_EXPOSURE_PERCENT,
+  } : undefined;
+  const demoRiskSizing = riskSizing ? { riskSizing: { ...riskSizing, slippage: config.EXIT_SLIPPAGE_RATE } } : {};
   const tradeManager = new CentralTradeManager({
     maxConcurrentPositions: config.MAX_CONCURRENT_POSITIONS,
     maxExposurePercent: config.RISK_MAX_EXPOSURE_PERCENT,
@@ -93,6 +100,7 @@ async function main(): Promise<void> {
       tradingSettings =
         await persistence.ensureDashboardSettings(tradingSettings);
       recoveryState = await persistence.loadRecoveryState(tradingSettings.symbol);
+      if (riskSizing) tradeManager.restorePositions(await persistence.loadOpenPaperPositions());
       runId = await persistence.startRun({
         environment: config.ENVIRONMENT,
         executionProvider: config.EXECUTION_PROVIDER,
@@ -145,6 +153,7 @@ async function main(): Promise<void> {
               symbol: tradingSettings.symbol,
               tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
               orderSizeUsdt: tradingSettings.orderSizeUsdt,
+              ...demoRiskSizing,
               stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
               takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
               ...(exitPolicy ? { exitPolicy } : {}),
@@ -154,7 +163,7 @@ async function main(): Promise<void> {
 
     if (okxDemo) {
       if (config.OKX_DEMO_TRADING_ENABLED && !persistence) throw new Error("OKX Demo execution requires persistent order journal");
-      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes, protectionId));
+      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id, protectionId, revision) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes, protectionId, revision));
       if (persistence) okxDemo.setExitReservationCheck((algo,request,stop) => persistence.isDemoExitReserved(algo,request,stop));
       if (persistence) okxDemo.setExitJournal((client,algo,symbol,candle,policy) => persistence.registerDemoExit(client,algo,symbol,candle,policy));
       await initializeOkxDemoWithBackoff(
@@ -258,6 +267,7 @@ async function main(): Promise<void> {
           slippageRate: config.PAPER_SLIPPAGE_RATE,
           stopLossRate: config.PAPER_STOP_LOSS_RATE,
           takeProfitRate: config.PAPER_TAKE_PROFIT_RATE,
+          ...(riskSizing ? { riskSizing } : {}),
           ...(exitPolicy ? { exitPolicy } : {}),
         },
         state?.paperState,
@@ -281,7 +291,7 @@ async function main(): Promise<void> {
         } } : {}),
         ...(demoExecutor && persistence ? { inspectDemoPositions: () => inspectDemoExecutionState(persistence, demoExecutor) } : {}),
         ...(demoExecutor && persistence ? { inspectDemoEntry: (symbol: string, stopLossRate: number) => inspectDemoEntry(persistence, demoExecutor, {
-          symbol, stopLossRate, size: settings.orderSizeUsdt, cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
+          symbol, stopLossRate, size: settings.orderSizeUsdt, riskSizing: Boolean(riskSizing), cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
           maxPositions: settings.maxConcurrentPositions, maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
           riskPerTrade: config.RISK_PER_TRADE_PERCENT,
           maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT, maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
@@ -386,12 +396,13 @@ async function main(): Promise<void> {
                 symbol: nextSettings.symbol,
                 tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
                 orderSizeUsdt: nextSettings.orderSizeUsdt,
+                ...demoRiskSizing,
                 stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
                 takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
               ...(exitPolicy ? { exitPolicy } : {}),
               },
             );
-            nextOkxDemo.setIntentJournal((symbol, timestamp, id, protectionId) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes, protectionId));
+            nextOkxDemo.setIntentJournal((symbol, timestamp, id, protectionId, revision) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes, protectionId, revision));
             nextOkxDemo.setExitReservationCheck((algo,request,stop) => persistence.isDemoExitReserved(algo,request,stop));
             nextOkxDemo.setExitJournal((client,algo,symbol,candle,policy) => persistence.registerDemoExit(client,algo,symbol,candle,policy));
             await initializeOkxDemoWithBackoff(

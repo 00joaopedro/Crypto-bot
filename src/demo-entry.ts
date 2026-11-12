@@ -6,13 +6,15 @@ import type { OkxDemoExecutor } from './okx-demo.js';
 
 /** Fresh, read-only admission. Paper positions never establish Demo exposure. */
 export async function inspectDemoEntry(
-  persistence: Pick<PostgresPersistence, 'demoOrderJournal' | 'getDemoBaselineCandidate' | 'canEnterDemoSymbol' | 'observeDemoRisk'>,
+  persistence: Pick<PostgresPersistence, 'demoOrderJournal' | 'getDemoBaselineCandidate' | 'canEnterDemoSymbol' | 'observeDemoRisk'> & Partial<Pick<PostgresPersistence, 'readDemoEntryRevision'>>,
   executor: Pick<OkxDemoExecutor, 'collectOrderEvidence' | 'inspectAccountIdentity' | 'getAccountSnapshot'>,
-  input: { symbol: string; size: number; stopLossRate: number; cooldownMinutes: number; maxPositions: number; maxExposure: number; riskPerTrade: number; maxDailyLoss: number; maxDrawdown: number },
-): Promise<{ allowed: boolean; reason?: string }> {
+  input: { symbol: string; size: number; riskSizing?: boolean; stopLossRate: number; cooldownMinutes: number; maxPositions: number; maxExposure: number; riskPerTrade: number; maxDailyLoss: number; maxDrawdown: number },
+): Promise<{ allowed: boolean; reason?: string; entryRevision?: string }> {
   const no = (reason: string) => ({ allowed: false, reason });
   try {
     if (Object.values(input).some(v => typeof v === 'number' && (!Number.isFinite(v) || v < 0)) || input.size <= 0 || input.stopLossRate <= 0 || input.maxPositions < 1) return no('invalid_demo_risk_configuration');
+    const entryRevision = input.riskSizing ? await persistence.readDemoEntryRevision?.() : undefined;
+    if (input.riskSizing && entryRevision === undefined) return no("demo_risk_revision_unavailable");
     const baseline = await persistence.getDemoBaselineCandidate();
     const account = await executor.inspectAccountIdentity();
     if (!baseline || account.status !== 'confirmed' || !sameDemoAccount(baseline.evidence.accountIdentity, account.identity)) return no('demo_account_identity_unconfirmed');
@@ -27,6 +29,7 @@ export async function inspectDemoEntry(
     const risk = await persistence.observeDemoRisk(`${account.identity.mainUid}:${account.identity.uid}`, equity, Date.now());
     const lossBlock = demoRiskBlock(risk, input.maxDailyLoss, input.maxDrawdown);
     if (lossBlock) return no(lossBlock);
+    if (entryRevision !== undefined) return { allowed: true, entryRevision };
     if (free < input.size) return no('demo_insufficient_quote_balance');
     // Includes non-bot holdings and reserved quote funds conservatively.
     if ((equity - free + input.size) / equity > input.maxExposure) return no('demo_max_exposure');

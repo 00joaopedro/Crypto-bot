@@ -1,3 +1,4 @@
+import { positionSizingSchema } from "./position-sizing.js";
 import { createHash } from "node:crypto";
 import { exitPolicySchema } from "./exit-policy.js";
 import { z } from "zod";
@@ -8,6 +9,7 @@ const rate = z.number().finite().min(0).lt(1);
 const positive = z.number().finite().positive();
 const parameters = z.object({
   exitPolicy: exitPolicySchema.optional(),
+  riskSizing: positionSizingSchema.optional(),
   stopLossRate: positive.lt(1), takeProfitRate: positive.lt(1),
   minimumSignalScore: z.number().int().min(1).max(8),
   executionDelayCandles: z.number().int().min(0).max(96),
@@ -42,12 +44,12 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
     variants: variants.map(v => {
       const effectiveSlippage = (1 + s.slippageRate) * (1 + s.spreadRate / 2) - 1;
       if (effectiveSlippage >= 1) throw new Error("Combined execution cost is too high");
-      const { exitPolicy, ...fixedParameters } = v.parameters;
-      const candidate = { ...fixedParameters, ...(exitPolicy ? { exitPolicy: { ...exitPolicy, exitFeeRate: s.feeRate, exitSlippageRate: effectiveSlippage } } : {}) };
+      const { exitPolicy, riskSizing, ...fixedParameters } = v.parameters;
+      const candidate = { ...fixedParameters, ...(riskSizing ? { riskSizing } : {}), ...(exitPolicy ? { exitPolicy: { ...exitPolicy, exitFeeRate: s.feeRate, exitSlippageRate: effectiveSlippage } } : {}) };
       const report = validateDemoStrategy(candles, {
         trainCandles: options.trainCandles, testCandles: options.testCandles,
         candidates: [candidate],
-        base: { initialBalanceUsdt: options.initialBalanceUsdt, tradeSizeUsdt: options.tradeSizeUsdt,
+        base: { symbol: options.symbol, initialBalanceUsdt: options.initialBalanceUsdt, tradeSizeUsdt: options.tradeSizeUsdt,
           feeRate: s.feeRate, slippageRate: effectiveSlippage,
           ...candidate, qualityFilters: true, executionProfile: "demo-proxy",
           executionConstraints: options.constraints,

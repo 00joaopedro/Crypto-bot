@@ -293,3 +293,28 @@ latência, fills parciais, risco de carteira ou certificar lucro. Não foi envia
 nenhuma ordem para validar essas opções na conta do usuário.
 
 Referência do protocolo: https://www.okx.com/docs-v5/en/#order-book-trading-algo-trading-post-amend-algo-order
+
+### Optional risk-based sizing
+
+Keep `RISK_SIZING_ENABLED=false` until comparing the alternatives and verifying
+Demo behavior. When enabled, the dashboard order size is a ceiling. The bot
+divides the per-trade loss budget by the stop distance plus estimated entry and
+exit costs, then caps the size by available cash and remaining portfolio limits.
+`RISK_MAX_ALT_EXPOSURE_PERCENT` caps all assets other than BTC and the USDT
+reserve together. `RISK_MAX_SYMBOL_EXPOSURE_PERCENT` caps each asset.
+
+Demo uses account equity and holdings, including manually held assets. Reserved
+USDT counts conservatively toward aggregate and altcoin exposure. It uses the
+account taker fee for the instrument and visible ask depth within
+`EXIT_SLIPPAGE_RATE`. The order is skipped if it would be below the OKX minimum
+after precision and estimated base fee, or if required market data is unavailable.
+A change in the Demo order journal between admission and reservation also skips
+the entry. Depth and slippage are estimates and market fills or gaps can exceed
+the estimated loss.
+
+Paper uses simulated fees, cash, and the tracked positions' entry costs as an
+exposure estimate. For comparisons, add an optional `riskSizing` object to an
+alternative with `riskPerTrade`, `maxExposure`, `maxAltExposure`, and
+`maxSymbolExposure`. Offline comparisons use the scenario's costs, liquidity
+and instrument minimums. A single-symbol backtest cannot reproduce simultaneous
+portfolio concentration across instruments.

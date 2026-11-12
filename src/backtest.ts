@@ -1,3 +1,4 @@
+import type { PositionSizingLimits } from "./position-sizing.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
 import { evaluateStrategy } from "./strategy.js";
@@ -6,6 +7,8 @@ import type { Candle } from "./types.js";
 export type BacktestOptions = {
   initialBalanceUsdt: number;
   tradeSizeUsdt: number;
+  riskSizing?: PositionSizingLimits;
+  symbol?: string;
   feeRate: number;
   slippageRate: number;
   stopLossRate: number;
@@ -74,17 +77,22 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     if (index >= warmup && signal?.action === "BUY") pending.set(index + Math.max(1, delay), true);
     const sellSignal = options.executionProfile !== "demo-proxy" && signal?.action === "SELL";
     let approved = index >= warmup && pending.get(index) === true && !trader.hasOpenPosition;
+    let liquidity = options.tradeSizeUsdt;
     if (approved && options.liquidity) {
       // Only the PREVIOUS closed candle is available at the next open.
       const previous = candles[index - 1];
       const previousVolumeUsdt = previous ? previous.volume * previous.close : 0;
-      if (options.tradeSizeUsdt > Math.min(options.liquidity.assumedDepthUsdt, previousVolumeUsdt * options.liquidity.maxParticipationRate)) {
+      liquidity = Math.min(options.liquidity.assumedDepthUsdt, previousVolumeUsdt * options.liquidity.maxParticipationRate);
+      if (!options.riskSizing && options.tradeSizeUsdt > liquidity) {
         approved = false;
         rejectedEntries++;
       }
     }
     const rates = options.exitPolicy ? initialExitRates(candles.slice(0, index), candle.open, options.exitPolicy, options) : undefined;
-    const result = trader.processCandle(candle, approved, rates, options.exitPolicy ? false : sellSignal, candle.open);
+    const size = approved && options.riskSizing
+      ? trader.planEntrySize(rates?.stopLossRate ?? options.stopLossRate, options.symbol?.split("/")[0] !== "BTC", 0, 0, liquidity)
+      : undefined;
+    const result = trader.processCandle(candle, approved, rates, options.exitPolicy ? false : sellSignal, candle.open, size);
     trader.advanceManagedExit(candles.slice(0, index + 1));
     if (approved && !result.events.some((event) => event.type === "OPENED")) rejectedEntries++;
     pending.delete(index);

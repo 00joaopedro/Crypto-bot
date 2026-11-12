@@ -1,3 +1,4 @@
+import { positionSize, type PositionSizingLimits } from "./position-sizing.js";
 import { calculateDemoLedger, type DemoFill } from "./demo-ledger.js";
 import type { ExitPolicy } from "./exit-policy.js";
 import ccxt, { OrderNotFound, type Exchange, type Order } from "ccxt";
@@ -21,6 +22,7 @@ export type OkxDemoOptions = {
   stopLossRate: number;
   takeProfitRate: number;
   exitPolicy?: ExitPolicy;
+  riskSizing?: PositionSizingLimits & { slippage: number };
 };
 
 export type OkxDemoStatus = {
@@ -39,12 +41,14 @@ export type OkxDemoAccountSnapshot = {
   totalUsdt: number | null;
   equityUsdt: number | null;
   unvaluedAssets: string[];
+  assetValuesUsdt?: Record<string, number>;
   updatedAt: string;
 };
 
 export type DemoBuyRequest = {
   symbol?: string;
   candleTimestamp: number;
+  entryRevision?: string;
   stopLossRate?: number;
   takeProfitRate?: number;
 };
@@ -74,7 +78,9 @@ export type DemoBuyResult =
         | "demo_trading_disabled"
         | "duplicate_candle_order"
         | "existing_open_order"
-        | "insufficient_quote_balance";
+        | "insufficient_quote_balance"
+        | "risk_size_unavailable"
+        | "risk_entry_changed";
       clientOrderId: string;
   };
 
@@ -102,7 +108,7 @@ type Pause = (milliseconds: number) => Promise<void>;
 export class OkxDemoExecutor {
   private sandboxConfigured = false;
   private initialized = false;
-  private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string) => Promise<boolean>;
+  private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string) => Promise<boolean>;
 
   private exitJournal?: (clientOrderId: string, algoId: string, symbol: string, candle: number, policy: ExitPolicy) => Promise<void>;
   setExitJournal(save: NonNullable<OkxDemoExecutor["exitJournal"]>): void { this.exitJournal = save; }
@@ -110,7 +116,7 @@ export class OkxDemoExecutor {
   setExitReservationCheck(check: NonNullable<OkxDemoExecutor["verifyExitReservation"]>): void { this.verifyExitReservation = check; }
   get exitManagementEnabled(): boolean { return this.options.tradingEnabled && !!this.options.exitPolicy; }
 
-  setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string) => Promise<boolean>): void {
+  setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string) => Promise<boolean>): void {
     this.reserveIntent = reserve;
   }
 
@@ -168,13 +174,14 @@ export class OkxDemoExecutor {
     };
   }
 
-  async getAccountSnapshot(): Promise<OkxDemoAccountSnapshot> {
+  async getAccountSnapshot(includeAssetValues = false): Promise<OkxDemoAccountSnapshot> {
     if (!this.initialized) throw new Error("OKX Demo executor must be initialized before balance queries");
     const market = this.resolveActiveSpotMarket(this.options.symbol);
     const balance = await this.exchange.fetchBalance();
     const quoteCurrency = requiredString(market.quote, "market quote currency");
     const totals = (balance.total ?? {}) as Record<string, unknown>;
     let equity = 0;
+    const assetValuesUsdt: Record<string, number> = Object.create(null);
     const unvaluedAssets: string[] = [];
     for (const [currency, raw] of Object.entries(totals)) {
       const amount = finiteOrNull(raw);
@@ -186,13 +193,14 @@ export class OkxDemoExecutor {
         const ticker = await this.exchange.fetchTicker(spot.symbol);
         const price = finiteOrNull(ticker.last);
         if (price === null || price <= 0) throw new Error("No valid last price");
-        equity += amount * price;
+        assetValuesUsdt[currency] = amount * price;
+        equity += assetValuesUsdt[currency]!;
       } catch {
         unvaluedAssets.push(currency);
       }
     }
     if (readTotalBalance(balance.total, "USDT") === null) unvaluedAssets.push("USDT");
-    return { quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt: readTotalBalance(balance.total, quoteCurrency), equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, updatedAt: new Date().toISOString() };
+    return { quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt: readTotalBalance(balance.total, quoteCurrency), equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, ...(includeAssetValues ? { assetValuesUsdt } : {}), updatedAt: new Date().toISOString() };
   }
 
   /** A read-only candidate, not a proof of atomicity or complete history. */
@@ -371,10 +379,10 @@ export class OkxDemoExecutor {
     const quoteCurrency = requiredString(market.quote, "market quote currency");
     const quoteFree = readFreeBalance(balance.free, quoteCurrency) ?? 0;
     const minimumCost = market.limits.cost?.min ?? 0;
-    if (
+    if (!this.options.riskSizing && (
       quoteFree < this.options.orderSizeUsdt ||
       this.options.orderSizeUsdt < minimumCost
-    ) {
+    )) {
       return {
         status: "SKIPPED",
         reason: "insufficient_quote_balance",
@@ -395,6 +403,13 @@ export class OkxDemoExecutor {
     const stopLossPrice = referencePrice * (1 - (request.stopLossRate ?? this.options.stopLossRate));
     const takeProfitPrice = referencePrice * (1 + (request.takeProfitRate ?? this.options.takeProfitRate));
 
+    let orderSizeUsdt = this.options.orderSizeUsdt;
+    if (this.options.riskSizing) {
+      const sized = request.entryRevision === undefined ? 0 : await this.sizeDemoBuy(marketSymbol, referencePrice, stopLossPrice, quoteFree);
+      if (sized <= 0) return { status: "SKIPPED", reason: "risk_size_unavailable", clientOrderId };
+      orderSizeUsdt = sized;
+    }
+
     const attachedAlgoClientId = `AP${clientOrderId.slice(2)}`;
     // CCXT currently does not expose attachAlgoClOrdId through stopLoss/takeProfit;
     // raw attachAlgoOrds replaces those parameters, so include both full legs.
@@ -404,7 +419,12 @@ export class OkxDemoExecutor {
       ...(this.options.exitPolicy?.mode === "trailing_atr" ? {} : { tpTriggerPx: this.exchange.priceToPrecision(marketSymbol, takeProfitPrice), tpOrdPx: "-1" }),
     }];
     if (!this.reserveIntent) throw new Error("Demo order requires a persistent intent journal");
-    if (!(await this.reserveIntent(marketSymbol, request.candleTimestamp, clientOrderId, attachedAlgoClientId))) {
+    const reserved = await this.reserveIntent(
+      marketSymbol, request.candleTimestamp, clientOrderId, attachedAlgoClientId,
+      ...(this.options.riskSizing ? [request.entryRevision] as const : []),
+    );
+    if (!reserved) {
+      if (this.options.riskSizing) return { status: "SKIPPED", reason: "risk_entry_changed", clientOrderId };
       throw new Error(`Demo order intent already exists: ${clientOrderId}`);
     }
     if (this.options.exitPolicy) {
@@ -413,7 +433,7 @@ export class OkxDemoExecutor {
     }
     const submitted = await this.exchange.createMarketBuyOrderWithCost(
       marketSymbol,
-      this.options.orderSizeUsdt,
+      orderSizeUsdt,
       {
         clientOrderId,
         tdMode: "cash",
@@ -516,6 +536,47 @@ export class OkxDemoExecutor {
     if (item?.algoId !== algoId || item?.reqId !== requestId) return "uncertain" as const;
     if (typeof item.sCode === "string" && /^\d+$/.test(item.sCode) && item.sCode !== "0") return "rejected" as const;
     return response.code === "0" && item.sCode === "0" ? "acknowledged" as const : "uncertain" as const;
+  }
+
+  private async sizeDemoBuy(symbol: string, reference: number, stop: number, quoteFree: number): Promise<number> {
+    const limits = this.options.riskSizing!;
+    try {
+      const market = this.resolveActiveSpotMarket(symbol);
+      if (market.quote !== "USDT") return 0;
+      const [snapshot, fees, book] = await Promise.all([
+        this.getAccountSnapshot(true),
+        this.exchange.fetchTradingFee(symbol),
+        this.exchange.fetchOrderBook(symbol, 20),
+      ]);
+      if (snapshot.equityUsdt === null || snapshot.quoteFree === null || !snapshot.assetValuesUsdt) return 0;
+      const fee = fees.taker;
+      if (typeof fee !== "number" || !Number.isFinite(fee) || fee < 0) return 0;
+      const trigger = Number(this.exchange.priceToPrecision(symbol, stop));
+      const worstEntry = reference * (1 + limits.slippage);
+      if (!(trigger > 0 && trigger < reference)) return 0;
+      // Limit participation to displayed asks within the configured execution buffer.
+      const liquidity = book.asks.reduce((sum, [price, amount]) =>
+        typeof price === "number" && typeof amount === "number" && price > 0 && amount > 0 && price <= worstEntry
+          ? sum + price * amount : sum, 0);
+      const exposure = snapshot.equityUsdt - snapshot.quoteFree;
+      const sized = positionSize({
+        limits, equity: snapshot.equityUsdt, free: Math.min(snapshot.quoteFree, quoteFree), exposure,
+        altExposure: Math.max(0, exposure - (snapshot.assetValuesUsdt.BTC ?? 0)),
+        symbolExposure: snapshot.assetValuesUsdt[market.base] ?? 0,
+        altcoin: market.base !== "BTC", ceiling: this.options.orderSizeUsdt,
+        stopRate: 1 - trigger / reference, fee, slippage: limits.slippage, liquidity,
+      });
+      if (sized <= 0) return 0;
+      const cost = Number(this.exchange.costToPrecision(symbol, sized));
+      const minimumAmount = market.limits.amount?.min;
+      if (typeof minimumAmount !== "number" || minimumAmount <= 0 || !Number.isFinite(minimumAmount)) return 0;
+      // A fee charged in base currency must still leave a protectable lot.
+      const estimatedNet = Number(this.exchange.amountToPrecision(symbol, cost / worstEntry * (1 - fee)));
+      if (!(cost > 0 && cost <= sized && cost >= (market.limits.cost?.min ?? 0) && estimatedNet >= minimumAmount)) return 0;
+      return cost;
+    } catch {
+      return 0;
+    }
   }
 
   async executeApprovedSell(request: DemoSellRequest): Promise<DemoBuyResult> {
