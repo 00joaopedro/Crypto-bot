@@ -494,7 +494,7 @@ async function main(): Promise<void> {
               const safety = await inspectDemoExecutionSafety(persistence, okxDemo);
               if (exits.status !== "safe" || coverage.status !== "safe" || safety.status !== "safe") {
                 exitsReady = false;
-                const awaitingReadback = exits.status === "blocked" && ["exit_amendment_awaiting_readback", "exit_amendment_unconfirmed"].includes(exits.reason);
+                const awaitingReadback = exits.status === "blocked" && ["exit_amendment_awaiting_readback", "exit_amendment_unconfirmed", "exit_amendment_not_submitted"].includes(exits.reason);
                 if (!awaitingReadback || coverage.status !== "safe" || safety.status !== "safe") await persistence.setPaused(true, "system:demo_exit_supervision");
                 await persistence.recordOperationalEvent({ eventType: "DEMO_PROTECTION_BLOCKED", severity: "WARN", details: { reason: exits.status !== "safe" ? exits.reason : coverage.status !== "safe" ? coverage.reason : safety.status !== "safe" ? safety.reason : "unknown" } });
               }

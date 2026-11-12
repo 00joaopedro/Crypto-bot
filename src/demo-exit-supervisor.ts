@@ -25,6 +25,10 @@ export async function superviseDemoExits(store: Store, executor: Executor, marke
     const cached = checkpoint ? { parents: (checkpoint.evidence.parentOrderEvidence ?? []) as CachedDemoParent[], fills: ((checkpoint.evidence.ledgerCarry as { fills?: DemoFill[] } | undefined)?.fills ?? checkpoint.evidence.reconciledFills ?? []) as DemoFill[], from: checkpoint.observedAt.getTime() } : undefined;
     const superviseOne = async (row: (typeof rows)[number]) => {
       if (!sameDemoAccount(row.state.accountIdentity, account.identity)) return blocked("exit_account_mismatch");
+      if (row.status === "REJECTED_CONFIRMED" && !row.state.pending) {
+        const saved = await store.saveDemoExitState(row.algo_client_id, row.version, { ...row.state, closed: true });
+        return saved ? { status: "safe" as const } : blocked("exit_state_changed");
+      }
       if (row.status !== "PLACED") return blocked("exit_parent_unresolved");
       const orderId = (row.result as { orderId?: unknown } | null)?.orderId;
       if (typeof orderId !== "string" || !orderId) return blocked("exit_parent_id_missing");
@@ -79,6 +83,11 @@ export async function superviseDemoExits(store: Store, executor: Executor, marke
       if (!await store.saveDemoExitState(row.algo_client_id,row.version,state)) return blocked("exit_state_changed");
       if (improving) {
         const result = await executor.amendExitStop(journal, from, stop, requestId,cached);
+        if (result === "blocked") {
+          // The executor only returns blocked before sending the amendment.
+          const saved = await store.saveDemoExitState(row.algo_client_id, row.version + 1, { ...state, pending: null });
+          return blocked(saved ? "exit_amendment_not_submitted" : "exit_state_changed");
+        }
         if (result === "rejected") {
           if (!await store.saveDemoExitState(row.algo_client_id,row.version+1,{...state,pending:null})) return blocked("exit_state_changed");
           return blocked("exit_amendment_rejected");
@@ -90,7 +99,7 @@ export async function superviseDemoExits(store: Store, executor: Executor, marke
     };
     let failure: string | undefined;
     for (const row of rows) {
-      try { const result = await superviseOne(row); if (result.status === "blocked") { if (!failure || ["exit_amendment_awaiting_readback","exit_amendment_unconfirmed"].includes(failure)) failure = result.reason; } } catch { failure ??= "exit_supervision_failed"; }
+      try { const result = await superviseOne(row); if (result.status === "blocked") { if (!failure || ["exit_amendment_awaiting_readback","exit_amendment_unconfirmed","exit_amendment_not_submitted"].includes(failure)) failure = result.reason; } } catch { failure ??= "exit_supervision_failed"; }
     }
     return failure ? blocked(failure) : { status: "safe" as const };
   } catch { return blocked("exit_supervision_failed"); }

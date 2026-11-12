@@ -5,12 +5,38 @@ const end=Math.floor(Date.now()/900000)*900000-900000;
 function setup(){
   let row={algo_client_id:"AP1",client_order_id:"CB1",symbol:"BTC/USDT",version:0,status:"PLACED",result:{orderId:"1"},created_at:new Date(end-20*900000),state:demoExitStateSchema.parse({policy:{mode:"trailing_atr",trailingMultiplier:2},accountIdentity:{uid:"1",mainUid:"1"},lastCandle:end-900000,highWatermark:100})};
   let stop=95;
-  const store={managedDemoExits:vi.fn(async()=>[structuredClone(row)]),saveDemoExitState:vi.fn(async(_id:string,version:number,state:typeof row.state)=>{if(row.version!==version)return false;row={...row,version:version+1,state:structuredClone(state)};return true;})};
-  const executor={exitManagementEnabled:true,inspectAccountIdentity:vi.fn(async()=>({status:"confirmed" as const,identity:{uid:"1",mainUid:"1"}})),inspectExitProtection:vi.fn(async()=>({status:"live" as const,unprotectedDustQuantity:0,stop,algoId:"2",quantity:1,netQuantity:1,costUsdt:100,entryPrice:100,entryCandle:end-10*900000,takerFeeRate:.001,requestId:null})),formatExitStop:(_s:string,p:number)=>p,amendExitStop:vi.fn(async()=>"acknowledged" as const)};
+  const store={managedDemoExits:vi.fn(async()=>row.state.closed ? [] : [structuredClone(row)]),saveDemoExitState:vi.fn(async(_id:string,version:number,state:typeof row.state)=>{if(row.version!==version)return false;row={...row,version:version+1,state:structuredClone(state)};return true;})};
+  const executor={exitManagementEnabled:true,inspectAccountIdentity:vi.fn(async()=>({status:"confirmed" as const,identity:{uid:"1",mainUid:"1"}})),inspectExitProtection:vi.fn(async()=>({status:"live" as const,unprotectedDustQuantity:0,stop,algoId:"2",quantity:1,netQuantity:1,costUsdt:100,entryPrice:100,entryCandle:end-10*900000,takerFeeRate:.001,requestId:null})),formatExitStop:(_s:string,p:number)=>p,amendExitStop:vi.fn(async()=>"acknowledged" as "acknowledged" | "blocked")};
   const market={active:"okx" as const,fetchClosedCandles:vi.fn(async()=>Array.from({length:20},(_,i)=>({timestamp:end-(19-i)*900000,open:110,high:111,low:109,close:110,volume:1000})))};
   return {store,executor,market,row:()=>row,setStop:(v:number)=>{stop=v;}};
 }
 describe("durable stop amendment supervision",()=>{
+  it("clears a reservation for a known-unsent amendment without retrying the same candle", async () => {
+    const f = setup();
+    f.executor.amendExitStop.mockResolvedValueOnce("blocked");
+
+    expect(await superviseDemoExits(f.store, f.executor, f.market)).toMatchObject({ reason: "exit_amendment_not_submitted" });
+    expect(f.row().state.pending).toBeNull();
+    expect(f.row().state.stop).toBe(95);
+    expect(await superviseDemoExits(f.store, f.executor, f.market)).toEqual({ status: "safe" });
+    expect(f.executor.amendExitStop).toHaveBeenCalledTimes(1);
+  });
+
+  it("retires a confirmed rejection and keeps an unresolved parent blocked", async () => {
+    const rejected = setup();
+    rejected.row().status = "REJECTED_CONFIRMED";
+
+    expect(await superviseDemoExits(rejected.store, rejected.executor, rejected.market)).toEqual({ status: "safe" });
+    expect(rejected.row().state.closed).toBe(true);
+    expect(await superviseDemoExits(rejected.store, rejected.executor, rejected.market)).toEqual({ status: "safe" });
+    expect(rejected.executor.inspectExitProtection).not.toHaveBeenCalled();
+
+    const pending = setup();
+    pending.row().status = "PENDING";
+    expect(await superviseDemoExits(pending.store, pending.executor, pending.market)).toMatchObject({ reason: "exit_parent_unresolved" });
+    expect(pending.row().state.closed).toBe(false);
+  });
+
   it("reserves before sending, waits for readback across restarts, and never repeats uncertain writes",async()=>{
     const f=setup();
     expect(await superviseDemoExits(f.store,f.executor,f.market)).toMatchObject({reason:"exit_amendment_awaiting_readback"});
