@@ -81,6 +81,7 @@ const schema = z
     // Initial safety profile: no more than two simultaneous positions and
     // 20–30% aggregate exposure. Enforce the envelope at startup so a
     // dashboard or Railway edit cannot silently widen it.
+    BTC_REGIME_FILTER_ENABLED: booleanString,
     RISK_SIZING_ENABLED: booleanString,
     RISK_MAX_ALT_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(0.3).default(0.10),
     RISK_MAX_SYMBOL_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(0.3).default(0.15),
