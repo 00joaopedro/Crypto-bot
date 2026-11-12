@@ -495,18 +495,25 @@ export class OkxDemoExecutor {
 
   /** Amend the SAME existing algo. Never cancel, replace, change size, or submit a sale. */
   async amendExitStop(journal: JournaledDemoBuy, from: number, stop: number, requestId: string, cached?: { parents: CachedDemoParent[]; fills: DemoFill[]; from: number }) {
-    if (!this.exitManagementEnabled || !/^[A-Za-z0-9]{1,32}$/.test(requestId)) return "blocked" as const;
-    if (!journal.attachedAlgoClientId || !this.verifyExitReservation || !await this.verifyExitReservation(journal.attachedAlgoClientId,requestId,stop)) return "blocked" as const;
-    const fresh = await this.inspectExitProtection(journal, from, cached);
-    if (fresh.status !== "live" || stop <= fresh.stop) return "blocked" as const;
-    const price = (await this.exchange.fetchTicker(journal.symbol)).bid;
-    if (!Number.isFinite(price) || price! <= stop || !Number.isFinite(stop) || stop <= 0) return "blocked" as const;
+    let algoId: string;
+    try {
+      if (!this.exitManagementEnabled || !/^[A-Za-z0-9]{1,32}$/.test(requestId)) return "blocked" as const;
+      if (!journal.attachedAlgoClientId || !this.verifyExitReservation || !await this.verifyExitReservation(journal.attachedAlgoClientId,requestId,stop)) return "blocked" as const;
+      const fresh = await this.inspectExitProtection(journal, from, cached);
+      if (fresh.status !== "live" || stop <= fresh.stop) return "blocked" as const;
+      const price = (await this.exchange.fetchTicker(journal.symbol)).bid;
+      if (!Number.isFinite(price) || price! <= stop || !Number.isFinite(stop) || stop <= 0) return "blocked" as const;
+      algoId = fresh.algoId;
+    } catch {
+      // These checks only read state. The amendment has not been sent.
+      return "blocked" as const;
+    }
     const client = this.exchange as unknown as { privatePostTradeAmendAlgos(params: Record<string,unknown>): Promise<unknown> };
     if (typeof client.privatePostTradeAmendAlgos !== "function") return "blocked" as const;
-    const response = await client.privatePostTradeAmendAlgos({ instId: journal.symbol.replace("/","-"), algoId: fresh.algoId, reqId: requestId, newSlTriggerPx: String(stop), newSlOrdPx: "-1", cxlOnFail: false }) as { code?: string; data?: Array<{ algoId?: string; reqId?: string; sCode?: string }> };
+    const response = await client.privatePostTradeAmendAlgos({ instId: journal.symbol.replace("/","-"), algoId, reqId: requestId, newSlTriggerPx: String(stop), newSlOrdPx: "-1", cxlOnFail: false }) as { code?: string; data?: Array<{ algoId?: string; reqId?: string; sCode?: string }> };
     // An acknowledgement is not proof that the amendment was applied.
     const item = response?.data?.length === 1 ? response.data[0] : undefined;
-    if (item?.algoId !== fresh.algoId || item?.reqId !== requestId) return "uncertain" as const;
+    if (item?.algoId !== algoId || item?.reqId !== requestId) return "uncertain" as const;
     if (typeof item.sCode === "string" && /^\d+$/.test(item.sCode) && item.sCode !== "0") return "rejected" as const;
     return response.code === "0" && item.sCode === "0" ? "acknowledged" as const : "uncertain" as const;
   }

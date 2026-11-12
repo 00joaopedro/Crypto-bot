@@ -16,6 +16,19 @@ function setup(){
   return {executor,exchange,algo,from:now-60000};
 }
 describe("OKX managed stop protocol",()=>{
+  it("distinguishes a failed preflight read from a failed amendment request", async () => {
+    const f = setup();
+    await f.executor.initialize();
+
+    f.exchange.fetchTicker.mockRejectedValueOnce(new Error("ticker timeout"));
+    expect(await f.executor.amendExitStop(journal, f.from, 105, "REQ1")).toBe("blocked");
+    expect(f.exchange.privatePostTradeAmendAlgos).not.toHaveBeenCalled();
+
+    f.exchange.privatePostTradeAmendAlgos.mockRejectedValueOnce(new Error("amendment timeout"));
+    await expect(f.executor.amendExitStop(journal, f.from, 105, "REQ2")).rejects.toThrow("amendment timeout");
+    expect(f.exchange.privatePostTradeAmendAlgos).toHaveBeenCalledTimes(1);
+  });
+
   it("uses net acquired quantity and complete fees, then amends only the existing stop",async()=>{
     const f=setup();await f.executor.initialize();
     expect(await f.executor.inspectExitProtection(journal,f.from)).toMatchObject({status:"live",quantity:.999,netQuantity:.999,costUsdt:100,takerFeeRate:.002});
