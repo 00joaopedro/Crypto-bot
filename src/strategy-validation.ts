@@ -5,7 +5,7 @@ import type { Candle } from "./types.js";
 export function validateDemoStrategy(candles: Candle[], options: WalkForwardOptions) {
   if (options.candidates.length !== 1) throw new Error("Use exactly one fixed candidate for out-of-sample validation");
   const candidate = options.candidates[0];
-  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate) || Object.keys(candidate).some((key) => !["stopLossRate", "takeProfitRate", "minimumSignalScore", "executionDelayCandles", "exitPolicy", "riskSizing"].includes(key))) throw new Error("Invalid fixed candidate fields");
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate) || Object.keys(candidate).some((key) => !["stopLossRate", "takeProfitRate", "minimumSignalScore", "executionDelayCandles", "exitPolicy", "riskSizing", "btcRegimeFilter"].includes(key))) throw new Error("Invalid fixed candidate fields");
   if ((options.stepCandles ?? options.testCandles) < options.testCandles) throw new Error("Test windows must not overlap");
   if (options.base.qualityFilters === false) throw new Error("Demo validation requires the production quality filters");
   if (options.base.executionProfile !== "demo-proxy") throw new Error("Demo validation requires demo-proxy execution profile");

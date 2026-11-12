@@ -1,7 +1,8 @@
+import { BTC_REGIME_HISTORY } from "./btc-regime.js";
 import { runBacktest, type BacktestMetrics, type BacktestOptions } from "./backtest.js";
 import type { Candle } from "./types.js";
 
-export type WalkForwardCandidate = Partial<Pick<BacktestOptions, "stopLossRate" | "takeProfitRate" | "minimumSignalScore" | "executionDelayCandles" | "exitPolicy" | "riskSizing">>;
+export type WalkForwardCandidate = Partial<Pick<BacktestOptions, "stopLossRate" | "takeProfitRate" | "minimumSignalScore" | "executionDelayCandles" | "exitPolicy" | "riskSizing" | "btcRegimeFilter">>;
 export type WalkForwardOptions = {
   trainCandles: number;
   testCandles: number;
@@ -36,7 +37,8 @@ export function runWalkForward(candles: Candle[], options: WalkForwardOptions): 
   const delays = options.candidates.map((candidate) => candidate.executionDelayCandles ?? options.base.executionDelayCandles ?? 0);
   if (delays.some((delay) => !Number.isInteger(delay) || delay < 0)) throw new Error("executionDelayCandles must be a non-negative integer");
   const atrWarmup = Math.max(0, options.base.exitPolicy ? options.base.exitPolicy.atrPeriod + 1 : 0, ...options.candidates.map(c => c.exitPolicy ? c.exitPolicy.atrPeriod + 1 : 0));
-  const requiredWarmup = Math.max(atrWarmup, options.base.qualityFilters !== false ? 84 : 51) + Math.max(1, ...delays);
+  const regimeWarmup = options.candidates.some(c => c.btcRegimeFilter ?? options.base.btcRegimeFilter) ? BTC_REGIME_HISTORY : 0;
+  const requiredWarmup = Math.max(atrWarmup, regimeWarmup, options.base.qualityFilters !== false ? 84 : 51) + Math.max(1, ...delays);
   if (!Number.isInteger(options.trainCandles) || options.trainCandles < requiredWarmup) throw new Error(`trainCandles must be at least ${requiredWarmup}`);
   if (!Number.isInteger(options.testCandles) || options.testCandles < 2) throw new Error("testCandles must be at least 2");
   if (options.candidates.length === 0) throw new Error("At least one candidate is required");

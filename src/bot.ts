@@ -1,3 +1,4 @@
+import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import type { PublicMarketData } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
@@ -14,6 +15,7 @@ import type { CentralTradeManager } from "./trade-manager.js";
 type BotOptions = {
   symbol: string;
   candleLimit: number;
+  btcRegimeFilter?: boolean;
   minimumConfidence: number;
   aiFailureMode?: "reject" | "quantitative";
   minimumSignalScore?: number;
@@ -306,10 +308,21 @@ export class TradingBot {
 
     // Demo admission is independent of Paper position and Paper cooldown.
     // Shared loss latches remain conservative circuit breakers.
-    const demoCandidate = Boolean(this.options.inspectDemoEntry) &&
+    let demoCandidate = Boolean(this.options.inspectDemoEntry) &&
       signal.action === "BUY" && currentSymbolSelected &&
       (quantitativeFallback || (aiDecision.approve && aiDecision.confidence >= this.options.minimumConfidence)) &&
       !stopLossCooldownBlocked && this.consecutiveLosses < (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY);
+
+    const regimeBlock = this.options.btcRegimeFilter && (approved || demoCandidate)
+      ? await this.inspectBtcRegime(currentCandle.timestamp)
+      : undefined;
+    if (regimeBlock) {
+      approved = false;
+      demoCandidate = false;
+      await this.recordOperationalEvent("BTC_REGIME_ENTRY_BLOCKED", "INFO", {
+        symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, reason: regimeBlock,
+      });
+    }
 
     const riskSizing = paperTrader.configuration.riskSizing;
     const positions = this.options.tradeManager?.activePositions ?? [];
@@ -454,7 +467,7 @@ export class TradingBot {
     if (!demoCandidate && this.options.inspectDemoEntry) {
       await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", { symbol: executionSymbol,
         candleTimestamp: currentCandle.timestamp, approved: false,
-        reason: signal.action !== "BUY" ? `signal_${signal.action.toLowerCase()}` : "entry_filter_or_risk_circuit_breaker" });
+        reason: regimeBlock ?? (signal.action !== "BUY" ? `signal_${signal.action.toLowerCase()}` : "entry_filter_or_risk_circuit_breaker") });
     }
     if (demoApproved && this.options.demoExecutor) {
       try {
@@ -630,6 +643,17 @@ export class TradingBot {
 
     this.logPaperResult(currentCandle, paperResult, false, executionSymbol);
     await this.sendTradeAlerts(paperResult.events, false);
+  }
+
+  private async inspectBtcRegime(timestamp: number) {
+    const latestClosed = Math.floor(Date.now() / REGIME_CANDLE_MS) * REGIME_CANDLE_MS - REGIME_CANDLE_MS;
+    if (timestamp !== latestClosed) return "btc_regime_data_unavailable";
+    try {
+      const candles = await this.market.fetchClosedCandles("BTC/USDT", BTC_REGIME_HISTORY);
+      return btcRegimeBlock(candles, timestamp, candles.findIndex(c => c.timestamp === timestamp));
+    } catch {
+      return "btc_regime_data_unavailable";
+    }
   }
 
   private exportRiskState(): { consecutiveLosses: number; stopLossCooldownUntil: number } {

@@ -318,3 +318,21 @@ alternative with `riskPerTrade`, `maxExposure`, `maxAltExposure`, and
 `maxSymbolExposure`. Offline comparisons use the scenario's costs, liquidity
 and instrument minimums. A single-symbol backtest cannot reproduce simultaneous
 portfolio concentration across instruments.
+
+### Optional BTC regime filter
+
+`BTC_REGIME_FILTER_ENABLED=false` by default. When enabled, new Paper and Demo
+entries require a current, aligned BTC/USDT 15-minute close. A close below the
+24-hour simple moving average or at least 3% below the close four hours earlier
+blocks entries immediately. Three consecutive favorable closes are required to
+allow entries again. Missing or stale data blocks entries. The gate does not
+close positions or modify protective orders.
+
+To compare on the same historical windows and execution scenarios, copy the
+baseline parameters into an alternative and add `"btcRegimeFilter": true`.
+For BTC/USDT, the target candles can serve as the reference. For other pairs,
+supply a top-level `btcCandles` array with contiguous BTC/USDT 15-minute candles
+covering the target timestamps. Use at least 99 training candles for a one-bar
+entry delay. The comparison includes the BTC reference hash and a count of
+blocked BUY signals per alternative. The thresholds are a hypothesis to validate
+against independent historical windows before enabling the filter.
