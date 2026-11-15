@@ -1,3 +1,5 @@
+import { inspectDemoResume } from "../src/demo-resume.js";
+import { inspectDemoEquityRisk } from "../src/demo-entry.js";
 import { exitPolicySchema } from "../src/exit-policy.js";
 import ccxt, { OrderNotFound, type Exchange } from "ccxt";
 import { describe, expect, it, vi } from "vitest";
@@ -243,6 +245,63 @@ describe("OkxDemoExecutor", () => {
     await expect(executor.executeApprovedBuy({ candleTimestamp: 1790197200000 })).rejects.toThrow("persistent intent journal");
     expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
   });
+  it("values BRL using the inverse market and keeps Demo equity valid after resume", async () => {
+    const exchange = exchangeMock({
+      fetchBalance: vi.fn(async () => ({ free: { USDT: 5000 }, total: { USDT: 5000, BRL: 250, BTC: 0.01, DOGE: 0 } })),
+      market: vi.fn((symbol: string) => {
+        if (!["BTC/USDT", "USDT/BRL"].includes(symbol)) throw new Error("market unavailable");
+        return { symbol, quote: symbol.split("/")[1], spot: true, active: true };
+      }),
+      fetchTicker: vi.fn(async (symbol: string) => ({ symbol, last: symbol === "BTC/USDT" ? 100_000 : 5, timestamp: Date.now() })),
+    });
+    const publicTicker = vi.fn();
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange, undefined, publicTicker);
+    await executor.initialize();
+    await expect(executor.getAccountSnapshot(true)).resolves.toMatchObject({
+      totalUsdt: 5000, quoteFree: 5000, equityUsdt: 6050, unvaluedAssets: [], assetValuesUsdt: { BRL: 50, BTC: 1000 },
+    });
+
+    const identity = { uid: "123", mainUid: "123" };
+    const observeDemoRisk = vi.fn(async (_account: string, equity: number, observedAt: number) =>
+      ({ day: "2026-11-15", dayStartEquity: 6050, peakEquity: 6050, equity, observedAt }));
+    const persistence = {
+      observeDemoRisk, demoOrderJournal: async () => [],
+      getDemoBaselineCandidate: async () => ({
+        observedAt: new Date(1000), balances: { USDT: 5000, BRL: 250 }, evidence: { accountIdentity: identity }, status: "UNVERIFIED",
+      }),
+    };
+    await expect(inspectDemoResume(persistence, executor, { maxDailyLoss: 0.03, maxDrawdown: 0.1 })).resolves.toEqual({ status: "safe" });
+    await expect(inspectDemoEquityRisk(persistence, executor, 0.03, 0.1)).resolves.toEqual({ status: "safe" });
+    expect(observeDemoRisk).toHaveBeenCalledWith("123:123", 6050, expect.any(Number));
+    expect(exchange.fetchTicker).not.toHaveBeenCalledWith("DOGE/USDT");
+    expect(publicTicker).not.toHaveBeenCalled();
+    expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  });
+
+  it("uses public prices when the Demo markets lack BRL and rejects an old bridge leg", async () => {
+    const exchange = exchangeMock({
+      fetchBalance: vi.fn(async () => ({ free: { USDT: 5000 }, total: { USDT: 5000, BRL: 500 } })),
+    });
+    const publicTicker = vi.fn(async (symbol: string) => {
+      if (symbol === "USDT/BRL") throw new Error("pair unavailable");
+      return { symbol, last: symbol === "BRL1/BRL" ? 2 : 0.4, timestamp: Date.now() };
+    });
+    const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange, undefined, publicTicker);
+    await executor.initialize();
+    await expect(executor.getAccountSnapshot(true)).resolves.toMatchObject({
+      equityUsdt: 5100, assetValuesUsdt: { BRL: 100 }, quoteFree: 5000,
+    });
+    publicTicker.mockImplementation(async (symbol) =>
+      ({ symbol, last: symbol === "USDT/BRL" ? 0 : 1, timestamp: Date.now() - 3 * 60_000 }));
+    await expect(executor.getAccountSnapshot()).resolves.toMatchObject({
+      equityUsdt: null, unvaluedAssets: ["BRL"],
+      valuationFailures: { BRL: expect.arrayContaining([
+        { pair: "USDT/BRL", source: "public_okx", reason: "invalid_quote" },
+        { pair: "BRL1/BRL", source: "public_okx", reason: "stale_quote" },
+      ]) },
+    });
+  });
+
   it("does not present a partial Demo portfolio valuation as total equity", async () => {
     const exchange = exchangeMock({
       fetchBalance: vi.fn(async () => ({ free: { USDT: 100 }, total: { USDT: 100, DOGE: 5 } })),

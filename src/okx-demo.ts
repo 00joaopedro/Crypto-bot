@@ -7,6 +7,7 @@ import { collectOkxDemoOrderEvidence, type OkxOrderEvidenceClient, type OrderEvi
 import type { JournaledDemoBuy } from "./demo-ownership.js";
 import { inspectBaselineBills } from "./okx-demo-baseline-history.js";
 import { readDemoAccountIdentity, type DemoAccountIdentity } from "./okx-demo-identity.js";
+import { demoValuationRate, readPublicOkxTicker, type ValuationAttempt, type ValuationQuote } from "./okx-demo-valuation.js";
 import { collectDemoAccountCoverage } from "./okx-demo-account-coverage.js";
 
 export type OkxDemoCredentials = {
@@ -41,6 +42,8 @@ export type OkxDemoAccountSnapshot = {
   totalUsdt: number | null;
   equityUsdt: number | null;
   unvaluedAssets: string[];
+  valuationQuotes?: Record<string, ValuationQuote>;
+  valuationFailures?: Record<string, ValuationAttempt[]>;
   assetValuesUsdt?: Record<string, number>;
   updatedAt: string;
 };
@@ -137,6 +140,7 @@ export class OkxDemoExecutor {
     }),
     private readonly pause: Pause = (milliseconds) =>
       new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    private readonly fetchPublicValuationTicker = readPublicOkxTicker,
   ) {}
 
   async initialize(): Promise<OkxDemoStatus> {
@@ -183,24 +187,39 @@ export class OkxDemoExecutor {
     let equity = 0;
     const assetValuesUsdt: Record<string, number> = Object.create(null);
     const unvaluedAssets: string[] = [];
+    const valuationQuotes: Record<string, ValuationQuote> = Object.create(null);
+    const valuationFailures: Record<string, ValuationAttempt[]> = Object.create(null);
     for (const [currency, raw] of Object.entries(totals)) {
       const amount = finiteOrNull(raw);
       if (amount === null || amount < 0) { unvaluedAssets.push(currency); continue; }
       if (amount === 0) continue;
       if (currency === "USDT") { equity += amount; continue; }
-      try {
-        const spot = this.resolveActiveSpotMarket(`${currency}/USDT`);
-        const ticker = await this.exchange.fetchTicker(spot.symbol);
-        const price = finiteOrNull(ticker.last);
-        if (price === null || price <= 0) throw new Error("No valid last price");
-        assetValuesUsdt[currency] = amount * price;
-        equity += assetValuesUsdt[currency]!;
-      } catch {
+
+      const valuation = await demoValuationRate(currency,
+        (pair) => this.resolveActiveSpotMarket(pair).symbol,
+        (pair) => this.exchange.fetchTicker(pair),
+        this.fetchPublicValuationTicker,
+      );
+      const value = valuation.rate === null ? NaN : amount * valuation.rate;
+      if (valuation.rate === null || !Number.isFinite(value) || value <= 0 || !Number.isFinite(equity + value)) {
         unvaluedAssets.push(currency);
+        valuationFailures[currency] = valuation.attempts;
+        continue;
       }
+      valuationQuotes[currency] = valuation.quote;
+      assetValuesUsdt[currency] = value;
+      equity += value;
     }
-    if (readTotalBalance(balance.total, "USDT") === null) unvaluedAssets.push("USDT");
-    return { quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt: readTotalBalance(balance.total, quoteCurrency), equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, ...(includeAssetValues ? { assetValuesUsdt } : {}), updatedAt: new Date().toISOString() };
+    const totalUsdt = readTotalBalance(balance.total, "USDT");
+    if (totalUsdt === null && !unvaluedAssets.includes("USDT")) unvaluedAssets.push("USDT");
+    return {
+      quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt,
+      equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets,
+      ...(Object.keys(valuationQuotes).length ? { valuationQuotes } : {}),
+      ...(Object.keys(valuationFailures).length ? { valuationFailures } : {}),
+      ...(includeAssetValues ? { assetValuesUsdt } : {}),
+      updatedAt: new Date().toISOString(),
+    };
   }
 
   /** A read-only candidate, not a proof of atomicity or complete history. */
