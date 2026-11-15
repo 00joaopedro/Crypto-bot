@@ -466,9 +466,15 @@ async function main(): Promise<void> {
           const currentBot = bot;
           const currentExecutor = okxDemo;
           await reconcilePendingDemoOrders(persistence, currentExecutor);
-          const safety = await inspectDemoResume(persistence, currentExecutor);
-          if (safety.status !== "safe") { await persistence.setPaused(true, "system:demo_execution_safety"); return safety; }
+          const safety = await inspectDemoResume(persistence, currentExecutor, {
+            maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
+            maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
+          });
           if (reconfiguring || currentBot !== bot || currentExecutor !== okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
+          if (safety.status !== "safe") {
+            await persistence.setPaused(true, "system:demo_execution_safety", safety.reason);
+            return safety;
+          }
           await persistence.setPaused(false, "dashboard");
           currentBot.clearDemoExecutionBlock();
           return { status: "resumed" as const };
@@ -507,8 +513,9 @@ async function main(): Promise<void> {
               if (exits.status !== "safe" || coverage.status !== "safe" || safety.status !== "safe") {
                 exitsReady = false;
                 const awaitingReadback = exits.status === "blocked" && ["exit_amendment_awaiting_readback", "exit_amendment_unconfirmed", "exit_amendment_not_submitted"].includes(exits.reason);
-                if (!awaitingReadback || coverage.status !== "safe" || safety.status !== "safe") await persistence.setPaused(true, "system:demo_exit_supervision");
-                await persistence.recordOperationalEvent({ eventType: "DEMO_PROTECTION_BLOCKED", severity: "WARN", details: { reason: exits.status !== "safe" ? exits.reason : coverage.status !== "safe" ? coverage.reason : safety.status !== "safe" ? safety.reason : "unknown" } });
+                const reason = coverage.status !== "safe" ? coverage.reason : safety.status !== "safe" ? safety.reason : exits.status !== "safe" ? exits.reason : "unknown";
+                if (!awaitingReadback || coverage.status !== "safe" || safety.status !== "safe") await persistence.setPaused(true, "system:demo_exit_supervision", reason);
+                await persistence.recordOperationalEvent({ eventType: "DEMO_PROTECTION_BLOCKED", severity: "WARN", details: { reason } });
               }
               if (Date.now() - lastAccountingCheck >= 15 * 60_000) {
                 lastAccountingCheck = Date.now();

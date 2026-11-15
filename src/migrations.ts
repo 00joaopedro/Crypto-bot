@@ -226,5 +226,8 @@ export const migrations: readonly Migration[] = [
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   ` },
+  { version: 14, name: "bot_control_pause_reason", sql: `
+    ALTER TABLE bot_control ADD COLUMN pause_reason TEXT;
+  ` },
 ] as const;
 

@@ -256,9 +256,11 @@ integration("PostgresPersistence", () => {
       maxConcurrentPositions: 2,
     });
     expect(dashboardSettings.symbol).toBeTruthy();
-    await persistence.setPaused(true, "integration-test");
+    await persistence.setPaused(true, "system:demo_execution_safety", "demo_balance_unconfirmed");
     await expect(persistence.isPaused()).resolves.toBe(true);
-    await persistence.setPaused(false, "integration-test");
+    await expect(persistence.getDashboardData()).resolves.toMatchObject({ paused: true, pauseReason: "demo_balance_unconfirmed" });
+    await persistence.setPaused(false, "dashboard");
+    await expect(persistence.getDashboardData()).resolves.toMatchObject({ paused: false, pauseReason: null });
 
     const symbol = `TEST/${Date.now()}`;
     const candle: Candle = {

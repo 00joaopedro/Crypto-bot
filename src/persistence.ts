@@ -50,6 +50,7 @@ export type DashboardSettings = {
 
 export type DashboardData = {
   paused: boolean;
+  pauseReason?: string | null;
   settings: DashboardSettings;
   latestDecision: Record<string, unknown> | null;
   latestSnapshot: Record<string, unknown> | null;
@@ -75,7 +76,7 @@ export type OperationalEvent = {
 export interface BotPersistence {
   isPaused(): Promise<boolean>;
   loadRecoveryState?(symbol: string): Promise<RecoveryState | null>;
-  setPaused(paused: boolean, actor: string): Promise<void>;
+  setPaused(paused: boolean, actor: string, reason?: string): Promise<void>;
   recordCycle(cycle: PersistedCycle): Promise<void>;
   recordDemoOrder(
     symbol: string,
@@ -245,25 +246,26 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows[0]?.paused ?? true;
   }
 
-  async setPaused(paused: boolean, actor: string): Promise<void> {
+  async setPaused(paused: boolean, actor: string, reason?: string): Promise<void> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      const pauseReason = paused ? reason ?? (actor.startsWith("system:") ? actor.slice(7) : null) : null;
       await client.query(
         `UPDATE bot_control
-         SET paused = $1, updated_at = NOW(), updated_by = $2
+         SET paused = $1, updated_at = NOW(), updated_by = $2, pause_reason = $3
          WHERE id = 1`,
-        [paused, actor],
+        [paused, actor, pauseReason],
       );
       await client.query(
         `INSERT INTO audit_events (event_type, actor, details)
          VALUES ('BOT_PAUSE_CHANGED', $1, $2::jsonb)`,
-        [actor, JSON.stringify({ paused })],
+        [actor, JSON.stringify({ paused, ...(pauseReason ? { reason: pauseReason } : {}) })],
       );
       await client.query(
         `INSERT INTO operational_events (event_type, severity, details)
          VALUES ('BOT_PAUSED', 'WARN', $1::jsonb)`,
-        [JSON.stringify({ paused, actor })],
+        [JSON.stringify({ paused, actor, ...(pauseReason ? { reason: pauseReason } : {}) })],
       );
       await client.query("COMMIT");
     } catch (error) {
@@ -622,7 +624,7 @@ export class PostgresPersistence implements BotPersistence {
   async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
     const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades, okxEvents] = await Promise.all([
-      this.pool.query<{ paused: boolean }>("SELECT paused FROM bot_control WHERE id = 1"),
+      this.pool.query<{ paused: boolean; pause_reason: string | null }>("SELECT paused, pause_reason FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
          FROM decisions WHERE symbol = $1 ORDER BY created_at DESC LIMIT 1`,
@@ -738,6 +740,7 @@ export class PostgresPersistence implements BotPersistence {
     const wins = analytics.wins;
     return {
       paused: control.rows[0]?.paused ?? true,
+      pauseReason: control.rows[0]?.pause_reason ?? null,
       settings,
       latestDecision: decision.rows[0] ?? null,
       latestSnapshot: snapshot.rows[0] ? { ...snapshot.rows[0], snapshot: { ...latestSnapshot, ...aggregateSnapshot } } : null,

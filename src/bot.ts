@@ -114,7 +114,7 @@ export class TradingBot {
       const safety = await this.options.verifyDemoExecutionSafety();
       if (safety.status !== "safe") {
         this.demoExecutionBlocked = true;
-        await this.options.persistence?.setPaused(true, "system:demo_execution_safety");
+        await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason);
         await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "WARN", { symbol: this.options.symbol, approved: false, reason: safety.reason });
         console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
         return;
@@ -125,7 +125,7 @@ export class TradingBot {
       const state = await this.options.inspectDemoPositions();
       if (state.status !== "safe") {
         this.demoExecutionBlocked = true;
-        await this.options.persistence?.setPaused(true, "system:demo_position_uncertain");
+        await this.options.persistence?.setPaused(true, "system:demo_position_uncertain", state.reason);
         return;
       }
       this.demoOccupiedSymbols = new Set(state.positions.map(position => position.symbol));
@@ -359,7 +359,7 @@ export class TradingBot {
       if (safety.status !== "safe") {
         approved = false;
         this.demoExecutionBlocked = true;
-        await this.options.persistence?.setPaused(true, "system:demo_execution_safety");
+        await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason);
         console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
       }
     }
@@ -545,7 +545,7 @@ export class TradingBot {
             const safety = await this.options.verifyDemoExecutionSafety();
             if (safety.status !== "safe") {
               this.demoExecutionBlocked = true;
-              try { await this.options.persistence?.setPaused(true, "system:demo_execution_safety"); }
+              try { await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason); }
               catch { console.error(JSON.stringify({ event: "demo_safety_pause_write_failed" })); }
               console.error(JSON.stringify({ event: "demo_protection_unconfirmed", reason: safety.reason }));
             }
