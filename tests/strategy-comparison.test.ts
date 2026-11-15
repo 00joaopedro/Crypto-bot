@@ -55,3 +55,35 @@ describe("fixed comparative validation", () => {
     expect(r.events).toHaveLength(1);
   });
 });
+
+it("isolates the BTC filter across the same out-of-sample windows and validates the reference", () => {
+  const data = candles(190);
+  const reference = data.map((bar, i) => ({ ...bar, close: 200 - i * 0.5 }));
+  const setup = {
+    ...options, symbol: "ETH/USDT", trainCandles: 100,
+    alternatives: [{ name: "with-regime", parameters: { ...parameters, btcRegimeFilter: true } }],
+  };
+  expect(() => compareDemoStrategies(data, setup)).toThrow("reference series");
+  expect(() => compareDemoStrategies(data, setup, reference.slice(1))).toThrow("cover");
+  const result = compareDemoStrategies(data, setup, reference);
+  expect(result.btcReference?.sha256).toHaveLength(64);
+  for (const scenario of result.results) {
+    const [off, on] = scenario.variants;
+    expect(off!.summary.closedTrades).toBeGreaterThan(0);
+    expect(off!.summary.regimeBlockedSignals).toBe(0);
+    expect(on!.summary).toMatchObject({ closedTrades: 0, regimeBlockedSignals: 90 });
+    expect(on!.report.result.windows.map(w => w.testStart)).toEqual(off!.report.result.windows.map(w => w.testStart));
+  }
+});
+
+it("rechecks delayed entries at the fill open without using its closing price", () => {
+  const data = candles(100);
+  const reference = data.map(bar => ({ ...bar, close: 100 }));
+  const options = { ...base, btcRegimeFilter: true, warmupCandles: 97, executionDelayCandles: 2 };
+
+  const shockBeforeFill = reference.map((bar, i) => i === 98 ? { ...bar, close: 96 } : bar);
+  expect(runBacktest(data, { ...options, btcCandles: shockBeforeFill }).trades).toHaveLength(0);
+
+  const shockAtFillClose = reference.map((bar, i) => i === 99 ? { ...bar, close: 96 } : bar);
+  expect(runBacktest(data, { ...options, btcCandles: shockAtFillClose }).trades[0]?.entryTimestamp).toBe(data[99]!.timestamp);
+});

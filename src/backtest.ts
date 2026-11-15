@@ -1,3 +1,4 @@
+import { REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import type { PositionSizingLimits } from "./position-sizing.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
@@ -9,6 +10,8 @@ export type BacktestOptions = {
   tradeSizeUsdt: number;
   riskSizing?: PositionSizingLimits;
   symbol?: string;
+  btcRegimeFilter?: boolean;
+  btcCandles?: Candle[];
   feeRate: number;
   slippageRate: number;
   stopLossRate: number;
@@ -45,6 +48,7 @@ export type BacktestMetrics = {
   maxDrawdownPercent: number;
   executionDelayCandles: number;
   rejectedEntries: number;
+  regimeBlockedSignals: number;
   openPositionAtEnd: boolean;
 };
 
@@ -60,6 +64,10 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
 
   if (options.liquidity && (!Number.isFinite(options.liquidity.assumedDepthUsdt) || options.liquidity.assumedDepthUsdt < 0 || !Number.isFinite(options.liquidity.maxParticipationRate) || options.liquidity.maxParticipationRate <= 0 || options.liquidity.maxParticipationRate > 1)) throw new Error("Invalid liquidity assumptions");
   let rejectedEntries = 0;
+  let regimeBlockedSignals = 0;
+  const btcCandles = options.btcCandles ?? (options.symbol === "BTC/USDT" ? candles : []);
+  const btcByTime = options.btcRegimeFilter ? new Map(btcCandles.map((candle, index) => [candle.timestamp, index])) : undefined;
+  const regimeBlockAt = (timestamp: number) => btcByTime && btcRegimeBlock(btcCandles, timestamp, btcByTime.get(timestamp) ?? -1);
   const trader = new PaperTrader(options);
   const closedTrades: PaperTradeClosed[] = [];
   const equities: number[] = [];
@@ -74,9 +82,17 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     }) : undefined;
     // A signal uses the just-closed candle; the earliest honest fill is the
     // next candle, even when no additional artificial delay is requested.
-    if (index >= warmup && signal?.action === "BUY") pending.set(index + Math.max(1, delay), true);
+    if (index >= warmup && signal?.action === "BUY") {
+      if (regimeBlockAt(candle.timestamp)) regimeBlockedSignals++;
+      else pending.set(index + Math.max(1, delay), true);
+    }
     const sellSignal = options.executionProfile !== "demo-proxy" && signal?.action === "SELL";
     let approved = index >= warmup && pending.get(index) === true && !trader.hasOpenPosition;
+    // The fill candle has just opened. Only the preceding BTC close can confirm a delayed entry.
+    if (approved && delay > 1 && regimeBlockAt(candle.timestamp - REGIME_CANDLE_MS)) {
+      approved = false;
+      regimeBlockedSignals++;
+    }
     let liquidity = options.tradeSizeUsdt;
     if (approved && options.liquidity) {
       // Only the PREVIOUS closed candle is available at the next open.
@@ -126,7 +142,7 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     profitFactor: grossLossUsdt === 0 ? (grossProfitUsdt > 0 ? Number.POSITIVE_INFINITY : 0) : grossProfitUsdt / grossLossUsdt,
     expectancyUsdt: closedTrades.length ? closedTrades.reduce((sum, trade) => sum + trade.netPnlUsdt, 0) / closedTrades.length : 0,
     winRate: closedTrades.length ? (wins / closedTrades.length) * 100 : 0,
-    trades: closedTrades.length, wins, losses, maxDrawdownPercent, executionDelayCandles: delay, rejectedEntries, openPositionAtEnd: trader.hasOpenPosition,
+    trades: closedTrades.length, wins, losses, maxDrawdownPercent, executionDelayCandles: delay, rejectedEntries, regimeBlockedSignals, openPositionAtEnd: trader.hasOpenPosition,
   }, trades: closedTrades };
 }
 

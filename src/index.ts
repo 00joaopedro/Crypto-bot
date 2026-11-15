@@ -279,6 +279,7 @@ async function main(): Promise<void> {
       return new TradingBot(market, {
         symbol: settings.symbol,
         candleLimit: config.CANDLE_LIMIT,
+        btcRegimeFilter: config.BTC_REGIME_FILTER_ENABLED,
         minimumConfidence: config.MIN_AI_CONFIDENCE,
         aiFailureMode: config.AI_MODE === "quantitative" ? "quantitative" : config.AI_FAILURE_MODE,
         minimumSignalScore: config.MIN_SIGNAL_SCORE,
