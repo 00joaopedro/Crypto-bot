@@ -1,4 +1,4 @@
-import { btcRegimeBlock } from "./btc-regime.js";
+import { REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import type { PositionSizingLimits } from "./position-sizing.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
@@ -67,6 +67,7 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   let regimeBlockedSignals = 0;
   const btcCandles = options.btcCandles ?? (options.symbol === "BTC/USDT" ? candles : []);
   const btcByTime = options.btcRegimeFilter ? new Map(btcCandles.map((candle, index) => [candle.timestamp, index])) : undefined;
+  const regimeBlockAt = (timestamp: number) => btcByTime && btcRegimeBlock(btcCandles, timestamp, btcByTime.get(timestamp) ?? -1);
   const trader = new PaperTrader(options);
   const closedTrades: PaperTradeClosed[] = [];
   const equities: number[] = [];
@@ -82,12 +83,16 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     // A signal uses the just-closed candle; the earliest honest fill is the
     // next candle, even when no additional artificial delay is requested.
     if (index >= warmup && signal?.action === "BUY") {
-      const blocked = btcByTime && btcRegimeBlock(btcCandles, candle.timestamp, btcByTime.get(candle.timestamp) ?? -1);
-      if (blocked) regimeBlockedSignals++;
+      if (regimeBlockAt(candle.timestamp)) regimeBlockedSignals++;
       else pending.set(index + Math.max(1, delay), true);
     }
     const sellSignal = options.executionProfile !== "demo-proxy" && signal?.action === "SELL";
     let approved = index >= warmup && pending.get(index) === true && !trader.hasOpenPosition;
+    // The fill candle has just opened. Only the preceding BTC close can confirm a delayed entry.
+    if (approved && delay > 1 && regimeBlockAt(candle.timestamp - REGIME_CANDLE_MS)) {
+      approved = false;
+      regimeBlockedSignals++;
+    }
     let liquidity = options.tradeSizeUsdt;
     if (approved && options.liquidity) {
       // Only the PREVIOUS closed candle is available at the next open.
