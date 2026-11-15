@@ -1,13 +1,14 @@
+import { inspectDemoEquityRisk } from "./demo-entry.js";
 import { inspectDemoExecutionSafety } from "./demo-execution-safety.js";
 import { sameDemoAccount } from "./okx-demo-identity.js";
 import type { PostgresPersistence } from "./persistence.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
 
-/** Read-only preflight. The caller applies the resume only while this result
- * and the bot/executor references are still current. */
+/** Runs the Demo safety checks before admitting an operator resume. */
 export async function inspectDemoResume(
-  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate">,
-  executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "inspectAccountIdentity" | "inspectTradingPermission">,
+  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate" | "observeDemoRisk">,
+  executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "inspectAccountIdentity" | "inspectTradingPermission" | "getAccountSnapshot">,
+  limits: { maxDailyLoss: number; maxDrawdown: number },
 ): Promise<{ status: "safe" } | { status: "blocked"; reason: string }> {
   try {
     const baseline = await persistence.getDemoBaselineCandidate();
@@ -15,6 +16,8 @@ export async function inspectDemoResume(
     if (!baseline || account.status !== "confirmed" || !sameDemoAccount(baseline.evidence.accountIdentity, account.identity)) return { status: "blocked", reason: "demo_account_identity_unconfirmed" };
     const permission = await executor.inspectTradingPermission();
     if (permission.status !== "available" || !permission.trading) return { status: "blocked", reason: "demo_trading_permission_unconfirmed" };
-    return await inspectDemoExecutionSafety(persistence, executor);
+    const safety = await inspectDemoExecutionSafety(persistence, executor);
+    if (safety.status !== "safe") return safety;
+    return await inspectDemoEquityRisk(persistence, executor, limits.maxDailyLoss, limits.maxDrawdown);
   } catch { return { status: "blocked", reason: "demo_resume_check_failed" }; }
 }

@@ -49,8 +49,11 @@ export async function inspectDemoEquityRisk(
     const account = await executor.inspectAccountIdentity();
     if (!baseline || account.status !== 'confirmed' || !sameDemoAccount(baseline.evidence.accountIdentity, account.identity)) return { status: 'blocked', reason: 'demo_account_identity_unconfirmed' };
     const snapshot = await executor.getAccountSnapshot();
-    if (snapshot.equityUsdt === null) return { status: 'blocked', reason: 'demo_balance_unconfirmed' };
-    const state = await persistence.observeDemoRisk(`${account.identity.mainUid}:${account.identity.uid}`, snapshot.equityUsdt, Date.now());
+    const { equityUsdt: equity, quoteFree: free } = snapshot;
+    if (equity === null || free === null || !Number.isFinite(equity) || !Number.isFinite(free) || equity <= 0 || free < 0 || free > equity) {
+      return { status: 'blocked', reason: 'demo_balance_unconfirmed' };
+    }
+    const state = await persistence.observeDemoRisk(`${account.identity.mainUid}:${account.identity.uid}`, equity, Date.now());
     const reason = demoRiskBlock(state, maxDailyLoss, maxDrawdown);
     return reason ? { status: 'blocked', reason } : { status: 'safe' };
   } catch { return { status: 'blocked', reason: 'demo_equity_risk_unconfirmed' }; }
