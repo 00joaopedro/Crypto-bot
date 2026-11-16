@@ -24,6 +24,7 @@ export type PersistedCycle = {
   paperResult: PaperCycleResult;
   paperState: PaperTraderState;
   riskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
+  lossPause?: { controlRevision?: string };
   decision?: {
     mode: "PAPER" | "PAPER_WITH_OKX_DEMO";
     signal: QuantSignal;
@@ -75,6 +76,7 @@ export type OperationalEvent = {
 
 export interface BotPersistence {
   isPaused(): Promise<boolean>;
+  readControlState?(): Promise<{ paused: boolean; revision: string }>;
   loadRecoveryState?(symbol: string): Promise<RecoveryState | null>;
   setPaused(paused: boolean, actor: string, reason?: string): Promise<void>;
   recordCycle(cycle: PersistedCycle): Promise<void>;
@@ -246,27 +248,38 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows[0]?.paused ?? true;
   }
 
+  async readControlState(): Promise<{ paused: boolean; revision: string }> {
+    const { rows } = await this.pool.query<{ paused: boolean; revision: string }>(
+      "SELECT paused, xmin::text AS revision FROM bot_control WHERE id = 1",
+    );
+    return rows[0] ?? { paused: true, revision: "" };
+  }
+
+  private async writePause(client: PoolClient, paused: boolean, actor: string, reason?: string, expectedRevision?: string): Promise<void> {
+    const pauseReason = paused ? reason ?? (actor.startsWith("system:") ? actor.slice(7) : null) : null;
+    const updated = await client.query(
+      `UPDATE bot_control SET paused = $1, updated_at = NOW(), updated_by = $2, pause_reason = $3
+       WHERE id = 1 AND (paused IS DISTINCT FROM $1 OR pause_reason IS DISTINCT FROM $3)
+         AND ($4::text IS NULL OR xmin::text = $4)`,
+      [paused, actor, pauseReason, expectedRevision ?? null],
+    );
+    if (updated.rowCount !== 1) return;
+    const details = { paused, ...(pauseReason ? { reason: pauseReason } : {}) };
+    await client.query(
+      `INSERT INTO audit_events (event_type, actor, details) VALUES ('BOT_PAUSE_CHANGED', $1, $2::jsonb)`,
+      [actor, JSON.stringify(details)],
+    );
+    await client.query(
+      `INSERT INTO operational_events (event_type, severity, details) VALUES ('BOT_PAUSED', 'WARN', $1::jsonb)`,
+      [JSON.stringify({ ...details, actor })],
+    );
+  }
+
   async setPaused(paused: boolean, actor: string, reason?: string): Promise<void> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
-      const pauseReason = paused ? reason ?? (actor.startsWith("system:") ? actor.slice(7) : null) : null;
-      await client.query(
-        `UPDATE bot_control
-         SET paused = $1, updated_at = NOW(), updated_by = $2, pause_reason = $3
-         WHERE id = 1`,
-        [paused, actor, pauseReason],
-      );
-      await client.query(
-        `INSERT INTO audit_events (event_type, actor, details)
-         VALUES ('BOT_PAUSE_CHANGED', $1, $2::jsonb)`,
-        [actor, JSON.stringify({ paused, ...(pauseReason ? { reason: pauseReason } : {}) })],
-      );
-      await client.query(
-        `INSERT INTO operational_events (event_type, severity, details)
-         VALUES ('BOT_PAUSED', 'WARN', $1::jsonb)`,
-        [JSON.stringify({ paused, actor, ...(pauseReason ? { reason: pauseReason } : {}) })],
-      );
+      await this.writePause(client, paused, actor, reason);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");
@@ -812,6 +825,9 @@ export class PostgresPersistence implements BotPersistence {
       );
       if (checkpoint.rowCount !== 1) {
         throw new Error("Refusing to overwrite a newer portfolio checkpoint");
+      }
+      if (cycle.lossPause) {
+        await this.writePause(client, true, "system:consecutive_losses", undefined, cycle.lossPause.controlRevision);
       }
       await client.query("COMMIT");
     } catch (error) {

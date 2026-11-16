@@ -4,12 +4,23 @@ import { sameDemoAccount } from './okx-demo-identity.js';
 import type { PostgresPersistence } from './persistence.js';
 import type { OkxDemoExecutor } from './okx-demo.js';
 
-/** Fresh, read-only admission. Paper positions never establish Demo exposure. */
+export type DemoExposure = {
+  equityUsdt: number;
+  freeUsdt: number;
+  nonFreeEquityUsdt: number;
+  requestedUsdt: number;
+  projectedRate: number;
+  limitRate: number;
+};
+
+export type DemoAdmission = { allowed: boolean; reason?: string; entryRevision?: string; exposure?: DemoExposure };
+
+/** Fresh admission using confirmed Demo balances and persisted account risk. */
 export async function inspectDemoEntry(
   persistence: Pick<PostgresPersistence, 'demoOrderJournal' | 'getDemoBaselineCandidate' | 'canEnterDemoSymbol' | 'observeDemoRisk'> & Partial<Pick<PostgresPersistence, 'readDemoEntryRevision'>>,
   executor: Pick<OkxDemoExecutor, 'collectOrderEvidence' | 'inspectAccountIdentity' | 'getAccountSnapshot'>,
   input: { symbol: string; size: number; riskSizing?: boolean; stopLossRate: number; cooldownMinutes: number; maxPositions: number; maxExposure: number; riskPerTrade: number; maxDailyLoss: number; maxDrawdown: number },
-): Promise<{ allowed: boolean; reason?: string; entryRevision?: string }> {
+): Promise<DemoAdmission> {
   const no = (reason: string) => ({ allowed: false, reason });
   try {
     if (Object.values(input).some(v => typeof v === 'number' && (!Number.isFinite(v) || v < 0)) || input.size <= 0 || input.stopLossRate <= 0 || input.maxPositions < 1) return no('invalid_demo_risk_configuration');
@@ -32,7 +43,12 @@ export async function inspectDemoEntry(
     if (entryRevision !== undefined) return { allowed: true, entryRevision };
     if (free < input.size) return no('demo_insufficient_quote_balance');
     // Includes non-bot holdings and reserved quote funds conservatively.
-    if ((equity - free + input.size) / equity > input.maxExposure) return no('demo_max_exposure');
+    const projectedRate = (equity - free + input.size) / equity;
+    if (projectedRate > input.maxExposure) return {
+      ...no('demo_max_exposure'),
+      exposure: { equityUsdt: equity, freeUsdt: free, nonFreeEquityUsdt: equity - free,
+        requestedUsdt: input.size, projectedRate, limitRate: input.maxExposure },
+    };
     if (input.size * input.stopLossRate / equity > input.riskPerTrade) return no('demo_risk_per_trade');
     return { allowed: true };
   } catch { return no('demo_entry_check_failed'); }

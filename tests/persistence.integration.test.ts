@@ -323,6 +323,20 @@ integration("PostgresPersistence", () => {
       }),
     ).rejects.toThrow("Refusing to overwrite a newer portfolio checkpoint");
 
+    const controlBefore = await persistence.readControlState();
+    const checkpoint = { symbol: `${symbol}-PAUSE`, candle: { ...candle, timestamp: candle.timestamp + 900_000 }, replayed: true, paperResult, paperState: trader.exportState() };
+    const alerts = async () => (JSON.parse(await persistence.getDiagnosticLogs(1, 500)).records as Array<{ event_type: string; details?: { actor?: string } }>)
+      .filter(row => row.event_type === "BOT_PAUSED" && row.details?.actor === "system:consecutive_losses").length;
+    const previousAlerts = await alerts();
+    await persistence.recordCycle({ ...checkpoint, lossPause: { controlRevision: controlBefore.revision } });
+    await persistence.setPaused(true, "system:consecutive_losses");
+    expect(await alerts()).toBe(previousAlerts + 1);
+    await persistence.setPaused(false, "dashboard");
+    await persistence.recordCycle({ ...checkpoint, candle: { ...candle, timestamp: candle.timestamp + 1_800_000 },
+      lossPause: { controlRevision: controlBefore.revision } });
+    await expect(persistence.isPaused()).resolves.toBe(false);
+    expect(await alerts()).toBe(previousAlerts + 1);
+
     const runId = await persistence.startRun({ source: "integration-test" });
     await persistence.stopRun(runId, "test_complete");
     await persistence.recordDemoOrder(symbol, candle.timestamp, {

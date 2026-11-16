@@ -206,7 +206,7 @@ export class PaperTrader {
   advanceManagedExit(candles: Candle[]): void {
     const position = this.position;
     if (!position?.exitPolicy || (!position.entryAtOpen && candles.at(-1)?.timestamp === position.entryTimestamp)) return;
-    const next = advanceExitStop({ stop: position.stopLossPrice, highWatermark: position.highWatermark ?? position.entryPrice, entryPrice: position.entryPrice, quantity: position.quantity, costUsdt: position.entryNotional + position.entryFee, candles, policy: position.exitPolicy });
+    const next = advanceExitStop({ stop: position.stopLossPrice, highWatermark: position.highWatermark ?? position.entryPrice, entryPrice: position.entryPrice, quantity: position.quantity, costUsdt: position.entryNotional + position.entryFee, candles, policy: { ...position.exitPolicy, exitFeeRate: this.options.feeRate, exitSlippageRate: this.options.slippageRate } });
     position.stopLossPrice = next.stop;
     position.highWatermark = next.highWatermark;
   }
@@ -265,21 +265,24 @@ export class PaperTrader {
     const position = this.position;
     if (!position || candle.timestamp < position.entryTimestamp || (!allowSameCandle && candle.timestamp === position.entryTimestamp)) return undefined;
 
-    if (position.trailingStopPrice !== undefined) {
-      // Keep the trailing level monotonic. The initial level is derived from the
-      // entry price; subsequent candles can only tighten it after a new high.
-      const trailingRate = position.trailingStopRate ?? (1 - position.trailingStopPrice / position.entryPrice);
-      position.trailingStopPrice = Math.max(position.trailingStopPrice, candle.high * (1 - trailingRate));
-    }
 
     const stopTouched = candle.low <= position.stopLossPrice;
     const takeProfitTouched = position.exitPolicy?.mode !== "trailing_atr" && candle.high >= position.takeProfitPrice;
-    const trailingTouched = position.trailingStopPrice !== undefined && candle.close <= position.trailingStopPrice;
-    if (!stopTouched && !takeProfitTouched && !trailingTouched && !signalContrary) return undefined;
+    const trailingTouched = position.trailingStopPrice !== undefined && candle.low <= position.trailingStopPrice;
+    if (!stopTouched && !takeProfitTouched && !trailingTouched && !signalContrary) {
+      if (position.trailingStopPrice !== undefined) {
+        const trailingRate = position.trailingStopRate ?? (1 - position.trailingStopPrice / position.entryPrice);
+        const candidate = candle.high * (1 - trailingRate);
+        // Apply a new level only to later candles, and only while still below market.
+        if (candidate < candle.close) position.trailingStopPrice = Math.max(position.trailingStopPrice, candidate);
+      }
+      return undefined;
+    }
 
     // With OHLC data the intrabar order is unknown. If both levels were touched,
     // choose stop-loss first to keep the simulation conservative.
-    const reason = stopTouched ? "STOP_LOSS" : takeProfitTouched ? "TAKE_PROFIT" : trailingTouched ? "TRAILING_STOP" : "SIGNAL_CONTRARY";
+    const reason = trailingTouched && (!stopTouched || position.trailingStopPrice! > position.stopLossPrice)
+      ? "TRAILING_STOP" : stopTouched ? "STOP_LOSS" : takeProfitTouched ? "TAKE_PROFIT" : "SIGNAL_CONTRARY";
     const targetPrice =
       reason === "STOP_LOSS" ? position.stopLossPrice : reason === "TAKE_PROFIT" ? position.takeProfitPrice : reason === "TRAILING_STOP" ? position.trailingStopPrice! : candle.close;
     const availablePrice =
