@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { parseConfig } from "../src/config.js";
 
 describe("configuration", () => {
+  it("defaults to 10 positions and 10 Demo orders, and caps each independently at 50", () => {
+    expect(parseConfig({})).toMatchObject({ MAX_CONCURRENT_POSITIONS: 10, RISK_MAX_TRADES_PER_HOUR: 10 });
+    expect(parseConfig({ MAX_CONCURRENT_POSITIONS: "50", RISK_MAX_TRADES_PER_HOUR: "5" }))
+      .toMatchObject({ MAX_CONCURRENT_POSITIONS: 50, RISK_MAX_TRADES_PER_HOUR: 5 });
+    expect(parseConfig({ RISK_MAX_TRADES_PER_HOUR: "50" }).RISK_MAX_TRADES_PER_HOUR).toBe(50);
+    expect(() => parseConfig({ MAX_CONCURRENT_POSITIONS: "51" })).toThrow();
+    expect(() => parseConfig({ RISK_MAX_TRADES_PER_HOUR: "51" })).toThrow();
+  });
   it("keeps managed exits, trailing and breakeven disabled until explicitly configured", () => {
     const config = parseConfig({});
     expect(config.EXIT_MANAGEMENT_ENABLED).toBe(false);

@@ -40,7 +40,7 @@
 
       <section class="metrics" aria-label="Indicadores principais">
         <article class="metric"><span>Patrimônio paper</span><strong id="equity">—</strong><small id="strategy-return">Retorno —</small></article>
-        <article class="metric"><span>Saldo USDT OKX Demo</span><strong id="okx-equity">—</strong><small id="okx-equity-status">Não inclui outros ativos</small></article>
+        <article class="metric"><span>USDT livre para compras Demo</span><strong id="okx-equity">—</strong><small id="okx-equity-status">Aguardando saldo USDT</small></article>
         <article class="metric"><span>Patrimônio Spot OKX Demo</span><strong id="okx-total-equity">—</strong><small id="okx-total-equity-status">Aguardando avaliação</small></article>
         <article class="metric"><span>P&amp;L realizado OKX Demo</span><strong id="demo-pnl">—</strong><small id="demo-pnl-status">Aguardando reconciliação</small></article>
         <article class="metric"><span>P&amp;L realizado Paper</span><strong id="pnl">—</strong><small id="unrealized">Não realizado —</small></article>
@@ -83,11 +83,11 @@
             <p id="scan-pairs" class="hint"></p>
             <div class="form-grid">
               <label>Valor Demo por trade (USDT)<input id="order-size" type="number" min="1" max="100" step="0.01" required></label>
-              <label>Máximo de trades<input id="max-trades" type="number" min="1" max="5" required></label>
-              <label>Posições simultâneas<input id="max-positions" type="number" min="1" max="99" required></label>
+              <label>Ordens Demo por intervalo<input id="max-trades" type="number" min="1" max="50" value="10" required></label>
+              <label>Posições simultâneas<input id="max-positions" type="number" min="1" max="50" value="10" required></label>
             </div>
             <label>Intervalo do limite<select id="interval"><option value="15">15 minutos</option><option value="60">1 hora</option><option value="240">4 horas</option><option value="1440">1 dia</option><option value="10080">1 semana</option></select></label>
-            <p class="hint">O limite conta apenas ordens Demo efetivamente enviadas. Salvar reinicia o worker de forma controlada.</p>
+            <p class="hint">Ordens Demo contam na janela móvel configurada. Posições simultâneas contam as que continuam abertas, mesmo depois da janela. Uma ordem pendente bloqueia novas entradas.</p>
             <button class="primary" type="submit">Salvar e aplicar</button>
             <p id="settings-message" class="message" role="status"></p>
           </form>

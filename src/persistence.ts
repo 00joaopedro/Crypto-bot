@@ -1,3 +1,4 @@
+import { DEFAULT_DEMO_ORDERS_PER_INTERVAL, MAX_DEMO_ORDERS_PER_INTERVAL } from "./trading-limits.js";
 import type { PauseControl } from "./auto-resume.js";
 import { demoExitStateSchema, type DemoExitState } from "./demo-exit-state.js";
 import type { ExitPolicy } from "./exit-policy.js";
@@ -66,7 +67,6 @@ export type DashboardData = {
   okxDemo: { quoteFree: number | null; totalUsdt: number | null; updatedAt: string | null; status: string; lastError?: string };
 };
 
-const MAX_SAFE_TRADES_PER_HOUR = 5;
 
 export type OperationalEvent = {
   eventType: string;
@@ -320,14 +320,6 @@ export class PostgresPersistence implements BotPersistence {
        ON CONFLICT (id) DO NOTHING`,
       [defaults.symbol, defaults.orderSizeUsdt, defaults.maxTrades, defaults.intervalMinutes, defaults.maxConcurrentPositions],
     );
-    // Existing dashboard rows predate the safety cap. Normalize them during
-    // startup so a persisted value cannot bypass the configured hourly limit.
-    await this.pool.query(
-      `UPDATE dashboard_settings
-       SET max_trades = LEAST(max_trades, $1), updated_at = NOW()
-       WHERE id = 1 AND max_trades > $1`,
-      [MAX_SAFE_TRADES_PER_HOUR],
-    );
     return this.getDashboardSettings();
   }
 
@@ -349,9 +341,9 @@ export class PostgresPersistence implements BotPersistence {
       symbol: row.symbol,
       orderSizeUsdt: Number(row.order_size_usdt),
       paperTradeSizeUsdt: row.paper_trade_size_usdt === null ? null : Number(row.paper_trade_size_usdt),
-      maxTrades: Math.min(row.max_trades, MAX_SAFE_TRADES_PER_HOUR),
+      maxTrades: row.max_trades,
       intervalMinutes: row.interval_minutes,
-      maxConcurrentPositions: Math.min(99, Math.max(1, Number(row.max_concurrent_positions))),
+      maxConcurrentPositions: row.max_concurrent_positions,
     };
   }
 
@@ -365,7 +357,7 @@ export class PostgresPersistence implements BotPersistence {
            interval_minutes = $4, max_concurrent_positions = $5,
            updated_at = NOW(), updated_by = $6
          WHERE id = 1`,
-        [settings.symbol, settings.orderSizeUsdt, Math.min(settings.maxTrades, MAX_SAFE_TRADES_PER_HOUR), settings.intervalMinutes, settings.maxConcurrentPositions, actor],
+        [settings.symbol, settings.orderSizeUsdt, settings.maxTrades, settings.intervalMinutes, settings.maxConcurrentPositions, actor],
       );
       await client.query(
         `INSERT INTO audit_events (event_type, actor, details)
@@ -393,7 +385,7 @@ export class PostgresPersistence implements BotPersistence {
          AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))`,
       [intervalMinutes],
     );
-    return !result.rows[0]?.pending && Number(result.rows[0]?.count ?? 0) < maxTrades;
+    return !result.rows[0]?.pending && Number(result.rows[0]?.count ?? 0) < Math.min(maxTrades, MAX_DEMO_ORDERS_PER_INTERVAL);
   }
 
   async readDemoEntryRevision(): Promise<string> {
@@ -403,7 +395,7 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows[0]!.revision;
   }
 
-  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = 1, intervalMinutes = 60, attachedAlgoClientId: string | null = null, expectedEntryRevision?: string): Promise<boolean> {
+  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = DEFAULT_DEMO_ORDERS_PER_INTERVAL, intervalMinutes = 60, attachedAlgoClientId: string | null = null, expectedEntryRevision?: string): Promise<boolean> {
     if (attachedAlgoClientId !== null && !/^[A-Za-z0-9]{1,32}$/.test(attachedAlgoClientId)) {
       throw new Error("Invalid Demo protection client ID");
     }
@@ -417,7 +409,7 @@ export class PostgresPersistence implements BotPersistence {
           COUNT(*) FILTER (WHERE status = 'PLACED' AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))::text AS recent
          FROM demo_orders`, [intervalMinutes],
       );
-      if ((expectedEntryRevision !== undefined && counts.rows[0]?.revision !== expectedEntryRevision) || counts.rows[0]?.pending || Number(counts.rows[0]?.recent ?? 0) >= maxTrades) {
+      if ((expectedEntryRevision !== undefined && counts.rows[0]?.revision !== expectedEntryRevision) || counts.rows[0]?.pending || Number(counts.rows[0]?.recent ?? 0) >= Math.min(maxTrades, MAX_DEMO_ORDERS_PER_INTERVAL)) {
         await client.query("COMMIT");
         return false;
       }

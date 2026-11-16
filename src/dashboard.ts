@@ -1,3 +1,4 @@
+import { MAX_CONCURRENT_POSITIONS, MAX_DEMO_ORDERS_PER_INTERVAL } from "./trading-limits.js";
 import { demoTradingExposure } from "./demo-exposure.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -10,9 +11,9 @@ import type { OkxDemoAccountSnapshot } from "./okx-demo.js";
 const settingsSchema = z.object({
   symbol: z.string().regex(/^[A-Z0-9]{2,15}\/USDT$/),
   orderSizeUsdt: z.number().positive().max(100),
-  maxTrades: z.number().int().min(1).max(5),
+  maxTrades: z.number().int().min(1).max(MAX_DEMO_ORDERS_PER_INTERVAL),
   intervalMinutes: z.number().int().min(15).max(10_080),
-  maxConcurrentPositions: z.number().int().min(1).max(99),
+  maxConcurrentPositions: z.number().int().min(1).max(MAX_CONCURRENT_POSITIONS),
 });
 
 type DashboardOptions = {
