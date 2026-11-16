@@ -1,3 +1,4 @@
+import { demoTradingExposure } from './demo-exposure.js';
 import { demoRiskBlock } from './demo-risk.js';
 import { inspectDemoExecutionState } from './demo-execution-safety.js';
 import { sameDemoAccount } from './okx-demo-identity.js';
@@ -7,7 +8,9 @@ import type { OkxDemoExecutor } from './okx-demo.js';
 export type DemoExposure = {
   equityUsdt: number;
   freeUsdt: number;
-  nonFreeEquityUsdt: number;
+  exposureUsdt: number;
+  tradingEquityUsdt: number;
+  brlReserveUsdt: number;
   requestedUsdt: number;
   projectedRate: number;
   limitRate: number;
@@ -35,21 +38,19 @@ export async function inspectDemoEntry(
     if (state.positions.length >= input.maxPositions) return no('demo_max_concurrent_positions');
     if (!await persistence.canEnterDemoSymbol(input.symbol, input.cooldownMinutes)) return no('demo_entry_cooldown');
     const snapshot = await executor.getAccountSnapshot();
-    const equity = snapshot.equityUsdt, free = snapshot.quoteFree;
-    if (equity === null || free === null || !Number.isFinite(equity) || !Number.isFinite(free) || equity <= 0 || free < 0 || free > equity) return no('demo_balance_unconfirmed');
-    const risk = await persistence.observeDemoRisk(`${account.identity.mainUid}:${account.identity.uid}`, equity, Date.now());
+    const portfolio = demoTradingExposure(snapshot);
+    if (!portfolio) return no('demo_balance_unconfirmed');
+    const risk = await persistence.observeDemoRisk(`${account.identity.mainUid}:${account.identity.uid}`, portfolio.equityUsdt, Date.now());
     const lossBlock = demoRiskBlock(risk, input.maxDailyLoss, input.maxDrawdown);
     if (lossBlock) return no(lossBlock);
     if (entryRevision !== undefined) return { allowed: true, entryRevision };
-    if (free < input.size) return no('demo_insufficient_quote_balance');
-    // Includes non-bot holdings and reserved quote funds conservatively.
-    const projectedRate = (equity - free + input.size) / equity;
+    if (portfolio.freeUsdt < input.size) return no('demo_insufficient_quote_balance');
+    const projectedRate = (portfolio.exposureUsdt + input.size) / portfolio.tradingEquityUsdt;
     if (projectedRate > input.maxExposure) return {
       ...no('demo_max_exposure'),
-      exposure: { equityUsdt: equity, freeUsdt: free, nonFreeEquityUsdt: equity - free,
-        requestedUsdt: input.size, projectedRate, limitRate: input.maxExposure },
+      exposure: { ...portfolio, requestedUsdt: input.size, projectedRate, limitRate: input.maxExposure },
     };
-    if (input.size * input.stopLossRate / equity > input.riskPerTrade) return no('demo_risk_per_trade');
+    if (input.size * input.stopLossRate / portfolio.tradingEquityUsdt > input.riskPerTrade) return no('demo_risk_per_trade');
     return { allowed: true };
   } catch { return no('demo_entry_check_failed'); }
 }

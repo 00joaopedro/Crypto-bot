@@ -1,3 +1,5 @@
+import { MAX_CONCURRENT_POSITIONS } from "./trading-limits.js";
+
 export type ManagedPosition = {
   symbol: string;
   notionalUsdt: number;
@@ -15,11 +17,11 @@ export class CentralTradeManager {
   private maxConcurrentPositions: number;
 
   constructor(private readonly options: TradeManagerOptions) {
-    this.maxConcurrentPositions = options.maxConcurrentPositions;
+    this.maxConcurrentPositions = Math.min(MAX_CONCURRENT_POSITIONS, options.maxConcurrentPositions);
   }
 
   setMaxConcurrentPositions(value: number): void {
-    this.maxConcurrentPositions = Math.min(99, Math.max(1, Math.trunc(value)));
+    this.maxConcurrentPositions = Math.min(MAX_CONCURRENT_POSITIONS, Math.max(1, Math.trunc(value)));
   }
 
   get activePositions(): ManagedPosition[] {

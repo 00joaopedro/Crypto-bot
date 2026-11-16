@@ -23,6 +23,40 @@ it('explains a Demo refusal using the configured order and full account exposure
   const getAccountSnapshot = async () => ({ ...await executor.getAccountSnapshot(), equityUsdt: 200 });
   expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot }, input)).toEqual({
     allowed: false, reason: 'demo_max_exposure',
-    exposure: { equityUsdt: 200, freeUsdt: 100, nonFreeEquityUsdt: 100, requestedUsdt: 10, projectedRate: 0.55, limitRate: 0.5 },
+    exposure: { equityUsdt: 200, freeUsdt: 100, exposureUsdt: 100, tradingEquityUsdt: 200, brlReserveUsdt: 0, requestedUsdt: 10, projectedRate: 0.55, limitRate: 0.5 },
   });
+});
+
+it('keeps free BRL out of exposure and the budget while retaining locked balances', async () => {
+  const snapshot = await executor.getAccountSnapshot();
+  const getAccountSnapshot = async () => ({ ...snapshot, equityUsdt: 900, freeBrlValueUsdt: 800 });
+  expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot }, input)).toEqual({ allowed: true });
+  const withLockedFunds = async () => ({ ...await getAccountSnapshot(), freeBrlValueUsdt: 700 });
+  expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot: withLockedFunds }, input))
+    .toMatchObject({ allowed: false, reason: 'demo_max_exposure', exposure: { exposureUsdt: 100, tradingEquityUsdt: 200 } });
+  expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot }, { ...input, size: 110 }))
+    .toMatchObject({ reason: 'demo_insufficient_quote_balance' });
+  const unvalued = async () => ({ ...await getAccountSnapshot(), unvaluedAssets: ['ETH'] });
+  expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot: unvalued }, input))
+    .toMatchObject({ reason: 'demo_balance_unconfirmed' });
+});
+
+it.each([6, 10])('uses the 10-position limit independently when %i positions remain open', async count => {
+  const fixtures = Array.from({ length: count }, (_, i) => ({
+    id: String(i + 1), clientOrderId: `CB${i}`, algoId: `AP${i}`, symbol: `PAIR${i}/USDT`,
+  }));
+  const rows = fixtures.map(item => ({
+    status: 'PLACED', client_order_id: item.clientOrderId, symbol: item.symbol,
+    attached_algo_client_id: item.algoId, result: { orderId: item.id }, created_at: new Date(2000),
+  }));
+  const collectOrderEvidence = async () => ({
+    status: 'collected' as const,
+    buys: fixtures.map(item => ({ id: item.id, clientOrderId: item.clientOrderId, symbol: item.symbol, side: 'buy' as const, attachedAlgoClientIds: [item.algoId] })),
+    sells: [],
+    protections: fixtures.map(item => ({ algoClientId: item.algoId, symbol: item.symbol, side: 'sell' as const, spawnedOrderIds: [] })),
+    protectionStates: Object.fromEntries(fixtures.map(item => [item.algoId, 'live' as const])),
+    orders: fixtures.map(item => ({ id: item.id, symbol: item.symbol, side: 'buy' as const, filled: 1, terminal: true, ownershipConfirmed: false })),
+  });
+  const result = await inspectDemoEntry({ ...persistence, demoOrderJournal: async () => rows }, { ...executor, collectOrderEvidence }, { ...input, maxPositions: 10 });
+  expect(result).toEqual(count === 6 ? { allowed: true } : { allowed: false, reason: 'demo_max_concurrent_positions' });
 });

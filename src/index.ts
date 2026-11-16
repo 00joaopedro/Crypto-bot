@@ -505,6 +505,7 @@ async function main(): Promise<void> {
         persistence,
         supportedSymbols,
         onSettingsChanged: reconfigure,
+        getLastSignalScan: () => bot.getLastSignalScan(),
         ...(config.AUTO_RESUME_ENABLED ? { getAutoResumeStatus: async () => {
           const control = await persistence.readControlState();
           const eligibleAt = nextAutoResume(control);
@@ -532,7 +533,7 @@ async function main(): Promise<void> {
           currentBot.clearDemoExecutionBlock();
           return { status: "resumed" as const };
         } } : {}),
-        ...(okxDemo ? { getOkxDemoSnapshot: () => okxDemo!.getAccountSnapshot() } : {}),
+        ...(okxDemo ? { getOkxDemoSnapshot: () => okxDemo!.getAccountSnapshot(true) } : {}),
         ...(okxDemo ? { inspectDemoAccounting: () => inspectDemoAccounting(persistence, okxDemo!) } : {}),
         ...(okxDemo ? { inspectDemoPermission: () => okxDemo!.inspectTradingPermission() } : {}),
         ...(okxDemo ? { inspectDemoPositions: async () => {

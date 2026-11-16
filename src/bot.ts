@@ -71,6 +71,9 @@ export class TradingBot {
   private readonly reportedPaperGaps = new Map<string, number>();
   private demoOccupiedSymbols = new Set<string>();
   private activeUniverse: string[] = [];
+  private lastScan: { pairs: string[]; candleTimestamp: number } | null = null;
+
+  getLastSignalScan() { return this.lastScan; }
   private lastUniverseSwitchAt = 0;
   private readonly paperTraders = new Map<string, PaperTrader>();
   private readonly loadedPaperSymbols = new Set<string>();
@@ -834,7 +837,9 @@ export class TradingBot {
     const blockedSymbols = new Set(this.options.inspectDemoEntry ? this.demoOccupiedSymbols : this.options.tradeManager?.activePositions.map((position) => position.symbol));
     const ranked = rankSignals(candidates, this.options.minimumSignalScore, blockedSymbols);
     const activeSymbols = await this.updateUniverse(ranked, configuredSymbols, currentCandles.at(-1)?.timestamp ?? Date.now(), universeSize);
-    return ranked.filter((candidate) => activeSymbols.has(candidate.symbol));
+    const eligibleUniverse = ranked.filter((candidate) => activeSymbols.has(candidate.symbol));
+    this.lastScan = { pairs: eligibleUniverse.map(candidate => candidate.symbol), candleTimestamp: currentCandles.at(-1)!.timestamp };
+    return eligibleUniverse;
   }
 
   private async updateUniverse(

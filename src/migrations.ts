@@ -229,5 +229,20 @@ export const migrations: readonly Migration[] = [
   { version: 14, name: "bot_control_pause_reason", sql: `
     ALTER TABLE bot_control ADD COLUMN pause_reason TEXT;
   ` },
+  { version: 15, name: "trading_limits_50", sql: `
+    UPDATE dashboard_settings SET
+      max_trades = LEAST(max_trades, 50),
+      max_concurrent_positions = LEAST(max_concurrent_positions, 50),
+      updated_at = NOW()
+    WHERE max_trades > 50 OR max_concurrent_positions > 50;
+
+    ALTER TABLE dashboard_settings
+      DROP CONSTRAINT dashboard_settings_max_trades_check,
+      DROP CONSTRAINT dashboard_settings_max_concurrent_positions_check,
+      ALTER COLUMN max_trades SET DEFAULT 10,
+      ALTER COLUMN max_concurrent_positions SET DEFAULT 10,
+      ADD CONSTRAINT dashboard_settings_max_trades_check CHECK (max_trades BETWEEN 1 AND 50),
+      ADD CONSTRAINT dashboard_settings_max_concurrent_positions_check CHECK (max_concurrent_positions BETWEEN 1 AND 50);
+  ` },
 ] as const;
 

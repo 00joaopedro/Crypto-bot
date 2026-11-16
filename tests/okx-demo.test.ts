@@ -63,9 +63,14 @@ describe("OkxDemoExecutor", () => {
     { minimum: 0.01, reserved: false, expected: "SKIPPED" },
   ])("uses the risk budget and refuses minimum or stale-revision failures (%o)", async ({ minimum, reserved, expected }) => {
     const exchange = exchangeMock({
-      market: vi.fn(() => ({ symbol: "BTC/USDT", base: "BTC", quote: "USDT", spot: true, active: true,
-        limits: { cost: { min: 1 }, amount: { min: minimum } } })),
-      fetchBalance: vi.fn(async () => ({ free: { USDT: 100 }, total: { USDT: 100 } })),
+      market: vi.fn((symbol: string) => {
+        if (symbol === "USDT/BRL") return { symbol, base: "USDT", quote: "BRL", spot: true, active: true };
+        if (symbol !== "BTC/USDT") throw new Error("Market unavailable");
+        return { symbol, base: "BTC", quote: "USDT", spot: true, active: true,
+          limits: { cost: { min: 1 }, amount: { min: minimum } } };
+      }),
+      fetchTicker: vi.fn(async (symbol: string) => ({ ask: 100, last: symbol === "USDT/BRL" ? 5 : 100, timestamp: Date.now() })),
+      fetchBalance: vi.fn(async () => ({ free: { USDT: 100, BRL: 4000 }, total: { USDT: 100, BRL: 4000 } })),
       fetchTradingFee: vi.fn(async () => ({ taker: 0.001 })),
       fetchOrderBook: vi.fn(async () => ({ asks: [[100, 0.05]] })),
       costToPrecision: (_symbol: string, size: number) => size.toFixed(2),
@@ -247,7 +252,7 @@ describe("OkxDemoExecutor", () => {
   });
   it("values BRL using the inverse market and keeps Demo equity valid after resume", async () => {
     const exchange = exchangeMock({
-      fetchBalance: vi.fn(async () => ({ free: { USDT: 5000 }, total: { USDT: 5000, BRL: 250, BTC: 0.01, DOGE: 0 } })),
+      fetchBalance: vi.fn(async () => ({ free: { USDT: 5000, BRL: 200 }, total: { USDT: 5000, BRL: 250, BTC: 0.01, DOGE: 0 } })),
       market: vi.fn((symbol: string) => {
         if (!["BTC/USDT", "USDT/BRL"].includes(symbol)) throw new Error("market unavailable");
         return { symbol, quote: symbol.split("/")[1], spot: true, active: true };
@@ -258,7 +263,7 @@ describe("OkxDemoExecutor", () => {
     const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange, undefined, publicTicker);
     await executor.initialize();
     await expect(executor.getAccountSnapshot(true)).resolves.toMatchObject({
-      totalUsdt: 5000, quoteFree: 5000, equityUsdt: 6050, unvaluedAssets: [], assetValuesUsdt: { BRL: 50, BTC: 1000 },
+      totalUsdt: 5000, quoteFree: 5000, equityUsdt: 6050, freeBrlValueUsdt: 40, unvaluedAssets: [], assetValuesUsdt: { BRL: 50, BTC: 1000 },
     });
 
     const identity = { uid: "123", mainUid: "123" };

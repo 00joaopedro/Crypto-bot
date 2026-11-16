@@ -1,3 +1,4 @@
+import { demoTradingExposure } from "./demo-exposure.js";
 import { positionSize, type PositionSizingLimits } from "./position-sizing.js";
 import { calculateDemoLedger, type DemoFill } from "./demo-ledger.js";
 import type { ExitPolicy } from "./exit-policy.js";
@@ -45,6 +46,7 @@ export type OkxDemoAccountSnapshot = {
   valuationQuotes?: Record<string, ValuationQuote>;
   valuationFailures?: Record<string, ValuationAttempt[]>;
   assetValuesUsdt?: Record<string, number>;
+  freeBrlValueUsdt?: number;
   updatedAt: string;
 };
 
@@ -185,6 +187,7 @@ export class OkxDemoExecutor {
     const quoteCurrency = requiredString(market.quote, "market quote currency");
     const totals = (balance.total ?? {}) as Record<string, unknown>;
     let equity = 0;
+    let freeBrlValueUsdt = 0;
     const assetValuesUsdt: Record<string, number> = Object.create(null);
     const unvaluedAssets: string[] = [];
     const valuationQuotes: Record<string, ValuationQuote> = Object.create(null);
@@ -209,12 +212,16 @@ export class OkxDemoExecutor {
       valuationQuotes[currency] = valuation.quote;
       assetValuesUsdt[currency] = value;
       equity += value;
+      if (currency === "BRL") {
+        const freeBrl = readFreeBalance(balance.free, "BRL");
+        if (freeBrl !== null && freeBrl >= 0 && freeBrl <= amount) freeBrlValueUsdt = value * (freeBrl / amount);
+      }
     }
     const totalUsdt = readTotalBalance(balance.total, "USDT");
     if (totalUsdt === null && !unvaluedAssets.includes("USDT")) unvaluedAssets.push("USDT");
     return {
       quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt,
-      equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets,
+      equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, freeBrlValueUsdt,
       ...(Object.keys(valuationQuotes).length ? { valuationQuotes } : {}),
       ...(Object.keys(valuationFailures).length ? { valuationFailures } : {}),
       ...(includeAssetValues ? { assetValuesUsdt } : {}),
@@ -567,7 +574,8 @@ export class OkxDemoExecutor {
         this.exchange.fetchTradingFee(symbol),
         this.exchange.fetchOrderBook(symbol, 20),
       ]);
-      if (snapshot.equityUsdt === null || snapshot.quoteFree === null || !snapshot.assetValuesUsdt) return 0;
+      const portfolio = demoTradingExposure(snapshot);
+      if (!portfolio || !snapshot.assetValuesUsdt) return 0;
       const fee = fees.taker;
       if (typeof fee !== "number" || !Number.isFinite(fee) || fee < 0) return 0;
       const trigger = Number(this.exchange.priceToPrecision(symbol, stop));
@@ -577,10 +585,10 @@ export class OkxDemoExecutor {
       const liquidity = book.asks.reduce((sum, [price, amount]) =>
         typeof price === "number" && typeof amount === "number" && price > 0 && amount > 0 && price <= worstEntry
           ? sum + price * amount : sum, 0);
-      const exposure = snapshot.equityUsdt - snapshot.quoteFree;
       const sized = positionSize({
-        limits, equity: snapshot.equityUsdt, free: Math.min(snapshot.quoteFree, quoteFree), exposure,
-        altExposure: Math.max(0, exposure - (snapshot.assetValuesUsdt.BTC ?? 0)),
+        limits, equity: portfolio.tradingEquityUsdt, free: Math.min(portfolio.freeUsdt, quoteFree),
+        exposure: portfolio.exposureUsdt,
+        altExposure: Math.max(0, portfolio.exposureUsdt - (snapshot.assetValuesUsdt.BTC ?? 0)),
         symbolExposure: snapshot.assetValuesUsdt[market.base] ?? 0,
         altcoin: market.base !== "BTC", ceiling: this.options.orderSizeUsdt,
         stopRate: 1 - trigger / reference, fee, slippage: limits.slippage, liquidity,

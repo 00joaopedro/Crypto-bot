@@ -9,6 +9,34 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
 integration("PostgresPersistence", () => {
+  it("counts orders within a rolling window and blocks any unresolved order", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const now = Date.now();
+    const ids = Array.from({ length: 6 }, (_, index) => `WINDOW${now}X${index}`);
+    try {
+      await persistence.initialize();
+      for (const [index, id] of ids.slice(0, 5).entries()) {
+        expect(await persistence.reserveDemoOrder("BTC/USDT", now + index, id, 5, 15)).toBe(true);
+        await db.query("UPDATE demo_orders SET status = 'PLACED' WHERE client_order_id = $1", [id]);
+      }
+      expect(await persistence.canPlaceDemoOrder(5, 15)).toBe(false);
+      expect(await persistence.canPlaceDemoOrder(10, 15)).toBe(true);
+      expect(await persistence.reserveDemoOrder("ETH/USDT", now, ids[5]!, 5, 15)).toBe(false);
+
+      // Aging journal records does not delete an order or close its position.
+      await db.query("UPDATE demo_orders SET created_at = NOW() - INTERVAL '16 minutes' WHERE client_order_id = ANY($1::text[])", [ids]);
+      expect(await persistence.reserveDemoOrder("ETH/USDT", now, ids[5]!, 5, 15)).toBe(true);
+      await db.query("UPDATE demo_orders SET created_at = NOW() - INTERVAL '16 minutes' WHERE client_order_id = $1", [ids[5]]);
+      expect(await persistence.canPlaceDemoOrder(50, 15)).toBe(false);
+      const journal = await persistence.demoOrderJournal();
+      expect(journal.filter(row => ids.includes(row.client_order_id) && row.status === "PLACED")).toHaveLength(5);
+    } finally {
+      await db.query("DELETE FROM demo_orders WHERE client_order_id = ANY($1::text[])", [ids]);
+      await db.end();
+      await persistence.close();
+    }
+  });
   it("rejects an entry reservation after another admitted order fills", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const db = new Pool({ connectionString: databaseUrl });

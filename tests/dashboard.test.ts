@@ -123,16 +123,24 @@ describe("dashboard authentication", () => {
       body: JSON.stringify({
         symbol: "BTC/USDT",
         orderSizeUsdt: 10,
-        maxTrades: 1,
-        intervalMinutes: 60,
-        maxConcurrentPositions: 2,
+        maxTrades: 50,
+        intervalMinutes: 15,
+        maxConcurrentPositions: 50,
       }),
     });
     expect(settings.status).toBe(202);
+    expect(persistence.updateDashboardSettings).toHaveBeenCalledWith(expect.objectContaining({ maxTrades: 50, maxConcurrentPositions: 50, intervalMinutes: 15 }), "dashboard");
     const submitted = await settings.json() as { revision: number };
     const status = await fetch(`${base}/api/settings-status`, { headers: { cookie: cookie!.split(";")[0]! } });
     expect(await status.json()).toEqual({ revision: submitted.revision, status: "applied" });
     expect(onSettingsChanged).toHaveBeenCalledOnce();
+    for (const invalid of [{ maxTrades: 51 }, { maxConcurrentPositions: 51 }]) {
+      const result = await fetch(`${base}/api/settings`, {
+        method: "PUT", headers: { cookie: cookie!.split(";")[0]!, origin: base, "content-type": "application/json" },
+        body: JSON.stringify({ symbol: "BTC/USDT", orderSizeUsdt: 10, maxTrades: 50, intervalMinutes: 15, maxConcurrentPositions: 50, ...invalid }),
+      });
+      expect(result.status).toBe(400);
+    }
     const control = () => fetch(`${base}/api/control`, { method: "POST", headers: { cookie: cookie!.split(";")[0]!, origin: base, "content-type": "application/json" }, body: JSON.stringify({ paused: false }) });
     const blocked = await control();
     expect(blocked.status).toBe(409);
