@@ -1,3 +1,4 @@
+import { demoTradingExposure } from "./demo-exposure.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -22,6 +23,7 @@ type DashboardOptions = {
   persistence: PostgresPersistence;
   supportedSymbols: string[];
   onSettingsChanged: () => void | Promise<void>;
+  getLastSignalScan?: () => { pairs: string[]; candleTimestamp: number } | null;
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
   inspectDemoAccounting?: () => Promise<unknown>;
   inspectDemoPermission?: () => Promise<unknown>;
@@ -107,17 +109,17 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
       if (request.method === "GET" && url.pathname === "/api/dashboard") {
         const historySymbol = url.searchParams.get("symbol") || undefined;
         const data = await options.persistence.getDashboardData(40, historySymbol);
-        let okxDemo = data.okxDemo;
+        let okxDemo: typeof data.okxDemo & { tradingExposure?: ReturnType<typeof demoTradingExposure> } = data.okxDemo;
         if (options.getOkxDemoSnapshot) {
           try {
             const snapshot = await options.getOkxDemoSnapshot();
-            okxDemo = { ...okxDemo, ...snapshot, status: "ok" };
+            okxDemo = { ...okxDemo, ...snapshot, tradingExposure: demoTradingExposure(snapshot), status: "ok" };
           } catch (error) {
             okxDemo = { ...okxDemo, status: "unhealthy", lastError: error instanceof Error ? error.message : String(error) };
           }
         }
         const decisionLogs = await options.persistence.latestDemoDecision();
-        return json(response, 200, { ...data, ...(options.getAutoResumeStatus ? { autoResume: await options.getAutoResumeStatus() } : {}), latestDemoDecision: decisionLogs, lastDemoReconciliation: await options.persistence.latestDemoReconciliation(), okxDemo, demoAccounting: await accounting(), demoPositions: await demoPositions(), supportedSymbols: options.supportedSymbols });
+        return json(response, 200, { ...data, ...(options.getAutoResumeStatus ? { autoResume: await options.getAutoResumeStatus() } : {}), latestDemoDecision: decisionLogs, lastDemoReconciliation: await options.persistence.latestDemoReconciliation(), okxDemo, demoAccounting: await accounting(), demoPositions: await demoPositions(), supportedSymbols: options.supportedSymbols, lastSignalScan: options.getLastSignalScan?.() ?? null });
       }
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);

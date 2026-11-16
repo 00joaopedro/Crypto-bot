@@ -23,6 +23,20 @@ it('explains a Demo refusal using the configured order and full account exposure
   const getAccountSnapshot = async () => ({ ...await executor.getAccountSnapshot(), equityUsdt: 200 });
   expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot }, input)).toEqual({
     allowed: false, reason: 'demo_max_exposure',
-    exposure: { equityUsdt: 200, freeUsdt: 100, nonFreeEquityUsdt: 100, requestedUsdt: 10, projectedRate: 0.55, limitRate: 0.5 },
+    exposure: { equityUsdt: 200, freeUsdt: 100, exposureUsdt: 100, tradingEquityUsdt: 200, brlReserveUsdt: 0, requestedUsdt: 10, projectedRate: 0.55, limitRate: 0.5 },
   });
+});
+
+it('keeps free BRL out of exposure and the budget while retaining locked balances', async () => {
+  const snapshot = await executor.getAccountSnapshot();
+  const getAccountSnapshot = async () => ({ ...snapshot, equityUsdt: 900, freeBrlValueUsdt: 800 });
+  expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot }, input)).toEqual({ allowed: true });
+  const withLockedFunds = async () => ({ ...await getAccountSnapshot(), freeBrlValueUsdt: 700 });
+  expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot: withLockedFunds }, input))
+    .toMatchObject({ allowed: false, reason: 'demo_max_exposure', exposure: { exposureUsdt: 100, tradingEquityUsdt: 200 } });
+  expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot }, { ...input, size: 110 }))
+    .toMatchObject({ reason: 'demo_insufficient_quote_balance' });
+  const unvalued = async () => ({ ...await getAccountSnapshot(), unvaluedAssets: ['ETH'] });
+  expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot: unvalued }, input))
+    .toMatchObject({ reason: 'demo_balance_unconfirmed' });
 });

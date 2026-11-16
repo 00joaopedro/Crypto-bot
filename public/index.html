@@ -79,9 +79,10 @@
         <article class="panel settings-panel">
           <div class="section-head"><div><p class="eyebrow">ESTRATÉGIA</p><h2>Configuração</h2></div><span class="pill">Spot · 15m</span></div>
           <form id="settings-form">
-            <label>Par negociado<select id="symbol" required></select></label>
+            <label>Par principal<select id="symbol" required></select></label>
+            <p id="scan-pairs" class="hint"></p>
             <div class="form-grid">
-              <label>Valor por trade (USDT)<input id="order-size" type="number" min="1" max="100" step="0.01" required></label>
+              <label>Valor Demo por trade (USDT)<input id="order-size" type="number" min="1" max="100" step="0.01" required></label>
               <label>Máximo de trades<input id="max-trades" type="number" min="1" max="5" required></label>
               <label>Posições simultâneas<input id="max-positions" type="number" min="1" max="99" required></label>
             </div>
@@ -93,7 +94,7 @@
         </article>
       </section>
 
-      <section class="panel"><div class="section-head"><div><p class="eyebrow">CARTEIRA</p><h2>Posições abertas por par</h2></div></div><div id="positions" class="decision-copy">Carregando posições Paper…</div><div id="demo-positions" class="decision-copy">Conferindo posições Demo…</div></section>
+      <section class="panel"><div class="section-head"><div><p class="eyebrow">CARTEIRA</p><h2>Posições abertas por par</h2></div></div><div id="positions" class="decision-copy">Carregando posições Paper…</div><div id="demo-exposure" class="decision-copy" hidden></div><div id="demo-positions" class="decision-copy">Conferindo posições Demo…</div></section>
 
       <section class="bottom-grid">
         <article class="panel"><div class="section-head"><div><p class="eyebrow">SINAL ATUAL</p><h2>Última decisão</h2></div><span id="decision-action" class="pill">—</span></div><div id="decision" class="decision-copy">Aguardando dados…</div></article>
