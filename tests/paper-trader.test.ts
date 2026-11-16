@@ -146,3 +146,14 @@ describe("PaperTrader", () => {
     );
   });
 });
+
+it("only applies a newly tightened legacy trailing stop to a later candle", () => {
+  const trader = new PaperTrader(options);
+  trader.processCandle(candle(1, 100), true, { stopLossRate: .02, takeProfitRate: .1, trailingStopRate: .01 });
+  // The intrabar low touched neither the initial stop nor the initial trail.
+  // The hypothetical new trail (100.98) was already above the close.
+  expect(trader.processCandle(candle(2, 100.5, 100, 102, 100), false).events).toEqual([]);
+  expect(trader.processCandle(candle(3, 102, 100, 102, 100.5), false).events).toEqual([]);
+  const exit = trader.processCandle(candle(4, 101.5, 100, 102, 100.5), false).events[0];
+  expect(exit).toMatchObject({ type: "CLOSED", reason: "TRAILING_STOP", exitPrice: 100.5 * (1 - options.slippageRate) });
+});

@@ -336,3 +336,14 @@ covering the target timestamps. Use at least 99 training candles for a one-bar
 entry delay. The comparison includes the BTC reference hash and a count of
 blocked BUY signals per alternative. The thresholds are a hypothesis to validate
 against independent historical windows before enabling the filter.
+
+### Retomada automática em Paper e OKX Demo
+
+`AUTO_RESUME_ENABLED=false` é o padrão. Habilite com
+`AUTO_RESUME_ENABLED=true` e ajuste `AUTO_RESUME_LOSS_COOLDOWN_MINUTES`
+se necessário (padrão 120). Uma pausa por perda diária só pode ser
+reavaliada após 00:00 UTC. Pausas manuais, drawdown e motivos desconhecidos
+exigem retomada pelo operador. Bloqueios Demo conhecidos podem ser reavaliados
+quando as checagens de saldo, identidade, ordens e proteções forem conclusivas.
+O filtro de BTC participa quando habilitado. Durante a espera, o painel mostra
+a próxima verificação e oferece **Manter pausado**.

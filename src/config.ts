@@ -82,6 +82,8 @@ const schema = z
     // 20–30% aggregate exposure. Enforce the envelope at startup so a
     // dashboard or Railway edit cannot silently widen it.
     BTC_REGIME_FILTER_ENABLED: booleanString,
+    AUTO_RESUME_ENABLED: booleanString,
+    AUTO_RESUME_LOSS_COOLDOWN_MINUTES: z.coerce.number().int().min(1).max(1440).default(120),
     RISK_SIZING_ENABLED: booleanString,
     RISK_MAX_ALT_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(0.3).default(0.10),
     RISK_MAX_SYMBOL_EXPOSURE_PERCENT: z.coerce.number().gt(0).max(0.3).default(0.15),

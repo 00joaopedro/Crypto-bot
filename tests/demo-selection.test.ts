@@ -85,3 +85,37 @@ it('blocks new Paper and Demo buys under the BTC filter while an existing Paper 
     log.mockRestore();
   }
 });
+
+
+it.each([false, true])('handles an old Paper position with missing history = %s', async gap => {
+  const candles = Array.from({ length: 85 }, (_, i) => ({ timestamp: (i + 10) * 900_000, open: 100, high: 100.01, low: 99.99, close: 100, volume: 1 }));
+  const openedAt = candles[0]!.timestamp - (gap ? 2 : 1) * 900_000;
+  const paper = new PaperTrader({ initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0, slippageRate: 0, stopLossRate: 0.1, takeProfitRate: 0.2 });
+  paper.processCandle({ ...candles[0]!, timestamp: openedAt }, true);
+  const manager = new CentralTradeManager({ maxConcurrentPositions: 3, maxExposurePercent: 1 });
+  manager.recordEntry({ symbol: 'BTC/USDT', openedAt, notionalUsdt: 100 });
+  const recordCycle = vi.fn();
+  const recordOperationalEvent = vi.fn();
+  const executeApprovedBuy = vi.fn(async () => ({ status: 'PLACED' as const, orderId: '1', clientOrderId: 'CB1' }));
+  const bot = new TradingBot({ fetchClosedCandles: async (symbol: string) => symbol === 'BTC/USDT'
+    ? candles.map((c, i) => i === 5 ? { ...c, low: 80, close: 80 } : c) : candles } as unknown as PublicMarketData, {
+    symbol: 'BTC/USDT', candleLimit: 85, minimumConfidence: .8, aiFailureMode: 'quantitative', paperTrader: paper,
+    tradeManager: manager, signalScanSymbols: ['ETH/USDT'], inspectDemoEntry: async () => ({ allowed: true }),
+    demoExecutor: { executeApprovedBuy } as unknown as OkxDemoExecutor,
+    initialRiskState: { consecutiveLosses: 2, stopLossCooldownUntil: 0 }, maxConsecutiveLosses: 3,
+    persistence: { isPaused: async () => false, readControlState: async () => ({ paused: false, revision: '42' }),
+      recordCycle, recordOperationalEvent, recordDemoOrder: async () => undefined } as unknown as BotPersistence,
+  });
+  await bot.runCycle();
+  if (gap) {
+    expect(paper.hasOpenPosition).toBe(true);
+    expect(recordCycle.mock.calls.some(([cycle]) => cycle.symbol === 'BTC/USDT')).toBe(false);
+    expect(recordOperationalEvent).toHaveBeenCalledWith(expect.objectContaining({ eventType: 'PAPER_RECOVERY_BLOCKED' }));
+  } else {
+    expect(paper.hasOpenPosition).toBe(false);
+    expect(recordCycle.mock.calls.filter(([cycle]) => cycle.lossPause)).toEqual([[
+      expect.objectContaining({ symbol: 'BTC/USDT', lossPause: { controlRevision: '42' }, riskState: expect.objectContaining({ consecutiveLosses: 3 }) }),
+    ]]);
+    expect(executeApprovedBuy).not.toHaveBeenCalled();
+  }
+});

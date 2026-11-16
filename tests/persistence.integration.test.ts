@@ -256,6 +256,7 @@ integration("PostgresPersistence", () => {
       maxConcurrentPositions: 2,
     });
     expect(dashboardSettings.symbol).toBeTruthy();
+    await persistence.setPaused(false, "dashboard");
     await persistence.setPaused(true, "system:demo_execution_safety", "demo_balance_unconfirmed");
     await expect(persistence.isPaused()).resolves.toBe(true);
     await expect(persistence.getDashboardData()).resolves.toMatchObject({ paused: true, pauseReason: "demo_balance_unconfirmed" });
@@ -322,6 +323,38 @@ integration("PostgresPersistence", () => {
         paperState: trader.exportState(),
       }),
     ).rejects.toThrow("Refusing to overwrite a newer portfolio checkpoint");
+
+    const controlBefore = await persistence.readControlState();
+    const checkpoint = { symbol: `${symbol}-PAUSE`, candle: { ...candle, timestamp: candle.timestamp + 900_000 }, replayed: true, paperResult, paperState: trader.exportState() };
+    const alerts = async () => (JSON.parse(await persistence.getDiagnosticLogs(1, 500)).records as Array<{ event_type: string; details?: { actor?: string } }>)
+      .filter(row => row.event_type === "BOT_PAUSED" && row.details?.actor === "system:consecutive_losses").length;
+    const previousAlerts = await alerts();
+    await persistence.recordCycle({ ...checkpoint, lossPause: { controlRevision: controlBefore.revision } });
+    await persistence.setPaused(true, "system:consecutive_losses");
+    expect(await alerts()).toBe(previousAlerts + 1);
+    await persistence.setPaused(false, "dashboard");
+    await persistence.recordCycle({ ...checkpoint, candle: { ...candle, timestamp: candle.timestamp + 1_800_000 },
+      lossPause: { controlRevision: controlBefore.revision } });
+    await expect(persistence.isPaused()).resolves.toBe(false);
+    expect(await alerts()).toBe(previousAlerts + 1);
+
+    await persistence.setPaused(true, "system:consecutive_losses");
+    const timedPause = await persistence.readControlState();
+    await persistence.setPaused(true, "system:demo_exit_supervision", "pending_demo_order");
+    expect(await persistence.readControlState()).toEqual(timedPause);
+    await persistence.setPaused(true, "dashboard");
+    await persistence.setPaused(true, "system:demo_execution_safety", "demo_balance_unconfirmed");
+    await expect(persistence.setPaused(false, "system:auto_resume", undefined, timedPause.revision)).resolves.toBe(false);
+    await expect(persistence.readControlState()).resolves.toMatchObject({ paused: true, updatedBy: "dashboard", pauseReason: null });
+    await persistence.setPaused(false, "dashboard");
+    await persistence.recordCycle({ ...checkpoint, candle: { ...candle, timestamp: candle.timestamp + 2_700_000 },
+      riskState: { consecutiveLosses: 3, stopLossCooldownUntil: candle.timestamp + 3_600_000 } });
+    await persistence.setPaused(true, "system:consecutive_losses");
+    const autoPause = await persistence.readControlState();
+    await expect(persistence.setPaused(false, "system:auto_resume", undefined, autoPause.revision)).resolves.toBe(true);
+    await expect(persistence.loadRecoveryState(checkpoint.symbol)).resolves.toMatchObject({
+      riskState: { consecutiveLosses: 0, stopLossCooldownUntil: candle.timestamp + 3_600_000 },
+    });
 
     const runId = await persistence.startRun({ source: "integration-test" });
     await persistence.stopRun(runId, "test_complete");

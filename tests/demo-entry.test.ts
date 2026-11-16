@@ -17,3 +17,12 @@ it('blocks uncertain submissions, cooldown, unavailable balances and excessive r
   expect(await inspectDemoEntry(persistence, executor, { ...input, riskPerTrade: 0.00001 })).toMatchObject({ reason: 'demo_risk_per_trade' });
   expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot: async () => ({ ...await executor.getAccountSnapshot(), equityUsdt: null }) }, input)).toMatchObject({ reason: 'demo_balance_unconfirmed' });
 });
+
+
+it('explains a Demo refusal using the configured order and full account exposure', async () => {
+  const getAccountSnapshot = async () => ({ ...await executor.getAccountSnapshot(), equityUsdt: 200 });
+  expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot }, input)).toEqual({
+    allowed: false, reason: 'demo_max_exposure',
+    exposure: { equityUsdt: 200, freeUsdt: 100, nonFreeEquityUsdt: 100, requestedUsdt: 10, projectedRate: 0.55, limitRate: 0.5 },
+  });
+});

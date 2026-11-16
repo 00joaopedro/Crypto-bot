@@ -1,10 +1,11 @@
+import type { DemoAdmission } from "./demo-entry.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import type { PublicMarketData } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
 import { PaperTrader, type PaperCycleResult } from "./paper-trader.js";
 import type { OkxDemoExecutor } from "./okx-demo.js";
-import type { BotPersistence } from "./persistence.js";
+import type { BotPersistence, PersistedCycle } from "./persistence.js";
 import { evaluateStrategy } from "./strategy.js";
 import { rankSignals, type RankedSignal } from "./signal-ranking.js";
 import { averageTrueRange } from "./indicators.js";
@@ -29,7 +30,7 @@ type BotOptions = {
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
   verifyDemoExecutionSafety?: () => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
-  inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<{ allowed: boolean; reason?: string; entryRevision?: string }>;
+  inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<DemoAdmission>;
   inspectDemoPositions?: () => Promise<{ status: "safe"; positions: Array<{ symbol: string }> } | { status: "blocked"; reason: string }>;
   ai?: GeminiRiskFilter;
   persistence?: BotPersistence;
@@ -67,6 +68,7 @@ export class TradingBot {
   private consecutiveLosses: number;
   private stopLossCooldownUntil: number;
   private observedPaused = false;
+  private readonly reportedPaperGaps = new Map<string, number>();
   private demoOccupiedSymbols = new Set<string>();
   private activeUniverse: string[] = [];
   private lastUniverseSwitchAt = 0;
@@ -76,6 +78,12 @@ export class TradingBot {
 
   /** Only call after the exchange safety gate and persistent resume succeed. */
   clearDemoExecutionBlock(): void { this.demoExecutionBlocked = false; }
+
+  resetAfterAutomaticResume(): void {
+    this.clearDemoExecutionBlock();
+    this.consecutiveLosses = 0;
+    this.observedPaused = false;
+  }
 
   constructor(
     private readonly market: PublicMarketData,
@@ -92,9 +100,8 @@ export class TradingBot {
   }
 
   async runCycle(): Promise<void> {
-    const persistedPaused = this.options.persistence
-      ? await this.options.persistence.isPaused()
-      : false;
+    const control = await this.options.persistence?.readControlState?.();
+    const persistedPaused = control?.paused ?? await this.options.persistence?.isPaused() ?? false;
     if (persistedPaused) this.observedPaused = true;
     if (this.observedPaused && !persistedPaused) {
       this.consecutiveLosses = 0;
@@ -161,7 +168,8 @@ export class TradingBot {
     const executionSymbol = this.options.inspectDemoEntry
       ? selectedEligibleSymbol ?? managedPositionSymbol ?? this.options.symbol
       : managedPositionSymbol ?? selectedEligibleSymbol ?? this.options.symbol;
-    await this.monitorOtherPaperPositions(executionSymbol);
+    await this.monitorOtherPaperPositions(executionSymbol, control?.revision);
+    if (this.observedPaused) return;
     const paperTrader = await this.getPaperTrader(executionSymbol);
     const executionCandles = executionSymbol === this.options.symbol
       ? candles
@@ -169,9 +177,11 @@ export class TradingBot {
     const executionLatest = executionCandles.at(-1);
     if (!executionLatest) throw new Error(`Market data provider returned no closed candles for ${executionSymbol}`);
     const lastProcessedCandle = this.lastProcessedCandleBySymbol.get(executionSymbol);
-    const unseenCandles = lastProcessedCandle === undefined
+    const paperCursor = lastProcessedCandle ?? paperTrader.exportState().position?.entryTimestamp;
+    const unseenCandles = paperCursor === undefined
       ? [executionLatest]
-      : executionCandles.filter((candle) => candle.timestamp > lastProcessedCandle);
+      : executionCandles.filter((candle) => candle.timestamp > paperCursor);
+    if (await this.paperHistoryGap(paperTrader, executionSymbol, paperCursor, unseenCandles)) return;
     if (unseenCandles.length === 0) {
       console.log(JSON.stringify({ event: "cycle_skipped", reason: "candle_already_processed", symbol: executionSymbol }));
       return;
@@ -182,33 +192,36 @@ export class TradingBot {
     // retrospective entry. Approval is calculated only for the newest candle.
     for (const candle of unseenCandles.slice(0, -1)) {
       const previousState = paperTrader.exportState();
+      const riskBefore = this.exportRiskState();
       const replayIndex = executionCandles.findIndex((item) => item.timestamp === candle.timestamp);
       const replaySignal = replayIndex >= 49
         ? evaluateStrategy(executionCandles.slice(0, replayIndex + 1), this.options.minimumSignalScore === undefined ? undefined : { minimumScore: this.options.minimumSignalScore })
         : undefined;
       const paperResult = paperTrader.processCandle(candle, false, undefined, replaySignal?.action === "SELL" && paperTrader.hasOpenPosition);
       paperTrader.advanceManagedExit(executionCandles.slice(0, replayIndex + 1));
-      await this.applyLossControls(paperResult.events, candle.timestamp);
-      if (paperResult.events.some((event) => event.type === "CLOSED")) {
-        this.lastTradeAtBySymbol.set(executionSymbol, candle.timestamp);
-        this.options.tradeManager?.recordExit(executionSymbol);
-      }
+      const lossPause = this.applyLossControls(paperResult.events, candle.timestamp);
       try {
-        await this.options.persistence?.recordCycle({
+        await this.persistPaperCycle({
           symbol: executionSymbol,
           candle,
           replayed: true,
           paperResult,
           paperState: paperTrader.exportState(),
           riskState: this.exportRiskState(),
-        });
+        }, lossPause, control?.revision);
       } catch (error) {
         paperTrader.restoreState(previousState);
+        this.restoreRiskState(riskBefore);
         throw error;
       }
       this.logPaperResult(candle, paperResult, true, executionSymbol);
       await this.sendTradeAlerts(paperResult.events, true);
       this.lastProcessedCandleBySymbol.set(executionSymbol, candle.timestamp);
+      if (paperResult.events.some(event => event.type === "CLOSED")) {
+        this.lastTradeAtBySymbol.set(executionSymbol, candle.timestamp);
+        this.options.tradeManager?.recordExit(executionSymbol);
+      }
+      if (lossPause) return;
     }
 
     const currentCandle = unseenCandles.at(-1)!;
@@ -365,6 +378,7 @@ export class TradingBot {
     }
 
     const previousState = paperTrader.exportState();
+    const riskBefore = this.exportRiskState();
     const paperResult = paperTrader.processCandle(
       currentCandle,
       approved,
@@ -374,9 +388,9 @@ export class TradingBot {
       plannedPaperSize,
     );
     paperTrader.advanceManagedExit(signalCandles);
-    await this.applyLossControls(paperResult.events, currentCandle.timestamp);
+    const lossPause = this.applyLossControls(paperResult.events, currentCandle.timestamp);
     try {
-      await this.options.persistence?.recordCycle({
+      await this.persistPaperCycle({
         symbol: executionSymbol,
         candle: currentCandle,
         replayed: false,
@@ -389,12 +403,13 @@ export class TradingBot {
           aiDecision,
           approved,
         },
-      });
-      await this.recordServiceStatus("postgresql", "ok");
+      }, lossPause, control?.revision);
     } catch (error) {
       paperTrader.restoreState(previousState);
+      this.restoreRiskState(riskBefore);
       throw error;
     }
+    await this.recordServiceStatus("postgresql", "ok");
     const opened = paperResult.events.find((event) => event.type === "OPENED");
     if (opened) {
       this.lastTradeAtBySymbol.set(executionSymbol, currentCandle.timestamp);
@@ -435,12 +450,14 @@ export class TradingBot {
       ? Math.max(0, (dailyStartEquity - paperResult.snapshot.equityUsdt) / dailyStartEquity)
       : 0;
     if (
-      this.options.persistence &&
+      !lossPause && this.options.persistence &&
       ((this.options.maxDrawdownPercent !== undefined &&
         paperResult.snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent * 100) ||
         (this.options.maxDailyLossPercent !== undefined && dailyLossPercent >= this.options.maxDailyLossPercent))
     ) {
-      await this.options.persistence.setPaused(true, "system:risk_limit");
+      const drawdownExceeded = this.options.maxDrawdownPercent !== undefined &&
+        paperResult.snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent * 100;
+      await this.options.persistence.setPaused(true, "system:risk_limit", drawdownExceeded ? "paper_drawdown_limit" : "paper_daily_loss_limit");
       console.log(JSON.stringify({
         event: "risk_pause_triggered",
         symbol: executionSymbol,
@@ -449,6 +466,11 @@ export class TradingBot {
       }));
     }
 
+    if (lossPause) {
+      this.logPaperResult(currentCandle, paperResult, false, executionSymbol);
+      await this.sendTradeAlerts(paperResult.events, false);
+      return;
+    }
     const paperOpened = paperResult.events.some((event) => event.type === "OPENED");
     let demoApproved = approved && paperOpened;
     let entryRevision: string | undefined;
@@ -461,6 +483,7 @@ export class TradingBot {
         await this.recordOperationalEvent("DEMO_ENTRY_DECISION", admission.allowed ? "INFO" : "WARN", {
           symbol: executionSymbol, candleTimestamp: currentCandle.timestamp,
           approved: admission.allowed, reason: admission.reason ?? "demo_preflight_passed",
+          ...(admission.exposure ? { exposure: admission.exposure } : {}),
         });
       }
     }
@@ -490,22 +513,10 @@ export class TradingBot {
               intervalMinutes: this.options.tradeIntervalMinutes,
             }),
           );
-          try {
-            await this.options.persistence?.setPaused(
-              true,
-              "system:demo_order_persistence_failure",
-            );
-          } catch (pauseError) {
-            console.error(
-              JSON.stringify({
-                event: "kill_switch_write_failed",
-                error:
-                  pauseError instanceof Error
-                    ? pauseError.message
-                    : String(pauseError),
-              }),
-            );
-          }
+          await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", {
+            symbol: executionSymbol, candleTimestamp: currentCandle.timestamp,
+            approved: false, reason: "trade_interval_limit_reached",
+          });
         } else {
           const demoResult = await this.options.demoExecutor.executeApprovedBuy({
             symbol: executionSymbol,
@@ -660,11 +671,14 @@ export class TradingBot {
     return { consecutiveLosses: this.consecutiveLosses, stopLossCooldownUntil: this.stopLossCooldownUntil };
   }
 
-  private async applyLossControls(events: PaperCycleResult["events"], candleTimestamp: number): Promise<void> {
+  private applyLossControls(events: PaperCycleResult["events"], candleTimestamp: number): boolean {
+    const limit = this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY;
+    let crossed = false;
     for (const event of events) {
       if (event.type !== "CLOSED") continue;
       if (event.netPnlUsdt < 0) {
         this.consecutiveLosses += 1;
+        crossed ||= this.consecutiveLosses === limit;
         if (event.reason === "STOP_LOSS") {
           this.stopLossCooldownUntil = Math.max(
             this.stopLossCooldownUntil,
@@ -675,44 +689,67 @@ export class TradingBot {
         this.consecutiveLosses = 0;
       }
     }
-    if (this.consecutiveLosses >= (this.options.maxConsecutiveLosses ?? Number.POSITIVE_INFINITY)) {
-      await this.options.persistence?.setPaused(true, "system:consecutive_losses");
-      this.observedPaused = true;
-      console.log(JSON.stringify({
-        event: "risk_pause_triggered",
-        symbol: this.options.symbol,
-        reason: "max_consecutive_losses",
-        consecutiveLosses: this.consecutiveLosses,
-      }));
-    }
+    return crossed;
   }
 
-  private async monitorOtherPaperPositions(selectedSymbol: string): Promise<void> {
+  private restoreRiskState(state: ReturnType<TradingBot["exportRiskState"]>): void {
+    this.consecutiveLosses = state.consecutiveLosses;
+    this.stopLossCooldownUntil = state.stopLossCooldownUntil;
+  }
+
+  private async persistPaperCycle(cycle: PersistedCycle, lossPause: boolean, controlRevision?: string): Promise<void> {
+    await this.options.persistence?.recordCycle(lossPause ? { ...cycle, lossPause: controlRevision === undefined ? {} : { controlRevision } } : cycle);
+    if (lossPause) this.observedPaused = true;
+  }
+
+  private async paperHistoryGap(trader: PaperTrader, symbol: string, cursor: number | undefined, candles: Candle[]): Promise<boolean> {
+    if (!trader.hasOpenPosition || cursor === undefined) return false;
+    let last = cursor;
+    for (const candle of candles) {
+      if (candle.timestamp !== last + 15 * 60_000) {
+        if (this.reportedPaperGaps.get(symbol) !== last) {
+          this.reportedPaperGaps.set(symbol, last);
+          await this.recordOperationalEvent("PAPER_RECOVERY_BLOCKED", "WARN", {
+            symbol, reason: "paper_candle_gap", lastProcessedCandle: last, nextAvailableCandle: candle.timestamp,
+            entryTimestamp: trader.exportState().position?.entryTimestamp,
+          });
+        }
+        return true;
+      }
+      last = candle.timestamp;
+    }
+    if (candles.length) this.reportedPaperGaps.delete(symbol);
+    return false;
+  }
+
+  private async monitorOtherPaperPositions(selectedSymbol: string, controlRevision?: string): Promise<void> {
     if (!this.options.inspectDemoEntry && !this.options.paperTrader.configuration.riskSizing) return;
     for (const position of this.options.tradeManager?.activePositions ?? []) {
       if (position.symbol === selectedSymbol) continue;
       const trader = await this.getPaperTrader(position.symbol);
       const candles = await this.market.fetchClosedCandles(position.symbol, this.options.candleLimit);
       const last = this.lastProcessedCandleBySymbol.get(position.symbol) ?? position.openedAt;
-      for (const candle of candles.filter(c => c.timestamp > last)) {
+      const unseen = candles.filter(c => c.timestamp > last);
+      if (await this.paperHistoryGap(trader, position.symbol, last, unseen)) continue;
+      for (const candle of unseen) {
         const before = trader.exportState();
         const index = candles.findIndex(c => c.timestamp === candle.timestamp);
         const signal = index >= 49 ? evaluateStrategy(candles.slice(0, index + 1), this.options.minimumSignalScore === undefined ? undefined : { minimumScore: this.options.minimumSignalScore }) : undefined;
         const riskBefore = this.exportRiskState();
         const result = trader.processCandle(candle, false, undefined, signal?.action === "SELL");
         trader.advanceManagedExit(candles.slice(0, index + 1));
-        await this.applyLossControls(result.events, candle.timestamp);
+        const lossPause = this.applyLossControls(result.events, candle.timestamp);
         try {
-          await this.options.persistence?.recordCycle({ symbol: position.symbol, candle, replayed: true, paperResult: result, paperState: trader.exportState(), riskState: this.exportRiskState() });
+          await this.persistPaperCycle({ symbol: position.symbol, candle, replayed: true, paperResult: result, paperState: trader.exportState(), riskState: this.exportRiskState() }, lossPause, controlRevision);
         } catch (error) {
           trader.restoreState(before);
-          this.consecutiveLosses = riskBefore.consecutiveLosses;
-          this.stopLossCooldownUntil = riskBefore.stopLossCooldownUntil;
+          this.restoreRiskState(riskBefore);
           throw error;
         }
         this.lastProcessedCandleBySymbol.set(position.symbol, candle.timestamp);
         if (result.events.some(e => e.type === "CLOSED")) {
           this.options.tradeManager?.recordExit(position.symbol);
+          if (lossPause) return;
           break;
         }
       }
@@ -870,11 +907,10 @@ export class TradingBot {
     const date = new Date().toISOString().slice(0, 10);
     if (date !== this.dailyDate) {
       this.dailyDate = date;
+      this.dailyStartEquityBySymbol.clear();
+    }
+    if (!this.dailyStartEquityBySymbol.has(symbol)) {
       this.dailyStartEquityBySymbol.set(symbol, await this.options.persistence?.getDailyStartEquity?.(symbol) ?? equity);
-    } else {
-      if (!this.dailyStartEquityBySymbol.has(symbol)) {
-        this.dailyStartEquityBySymbol.set(symbol, await this.options.persistence?.getDailyStartEquity?.(symbol) ?? equity);
-      }
     }
   }
 
