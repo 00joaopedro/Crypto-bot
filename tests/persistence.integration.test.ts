@@ -256,6 +256,7 @@ integration("PostgresPersistence", () => {
       maxConcurrentPositions: 2,
     });
     expect(dashboardSettings.symbol).toBeTruthy();
+    await persistence.setPaused(false, "dashboard");
     await persistence.setPaused(true, "system:demo_execution_safety", "demo_balance_unconfirmed");
     await expect(persistence.isPaused()).resolves.toBe(true);
     await expect(persistence.getDashboardData()).resolves.toMatchObject({ paused: true, pauseReason: "demo_balance_unconfirmed" });
