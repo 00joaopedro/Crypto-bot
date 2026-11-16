@@ -1,3 +1,4 @@
+import type { PauseControl } from "./auto-resume.js";
 import { demoExitStateSchema, type DemoExitState } from "./demo-exit-state.js";
 import type { ExitPolicy } from "./exit-policy.js";
 import { advanceDemoRisk, type DemoRiskState } from "./demo-risk.js";
@@ -78,7 +79,7 @@ export interface BotPersistence {
   isPaused(): Promise<boolean>;
   readControlState?(): Promise<{ paused: boolean; revision: string }>;
   loadRecoveryState?(symbol: string): Promise<RecoveryState | null>;
-  setPaused(paused: boolean, actor: string, reason?: string): Promise<void>;
+  setPaused(paused: boolean, actor: string, reason?: string): Promise<void | boolean>;
   recordCycle(cycle: PersistedCycle): Promise<void>;
   recordDemoOrder(
     symbol: string,
@@ -248,22 +249,37 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows[0]?.paused ?? true;
   }
 
-  async readControlState(): Promise<{ paused: boolean; revision: string }> {
-    const { rows } = await this.pool.query<{ paused: boolean; revision: string }>(
-      "SELECT paused, xmin::text AS revision FROM bot_control WHERE id = 1",
-    );
-    return rows[0] ?? { paused: true, revision: "" };
+  async loadPaperResumeStates(): Promise<Array<{ symbol: string; state: PaperTraderState & { consecutiveLosses?: number }; updated_at: Date; last_processed_candle: string; daily_start_equity: number | null }>> {
+    const { rows } = await this.pool.query(`
+      SELECT t.symbol, t.state, t.updated_at, t.last_processed_candle, daily.equity_usdt AS daily_start_equity
+      FROM paper_trader_state t
+      LEFT JOIN LATERAL (
+        SELECT equity_usdt FROM portfolio_snapshots
+        WHERE symbol = t.symbol AND created_at >= (date_trunc('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')
+        ORDER BY created_at ASC, candle_timestamp ASC LIMIT 1
+      ) daily ON TRUE`);
+    return rows;
   }
 
-  private async writePause(client: PoolClient, paused: boolean, actor: string, reason?: string, expectedRevision?: string): Promise<void> {
+  async readControlState(): Promise<PauseControl> {
+    const { rows } = await this.pool.query<PauseControl>(
+      `SELECT paused, xmin::text AS revision, updated_by AS "updatedBy",
+       updated_at AS "updatedAt", pause_reason AS "pauseReason" FROM bot_control WHERE id = 1`,
+    );
+    return rows[0] ?? { paused: true, revision: "", updatedBy: null, updatedAt: null, pauseReason: null };
+  }
+
+  private async writePause(client: PoolClient, paused: boolean, actor: string, reason?: string, expectedRevision?: string): Promise<boolean> {
     const pauseReason = paused ? reason ?? (actor.startsWith("system:") ? actor.slice(7) : null) : null;
     const updated = await client.query(
       `UPDATE bot_control SET paused = $1, updated_at = NOW(), updated_by = $2, pause_reason = $3
        WHERE id = 1 AND (paused IS DISTINCT FROM $1 OR pause_reason IS DISTINCT FROM $3)
-         AND ($4::text IS NULL OR xmin::text = $4)`,
+         AND ($4::text IS NULL OR xmin::text = $4)
+         AND NOT ($1 AND paused AND $2 LIKE 'system:%' AND
+           (updated_by IS NOT DISTINCT FROM 'dashboard' OR $2 IN ('system:demo_execution_safety', 'system:demo_exit_supervision', 'system:demo_position_uncertain')))`,
       [paused, actor, pauseReason, expectedRevision ?? null],
     );
-    if (updated.rowCount !== 1) return;
+    if (updated.rowCount !== 1) return false;
     const details = { paused, ...(pauseReason ? { reason: pauseReason } : {}) };
     await client.query(
       `INSERT INTO audit_events (event_type, actor, details) VALUES ('BOT_PAUSE_CHANGED', $1, $2::jsonb)`,
@@ -273,14 +289,21 @@ export class PostgresPersistence implements BotPersistence {
       `INSERT INTO operational_events (event_type, severity, details) VALUES ('BOT_PAUSED', 'WARN', $1::jsonb)`,
       [JSON.stringify({ ...details, actor })],
     );
+    return true;
   }
 
-  async setPaused(paused: boolean, actor: string, reason?: string): Promise<void> {
+  async setPaused(paused: boolean, actor: string, reason?: string, expectedRevision?: string): Promise<boolean> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
-      await this.writePause(client, paused, actor, reason);
+      const changed = await this.writePause(client, paused, actor, reason, expectedRevision);
+      if (changed && !paused && actor === "system:auto_resume") {
+        await client.query(`UPDATE paper_trader_state
+          SET state = jsonb_set(state, '{consecutiveLosses}', '0'::jsonb)
+          WHERE state ? 'consecutiveLosses' AND state->'consecutiveLosses' <> '0'::jsonb`);
+      }
       await client.query("COMMIT");
+      return changed;
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -626,7 +649,7 @@ export class PostgresPersistence implements BotPersistence {
   async getDailyStartEquity(symbol: string): Promise<number | undefined> {
     const result = await this.pool.query<{ equity_usdt: number }>(
       `SELECT equity_usdt FROM portfolio_snapshots
-       WHERE symbol = $1 AND created_at >= date_trunc('day', NOW())
+       WHERE symbol = $1 AND created_at >= (date_trunc('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')
        ORDER BY created_at ASC LIMIT 1`,
       [symbol],
     );
@@ -801,6 +824,7 @@ export class PostgresPersistence implements BotPersistence {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      if (cycle.lossPause) await client.query("SELECT id FROM bot_control WHERE id = 1 FOR UPDATE");
       if (cycle.decision) await this.upsertDecision(client, cycle);
       await this.upsertSnapshot(client, cycle);
       for (const trade of cycle.paperResult.events) {

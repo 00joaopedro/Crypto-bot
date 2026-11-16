@@ -79,6 +79,12 @@ export class TradingBot {
   /** Only call after the exchange safety gate and persistent resume succeed. */
   clearDemoExecutionBlock(): void { this.demoExecutionBlocked = false; }
 
+  resetAfterAutomaticResume(): void {
+    this.clearDemoExecutionBlock();
+    this.consecutiveLosses = 0;
+    this.observedPaused = false;
+  }
+
   constructor(
     private readonly market: PublicMarketData,
     private readonly options: BotOptions,
@@ -449,7 +455,9 @@ export class TradingBot {
         paperResult.snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent * 100) ||
         (this.options.maxDailyLossPercent !== undefined && dailyLossPercent >= this.options.maxDailyLossPercent))
     ) {
-      await this.options.persistence.setPaused(true, "system:risk_limit");
+      const drawdownExceeded = this.options.maxDrawdownPercent !== undefined &&
+        paperResult.snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent * 100;
+      await this.options.persistence.setPaused(true, "system:risk_limit", drawdownExceeded ? "paper_drawdown_limit" : "paper_daily_loss_limit");
       console.log(JSON.stringify({
         event: "risk_pause_triggered",
         symbol: executionSymbol,
@@ -899,11 +907,10 @@ export class TradingBot {
     const date = new Date().toISOString().slice(0, 10);
     if (date !== this.dailyDate) {
       this.dailyDate = date;
+      this.dailyStartEquityBySymbol.clear();
+    }
+    if (!this.dailyStartEquityBySymbol.has(symbol)) {
       this.dailyStartEquityBySymbol.set(symbol, await this.options.persistence?.getDailyStartEquity?.(symbol) ?? equity);
-    } else {
-      if (!this.dailyStartEquityBySymbol.has(symbol)) {
-        this.dailyStartEquityBySymbol.set(symbol, await this.options.persistence?.getDailyStartEquity?.(symbol) ?? equity);
-      }
     }
   }
 

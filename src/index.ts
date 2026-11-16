@@ -1,3 +1,4 @@
+import { autoResumeAt, inspectAutoResumeMarket, inspectAutoResumePaperRisk } from "./auto-resume.js";
 import { exitPolicySchema } from "./exit-policy.js";
 import { auditDemoProtections, superviseDemoExits } from "./demo-exit-supervisor.js";
 import type { Server } from "node:http";
@@ -88,6 +89,51 @@ async function main(): Promise<void> {
     intervalMinutes: 60,
     maxConcurrentPositions: config.MAX_CONCURRENT_POSITIONS,
   };
+
+  let lastAutoCheck: { revision: string; checkedAt: number; reason: string } | undefined;
+  const nextAutoResume = (control: Awaited<ReturnType<PostgresPersistence["readControlState"]>>) =>
+    autoResumeAt(control, config.AUTO_RESUME_LOSS_COOLDOWN_MINUTES, Boolean(okxDemo));
+
+  async function tryAutomaticResume(exitsReady: boolean, protectionReason?: string): Promise<boolean> {
+    if (!persistence || !config.AUTO_RESUME_ENABLED || stopping || reconfiguring) return false;
+    const control = await persistence.readControlState();
+    const eligibleAt = nextAutoResume(control);
+    const now = Date.now();
+    if (eligibleAt === null || now < eligibleAt) return false;
+
+    const currentBot = bot;
+    const executor = okxDemo;
+    let reason = exitsReady ? undefined : protectionReason ?? "demo_protections_unconfirmed";
+    try {
+      if (!reason && executor) {
+        const safety = await inspectDemoResume(persistence, executor, {
+          maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
+          maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
+        });
+        if (safety.status === "blocked") reason = safety.reason;
+      }
+      reason ??= await inspectAutoResumePaperRisk(persistence, market, {
+        fee: config.PAPER_FEE_RATE, maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
+        maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT, candleLimit: config.CANDLE_LIMIT, now,
+        maxConsecutiveLosses: config.RISK_MAX_CONSECUTIVE_LOSSES, cooldownMinutes: config.AUTO_RESUME_LOSS_COOLDOWN_MINUTES,
+      });
+      if (!reason && config.BTC_REGIME_FILTER_ENABLED) reason = await inspectAutoResumeMarket(market, Date.now());
+    } catch {
+      reason = "auto_resume_check_unavailable";
+    }
+    if (stopping || reconfiguring || currentBot !== bot || executor !== okxDemo) return false;
+    if (reason) {
+      if (lastAutoCheck?.revision !== control.revision || lastAutoCheck.reason !== reason) {
+        await persistence.recordOperationalEvent({ eventType: "AUTO_RESUME_BLOCKED", severity: "INFO", details: { reason, pauseReason: control.pauseReason } });
+      }
+      lastAutoCheck = { revision: control.revision, checkedAt: Date.now(), reason };
+      return false;
+    }
+    if (!await persistence.setPaused(false, "system:auto_resume", undefined, control.revision)) return false;
+    currentBot.resetAfterAutomaticResume();
+    lastAutoCheck = undefined;
+    return true;
+  }
 
   try {
     let recoveryState = null;
@@ -459,6 +505,13 @@ async function main(): Promise<void> {
         persistence,
         supportedSymbols,
         onSettingsChanged: reconfigure,
+        ...(config.AUTO_RESUME_ENABLED ? { getAutoResumeStatus: async () => {
+          const control = await persistence.readControlState();
+          const eligibleAt = nextAutoResume(control);
+          if (eligibleAt === null) return null;
+          const check = lastAutoCheck?.revision === control.revision ? lastAutoCheck : undefined;
+          return { eligibleAt, ...(check ? { checkedAt: check.checkedAt, reason: check.reason } : {}) };
+        } } : {}),
         ...(okxDemo ? { onResume: async () => {
           if (reconfiguring || !okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
           await activeCycle;
@@ -504,6 +557,7 @@ async function main(): Promise<void> {
         } else {
           const cycle = (async () => {
             let exitsReady = true;
+            let protectionReason: string | undefined;
             if (okxDemo && persistence) {
               await reconcilePendingDemoOrders(persistence, okxDemo);
               // Runs even while entries are paused. Existing exchange stops stay active.
@@ -514,6 +568,7 @@ async function main(): Promise<void> {
                 exitsReady = false;
                 const awaitingReadback = exits.status === "blocked" && ["exit_amendment_awaiting_readback", "exit_amendment_unconfirmed", "exit_amendment_not_submitted"].includes(exits.reason);
                 const reason = coverage.status !== "safe" ? coverage.reason : safety.status !== "safe" ? safety.reason : exits.status !== "safe" ? exits.reason : "unknown";
+                protectionReason = reason;
                 if (!awaitingReadback || coverage.status !== "safe" || safety.status !== "safe") await persistence.setPaused(true, "system:demo_exit_supervision", reason);
                 await persistence.recordOperationalEvent({ eventType: "DEMO_PROTECTION_BLOCKED", severity: "WARN", details: { reason } });
               }
@@ -522,6 +577,8 @@ async function main(): Promise<void> {
                 try { await inspectDemoAccounting(persistence, okxDemo); } catch { console.error(JSON.stringify({ event: "demo_continuous_accounting_failed" })); }
               }
             }
+            // A successful transition gets a fresh cycle before submitting entries.
+            if (await tryAutomaticResume(exitsReady, protectionReason)) return;
             if (exitsReady) await bot.runCycle();
           })();
           activeCycle = cycle;
