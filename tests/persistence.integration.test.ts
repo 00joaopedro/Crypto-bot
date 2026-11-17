@@ -506,9 +506,10 @@ integration("Demo recovery after restarting the worker", () => {
     try {
       await before.initialize();
       const baseline = await db.query(`INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status)
-        VALUES (NOW() - INTERVAL '1 second', '{"USDT": 5000}', $1::jsonb, 'UNVERIFIED') RETURNING id`, [JSON.stringify({ accountIdentity: identity })]);
+        VALUES (date_trunc('milliseconds', clock_timestamp()) + INTERVAL '1 millisecond', '{"USDT": 5000}', $1::jsonb, 'UNVERIFIED') RETURNING id, observed_at`, [JSON.stringify({ accountIdentity: identity })]);
       baselineId = baseline.rows[0].id;
       expect(await before.reserveDemoOrder(symbol, now, clientOrderId, 50, 15, algoClientId)).toBe(true);
+      await db.query("UPDATE demo_orders SET created_at = GREATEST(created_at, $2::timestamptz) WHERE client_order_id = $1", [clientOrderId, baseline.rows[0].observed_at]);
       await before.close();
 
       const filled = .009;
