@@ -1,3 +1,4 @@
+import { TREND_STRATEGY_ID } from "../src/strategy-id.js";
 import type { Order } from "ccxt";
 import { reconcilePendingDemoOrders } from "../src/demo-pending-reconciliation.js";
 import { inspectDemoExecutionState } from "../src/demo-execution-safety.js";
@@ -402,6 +403,7 @@ integration("PostgresPersistence", () => {
       paperState: trader.exportState(),
       decision: {
         mode: "PAPER",
+        strategyId: TREND_STRATEGY_ID,
         signal,
         aiDecision: { approve: false, confidence: 0, reason: "HOLD" },
         approved: false,
@@ -435,6 +437,11 @@ integration("PostgresPersistence", () => {
       orders: "1",
       stoppedRuns: "1",
     });
+
+    const attribution = await verification.query(`SELECT
+      (SELECT strategy_id FROM decisions WHERE symbol = $1) AS decision_strategy,
+      (SELECT strategy_id FROM demo_orders WHERE symbol = $1) AS legacy_order_strategy`, [symbol]);
+    expect(attribution.rows[0]).toEqual({ decision_strategy: TREND_STRATEGY_ID, legacy_order_strategy: null });
 
     await verification.end();
     await persistence.close();
@@ -508,8 +515,9 @@ integration("Demo recovery after restarting the worker", () => {
       const baseline = await db.query(`INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status)
         VALUES (date_trunc('milliseconds', clock_timestamp()) + INTERVAL '1 millisecond', '{"USDT": 5000}', $1::jsonb, 'UNVERIFIED') RETURNING id, observed_at`, [JSON.stringify({ accountIdentity: identity })]);
       baselineId = baseline.rows[0].id;
-      expect(await before.reserveDemoOrder(symbol, now, clientOrderId, 50, 15, algoClientId)).toBe(true);
+      expect(await before.reserveDemoOrder(symbol, now, clientOrderId, 50, 15, algoClientId, undefined, TREND_STRATEGY_ID)).toBe(true);
       await db.query("UPDATE demo_orders SET created_at = GREATEST(created_at, $2::timestamptz) WHERE client_order_id = $1", [clientOrderId, baseline.rows[0].observed_at]);
+      await expect(before.demoOrderJournal()).resolves.toContainEqual(expect.objectContaining({ client_order_id: clientOrderId, status: "PENDING", strategy_id: TREND_STRATEGY_ID }));
       await before.close();
 
       const filled = .009;
@@ -530,6 +538,7 @@ integration("Demo recovery after restarting the worker", () => {
       await reconcilePendingDemoOrders(after, reconciliation);
       await expect(inspectDemoExecutionState(after, reader)).resolves.toMatchObject({ reason: "demo_position_without_live_protection" });
       live = true;
+      await expect(after.demoOrderJournal()).resolves.toContainEqual(expect.objectContaining({ client_order_id: clientOrderId, status: "PLACED", strategy_id: TREND_STRATEGY_ID }));
       await expect(inspectDemoExecutionState(after, reader)).resolves.toEqual({ status: "safe", positions: [{ symbol, quantity: .009 }] });
     } finally {
       await before.close().catch(() => undefined);

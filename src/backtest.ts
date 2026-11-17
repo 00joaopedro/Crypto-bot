@@ -1,3 +1,4 @@
+import { TREND_STRATEGY_ID, type StrategyId } from "./strategy-id.js";
 import { pairCooldownSchema, pairCooldownUntil, type PairCooldown } from "./pair-cooldown.js";
 import { REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import type { PositionSizingLimits } from "./position-sizing.js";
@@ -32,6 +33,7 @@ export type BacktestOptions = {
 };
 
 export type BacktestMetrics = {
+  strategyId: StrategyId;
   initialBalanceUsdt: number;
   finalEquityUsdt: number;
   netReturnUsdt: number;
@@ -75,7 +77,7 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   const btcCandles = options.btcCandles ?? (options.symbol === "BTC/USDT" ? candles : []);
   const btcByTime = options.btcRegimeFilter ? new Map(btcCandles.map((candle, index) => [candle.timestamp, index])) : undefined;
   const regimeBlockAt = (timestamp: number) => btcByTime && btcRegimeBlock(btcCandles, timestamp, btcByTime.get(timestamp) ?? -1);
-  const trader = new PaperTrader(options);
+  const trader = new PaperTrader({ ...options, strategyId: TREND_STRATEGY_ID });
   const closedTrades: PaperTradeClosed[] = [];
   const equities: number[] = [];
   const pending = new Map<number, boolean>();
@@ -154,6 +156,7 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   const wins = closedTrades.filter((trade) => trade.netPnlUsdt > 0).length;
   const losses = closedTrades.filter((trade) => trade.netPnlUsdt < 0).length;
   return { metrics: {
+    strategyId: TREND_STRATEGY_ID,
     initialBalanceUsdt: baselineEquity, finalEquityUsdt, netReturnUsdt,
     netReturnPercent: (netReturnUsdt / baselineEquity) * 100,
     buyAndHoldEquityUsdt, buyAndHoldReturnPercent: ((buyAndHoldEquityUsdt / baselineEquity) - 1) * 100,

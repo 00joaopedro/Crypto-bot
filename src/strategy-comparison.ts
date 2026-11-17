@@ -1,3 +1,4 @@
+import { TREND_STRATEGY_ID } from "./strategy-id.js";
 import { pairCooldownSchema } from "./pair-cooldown.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS } from "./btc-regime.js";
 import { positionSizingSchema } from "./position-sizing.js";
@@ -77,7 +78,7 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
       const metrics = report.result.windows.map(w => w.testMetrics);
       const losses = metrics.reduce((n, m) => n + m.grossLossUsdt, 0);
       const trades = metrics.reduce((n, m) => n + m.trades, 0);
-      return { name: v.name, parameters: v.parameters, report,
+      return { name: v.name, strategyId: TREND_STRATEGY_ID, parameters: v.parameters, report,
         summary: {
           closedTrades: trades,
           meanWindowNetReturnPercent: report.result.averageTestReturnPercent,

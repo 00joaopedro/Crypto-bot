@@ -17,6 +17,8 @@ describe("fixed comparative validation", () => {
     for (const s of r.results) {
       expect(s.variants.map(v => v.report.result.windows.map(w => [w.testStart, w.testEnd]))).toEqual([[[90,120],[120,150],[150,180]],[[90,120],[120,150],[150,180]]]);
       expect(s.variants[0]!.summary.closedTrades).toBeGreaterThan(0);
+      expect(s.variants[0]!.strategyId).toBe("trend");
+      expect(s.variants[0]!.report.result.windows[0]!.testMetrics.strategyId).toBe("trend");
       expect(s.variants[0]!.summary.profitFactor).toBe(0);
     }
     expect(r.results[1]!.variants[0]!.summary.meanWindowNetReturnPercent).toBeLessThan(r.results[0]!.variants[0]!.summary.meanWindowNetReturnPercent);

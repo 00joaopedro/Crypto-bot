@@ -1,3 +1,4 @@
+import { TREND_STRATEGY_ID } from "./strategy-id.js";
 import { describeAutoResume, autoResumeAt, inspectAutoResumeMarket, inspectAutoResumePaperRisk } from "./auto-resume.js";
 import { exitPolicySchema } from "./exit-policy.js";
 import { auditDemoProtections, superviseDemoExits, type FilledDemoBuy } from "./demo-exit-supervisor.js";
@@ -216,7 +217,7 @@ async function main(): Promise<void> {
 
     if (okxDemo) {
       if (config.OKX_DEMO_TRADING_ENABLED && !persistence) throw new Error("OKX Demo execution requires persistent order journal");
-      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id, protectionId, revision) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes, protectionId, revision));
+      if (persistence) okxDemo.setIntentJournal((symbol, timestamp, id, protectionId, revision, strategyId) => persistence.reserveDemoOrder(symbol, timestamp, id, tradingSettings.maxTrades, tradingSettings.intervalMinutes, protectionId, revision, strategyId));
       if (persistence) okxDemo.setExitReservationCheck((algo,request,stop) => persistence.isDemoExitReserved(algo,request,stop));
       if (persistence) okxDemo.setExitJournal((client,algo,symbol,candle,policy) => persistence.registerDemoExit(client,algo,symbol,candle,policy));
       await initializeOkxDemoWithBackoff(
@@ -309,10 +310,12 @@ async function main(): Promise<void> {
           symbol: state.symbol,
           notionalUsdt: state.paperState.position.entryNotional,
           openedAt: state.paperState.position.entryTimestamp,
+          ...(state.paperState.position.strategyId ? { strategyId: state.paperState.position.strategyId } : {}),
         }]);
       }
       const paperTrader = new PaperTrader(
         {
+          strategyId: TREND_STRATEGY_ID,
           initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
           tradeSizeUsdt:
             settings.paperTradeSizeUsdt ?? config.PAPER_TRADE_SIZE_USDT,
@@ -465,7 +468,7 @@ async function main(): Promise<void> {
               ...(exitPolicy ? { exitPolicy } : {}),
               },
             );
-            nextOkxDemo.setIntentJournal((symbol, timestamp, id, protectionId, revision) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes, protectionId, revision));
+            nextOkxDemo.setIntentJournal((symbol, timestamp, id, protectionId, revision, strategyId) => persistence.reserveDemoOrder(symbol, timestamp, id, nextSettings.maxTrades, nextSettings.intervalMinutes, protectionId, revision, strategyId));
             nextOkxDemo.setExitReservationCheck((algo,request,stop) => persistence.isDemoExitReserved(algo,request,stop));
             nextOkxDemo.setExitJournal((client,algo,symbol,candle,policy) => persistence.registerDemoExit(client,algo,symbol,candle,policy));
             await initializeOkxDemoWithBackoff(

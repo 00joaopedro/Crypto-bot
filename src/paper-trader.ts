@@ -1,9 +1,11 @@
+import type { StrategyId } from "./strategy-id.js";
 import { positionSize, positionSizingSchema, type PositionSizingLimits } from "./position-sizing.js";
 import { advanceExitStop, exitPolicySchema, type ExitPolicy } from "./exit-policy.js";
 import { quantizeQuantityDown } from "./decimal-quantity.js";
 import type { Candle } from "./types.js";
 
 export type PaperTraderOptions = {
+  strategyId?: StrategyId;
   initialBalanceUsdt: number;
   tradeSizeUsdt: number;
   riskSizing?: PositionSizingLimits;
@@ -18,6 +20,7 @@ export type PaperTraderOptions = {
 export type DynamicExitRates = { stopLossRate: number; takeProfitRate: number; trailingStopRate?: number };
 
 export type PaperPosition = {
+  strategyId?: StrategyId;
   entryTimestamp: number;
   entryPrice: number;
   quantity: number;
@@ -47,6 +50,7 @@ export type PaperTraderState = {
 };
 
 export type PaperTradeOpened = {
+  strategyId?: StrategyId;
   type: "OPENED";
   timestamp: number;
   entryPrice: number;
@@ -58,6 +62,7 @@ export type PaperTradeOpened = {
 };
 
 export type PaperTradeClosed = {
+  strategyId?: StrategyId;
   type: "CLOSED";
   entryTimestamp: number;
   exitTimestamp: number;
@@ -231,6 +236,7 @@ export class PaperTrader {
     assertRate(stopLossRate, "stopLossRate");
     assertRate(takeProfitRate, "takeProfitRate");
     const position: PaperPosition = {
+      ...(this.options.strategyId ? { strategyId: this.options.strategyId } : {}),
       entryTimestamp: candle.timestamp,
       entryPrice,
       quantity,
@@ -251,6 +257,7 @@ export class PaperTrader {
 
     return {
       type: "OPENED",
+      ...(position.strategyId ? { strategyId: position.strategyId } : {}),
       timestamp: candle.timestamp,
       entryPrice,
       quantity,
@@ -307,6 +314,7 @@ export class PaperTrader {
 
     return {
       type: "CLOSED",
+      ...(position.strategyId ? { strategyId: position.strategyId } : {}),
       entryTimestamp: position.entryTimestamp,
       exitTimestamp: candle.timestamp,
       entryPrice: position.entryPrice,

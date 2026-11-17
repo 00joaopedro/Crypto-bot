@@ -198,6 +198,7 @@ export class TradingBot {
     await this.monitorOtherPaperPositions(executionSymbol, control?.revision);
     if (this.observedPaused) return;
     const paperTrader = await this.getPaperTrader(executionSymbol);
+    const { strategyId } = paperTrader.configuration;
     const executionCandles = executionSymbol === this.options.symbol
       ? candles
       : await this.market.fetchClosedCandles(executionSymbol, this.options.candleLimit);
@@ -446,6 +447,7 @@ export class TradingBot {
         riskState: this.exportRiskState(),
         decision: {
           mode: this.options.demoExecutor ? "PAPER_WITH_OKX_DEMO" : "PAPER",
+          ...(strategyId ? { strategyId } : {}),
           signal,
           aiDecision,
           approved,
@@ -464,6 +466,7 @@ export class TradingBot {
         symbol: executionSymbol,
         notionalUsdt: opened.notionalUsdt,
         openedAt: currentCandle.timestamp,
+        ...(opened.strategyId ? { strategyId: opened.strategyId } : {}),
       });
       await this.recordOperationalEvent("PAPER_ENTRY_OPENED", "INFO", {
         symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, paperNotionalUsdt: opened.notionalUsdt,
@@ -581,6 +584,7 @@ export class TradingBot {
             candleTimestamp: currentCandle.timestamp,
             ...exitRates,
             ...entryAuthorization,
+            ...(strategyId ? { strategyId } : {}),
           });
           if (demoResult.status === "SKIPPED" && ["risk_size_unavailable", "risk_entry_changed", "demo_bot_budget_unavailable", "demo_book_unavailable", "demo_spread_exceeded", "demo_order_limits_unconfirmed"].includes(demoResult.reason)) {
             await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", {
@@ -592,6 +596,7 @@ export class TradingBot {
                 executionSymbol,
                 currentCandle.timestamp,
                 demoResult,
+                strategyId,
               );
               await this.recordServiceStatus("postgresql", "ok");
             } catch (error) {
@@ -662,6 +667,7 @@ export class TradingBot {
             executionSymbol,
             currentCandle.timestamp,
             message,
+            strategyId,
           );
         } catch (persistenceError) {
           console.error(

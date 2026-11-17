@@ -248,5 +248,9 @@ export const migrations: readonly Migration[] = [
     CREATE INDEX paper_closed_trades_candle_idx ON paper_trades (candle_timestamp DESC)
       WHERE event_type = 'CLOSED';
   ` },
+  { version: 17, name: "entry_strategy_identity", sql: `
+    ALTER TABLE decisions ADD COLUMN strategy_id TEXT;
+    ALTER TABLE demo_orders ADD COLUMN strategy_id TEXT;
+  ` },
 ] as const;
 

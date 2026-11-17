@@ -1,3 +1,4 @@
+import type { StrategyId } from "./strategy-id.js";
 import type { VerifiedDemoPosition } from "./demo-execution-safety.js";
 import { demoBotExposure, demoTradingExposure } from "./demo-exposure.js";
 import { positionSize, type PositionSizingLimits } from "./position-sizing.js";
@@ -55,6 +56,7 @@ export type OkxDemoAccountSnapshot = {
 };
 
 export type DemoBuyRequest = {
+  strategyId?: StrategyId;
   symbol?: string;
   candleTimestamp: number;
   entryRevision?: string;
@@ -126,7 +128,7 @@ type Pause = (milliseconds: number) => Promise<void>;
 export class OkxDemoExecutor {
   private sandboxConfigured = false;
   private initialized = false;
-  private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string) => Promise<boolean>;
+  private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string, strategyId?: StrategyId) => Promise<boolean>;
 
   private exitJournal?: (clientOrderId: string, algoId: string, symbol: string, candle: number, policy: ExitPolicy) => Promise<void>;
   setExitJournal(save: NonNullable<OkxDemoExecutor["exitJournal"]>): void { this.exitJournal = save; }
@@ -134,7 +136,7 @@ export class OkxDemoExecutor {
   setExitReservationCheck(check: NonNullable<OkxDemoExecutor["verifyExitReservation"]>): void { this.verifyExitReservation = check; }
   get exitManagementEnabled(): boolean { return this.options.tradingEnabled && !!this.options.exitPolicy; }
 
-  setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string) => Promise<boolean>): void {
+  setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string, strategyId?: StrategyId) => Promise<boolean>): void {
     this.reserveIntent = reserve;
   }
 
@@ -503,7 +505,8 @@ export class OkxDemoExecutor {
     if (!this.reserveIntent) throw new Error("Demo order requires a persistent intent journal");
     const reserved = await this.reserveIntent(
       marketSymbol, request.candleTimestamp, clientOrderId, attachedAlgoClientId,
-      ...(revisionRequired ? [request.entryRevision] as const : []),
+      ...(request.strategyId ? [request.entryRevision, request.strategyId] as const
+        : revisionRequired ? [request.entryRevision] as const : []),
     );
     if (!reserved) {
       if (revisionRequired) return { status: "SKIPPED", reason: "risk_entry_changed", clientOrderId };

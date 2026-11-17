@@ -1,3 +1,5 @@
+import type { ManagedPosition } from "./trade-manager.js";
+import type { StrategyId } from "./strategy-id.js";
 import { REGIME_CANDLE_MS } from "./btc-regime.js";
 import { pairCooldownUntil, HOUR_MS, PAIR_COOLDOWN_LOOKBACK_MS, type PairCooldown } from "./pair-cooldown.js";
 import { DEFAULT_DEMO_ORDERS_PER_INTERVAL, MAX_DEMO_ORDERS_PER_INTERVAL } from "./trading-limits.js";
@@ -31,6 +33,7 @@ export type PersistedCycle = {
   lossPause?: { controlRevision?: string };
   decision?: {
     mode: "PAPER" | "PAPER_WITH_OKX_DEMO";
+    strategyId?: StrategyId;
     signal: QuantSignal;
     aiDecision: AiDecision;
     approved: boolean;
@@ -87,11 +90,13 @@ export interface BotPersistence {
     symbol: string,
     candleTimestamp: number,
     result: DemoBuyResult,
+    strategyId?: StrategyId,
   ): Promise<void>;
   recordDemoOrderFailure(
     symbol: string,
     candleTimestamp: number,
     error: string,
+    strategyId?: StrategyId,
   ): Promise<void>;
   canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean>;
   activePairCooldowns?(now: number, policy: PairCooldown): Promise<Array<{ symbol: string; until: number }>>;
@@ -205,7 +210,7 @@ export class PostgresPersistence implements BotPersistence {
     );
   }
 
-  async loadOpenPaperPositions(): Promise<Array<{ symbol: string; notionalUsdt: number; openedAt: number }>> {
+  async loadOpenPaperPositions(): Promise<ManagedPosition[]> {
     const result = await this.pool.query<{ symbol: string; state: PaperTraderState }>(
       "SELECT symbol, state FROM paper_trader_state WHERE jsonb_typeof(state->'position') = 'object'",
     );
@@ -214,7 +219,7 @@ export class PostgresPersistence implements BotPersistence {
       if (!position || !Number.isFinite(position.entryNotional) || position.entryNotional <= 0 || !Number.isSafeInteger(position.entryTimestamp)) {
         throw new Error("Database contains an invalid open Paper position");
       }
-      return { symbol, notionalUsdt: position.entryNotional, openedAt: position.entryTimestamp };
+      return { symbol, notionalUsdt: position.entryNotional, openedAt: position.entryTimestamp, ...(position.strategyId ? { strategyId: position.strategyId } : {}) };
     });
   }
 
@@ -399,7 +404,7 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows[0]!.revision;
   }
 
-  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = DEFAULT_DEMO_ORDERS_PER_INTERVAL, intervalMinutes = 60, attachedAlgoClientId: string | null = null, expectedEntryRevision?: string): Promise<boolean> {
+  async reserveDemoOrder(symbol: string, timestamp: number, clientOrderId: string, maxTrades = DEFAULT_DEMO_ORDERS_PER_INTERVAL, intervalMinutes = 60, attachedAlgoClientId: string | null = null, expectedEntryRevision?: string, strategyId?: StrategyId): Promise<boolean> {
     if (attachedAlgoClientId !== null && !/^[A-Za-z0-9]{1,32}$/.test(attachedAlgoClientId)) {
       throw new Error("Invalid Demo protection client ID");
     }
@@ -418,10 +423,10 @@ export class PostgresPersistence implements BotPersistence {
         return false;
       }
       const result = await client.query(
-      `INSERT INTO demo_orders (client_order_id, symbol, candle_timestamp, status, result, attached_algo_client_id)
-       VALUES ($1, $2, $3, 'PENDING', $4::jsonb, $5)
+      `INSERT INTO demo_orders (client_order_id, symbol, candle_timestamp, status, result, attached_algo_client_id, strategy_id)
+       VALUES ($1, $2, $3, 'PENDING', $4::jsonb, $5, $6)
        ON CONFLICT (client_order_id) DO NOTHING RETURNING client_order_id`,
-      [clientOrderId, symbol, timestamp, JSON.stringify({ clientOrderId, status: "PENDING", reason: "submission_unconfirmed" }), attachedAlgoClientId],
+      [clientOrderId, symbol, timestamp, JSON.stringify({ clientOrderId, status: "PENDING", reason: "submission_unconfirmed" }), attachedAlgoClientId, strategyId ?? null],
       );
       await client.query("COMMIT");
       return result.rowCount === 1;
@@ -493,10 +498,10 @@ export class PostgresPersistence implements BotPersistence {
     return result.rowCount === 1;
   }
 
-  async demoOrderJournal(since?: Date): Promise<Array<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>> {
+  async demoOrderJournal(since?: Date): Promise<Array<{ client_order_id: string; symbol: string; status: string; strategy_id?: StrategyId | null; result: unknown; attached_algo_client_id: string | null; created_at: Date }>> {
     if (since && !Number.isFinite(since.getTime())) throw new Error("Invalid Demo journal start date");
-    const result = await this.pool.query<{ client_order_id: string; symbol: string; status: string; result: unknown; attached_algo_client_id: string | null; created_at: Date }>(
-      `SELECT client_order_id, symbol, status, result, attached_algo_client_id, created_at
+    const result = await this.pool.query<{ client_order_id: string; symbol: string; status: string; strategy_id?: StrategyId | null; result: unknown; attached_algo_client_id: string | null; created_at: Date }>(
+      `SELECT client_order_id, symbol, status, strategy_id, result, attached_algo_client_id, created_at
        FROM demo_orders WHERE ($1::timestamptz IS NULL OR created_at >= $1) ORDER BY created_at, client_order_id`,
       [since ?? null],
     );
@@ -650,9 +655,9 @@ export class PostgresPersistence implements BotPersistence {
     const safeLimit = Number.isFinite(limit) ? Math.min(500, Math.max(50, Math.trunc(limit))) : 500;
     const [events, decisions, trades, orders] = await Promise.all([
       this.pool.query(`SELECT created_at, event_type, severity, symbol, details FROM operational_events WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
-      this.pool.query(`SELECT created_at, symbol, candle_timestamp, mode, signal, ai_decision, approved FROM decisions WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
-      this.pool.query(`SELECT created_at, symbol, candle_timestamp, event_type, trade FROM paper_trades WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
-      this.pool.query(`SELECT created_at, symbol, candle_timestamp, status, result FROM demo_orders WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, symbol, candle_timestamp, mode, signal, ai_decision, approved, strategy_id FROM decisions WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, symbol, candle_timestamp, event_type, trade, trade->>'strategyId' AS strategy_id FROM paper_trades WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, symbol, candle_timestamp, status, result, strategy_id FROM demo_orders WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
     ]);
     const lines = [
       { section: "operational_events", rows: events.rows },
@@ -679,7 +684,7 @@ export class PostgresPersistence implements BotPersistence {
     const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades, okxEvents] = await Promise.all([
       this.pool.query<{ paused: boolean; pause_reason: string | null }>("SELECT paused, pause_reason FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
-        `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, created_at
+        `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, strategy_id, created_at
          FROM decisions WHERE symbol = $1 ORDER BY created_at DESC LIMIT 1`,
         [settings.symbol],
       ),
@@ -702,7 +707,7 @@ export class PostgresPersistence implements BotPersistence {
         [historySymbol ?? null, limit],
       ),
       this.pool.query<Record<string, unknown>>(
-        `SELECT client_order_id, symbol, status, result, created_at
+        `SELECT client_order_id, symbol, status, result, strategy_id, created_at
          FROM demo_orders
          WHERE ($1::text IS NULL OR symbol = $1)
          ORDER BY created_at DESC LIMIT $2`,
@@ -888,14 +893,16 @@ export class PostgresPersistence implements BotPersistence {
     symbol: string,
     candleTimestamp: number,
     result: DemoBuyResult,
+    strategyId?: StrategyId,
   ): Promise<void> {
     await this.pool.query(
       `INSERT INTO demo_orders (
-         client_order_id, symbol, candle_timestamp, status, result
-       ) VALUES ($1, $2, $3, $4, $5::jsonb)
+         client_order_id, symbol, candle_timestamp, status, result, strategy_id
+       ) VALUES ($1, $2, $3, $4, $5::jsonb, $6)
        ON CONFLICT (client_order_id) DO UPDATE SET
          status = EXCLUDED.status,
          result = EXCLUDED.result,
+         strategy_id = COALESCE(demo_orders.strategy_id, EXCLUDED.strategy_id),
          updated_at = NOW()
        WHERE (EXCLUDED.status <> 'SKIPPED' OR demo_orders.status NOT IN ('PENDING', 'PLACED'))
          AND NOT (EXCLUDED.status = 'PENDING' AND demo_orders.status IN ('PLACED', 'FAILED'))
@@ -906,6 +913,7 @@ export class PostgresPersistence implements BotPersistence {
         candleTimestamp,
         result.status,
         JSON.stringify(result),
+        strategyId ?? null,
       ],
     );
   }
@@ -914,17 +922,18 @@ export class PostgresPersistence implements BotPersistence {
     symbol: string,
     candleTimestamp: number,
     error: string,
+    strategyId?: StrategyId,
   ): Promise<void> {
     const clientOrderId = `FAILED:${symbol}:${candleTimestamp}`;
     await this.pool.query(
       `INSERT INTO demo_orders (
-         client_order_id, symbol, candle_timestamp, status, result
-       ) VALUES ($1, $2, $3, 'FAILED', $4::jsonb)
+         client_order_id, symbol, candle_timestamp, status, result, strategy_id
+       ) VALUES ($1, $2, $3, 'FAILED', $4::jsonb, $5)
        ON CONFLICT (client_order_id) DO UPDATE SET
          result = EXCLUDED.result,
          updated_at = NOW()
        WHERE demo_orders.status <> 'REJECTED_CONFIRMED'`,
-      [clientOrderId, symbol, candleTimestamp, JSON.stringify({ error })],
+      [clientOrderId, symbol, candleTimestamp, JSON.stringify({ error }), strategyId ?? null],
     );
   }
 
@@ -939,13 +948,14 @@ export class PostgresPersistence implements BotPersistence {
     const decision = cycle.decision!;
     await client.query(
       `INSERT INTO decisions (
-         symbol, candle_timestamp, mode, signal, ai_decision, approved
-       ) VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6)
+         symbol, candle_timestamp, mode, signal, ai_decision, approved, strategy_id
+       ) VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7)
        ON CONFLICT (symbol, candle_timestamp) DO UPDATE SET
          mode = EXCLUDED.mode,
          signal = EXCLUDED.signal,
          ai_decision = EXCLUDED.ai_decision,
          approved = EXCLUDED.approved,
+         strategy_id = EXCLUDED.strategy_id,
          updated_at = NOW()`,
       [
         cycle.symbol,
@@ -954,6 +964,7 @@ export class PostgresPersistence implements BotPersistence {
         JSON.stringify(decision.signal),
         JSON.stringify(decision.aiDecision),
         decision.approved,
+        decision.strategyId ?? null,
       ],
     );
   }
