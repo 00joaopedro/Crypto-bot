@@ -1,3 +1,4 @@
+import { pairCooldownSchema, pairCooldownUntil, type PairCooldown } from "./pair-cooldown.js";
 import { REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import type { PositionSizingLimits } from "./position-sizing.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
@@ -11,6 +12,7 @@ export type BacktestOptions = {
   riskSizing?: PositionSizingLimits;
   symbol?: string;
   btcRegimeFilter?: boolean;
+  pairCooldown?: PairCooldown;
   btcCandles?: Candle[];
   feeRate: number;
   slippageRate: number;
@@ -50,6 +52,7 @@ export type BacktestMetrics = {
   executionDelayCandles: number;
   rejectedEntries: number;
   regimeBlockedSignals: number;
+  pairCooldownBlockedEntries: number;
   openPositionAtEnd: boolean;
 };
 
@@ -66,6 +69,9 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   if (options.liquidity && (!Number.isFinite(options.liquidity.assumedDepthUsdt) || options.liquidity.assumedDepthUsdt < 0 || !Number.isFinite(options.liquidity.maxParticipationRate) || options.liquidity.maxParticipationRate <= 0 || options.liquidity.maxParticipationRate > 1)) throw new Error("Invalid liquidity assumptions");
   let rejectedEntries = 0;
   let regimeBlockedSignals = 0;
+  let pairCooldownBlockedEntries = 0;
+  let cooldownUntil: number | undefined;
+  const cooldown = options.pairCooldown && pairCooldownSchema.parse(options.pairCooldown);
   const btcCandles = options.btcCandles ?? (options.symbol === "BTC/USDT" ? candles : []);
   const btcByTime = options.btcRegimeFilter ? new Map(btcCandles.map((candle, index) => [candle.timestamp, index])) : undefined;
   const regimeBlockAt = (timestamp: number) => btcByTime && btcRegimeBlock(btcCandles, timestamp, btcByTime.get(timestamp) ?? -1);
@@ -95,6 +101,10 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
       approved = false;
       regimeBlockedSignals++;
     }
+    if (approved && cooldownUntil !== undefined && candle.timestamp < cooldownUntil) {
+      approved = false;
+      pairCooldownBlockedEntries++;
+    }
     let liquidity = options.tradeSizeUsdt;
     if (approved && options.liquidity) {
       // Only the PREVIOUS closed candle is available at the next open.
@@ -115,7 +125,15 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     if (approved && !result.events.some((event) => event.type === "OPENED")) rejectedEntries++;
     pending.delete(index);
     if (index >= warmup) {
-      closedTrades.push(...result.events.filter((event): event is PaperTradeClosed => event.type === "CLOSED"));
+      const closed = result.events.filter((event): event is PaperTradeClosed => event.type === "CLOSED");
+      closedTrades.push(...closed);
+      if (cooldown && closed.length > 0) {
+        const recent = closedTrades.slice(-cooldown.minLosses).reverse().map(trade => ({
+          closedAt: trade.exitTimestamp + REGIME_CANDLE_MS,
+          netPnlUsdt: trade.netPnlUsdt,
+        }));
+        cooldownUntil = pairCooldownUntil(recent, candle.timestamp + REGIME_CANDLE_MS, cooldown);
+      }
       equities.push(result.snapshot.equityUsdt);
     }
   }
@@ -144,7 +162,7 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     profitFactor: grossLossUsdt === 0 ? (grossProfitUsdt > 0 ? Number.POSITIVE_INFINITY : 0) : grossProfitUsdt / grossLossUsdt,
     expectancyUsdt: closedTrades.length ? closedTrades.reduce((sum, trade) => sum + trade.netPnlUsdt, 0) / closedTrades.length : 0,
     winRate: closedTrades.length ? (wins / closedTrades.length) * 100 : 0,
-    trades: closedTrades.length, wins, losses, maxDrawdownPercent, executionDelayCandles: delay, rejectedEntries, regimeBlockedSignals, openPositionAtEnd: trader.hasOpenPosition,
+    trades: closedTrades.length, wins, losses, maxDrawdownPercent, executionDelayCandles: delay, rejectedEntries, regimeBlockedSignals, pairCooldownBlockedEntries, openPositionAtEnd: trader.hasOpenPosition,
   }, trades: closedTrades };
 }
 

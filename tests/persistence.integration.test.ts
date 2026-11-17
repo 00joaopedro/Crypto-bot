@@ -540,3 +540,26 @@ integration("Demo recovery after restarting the worker", () => {
     }
   });
 });
+
+integration("pair cooldown history", () => {
+  it("derives the active cooldown from durable losses and releases the pair when it expires", async () => {
+    const store = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const symbol = "COOLDOWNTEST/USDT", now = Date.now(), keys = [0, 1, 2].map(i => `cooldown-${now}-${i}`);
+    try {
+      await store.initialize();
+      for (const [index, key] of keys.entries()) {
+        await db.query(`INSERT INTO paper_trades (event_key, symbol, event_type, candle_timestamp, replayed, trade)
+          VALUES ($1,$2,'CLOSED',$3,false,'{"netPnlUsdt":-1}')`, [key, symbol, now - 900_000 - index * 3_600_000]);
+      }
+      const policy = { hours: 6, minLosses: 3 };
+      const until = now + 6 * 3_600_000;
+      expect(await store.activePairCooldowns(now, policy)).toContainEqual({ symbol, until });
+      expect(await store.activePairCooldowns(until, policy)).not.toContainEqual(expect.objectContaining({ symbol }));
+    } finally {
+      await db.query("DELETE FROM paper_trades WHERE event_key = ANY($1::text[])", [keys]);
+      await db.end();
+      await store.close();
+    }
+  });
+});

@@ -41,6 +41,10 @@ export class EmailTradeAlert {
   }
 
   private async send(subject: string, text: string): Promise<void> {
+    const { from, to } = this.options;
+    const fromAddress = /^(?:[^<>\r\n]+) <([^<>]+)>$/.exec(from)?.[1] ?? from;
+    if (!validEmailAddress(fromAddress)) throw new Error("Invalid EMAIL_FROM format");
+    if (!validEmailAddress(to)) throw new Error("Invalid EMAIL_ALERT_TO format");
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -54,9 +58,12 @@ export class EmailTradeAlert {
         text,
       }),
       signal: AbortSignal.timeout(10_000),
-    });
+    }).catch(() => { throw new Error("Email provider unavailable"); });
     if (!response.ok) {
-      throw new Error(`Email provider returned HTTP ${response.status}`);
+      const body: unknown = await response.json().catch(() => null);
+      const name = body && typeof body === "object" && "name" in body ? body.name : undefined;
+      const category = typeof name === "string" && resendErrorNames.has(name) ? name : "unknown_error";
+      throw new Error(`Email provider returned HTTP ${response.status} (${category})`);
     }
   }
 }
@@ -64,3 +71,14 @@ export class EmailTradeAlert {
 function format(value: number): string {
   return Number(value.toFixed(8)).toString();
 }
+
+
+function validEmailAddress(value: string): boolean {
+  return /^[^\s@<>,]+@[^\s@<>,]+\.[^\s@<>,]+$/.test(value);
+}
+
+const resendErrorNames = new Set([
+  "validation_error", "missing_required_field", "invalid_from_address",
+  "invalid_to_address", "invalid_parameter", "restricted_api_key",
+  "invalid_api_key", "rate_limit_exceeded", "application_error",
+]);

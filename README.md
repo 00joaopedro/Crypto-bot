@@ -407,3 +407,19 @@ pode executar a preços diferentes dos consultados.
 Na inicialização, o primeiro ciclo reconcilia ordens pendentes do banco,
 verifica stops persistidos e audita a proteção na corretora antes de
 permitir entradas. Uma retomada manual também passa pela auditoria.
+
+### Pausa temporária para novas entradas por par
+
+`PAIR_COOLDOWN_ENABLED` é desativada por padrão. Quando habilitada, a regra usa
+o histórico Paper persistido como referência para novas entradas Paper e Demo.
+O padrão exige três perdas líquidas consecutivas completadas em até 48 horas
+e pausa o par por seis horas a partir do fechamento da última perda. Qualquer
+par pode voltar a concorrer a entradas ao expirar. As posições abertas seguem
+seu fluxo de monitoramento e proteção. O painel lista as pausas ativas.
+Ajuste `PAIR_COOLDOWN_HOURS` e `PAIR_COOLDOWN_MIN_LOSSES` para experimentar.
+
+No modo `--compare`, compare o filtro desativado com alternativas que acrescentam
+`"pairCooldown": { "hours": 6, "minLosses": 3 }` aos parâmetros da estratégia.
+Use também 4, 8 e 24 horas para comparar custo, resultados líquidos e entradas
+bloqueadas. Cada janela do backtest começa com histórico de operações vazio.
+A redução de consultas e o impacto na estratégia dependem dos dados em uso.

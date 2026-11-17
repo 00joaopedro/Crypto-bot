@@ -244,5 +244,9 @@ export const migrations: readonly Migration[] = [
       ADD CONSTRAINT dashboard_settings_max_trades_check CHECK (max_trades BETWEEN 1 AND 50),
       ADD CONSTRAINT dashboard_settings_max_concurrent_positions_check CHECK (max_concurrent_positions BETWEEN 1 AND 50);
   ` },
+  { version: 16, name: "paper_closed_trades_by_candle", sql: `
+    CREATE INDEX paper_closed_trades_candle_idx ON paper_trades (candle_timestamp DESC)
+      WHERE event_type = 'CLOSED';
+  ` },
 ] as const;
 

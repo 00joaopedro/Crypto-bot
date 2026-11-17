@@ -8,7 +8,7 @@ import type { BotPersistence } from '../src/persistence.js';
 import type { OkxDemoExecutor } from '../src/okx-demo.js';
 vi.mock('../src/strategy.js', () => ({ evaluateStrategy: vi.fn(() => ({ action: 'BUY', score: 8 })) }));
 vi.mock('../src/signal-ranking.js', () => ({ rankSignals: () => [{ symbol: 'ETH/USDT', eligible: true, rank: 1, signal: { action: 'BUY', score: 8 } }] }));
-it('selects the Demo candidate while monitoring a different Paper position', async () => {
+it('selects the Demo candidate while monitoring a Paper position in a paused pair', async () => {
   const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
   const candles = Array.from({ length: 85 }, (_, i) => ({ timestamp: i * 900000, open: 100, high: 100.01, low: 99.99, close: 100, volume: 1 }));
   const paper = new PaperTrader({ initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0, slippageRate: 0, stopLossRate: 0.1, takeProfitRate: 0.2 });
@@ -21,7 +21,8 @@ it('selects the Demo candidate while monitoring a different Paper position', asy
     symbol: 'BTC/USDT', candleLimit: 85, minimumConfidence: 0.8, minimumSignalScore: 4, aiFailureMode: 'quantitative', paperTrader: paper,
     tradeManager: manager, signalScanSymbols: ['ETH/USDT'], inspectDemoEntry: async () => ({ allowed: true }),
     demoExecutor: { executeApprovedBuy } as unknown as OkxDemoExecutor,
-    persistence: { isPaused: async () => false, recordCycle, recordDemoOrder: async () => undefined } as unknown as BotPersistence,
+    pairCooldown: { hours: 6, minLosses: 3 },
+    persistence: { activePairCooldowns: async () => [{ symbol: 'BTC/USDT', until: Date.now() + 1e6 }], isPaused: async () => false, recordCycle, recordDemoOrder: async () => undefined } as unknown as BotPersistence,
   });
   await bot.runCycle();
   expect(executeApprovedBuy).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'ETH/USDT' }));
@@ -118,4 +119,79 @@ it.each([false, true])('handles an old Paper position with missing history = %s'
     ]]);
     expect(executeApprovedBuy).not.toHaveBeenCalled();
   }
+});
+
+it('reuses aligned scan data, retries late pairs and lets cooled pairs rejoin', async () => {
+  const candles = Array.from({ length: 86 }, (_, i) => ({ timestamp: i * 900000, open: 100, high: 101, low: 99, close: 100, volume: 1 }));
+  let end = 85, ethReady = false, paused = false;
+  const fetchClosedCandles = vi.fn(async (symbol: string) => candles.slice(0, symbol === 'ETH/USDT' && !ethReady ? end - 1 : end));
+  const selectSpotSymbols = vi.fn(async () => ['ETH/USDT', 'SOL/USDT']);
+  const bot = new TradingBot({ active: 'okx', fetchClosedCandles, selectSpotSymbols } as unknown as PublicMarketData, {
+    symbol: 'BTC/USDT', candleLimit: 85, minimumConfidence: .8, dynamicUniverseSize: 2,
+    paperTrader: new PaperTrader({ initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0, slippageRate: 0, stopLossRate: .1, takeProfitRate: .2 }),
+    pairCooldown: { hours: 6, minLosses: 3 },
+    persistence: {
+      isPaused: async () => false, recordCycle: vi.fn(),
+      activePairCooldowns: async () => paused ? [{ symbol: 'SOL/USDT', until: Date.now() + 1e6 }] : [],
+    } as unknown as BotPersistence,
+  });
+  const scanCalls = (symbol: string) => fetchClosedCandles.mock.calls.filter(([pair, limit]: unknown[]) => pair === symbol && limit === 90).length;
+  const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  try {
+    paused = true;
+    await bot.runCycle();
+    expect(scanCalls('SOL/USDT')).toBe(0);
+    expect(bot.getLastSignalScan()?.cooldowns).toEqual([expect.objectContaining({ symbol: 'SOL/USDT' })]);
+    paused = false;
+    ethReady = true;
+    await bot.runCycle();
+    await bot.runCycle();
+    expect(selectSpotSymbols).toHaveBeenCalledTimes(1);
+    expect(scanCalls('ETH/USDT')).toBe(2);
+    expect(scanCalls('SOL/USDT')).toBe(1);
+    end++;
+    await bot.runCycle();
+    expect(selectSpotSymbols).toHaveBeenCalledTimes(2);
+    expect(scanCalls('ETH/USDT')).toBe(3);
+  } finally {
+    log.mockRestore();
+  }
+});
+
+it.each([
+  { replay: true, previousLosses: 2 },
+  { replay: false, previousLosses: 2 },
+  { replay: false, previousLosses: 1 },
+])('checks persisted pair losses before reentry (replay=$replay, previous losses=$previousLosses)', async ({ replay, previousLosses }) => {
+  const stopIndex = replay ? 83 : 84;
+  const candles = Array.from({ length: 85 }, (_, i) => ({
+    timestamp: i * 900_000, open: 100, high: 100.01, low: i === stopIndex ? 80 : 99.99, close: 100, volume: 1,
+  }));
+  const paperTrader = new PaperTrader({
+    initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0, slippageRate: 0, stopLossRate: .1, takeProfitRate: .2,
+  });
+  paperTrader.processCandle(candles[stopIndex - 1]!, true);
+  const inspectDemoEntry = vi.fn(async () => ({ allowed: true }));
+  const executeApprovedBuy = vi.fn(async () => ({ status: 'PLACED' as const, orderId: '1', clientOrderId: 'CB1' }));
+  let persistedLosses = previousLosses;
+  const recordCycle = vi.fn(async (cycle: import('../src/persistence.js').PersistedCycle) => {
+    persistedLosses += cycle.paperResult.events.filter(event => event.type === 'CLOSED' && event.netPnlUsdt < 0).length;
+  });
+  const bot = new TradingBot({ fetchClosedCandles: async () => candles } as unknown as PublicMarketData, {
+    symbol: 'ETH/USDT', candleLimit: 85, minimumConfidence: .8, aiFailureMode: 'quantitative', paperTrader,
+    pairCooldown: { hours: 6, minLosses: 3 }, inspectDemoEntry,
+    demoExecutor: { executeApprovedBuy } as unknown as OkxDemoExecutor,
+    persistence: {
+      isPaused: async () => false, recordCycle, recordOperationalEvent: vi.fn(), recordDemoOrder: vi.fn(),
+      activePairCooldowns: async () => persistedLosses >= 3 ? [{ symbol: 'ETH/USDT', until: Date.now() + 21_600_000 }] : [],
+    } as unknown as BotPersistence,
+  });
+
+  await bot.runCycle();
+
+  expect(persistedLosses).toBe(previousLosses + 1);
+  expect(paperTrader.hasOpenPosition).toBe(false);
+  expect(inspectDemoEntry).toHaveBeenCalledTimes(previousLosses === 2 ? 0 : 1);
+  expect(executeApprovedBuy).toHaveBeenCalledTimes(previousLosses === 2 ? 0 : 1);
+  expect(bot.getLastSignalScan()?.cooldowns).toHaveLength(previousLosses === 2 ? 1 : 0);
 });

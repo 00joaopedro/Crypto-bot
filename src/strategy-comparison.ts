@@ -1,3 +1,4 @@
+import { pairCooldownSchema } from "./pair-cooldown.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS } from "./btc-regime.js";
 import { positionSizingSchema } from "./position-sizing.js";
 import { createHash } from "node:crypto";
@@ -11,6 +12,7 @@ const positive = z.number().finite().positive();
 const parameters = z.object({
   exitPolicy: exitPolicySchema.optional(),
   riskSizing: positionSizingSchema.optional(),
+  pairCooldown: pairCooldownSchema.optional(),
   btcRegimeFilter: z.boolean().optional(),
   stopLossRate: positive.lt(1), takeProfitRate: positive.lt(1),
   maxBuyRsi: z.number().finite().min(0).max(100).optional(),
@@ -61,8 +63,8 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
     variants: variants.map(v => {
       const effectiveSlippage = (1 + s.slippageRate) * (1 + s.spreadRate / 2) - 1;
       if (effectiveSlippage >= 1) throw new Error("Combined execution cost is too high");
-      const { exitPolicy, riskSizing, btcRegimeFilter, maxBuyRsi, ...fixedParameters } = v.parameters;
-      const candidate = { ...fixedParameters, ...(maxBuyRsi !== undefined ? { maxBuyRsi } : {}), ...(btcRegimeFilter !== undefined ? { btcRegimeFilter } : {}), ...(riskSizing ? { riskSizing } : {}), ...(exitPolicy ? { exitPolicy: { ...exitPolicy, exitFeeRate: s.feeRate, exitSlippageRate: effectiveSlippage } } : {}) };
+      const { exitPolicy, riskSizing, btcRegimeFilter, maxBuyRsi, pairCooldown, ...fixedParameters } = v.parameters;
+      const candidate = { ...fixedParameters, ...(pairCooldown ? { pairCooldown } : {}), ...(maxBuyRsi !== undefined ? { maxBuyRsi } : {}), ...(btcRegimeFilter !== undefined ? { btcRegimeFilter } : {}), ...(riskSizing ? { riskSizing } : {}), ...(exitPolicy ? { exitPolicy: { ...exitPolicy, exitFeeRate: s.feeRate, exitSlippageRate: effectiveSlippage } } : {}) };
       const report = validateDemoStrategy(candles, {
         trainCandles: options.trainCandles, testCandles: options.testCandles,
         candidates: [candidate],
@@ -82,6 +84,7 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
           profitableWindowsPercent: report.result.consistencyPercent,
           worstWindowDrawdownPercent: Math.max(...metrics.map(m => m.maxDrawdownPercent)),
           closedTradeExpectancyUsdt: trades ? metrics.reduce((n, m) => n + m.expectancyUsdt * m.trades, 0) / trades : null,
+          pairCooldownBlockedEntries: metrics.reduce((n, m) => n + m.pairCooldownBlockedEntries, 0),
           profitFactor: losses > 0 ? metrics.reduce((sum, m) => sum + m.grossProfitUsdt, 0) / losses : null,
           totalFeesUsdt: metrics.reduce((n, m) => n + m.totalFeesUsdt, 0),
           regimeBlockedSignals: metrics.reduce((n, m) => n + m.regimeBlockedSignals, 0),
