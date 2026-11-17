@@ -195,3 +195,59 @@ it.each([
   expect(executeApprovedBuy).toHaveBeenCalledTimes(previousLosses === 2 ? 0 : 1);
   expect(bot.getLastSignalScan()?.cooldowns).toHaveLength(previousLosses === 2 ? 1 : 0);
 });
+
+it.each(['demo_spread_exceeded', 'demo_book_unavailable'] as const)('checks %s before persisting Paper or admitting Demo', async reason => {
+  const candles = Array.from({ length: 85 }, (_, i) => ({ timestamp: i * 900_000, open: 100, high: 100.01, low: 99.99, close: 100, volume: 1 }));
+  const paperTrader = new PaperTrader({ initialBalanceUsdt: 1000, tradeSizeUsdt: 10, feeRate: 0, slippageRate: 0, stopLossRate: .1, takeProfitRate: .2 });
+  const inspectEntryMarket = vi.fn(async () => ({ status: 'blocked' as const, reason }));
+  const inspectDemoEntry = vi.fn();
+  const executeApprovedBuy = vi.fn();
+  const recordCycle = vi.fn();
+  const recordOperationalEvent = vi.fn();
+  const bot = new TradingBot({ fetchClosedCandles: async () => candles } as unknown as PublicMarketData, {
+    symbol: 'ETH/USDT', candleLimit: 85, minimumConfidence: .8, aiFailureMode: 'quantitative', paperTrader,
+    inspectEntryMarket, inspectDemoEntry, demoExecutor: { executeApprovedBuy },
+    persistence: { isPaused: async () => false, recordCycle, recordOperationalEvent } as unknown as BotPersistence,
+  });
+
+  await bot.runCycle();
+
+  expect(inspectEntryMarket).toHaveBeenCalledWith('ETH/USDT');
+  expect(recordCycle).toHaveBeenCalledWith(expect.objectContaining({
+    paperResult: expect.objectContaining({ events: [] }),
+    decision: expect.objectContaining({ approved: false }),
+  }));
+  expect(inspectDemoEntry).not.toHaveBeenCalled();
+  expect(executeApprovedBuy).not.toHaveBeenCalled();
+  expect(recordOperationalEvent).toHaveBeenCalledWith(expect.objectContaining({
+    eventType: 'DEMO_ENTRY_DECISION', details: expect.objectContaining({ approved: false, reason }),
+  }));
+});
+
+it('keeps the recorded Paper opening and its alert when the spread widens before Demo execution', async () => {
+  const candles = Array.from({ length: 85 }, (_, i) => ({ timestamp: i * 900_000, open: 100, high: 100.01, low: 99.99, close: 100, volume: 1 }));
+  const paperTrader = new PaperTrader({ initialBalanceUsdt: 1000, tradeSizeUsdt: 10, feeRate: 0, slippageRate: 0, stopLossRate: .1, takeProfitRate: .2 });
+  const recordCycle = vi.fn();
+  const recordDemoOrder = vi.fn();
+  const recordOperationalEvent = vi.fn();
+  const sendOpened = vi.fn();
+  const bot = new TradingBot({ fetchClosedCandles: async () => candles } as unknown as PublicMarketData, {
+    symbol: 'ETH/USDT', candleLimit: 85, minimumConfidence: .8, aiFailureMode: 'quantitative', paperTrader,
+    inspectEntryMarket: async () => ({ status: 'safe' }),
+    inspectDemoEntry: async () => ({ allowed: true }),
+    demoExecutor: { executeApprovedBuy: async () => ({ status: 'SKIPPED', reason: 'demo_spread_exceeded', clientOrderId: 'CB1' }) },
+    emailAlerts: { sendOpened, sendClosed: vi.fn() } as unknown as import('../src/email-alerts.js').EmailTradeAlert,
+    persistence: { isPaused: async () => false, recordCycle, recordDemoOrder, recordOperationalEvent } as unknown as BotPersistence,
+  });
+
+  await bot.runCycle();
+
+  expect(recordCycle).toHaveBeenCalledWith(expect.objectContaining({
+    paperResult: expect.objectContaining({ events: [expect.objectContaining({ type: 'OPENED' })] }),
+  }));
+  expect(recordDemoOrder).not.toHaveBeenCalled();
+  expect(recordOperationalEvent).toHaveBeenCalledWith(expect.objectContaining({
+    eventType: 'DEMO_ENTRY_DECISION', details: expect.objectContaining({ stage: 'execution', paperOpened: true, reason: 'demo_spread_exceeded' }),
+  }));
+  expect(sendOpened).toHaveBeenCalledWith('ETH/USDT', expect.objectContaining({ type: 'OPENED' }));
+});

@@ -586,3 +586,41 @@ it("sizes against verified holdings and excludes unrelated assets under the scop
   })).resolves.toMatchObject({ status: "PLACED" });
   expect(exchange.createMarketBuyOrderWithCost).toHaveBeenCalledWith("BTC/USDT", 10, expect.any(Object));
 });
+
+it("checks a fresh book again before reserving or sending the Demo order", async () => {
+  const fetchOrderBook = vi.fn()
+    .mockImplementationOnce(async () => ({ bids: [[99.99, 100]], asks: [[100, 100]], timestamp: Date.now() }))
+    .mockImplementationOnce(async () => ({ bids: [[99, 100]], asks: [[100, 100]], timestamp: Date.now() }));
+  const exchange = exchangeMock({ fetchOrderBook });
+  const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+  const reserve = vi.fn(async () => true);
+  executor.setIntentJournal(reserve);
+  await executor.initialize();
+
+  await expect(executor.inspectEntryMarket("BTC/USDT")).resolves.toEqual({ status: "safe" });
+  expect(exchange.fetchTradingFee).not.toHaveBeenCalled();
+  await expect(executor.executeApprovedBuy({ candleTimestamp: 1_800_000 })).resolves.toMatchObject({
+    status: "SKIPPED", reason: "demo_spread_exceeded",
+  });
+  expect(fetchOrderBook).toHaveBeenCalledTimes(2);
+  expect(reserve).not.toHaveBeenCalled();
+  expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+});
+
+it("reports an exchange cancellation with a partial fill as pending", async () => {
+  const exchange = exchangeMock({
+    createMarketBuyOrderWithCost: vi.fn(async () => ({
+      id: "order-partial", status: "canceled", filled: 0.04, average: 100, cost: 4,
+    })),
+  });
+  const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+  const reserve = vi.fn(async () => true);
+  executor.setIntentJournal(reserve);
+  await executor.initialize();
+
+  await expect(executor.inspectEntryMarket("BTC/USDT")).resolves.toEqual({ status: "safe" });
+  await expect(executor.executeApprovedBuy({ candleTimestamp: 1_800_000 })).resolves.toMatchObject({
+    status: "PENDING", confirmed: false, orderStatus: "canceled", filled: 0.04,
+  });
+  expect(reserve).toHaveBeenCalledTimes(1);
+});

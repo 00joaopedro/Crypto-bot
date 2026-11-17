@@ -338,6 +338,7 @@ async function main(): Promise<void> {
         minimumSignalScore: config.MIN_SIGNAL_SCORE,
         paperTrader,
         ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),
+        ...(demoExecutor ? { inspectEntryMarket: (symbol: string) => demoExecutor.inspectEntryMarket(symbol) } : {}),
         ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: async () => {
           const safety = await inspectDemoExecutionSafety(persistence, demoExecutor);
           if (safety.status !== "safe") return safety;

@@ -64,6 +64,10 @@ export type DemoBuyRequest = {
 };
 export type DemoSellRequest = { symbol?: string; candleTimestamp: number; quantity: number };
 
+type DemoEntryBookBlock = { status: "blocked"; reason: "demo_book_unavailable" | "demo_spread_exceeded" };
+type DemoEntryBook = DemoEntryBookBlock | { status: "safe"; book: OrderBook; referencePrice: number };
+export type DemoEntryMarketCheck = DemoEntryBookBlock | { status: "safe" };
+
 export type DemoBuyResult =
   | {
       status: "PLACED" | "PENDING" | "FAILED";
@@ -353,6 +357,33 @@ export class OkxDemoExecutor {
     }
   }
 
+  /** Read-only check for the shared Paper/Demo candidate, before either entry. */
+  async inspectEntryMarket(symbol: string): Promise<DemoEntryMarketCheck> {
+    const result = await this.readEntryBook(symbol);
+    return result.status === "safe" ? { status: "safe" } : result;
+  }
+
+  private async readEntryBook(symbol: string): Promise<DemoEntryBook> {
+    const unavailable = { status: "blocked", reason: "demo_book_unavailable" } as const;
+    try {
+      if (!this.initialized) return unavailable;
+      const book = await this.exchange.fetchOrderBook(this.resolveActiveSpotMarket(symbol).symbol, 20);
+      const bid = book.bids[0]?.[0];
+      const referencePrice = book.asks[0]?.[0];
+      if (!isFreshDemoBook(book) || typeof bid !== "number" || typeof referencePrice !== "number" ||
+          !Number.isFinite(bid) || !Number.isFinite(referencePrice) || bid <= 0 || referencePrice < bid) {
+        return unavailable;
+      }
+      const spreadPercent = 200 * (referencePrice - bid) / (referencePrice + bid);
+      if (spreadPercent > (this.options.maxSpreadPercent ?? 0.15)) {
+        return { status: "blocked", reason: "demo_spread_exceeded" };
+      }
+      return { status: "safe", book, referencePrice };
+    } catch {
+      return unavailable;
+    }
+  }
+
   async executeApprovedBuy(request: DemoBuyRequest): Promise<DemoBuyResult> {
     if (!this.initialized) {
       throw new Error("OKX Demo executor must be initialized before execution");
@@ -419,20 +450,12 @@ export class OkxDemoExecutor {
       return { status: "SKIPPED", reason: "insufficient_quote_balance", clientOrderId };
     }
 
-    const [book, fees] = await Promise.all([
-      this.exchange.fetchOrderBook(marketSymbol, 20).catch(() => null),
+    const [entryBook, fees] = await Promise.all([
+      this.readEntryBook(marketSymbol),
       this.exchange.fetchTradingFee(marketSymbol).catch(() => null),
     ]);
-    const bid = book?.bids[0]?.[0];
-    const referencePrice = book?.asks[0]?.[0];
-    if (!book || !isFreshDemoBook(book) || typeof bid !== "number" || typeof referencePrice !== "number" ||
-        !Number.isFinite(bid) || !Number.isFinite(referencePrice) || bid <= 0 || referencePrice < bid) {
-      return { status: "SKIPPED", reason: "demo_book_unavailable", clientOrderId };
-    }
-    const spreadPercent = 200 * (referencePrice - bid) / (referencePrice + bid);
-    if (spreadPercent > (this.options.maxSpreadPercent ?? 0.15)) {
-      return { status: "SKIPPED", reason: "demo_spread_exceeded", clientOrderId };
-    }
+    if (entryBook.status === "blocked") return { status: "SKIPPED", reason: entryBook.reason, clientOrderId };
+    const { book, referencePrice } = entryBook;
     const fee = fees?.taker;
     if (typeof fee !== "number" || !Number.isFinite(fee) || fee < 0 || fee >= 1) {
       return { status: "SKIPPED", reason: "demo_order_limits_unconfirmed", clientOrderId };

@@ -5,7 +5,7 @@ import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import type { PublicMarketData } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
 import { PaperTrader, type PaperCycleResult } from "./paper-trader.js";
-import type { OkxDemoExecutor } from "./okx-demo.js";
+import type { DemoEntryMarketCheck, OkxDemoExecutor } from "./okx-demo.js";
 import type { BotPersistence, PersistedCycle } from "./persistence.js";
 import { evaluateStrategy } from "./strategy.js";
 import { rankSignals, type RankedSignal } from "./signal-ranking.js";
@@ -31,6 +31,7 @@ type BotOptions = {
   universeMaxReplacements?: number;
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
+  inspectEntryMarket?: (symbol: string) => Promise<DemoEntryMarketCheck>;
   verifyDemoExecutionSafety?: () => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
   inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<DemoAdmission>;
   inspectDemoPositions?: () => Promise<{ status: "safe"; positions: Array<{ symbol: string }> } | { status: "blocked"; reason: string }>;
@@ -406,6 +407,21 @@ export class TradingBot {
       }
     }
 
+    const marketCheck = this.options.inspectEntryMarket && ((approved && !paperTrader.hasOpenPosition) || demoCandidate)
+      ? await this.options.inspectEntryMarket(executionSymbol)
+      : undefined;
+    const marketBlock = marketCheck?.status === "blocked" ? marketCheck.reason : undefined;
+    if (marketCheck) {
+      await this.recordOperationalEvent("ENTRY_MARKET_CHECK", marketBlock ? "WARN" : "INFO", {
+        symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, allowed: !marketBlock,
+        ...(marketBlock ? { reason: marketBlock } : {}),
+      });
+    }
+    if (marketBlock) {
+      approved = false;
+      demoCandidate = false;
+    }
+
     const previousState = paperTrader.exportState();
     const riskBefore = this.exportRiskState();
     const paperResult = paperTrader.processCandle(
@@ -446,6 +462,9 @@ export class TradingBot {
         symbol: executionSymbol,
         notionalUsdt: opened.notionalUsdt,
         openedAt: currentCandle.timestamp,
+      });
+      await this.recordOperationalEvent("PAPER_ENTRY_OPENED", "INFO", {
+        symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, paperNotionalUsdt: opened.notionalUsdt,
       });
     }
     if (paperResult.events.some((event) => event.type === "CLOSED")) {
@@ -516,7 +535,7 @@ export class TradingBot {
         };
         await this.recordOperationalEvent("DEMO_ENTRY_DECISION", admission.allowed ? "INFO" : "WARN", {
           symbol: executionSymbol, candleTimestamp: currentCandle.timestamp,
-          approved: admission.allowed, reason: admission.reason ?? "demo_preflight_passed",
+          approved: admission.allowed, stage: "portfolio_admission", reason: admission.reason ?? "demo_preflight_passed",
           ...(admission.exposure ? { exposure: admission.exposure } : {}),
         });
       }
@@ -524,7 +543,7 @@ export class TradingBot {
     if (!demoCandidate && this.options.inspectDemoEntry) {
       await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", { symbol: executionSymbol,
         candleTimestamp: currentCandle.timestamp, approved: false,
-        reason: (pairPaused && signal.action === "BUY" ? "pair_loss_cooldown" : regimeBlock) ?? (signal.action !== "BUY" ? `signal_${signal.action.toLowerCase()}` : "entry_filter_or_risk_circuit_breaker") });
+        reason: marketBlock ?? (pairPaused && signal.action === "BUY" ? "pair_loss_cooldown" : regimeBlock) ?? (signal.action !== "BUY" ? `signal_${signal.action.toLowerCase()}` : "entry_filter_or_risk_circuit_breaker") });
     }
     if (demoApproved && this.options.demoExecutor) {
       try {
@@ -552,6 +571,9 @@ export class TradingBot {
             approved: false, reason: "trade_interval_limit_reached",
           });
         } else {
+          await this.recordOperationalEvent("DEMO_ENTRY_ATTEMPT", "INFO", {
+            symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, paperOpened,
+          });
           const demoResult = await this.options.demoExecutor.executeApprovedBuy({
             symbol: executionSymbol,
             candleTimestamp: currentCandle.timestamp,
@@ -560,62 +582,69 @@ export class TradingBot {
           });
           if (demoResult.status === "SKIPPED" && ["risk_size_unavailable", "risk_entry_changed", "demo_bot_budget_unavailable", "demo_book_unavailable", "demo_spread_exceeded", "demo_order_limits_unconfirmed"].includes(demoResult.reason)) {
             await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", {
-              symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, approved: false, reason: demoResult.reason,
+              symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, approved: false, stage: "execution", reason: demoResult.reason, paperOpened,
             });
-            return;
-          }
-          try {
-            await this.options.persistence?.recordDemoOrder(
-              executionSymbol,
-              currentCandle.timestamp,
-              demoResult,
-            );
-            await this.recordServiceStatus("postgresql", "ok");
-          } catch (error) {
-            console.error(
-              JSON.stringify({
-                event: "database_write_failed_after_order",
-                symbol: executionSymbol,
-                candleTimestamp: currentCandle.timestamp,
+          } else {
+            try {
+              await this.options.persistence?.recordDemoOrder(
+                executionSymbol,
+                currentCandle.timestamp,
+                demoResult,
+              );
+              await this.recordServiceStatus("postgresql", "ok");
+            } catch (error) {
+              console.error(
+                JSON.stringify({
+                  event: "database_write_failed_after_order",
+                  symbol: executionSymbol,
+                  candleTimestamp: currentCandle.timestamp,
+                  error: error instanceof Error ? error.message : String(error),
+                }),
+              );
+              await this.recordOperationalEvent("DATABASE_ERROR", "ERROR", {
+                operation: "record_demo_order",
                 error: error instanceof Error ? error.message : String(error),
+              });
+              await this.recordServiceStatus("postgresql", "unhealthy", error);
+            }
+            if (demoResult.status === "PLACED" && this.options.verifyDemoExecutionSafety) {
+              const safety = await this.options.verifyDemoExecutionSafety();
+              if (safety.status !== "safe") {
+                this.demoExecutionBlocked = true;
+                try { await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason); }
+                catch { console.error(JSON.stringify({ event: "demo_safety_pause_write_failed" })); }
+                console.error(JSON.stringify({ event: "demo_protection_unconfirmed", reason: safety.reason }));
+              }
+            }
+            if (demoResult.status !== "PLACED") {
+              this.demoExecutionBlocked = true;
+              try { await this.options.persistence?.setPaused(true, "system:demo_order_not_confirmed"); }
+              catch { console.error(JSON.stringify({ event: "demo_safety_pause_write_failed" })); }
+              console.error(JSON.stringify({ event: "demo_execution_blocked", reason: "paper_demo_entry_mismatch" }));
+            }
+            await this.recordOperationalEvent("DEMO_ENTRY_RESULT", demoResult.status === "PLACED" ? "INFO" : "WARN", {
+              symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, paperOpened, status: demoResult.status,
+              clientOrderId: demoResult.clientOrderId,
+              ...(demoResult.status === "SKIPPED"
+                ? { reason: demoResult.reason }
+                : { orderId: demoResult.orderId, orderStatus: demoResult.orderStatus, filled: demoResult.filled }),
+            });
+            console.log(
+              JSON.stringify({
+                event:
+                  demoResult.status === "PLACED"
+                    ? "okx_demo_order_submitted"
+                    : demoResult.status === "SKIPPED" ? "okx_demo_order_skipped" : "okx_demo_order_unconfirmed",
+                symbol: executionSymbol,
+                result: demoResult,
               }),
             );
-            await this.recordOperationalEvent("DATABASE_ERROR", "ERROR", {
-              operation: "record_demo_order",
-              error: error instanceof Error ? error.message : String(error),
-            });
-            await this.recordServiceStatus("postgresql", "unhealthy", error);
+            await this.recordServiceStatus(
+              "okx-demo",
+              demoResult.status === "PENDING" ? "unhealthy" : "ok",
+              demoResult.status === "PENDING" ? new Error(demoResult.reconciliationError ?? "OKX order was not confirmed") : undefined,
+            );
           }
-          if (demoResult.status === "PLACED" && this.options.verifyDemoExecutionSafety) {
-            const safety = await this.options.verifyDemoExecutionSafety();
-            if (safety.status !== "safe") {
-              this.demoExecutionBlocked = true;
-              try { await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason); }
-              catch { console.error(JSON.stringify({ event: "demo_safety_pause_write_failed" })); }
-              console.error(JSON.stringify({ event: "demo_protection_unconfirmed", reason: safety.reason }));
-            }
-          }
-          if (demoResult.status !== "PLACED") {
-            this.demoExecutionBlocked = true;
-            try { await this.options.persistence?.setPaused(true, "system:demo_order_not_confirmed"); }
-            catch { console.error(JSON.stringify({ event: "demo_safety_pause_write_failed" })); }
-            console.error(JSON.stringify({ event: "demo_execution_blocked", reason: "paper_demo_entry_mismatch" }));
-          }
-          console.log(
-            JSON.stringify({
-              event:
-                demoResult.status === "PLACED"
-                  ? "okx_demo_order_submitted"
-                  : "okx_demo_order_skipped",
-              symbol: executionSymbol,
-              result: demoResult,
-            }),
-          );
-          await this.recordServiceStatus(
-            "okx-demo",
-            demoResult.status === "PENDING" ? "unhealthy" : "ok",
-            demoResult.status === "PENDING" ? new Error(demoResult.reconciliationError ?? "OKX order was not confirmed") : undefined,
-          );
         }
       } catch (error) {
         this.demoExecutionBlocked = true;
@@ -648,6 +677,7 @@ export class TradingBot {
         );
         const availabilityFailure = isOkxAvailabilityFailure(error);
         await this.recordOperationalEvent(availabilityFailure ? "OKX_ORDER_ERROR" : "OKX_ORDER_REJECTED", availabilityFailure ? "ERROR" : "WARN", {
+          symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, paperOpened,
           error: serializeOkxError(error),
         });
         if (availabilityFailure) {
