@@ -7,7 +7,7 @@ export const pairCooldownSchema = z.object({
 
 export type PairCooldown = z.infer<typeof pairCooldownSchema>;
 export const HOUR_MS = 3_600_000;
-export const PAIR_COOLDOWN_LOOKBACK_MS = 7 * 24 * HOUR_MS;
+export const PAIR_COOLDOWN_LOOKBACK_MS = 48 * HOUR_MS;
 
 /** History is newest first and contains only trades known to be closed at this instant. */
 export function pairCooldownUntil(

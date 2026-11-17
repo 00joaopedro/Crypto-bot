@@ -412,7 +412,7 @@ permitir entradas. Uma retomada manual também passa pela auditoria.
 
 `PAIR_COOLDOWN_ENABLED` é desativada por padrão. Quando habilitada, a regra usa
 o histórico Paper persistido como referência para novas entradas Paper e Demo.
-O padrão exige três perdas líquidas consecutivas completadas em até sete dias
+O padrão exige três perdas líquidas consecutivas completadas em até 48 horas
 e pausa o par por seis horas a partir do fechamento da última perda. Qualquer
 par pode voltar a concorrer a entradas ao expirar. As posições abertas seguem
 seu fluxo de monitoramento e proteção. O painel lista as pausas ativas.
