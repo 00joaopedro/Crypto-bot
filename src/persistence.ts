@@ -1,3 +1,5 @@
+import { REGIME_CANDLE_MS } from "./btc-regime.js";
+import { pairCooldownUntil, HOUR_MS, PAIR_COOLDOWN_LOOKBACK_MS, type PairCooldown } from "./pair-cooldown.js";
 import { DEFAULT_DEMO_ORDERS_PER_INTERVAL, MAX_DEMO_ORDERS_PER_INTERVAL } from "./trading-limits.js";
 import type { PauseControl } from "./auto-resume.js";
 import { demoExitStateSchema, type DemoExitState } from "./demo-exit-state.js";
@@ -92,6 +94,7 @@ export interface BotPersistence {
     error: string,
   ): Promise<void>;
   canPlaceDemoOrder(maxTrades: number, intervalMinutes: number): Promise<boolean>;
+  activePairCooldowns?(now: number, policy: PairCooldown): Promise<Array<{ symbol: string; until: number }>>;
   canEnterSymbol?(symbol: string, cooldownMinutes: number): Promise<boolean>;
   recordOperationalEvent(event: OperationalEvent): Promise<void>;
   getDailyStartEquity?(symbol: string): Promise<number | undefined>;
@@ -596,6 +599,27 @@ export class PostgresPersistence implements BotPersistence {
       [symbol, cooldownMinutes],
     );
     return result.rows.length === 0;
+  }
+
+  async activePairCooldowns(now: number, policy: PairCooldown): Promise<Array<{ symbol: string; until: number }>> {
+    const result = await this.pool.query<{ symbol: string; candle_timestamp: string; pnl: number }>(
+      `SELECT symbol, candle_timestamp, pnl FROM (
+         SELECT symbol, candle_timestamp, (trade->>'netPnlUsdt')::double precision AS pnl,
+           row_number() OVER (PARTITION BY symbol ORDER BY candle_timestamp DESC, event_key DESC) AS rank
+         FROM paper_trades WHERE event_type = 'CLOSED' AND candle_timestamp BETWEEN $1 AND $2
+       ) AS recent WHERE rank <= $3 ORDER BY symbol, rank`,
+      [now - PAIR_COOLDOWN_LOOKBACK_MS - policy.hours * HOUR_MS - REGIME_CANDLE_MS, now - REGIME_CANDLE_MS, policy.minLosses],
+    );
+    const bySymbol = new Map<string, Array<{ closedAt: number; netPnlUsdt: number }>>();
+    for (const row of result.rows) {
+      const trades = bySymbol.get(row.symbol) ?? [];
+      trades.push({ closedAt: Number(row.candle_timestamp) + REGIME_CANDLE_MS, netPnlUsdt: row.pnl });
+      bySymbol.set(row.symbol, trades);
+    }
+    return [...bySymbol].flatMap(([symbol, trades]) => {
+      const until = pairCooldownUntil(trades, now, policy);
+      return until === undefined ? [] : [{ symbol, until }];
+    });
   }
 
   async canEnterSymbol(symbol: string, cooldownMinutes: number): Promise<boolean> {

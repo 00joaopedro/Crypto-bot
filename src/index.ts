@@ -376,6 +376,9 @@ async function main(): Promise<void> {
         stopLossCooldownMinutes: config.STOP_LOSS_COOLDOWN_MINUTES,
         tradeManager,
         signalScanSymbols: signalScanSymbolsFor(settings.symbol),
+        ...(config.PAIR_COOLDOWN_ENABLED && persistence ? { pairCooldown: {
+          hours: config.PAIR_COOLDOWN_HOURS, minLosses: config.PAIR_COOLDOWN_MIN_LOSSES,
+        } } : {}),
         dynamicUniverseSize: config.DYNAMIC_UNIVERSE_SIZE,
         marketMinQuoteVolumeUsdt: config.MARKET_MIN_QUOTE_VOLUME_USDT,
         marketMaxSpreadPercent: config.MARKET_MAX_SPREAD_PERCENT,

@@ -99,3 +99,17 @@ it("accepts the RSI and ATR experiment with both alternatives fixed across test 
   expect(atr12!.report.result.windows.every(w => w.selected.exitPolicy?.minStopRate === .012)).toBe(true);
   expect(atr15!.report.result.windows.every(w => w.selected.exitPolicy?.minStopRate === .015)).toBe(true);
 });
+
+it("compares the baseline with 4, 6, 8 and 24 hour pair cooldowns", () => {
+  const variants = compareDemoStrategies(candles(250), {
+    ...options,
+    testCandles: 160,
+    alternatives: [4, 6, 8, 24].map(hours => ({
+      name: `cooldown-${hours}h`,
+      parameters: { ...parameters, pairCooldown: { hours, minLosses: 3 } },
+    })),
+  }).results[0]!.variants;
+  const blocked = variants.map(variant => variant.summary.pairCooldownBlockedEntries);
+  expect(blocked[0]).toBe(0);
+  expect(blocked.every((value, index) => index === 0 || value > blocked[index - 1]!)).toBe(true);
+});

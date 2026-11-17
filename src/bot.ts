@@ -1,3 +1,4 @@
+import type { PairCooldown } from "./pair-cooldown.js";
 import type { DemoAdmission } from "./demo-entry.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
@@ -22,6 +23,7 @@ type BotOptions = {
   minimumSignalScore?: number;
   signalScanSymbols?: string[];
   dynamicUniverseSize?: number;
+  pairCooldown?: PairCooldown;
   marketMinQuoteVolumeUsdt?: number;
   marketMaxSpreadPercent?: number;
   universeSwitchCooldownMinutes?: number;
@@ -70,7 +72,16 @@ export class TradingBot {
   private readonly reportedPaperGaps = new Map<string, number>();
   private demoOccupiedSymbols = new Set<string>();
   private activeUniverse: string[] = [];
-  private lastScan: { pairs: string[]; candleTimestamp: number } | null = null;
+  private lastScan: { pairs: string[]; candleTimestamp: number; cooldowns: Array<{ symbol: string; until: number }> } | null = null;
+  private scanCache?: {
+    timestamp: number;
+    provider: string;
+    discovered?: string[];
+    candles: Map<string, Candle[]>;
+    rankingKey?: string;
+    ranking?: RankedSignal[];
+  };
+  private lastLoggedRanking?: string;
 
   getLastSignalScan() { return this.lastScan; }
   private lastUniverseSwitchAt = 0;
@@ -91,6 +102,9 @@ export class TradingBot {
     private readonly market: PublicMarketData,
     private readonly options: BotOptions,
   ) {
+    if (options.pairCooldown && !options.persistence?.activePairCooldowns) {
+      throw new Error("Pair cooldown requires persisted Paper trade history");
+    }
     this.lastProcessedCandle = options.initialLastProcessedCandle;
     this.consecutiveLosses = options.initialRiskState?.consecutiveLosses ?? 0;
     this.stopLossCooldownUntil = options.initialRiskState?.stopLossCooldownUntil ?? 0;
@@ -147,11 +161,19 @@ export class TradingBot {
     const latest = candles.at(-1);
     if (!latest) throw new Error("Market data provider returned no closed candles");
 
-    const ranking = await this.scanSignals(candles);
-    if (ranking.length > 0) {
+    const cooldowns = this.options.pairCooldown
+      ? await this.options.persistence!.activePairCooldowns!(Date.now(), this.options.pairCooldown)
+      : [];
+    const pausedPairs = new Set(cooldowns.map(item => item.symbol));
+    const { ranking, requests } = await this.scanSignals(candles, pausedPairs);
+    this.lastScan = { pairs: ranking.map(candidate => candidate.symbol), candleTimestamp: latest.timestamp, cooldowns };
+    const rankingKey = JSON.stringify([latest.timestamp, ranking.map(({ symbol, eligible, signal }) => [symbol, eligible, signal.action, signal.score])]);
+    if (ranking.length > 0 && rankingKey !== this.lastLoggedRanking) {
+      this.lastLoggedRanking = rankingKey;
       console.log(JSON.stringify({
         event: "signal_ranking",
         candleTimestamp: latest.timestamp,
+        scanRequests: requests,
         selected: ranking[0],
         candidates: ranking.map((candidate) => ({
           rank: candidate.rank,
@@ -188,7 +210,8 @@ export class TradingBot {
       console.log(JSON.stringify({ event: "cycle_skipped", reason: "candle_already_processed", symbol: executionSymbol }));
       return;
     }
-    const currentSymbolSelected = selectedEligibleSymbol !== undefined || managedPositionSymbol !== undefined;
+    const currentSymbolSelected = !pausedPairs.has(executionSymbol) &&
+      (selectedEligibleSymbol !== undefined || managedPositionSymbol !== undefined);
 
     // Replayed candles can close an existing position, but cannot create a
     // retrospective entry. Approval is calculated only for the newest candle.
@@ -217,7 +240,7 @@ export class TradingBot {
         throw error;
       }
       this.logPaperResult(candle, paperResult, true, executionSymbol);
-      await this.sendTradeAlerts(paperResult.events, true);
+      await this.sendTradeAlerts(executionSymbol, paperResult.events, true);
       this.lastProcessedCandleBySymbol.set(executionSymbol, candle.timestamp);
       if (paperResult.events.some(event => event.type === "CLOSED")) {
         this.lastTradeAtBySymbol.set(executionSymbol, candle.timestamp);
@@ -466,7 +489,7 @@ export class TradingBot {
 
     if (lossPause) {
       this.logPaperResult(currentCandle, paperResult, false, executionSymbol);
-      await this.sendTradeAlerts(paperResult.events, false);
+      await this.sendTradeAlerts(executionSymbol, paperResult.events, false);
       return;
     }
     const paperOpened = paperResult.events.some((event) => event.type === "OPENED");
@@ -654,7 +677,7 @@ export class TradingBot {
     );
 
     this.logPaperResult(currentCandle, paperResult, false, executionSymbol);
-    await this.sendTradeAlerts(paperResult.events, false);
+    await this.sendTradeAlerts(executionSymbol, paperResult.events, false);
   }
 
   private async inspectBtcRegime(timestamp: number) {
@@ -775,15 +798,22 @@ export class TradingBot {
     return this.paperTraders.get(symbol)?.exportState().cashUsdt ?? this.options.paperTrader.exportState().cashUsdt;
   }
 
-  private async scanSignals(currentCandles: Candle[]): Promise<RankedSignal[]> {
-    let dynamicSymbols: string[] = [];
-    if (this.options.dynamicUniverseSize && typeof this.market.selectSpotSymbols === "function") {
+  private async scanSignals(currentCandles: Candle[], pausedPairs: Set<string>) {
+    const timestamp = currentCandles.at(-1)!.timestamp;
+    const provider = this.market.active;
+    if (this.scanCache?.timestamp !== timestamp || this.scanCache.provider !== provider) {
+      this.scanCache = { timestamp, provider, candles: new Map() };
+    }
+    const cache = this.scanCache;
+    const requests = { discovery: 0, candles: 0 };
+    if (!cache.discovered && this.options.dynamicUniverseSize && typeof this.market.selectSpotSymbols === "function") {
       try {
-        dynamicSymbols = await this.market.selectSpotSymbols({
-            limit: this.options.dynamicUniverseSize,
-            minQuoteVolume: this.options.marketMinQuoteVolumeUsdt ?? 1_000_000,
-            maxSpreadPercent: this.options.marketMaxSpreadPercent ?? 1,
-          });
+        requests.discovery++;
+        cache.discovered = await this.market.selectSpotSymbols({
+          limit: this.options.dynamicUniverseSize,
+          minQuoteVolume: this.options.marketMinQuoteVolumeUsdt ?? 1_000_000,
+          maxSpreadPercent: this.options.marketMaxSpreadPercent ?? 1,
+        });
       } catch (error) {
         console.error(JSON.stringify({
           event: "dynamic_universe_scan_failed",
@@ -793,36 +823,25 @@ export class TradingBot {
     }
     const configuredSymbols = [this.options.symbol, ...(this.options.signalScanSymbols ?? [])];
     const universeSize = this.options.dynamicUniverseSize ?? 10;
-    const discoveredUniverse = [...new Set([
-      ...configuredSymbols,
-      ...dynamicSymbols,
-    ])];
-    const symbols = [...new Set([
-      ...configuredSymbols,
-      ...this.activeUniverse,
-      ...discoveredUniverse,
-    ])];
-    const candidates: Array<{ symbol: string; candles: Candle[] }> = [
-      { symbol: this.options.symbol, candles: currentCandles },
-    ];
-
+    const symbols = new Set([...configuredSymbols, ...this.activeUniverse, ...(cache.discovered ?? [])]);
+    const candidates: Array<{ symbol: string; candles: Candle[] }> = [];
     for (const symbol of symbols) {
-      if (symbol === this.options.symbol) continue;
+      if (pausedPairs.has(symbol)) continue;
+      if (symbol === this.options.symbol) {
+        candidates.push({ symbol, candles: currentCandles });
+        continue;
+      }
       try {
-        const targetTimestamp = currentCandles.at(-1)?.timestamp;
-        const candles = await this.market.fetchClosedCandles(
-          symbol,
-          this.options.candleLimit + 5,
-        );
-        const targetIndex = targetTimestamp === undefined
-          ? -1
-          : candles.findIndex((candle) => candle.timestamp === targetTimestamp);
-        if (targetIndex >= 0) {
-          const alignedCandles = candles.slice(0, targetIndex + 1);
-          if (alignedCandles.length >= 50) {
-            candidates.push({ symbol, candles: alignedCandles });
-          }
+        let aligned = cache.candles.get(symbol);
+        if (!aligned) {
+          requests.candles++;
+          const candles = await this.market.fetchClosedCandles(symbol, this.options.candleLimit + 5);
+          const targetIndex = candles.findIndex(candle => candle.timestamp === timestamp);
+          if (targetIndex < 49) continue;
+          aligned = candles.slice(0, targetIndex + 1);
+          if (this.market.active === provider) cache.candles.set(symbol, aligned);
         }
+        candidates.push({ symbol, candles: aligned });
       } catch (error) {
         console.error(JSON.stringify({
           event: "signal_scan_failed",
@@ -832,12 +851,15 @@ export class TradingBot {
       }
     }
 
-    const blockedSymbols = new Set(this.options.inspectDemoEntry ? this.demoOccupiedSymbols : this.options.tradeManager?.activePositions.map((position) => position.symbol));
-    const ranked = rankSignals(candidates, this.options.minimumSignalScore, blockedSymbols);
-    const activeSymbols = await this.updateUniverse(ranked, configuredSymbols, currentCandles.at(-1)?.timestamp ?? Date.now(), universeSize);
-    const eligibleUniverse = ranked.filter((candidate) => activeSymbols.has(candidate.symbol));
-    this.lastScan = { pairs: eligibleUniverse.map(candidate => candidate.symbol), candleTimestamp: currentCandles.at(-1)!.timestamp };
-    return eligibleUniverse;
+    const blockedSymbols = new Set(this.options.inspectDemoEntry ? this.demoOccupiedSymbols : this.options.tradeManager?.activePositions.map(position => position.symbol));
+    const key = JSON.stringify([candidates.map(candidate => candidate.symbol), [...blockedSymbols].sort()]);
+    if (cache.rankingKey !== key || !cache.ranking || this.market.active !== provider) {
+      cache.ranking = rankSignals(candidates, this.options.minimumSignalScore, blockedSymbols);
+      cache.rankingKey = key;
+    }
+    const activeSymbols = await this.updateUniverse(cache.ranking, configuredSymbols, timestamp, universeSize, pausedPairs);
+    const ranking = cache.ranking.filter(candidate => activeSymbols.has(candidate.symbol) && !pausedPairs.has(candidate.symbol));
+    return { ranking, requests };
   }
 
   private async updateUniverse(
@@ -845,6 +867,7 @@ export class TradingBot {
     configuredSymbols: string[],
     candleTimestamp: number,
     universeSize: number,
+    pausedPairs: ReadonlySet<string>,
   ): Promise<Set<string>> {
     const configured = new Set(configuredSymbols);
     if (this.activeUniverse.length === 0) {
@@ -868,7 +891,7 @@ export class TradingBot {
     const minAdvantage = this.options.universeSwitchMinScoreAdvantage ?? 1;
     const maxReplacements = this.options.universeMaxReplacements ?? 2;
     const unavailable = this.activeUniverse.filter(
-      (symbol) => !configured.has(symbol) && !bySymbol.has(symbol),
+      (symbol) => !configured.has(symbol) && !pausedPairs.has(symbol) && !bySymbol.has(symbol),
     );
     for (const symbol of unavailable.slice(0, maxReplacements)) {
       this.activeUniverse = this.activeUniverse.filter((active) => active !== symbol);
@@ -1002,6 +1025,7 @@ export class TradingBot {
   }
 
   private async sendTradeAlerts(
+    symbol: string,
     events: PaperCycleResult["events"],
     replayed: boolean,
   ): Promise<void> {
@@ -1009,20 +1033,20 @@ export class TradingBot {
     for (const trade of events) {
       try {
         if (trade.type === "OPENED") {
-          await this.options.emailAlerts.sendOpened(this.options.symbol, trade);
+          await this.options.emailAlerts.sendOpened(symbol, trade);
         } else {
-          await this.options.emailAlerts.sendClosed(this.options.symbol, trade);
+          await this.options.emailAlerts.sendClosed(symbol, trade);
         }
         console.log(JSON.stringify({
           event: "trade_email_alert_sent",
-          symbol: this.options.symbol,
+          symbol,
           tradeType: trade.type,
           replayed,
         }));
       } catch (error) {
         console.error(JSON.stringify({
           event: "trade_email_alert_failed",
-          symbol: this.options.symbol,
+          symbol,
           tradeType: trade.type,
           replayed,
           error: error instanceof Error ? error.message : String(error),

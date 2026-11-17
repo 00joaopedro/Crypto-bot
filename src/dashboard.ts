@@ -26,7 +26,7 @@ type DashboardOptions = {
   persistence: PostgresPersistence;
   supportedSymbols: string[];
   onSettingsChanged: () => void | Promise<void>;
-  getLastSignalScan?: () => { pairs: string[]; candleTimestamp: number } | null;
+  getLastSignalScan?: () => { pairs: string[]; candleTimestamp: number; cooldowns?: Array<{ symbol: string; until: number }> } | null;
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
   inspectDemoAccounting?: () => Promise<unknown>;
   inspectDemoPermission?: () => Promise<unknown>;

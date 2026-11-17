@@ -56,6 +56,9 @@ const schema = z
     AI_FAILURE_MODE: z.enum(["reject", "quantitative"]).default("quantitative"),
     MIN_AI_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.82),
     MIN_SIGNAL_SCORE: z.coerce.number().int().min(1).max(8).default(5),
+    PAIR_COOLDOWN_ENABLED: booleanString,
+    PAIR_COOLDOWN_HOURS: z.coerce.number().int().min(1).max(168).default(6),
+    PAIR_COOLDOWN_MIN_LOSSES: z.coerce.number().int().min(2).max(20).default(3),
     SIGNAL_SCAN_SYMBOLS: z.string().default(""),
     DYNAMIC_UNIVERSE_SIZE: z.coerce.number().int().min(1).max(50).default(10),
     MARKET_MIN_QUOTE_VOLUME_USDT: z.coerce.number().nonnegative().default(1_000_000),
@@ -190,6 +193,9 @@ const schema = z
         message:
           "DASHBOARD_PASSWORD is required when a session secret is configured",
       });
+    }
+    if (value.PAIR_COOLDOWN_ENABLED && !value.DATABASE_URL) {
+      ctx.addIssue({ code: "custom", path: ["DATABASE_URL"], message: "DATABASE_URL is required when PAIR_COOLDOWN_ENABLED=true" });
     }
     if (value.EMAIL_ALERTS_ENABLED) {
       for (const key of ["RESEND_API_KEY", "EMAIL_FROM", "EMAIL_ALERT_TO"] as const) {
