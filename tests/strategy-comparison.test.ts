@@ -17,6 +17,7 @@ describe("fixed comparative validation", () => {
     for (const s of r.results) {
       expect(s.variants.map(v => v.report.result.windows.map(w => [w.testStart, w.testEnd]))).toEqual([[[90,120],[120,150],[150,180]],[[90,120],[120,150],[150,180]]]);
       expect(s.variants[0]!.summary.closedTrades).toBeGreaterThan(0);
+      expect(s.variants[0]!.summary.profitFactor).toBe(0);
     }
     expect(r.results[1]!.variants[0]!.summary.meanWindowNetReturnPercent).toBeLessThan(r.results[0]!.variants[0]!.summary.meanWindowNetReturnPercent);
     expect(JSON.stringify(options)).toBe(before);
@@ -86,4 +87,15 @@ it("rechecks delayed entries at the fill open without using its closing price", 
 
   const shockAtFillClose = reference.map((bar, i) => i === 99 ? { ...bar, close: 96 } : bar);
   expect(runBacktest(data, { ...options, btcCandles: shockAtFillClose }).trades[0]?.entryTimestamp).toBe(data[99]!.timestamp);
+});
+
+it("accepts the RSI and ATR experiment with both alternatives fixed across test windows", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const example = JSON.parse(await readFile(new URL("../examples/rsi-atr-comparison.options.json", import.meta.url), "utf8")) as ComparisonOptions;
+  const report = compareDemoStrategies(candles(), { ...example, trainCandles: 90, testCandles: 30 });
+  const [baseline, rsi, atr12, atr15] = report.results[0]!.variants;
+  expect(baseline!.parameters.exitPolicy?.minStopRate).toBe(.005);
+  expect(rsi!.report.result.windows.every(w => w.selected.maxBuyRsi === 63)).toBe(true);
+  expect(atr12!.report.result.windows.every(w => w.selected.exitPolicy?.minStopRate === .012)).toBe(true);
+  expect(atr15!.report.result.windows.every(w => w.selected.exitPolicy?.minStopRate === .015)).toBe(true);
 });

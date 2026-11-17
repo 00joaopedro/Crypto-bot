@@ -2,7 +2,7 @@ import { BTC_REGIME_HISTORY } from "./btc-regime.js";
 import { runBacktest, type BacktestMetrics, type BacktestOptions } from "./backtest.js";
 import type { Candle } from "./types.js";
 
-export type WalkForwardCandidate = Partial<Pick<BacktestOptions, "stopLossRate" | "takeProfitRate" | "minimumSignalScore" | "executionDelayCandles" | "exitPolicy" | "riskSizing" | "btcRegimeFilter">>;
+export type WalkForwardCandidate = Partial<Pick<BacktestOptions, "stopLossRate" | "takeProfitRate" | "minimumSignalScore" | "maxBuyRsi" | "executionDelayCandles" | "exitPolicy" | "riskSizing" | "btcRegimeFilter">>;
 export type WalkForwardOptions = {
   trainCandles: number;
   testCandles: number;

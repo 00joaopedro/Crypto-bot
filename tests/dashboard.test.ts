@@ -59,7 +59,7 @@ describe("dashboard authentication", () => {
     const onResume = vi.fn().mockResolvedValueOnce({ status: "blocked", reason: "pending_demo_order" }).mockResolvedValueOnce({ status: "resumed" });
     const inspectDemoAccounting = vi.fn(async () => ({ status: "unavailable", reason: "no_confirmed_orders" }));
     const persistence = {
-      getDashboardData: async () => ({ paused: false }),
+      getDashboardData: vi.fn(async () => ({ paused: false })),
       latestDemoDecision: async () => null,
       latestDemoReconciliation: async () => ({ confirmedThrough: "2026-11-01T12:00:00.000Z", realizedPnlUsdt: 12.85 }),
       updateDashboardSettings: vi.fn(async () => undefined),
@@ -74,6 +74,8 @@ describe("dashboard authentication", () => {
       onSettingsChanged,
       onResume,
       inspectDemoAccounting,
+      getAutoResumeStatus: async () => ({ enabled: false, eligibleAt: null }),
+      paperDefaultTradeSize: 100,
       inspectDemoPermission: async () => ({ status: "available", trading: true }),
     });
     const { port } = server.address() as AddressInfo;
@@ -105,6 +107,12 @@ describe("dashboard authentication", () => {
     });
     expect(authenticated.status).toBe(200);
     const dashboardData = await authenticated.json();
+    expect(dashboardData.autoResume).toEqual({ enabled: false, eligibleAt: null });
+    expect(dashboardData.paperDefaultTradeSize).toBe(100);
+    const headers = { cookie: cookie!.split(";")[0]! };
+    expect((await fetch(`${base}/api/dashboard?paperSince=2026-11-17`, { headers })).status).toBe(200);
+    expect(persistence.getDashboardData).toHaveBeenLastCalledWith(40, undefined, Date.parse("2026-11-17"));
+    expect((await fetch(`${base}/api/dashboard?paperSince=2026-02-30`, { headers })).status).toBe(400);
     expect(dashboardData.lastDemoReconciliation.confirmedThrough).toBe("2026-11-01T12:00:00.000Z");
     expect(dashboardData.demoAccounting).toEqual({ status: "unavailable", reason: "no_confirmed_orders" });
     const reconciliation = await fetch(`${base}/api/demo-reconciliation`, { headers: { cookie: cookie!.split(";")[0]! } });
@@ -123,18 +131,19 @@ describe("dashboard authentication", () => {
       body: JSON.stringify({
         symbol: "BTC/USDT",
         orderSizeUsdt: 10,
+        paperTradeSizeUsdt: 10,
         maxTrades: 50,
         intervalMinutes: 15,
         maxConcurrentPositions: 50,
       }),
     });
     expect(settings.status).toBe(202);
-    expect(persistence.updateDashboardSettings).toHaveBeenCalledWith(expect.objectContaining({ maxTrades: 50, maxConcurrentPositions: 50, intervalMinutes: 15 }), "dashboard");
+    expect(persistence.updateDashboardSettings).toHaveBeenCalledWith(expect.objectContaining({ paperTradeSizeUsdt: 10, maxTrades: 50, maxConcurrentPositions: 50, intervalMinutes: 15 }), "dashboard");
     const submitted = await settings.json() as { revision: number };
     const status = await fetch(`${base}/api/settings-status`, { headers: { cookie: cookie!.split(";")[0]! } });
     expect(await status.json()).toEqual({ revision: submitted.revision, status: "applied" });
     expect(onSettingsChanged).toHaveBeenCalledOnce();
-    for (const invalid of [{ maxTrades: 51 }, { maxConcurrentPositions: 51 }]) {
+    for (const invalid of [{ maxTrades: 51 }, { maxConcurrentPositions: 51 }, { paperTradeSizeUsdt: 101 }]) {
       const result = await fetch(`${base}/api/settings`, {
         method: "PUT", headers: { cookie: cookie!.split(";")[0]!, origin: base, "content-type": "application/json" },
         body: JSON.stringify({ symbol: "BTC/USDT", orderSizeUsdt: 10, maxTrades: 50, intervalMinutes: 15, maxConcurrentPositions: 50, ...invalid }),

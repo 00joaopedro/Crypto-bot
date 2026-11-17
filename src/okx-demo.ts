@@ -1,8 +1,9 @@
-import { demoTradingExposure } from "./demo-exposure.js";
+import type { VerifiedDemoPosition } from "./demo-execution-safety.js";
+import { demoBotExposure, demoTradingExposure } from "./demo-exposure.js";
 import { positionSize, type PositionSizingLimits } from "./position-sizing.js";
 import { calculateDemoLedger, type DemoFill } from "./demo-ledger.js";
 import type { ExitPolicy } from "./exit-policy.js";
-import ccxt, { OrderNotFound, type Exchange, type Order } from "ccxt";
+import ccxt, { OrderNotFound, type Exchange, type Market, type Order, type OrderBook } from "ccxt";
 import { collectOkxDemoFills, type OkxCollectedFills, type OkxFillHistoryClient } from "./okx-demo-fill-history.js";
 import { collectOkxDemoOrderEvidence, type OkxOrderEvidenceClient, type OrderEvidenceResult, type CachedDemoParent } from "./okx-demo-order-evidence.js";
 import type { JournaledDemoBuy } from "./demo-ownership.js";
@@ -21,9 +22,11 @@ export type OkxDemoOptions = {
   symbol: string;
   tradingEnabled: boolean;
   orderSizeUsdt: number;
+  maxSpreadPercent?: number;
   stopLossRate: number;
   takeProfitRate: number;
   exitPolicy?: ExitPolicy;
+  botBudget?: { usdt: number; maxExposure: number; riskPerTrade: number };
   riskSizing?: PositionSizingLimits & { slippage: number };
 };
 
@@ -45,6 +48,7 @@ export type OkxDemoAccountSnapshot = {
   unvaluedAssets: string[];
   valuationQuotes?: Record<string, ValuationQuote>;
   valuationFailures?: Record<string, ValuationAttempt[]>;
+  assetUnitValuesUsdt?: Record<string, number>;
   assetValuesUsdt?: Record<string, number>;
   freeBrlValueUsdt?: number;
   updatedAt: string;
@@ -54,6 +58,7 @@ export type DemoBuyRequest = {
   symbol?: string;
   candleTimestamp: number;
   entryRevision?: string;
+  exposurePositions?: VerifiedDemoPosition[];
   stopLossRate?: number;
   takeProfitRate?: number;
 };
@@ -85,7 +90,11 @@ export type DemoBuyResult =
         | "existing_open_order"
         | "insufficient_quote_balance"
         | "risk_size_unavailable"
-        | "risk_entry_changed";
+        | "risk_entry_changed"
+        | "demo_bot_budget_unavailable"
+        | "demo_book_unavailable"
+        | "demo_spread_exceeded"
+        | "demo_order_limits_unconfirmed";
       clientOrderId: string;
   };
 
@@ -188,6 +197,7 @@ export class OkxDemoExecutor {
     const totals = (balance.total ?? {}) as Record<string, unknown>;
     let equity = 0;
     let freeBrlValueUsdt = 0;
+    const assetUnitValuesUsdt: Record<string, number> = Object.create(null);
     const assetValuesUsdt: Record<string, number> = Object.create(null);
     const unvaluedAssets: string[] = [];
     const valuationQuotes: Record<string, ValuationQuote> = Object.create(null);
@@ -211,6 +221,7 @@ export class OkxDemoExecutor {
       }
       valuationQuotes[currency] = valuation.quote;
       assetValuesUsdt[currency] = value;
+      assetUnitValuesUsdt[currency] = valuation.rate;
       equity += value;
       if (currency === "BRL") {
         const freeBrl = readFreeBalance(balance.free, "BRL");
@@ -221,7 +232,7 @@ export class OkxDemoExecutor {
     if (totalUsdt === null && !unvaluedAssets.includes("USDT")) unvaluedAssets.push("USDT");
     return {
       quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt,
-      equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, freeBrlValueUsdt,
+      equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, freeBrlValueUsdt, assetUnitValuesUsdt,
       ...(Object.keys(valuationQuotes).length ? { valuationQuotes } : {}),
       ...(Object.keys(valuationFailures).length ? { valuationFailures } : {}),
       ...(includeAssetValues ? { assetValuesUsdt } : {}),
@@ -404,37 +415,59 @@ export class OkxDemoExecutor {
     const balance = await this.exchange.fetchBalance();
     const quoteCurrency = requiredString(market.quote, "market quote currency");
     const quoteFree = readFreeBalance(balance.free, quoteCurrency) ?? 0;
-    const minimumCost = market.limits.cost?.min ?? 0;
-    if (!this.options.riskSizing && (
-      quoteFree < this.options.orderSizeUsdt ||
-      this.options.orderSizeUsdt < minimumCost
-    )) {
-      return {
-        status: "SKIPPED",
-        reason: "insufficient_quote_balance",
-        clientOrderId,
-      };
+    if (!this.options.riskSizing && quoteFree < this.options.orderSizeUsdt) {
+      return { status: "SKIPPED", reason: "insufficient_quote_balance", clientOrderId };
     }
 
-    const ticker = await this.exchange.fetchTicker(marketSymbol);
-    const referencePrice = ticker.ask ?? ticker.last;
-    if (
-      typeof referencePrice !== "number" ||
-      !Number.isFinite(referencePrice) ||
-      referencePrice <= 0
-    ) {
-      throw new Error("OKX Demo returned no valid ask/last price");
+    const [book, fees] = await Promise.all([
+      this.exchange.fetchOrderBook(marketSymbol, 20).catch(() => null),
+      this.exchange.fetchTradingFee(marketSymbol).catch(() => null),
+    ]);
+    const bid = book?.bids[0]?.[0];
+    const referencePrice = book?.asks[0]?.[0];
+    if (!book || !isFreshDemoBook(book) || typeof bid !== "number" || typeof referencePrice !== "number" ||
+        !Number.isFinite(bid) || !Number.isFinite(referencePrice) || bid <= 0 || referencePrice < bid) {
+      return { status: "SKIPPED", reason: "demo_book_unavailable", clientOrderId };
+    }
+    const spreadPercent = 200 * (referencePrice - bid) / (referencePrice + bid);
+    if (spreadPercent > (this.options.maxSpreadPercent ?? 0.15)) {
+      return { status: "SKIPPED", reason: "demo_spread_exceeded", clientOrderId };
+    }
+    const fee = fees?.taker;
+    if (typeof fee !== "number" || !Number.isFinite(fee) || fee < 0 || fee >= 1) {
+      return { status: "SKIPPED", reason: "demo_order_limits_unconfirmed", clientOrderId };
     }
 
     const stopLossPrice = referencePrice * (1 - (request.stopLossRate ?? this.options.stopLossRate));
     const takeProfitPrice = referencePrice * (1 + (request.takeProfitRate ?? this.options.takeProfitRate));
 
     let orderSizeUsdt = this.options.orderSizeUsdt;
+    const budget = this.options.botBudget;
+    const revisionRequired = Boolean(budget || this.options.riskSizing);
+    if (budget && (request.entryRevision === undefined || !request.exposurePositions)) {
+      return { status: "SKIPPED", reason: "demo_bot_budget_unavailable", clientOrderId };
+    }
     if (this.options.riskSizing) {
-      const sized = request.entryRevision === undefined ? 0 : await this.sizeDemoBuy(marketSymbol, referencePrice, stopLossPrice, quoteFree);
+      const sized = request.entryRevision === undefined ? 0 : await this.sizeDemoBuy(marketSymbol, referencePrice, stopLossPrice, quoteFree, book, fee, request.exposurePositions);
       if (sized <= 0) return { status: "SKIPPED", reason: "risk_size_unavailable", clientOrderId };
       orderSizeUsdt = sized;
+    } else if (budget && request.exposurePositions) {
+      const snapshot = await this.getAccountSnapshot().catch(() => null);
+      const portfolio = snapshot && demoBotExposure(snapshot, budget.usdt, request.exposurePositions);
+      const trigger = Number(this.exchange.priceToPrecision(marketSymbol, stopLossPrice));
+      if (!portfolio || !(trigger > 0 && trigger < referencePrice) ||
+          Math.min(portfolio.freeUsdt, quoteFree) < orderSizeUsdt ||
+          (portfolio.exposureUsdt + orderSizeUsdt) / portfolio.tradingEquityUsdt > budget.maxExposure ||
+          orderSizeUsdt * (1 - trigger / referencePrice) / portfolio.tradingEquityUsdt > budget.riskPerTrade) {
+        return { status: "SKIPPED", reason: "demo_bot_budget_unavailable", clientOrderId };
+      }
     }
+
+    if (!this.options.riskSizing) {
+      orderSizeUsdt = this.formatDemoBuyCost(market, marketSymbol, orderSizeUsdt, cost => estimateDemoBuyQuantity(book, cost, referencePrice), fee);
+      if (orderSizeUsdt <= 0) return { status: "SKIPPED", reason: "demo_order_limits_unconfirmed", clientOrderId };
+    }
+    if (!isFreshDemoBook(book)) return { status: "SKIPPED", reason: "demo_book_unavailable", clientOrderId };
 
     const attachedAlgoClientId = `AP${clientOrderId.slice(2)}`;
     // CCXT currently does not expose attachAlgoClOrdId through stopLoss/takeProfit;
@@ -447,10 +480,10 @@ export class OkxDemoExecutor {
     if (!this.reserveIntent) throw new Error("Demo order requires a persistent intent journal");
     const reserved = await this.reserveIntent(
       marketSymbol, request.candleTimestamp, clientOrderId, attachedAlgoClientId,
-      ...(this.options.riskSizing ? [request.entryRevision] as const : []),
+      ...(revisionRequired ? [request.entryRevision] as const : []),
     );
     if (!reserved) {
-      if (this.options.riskSizing) return { status: "SKIPPED", reason: "risk_entry_changed", clientOrderId };
+      if (revisionRequired) return { status: "SKIPPED", reason: "risk_entry_changed", clientOrderId };
       throw new Error(`Demo order intent already exists: ${clientOrderId}`);
     }
     if (this.options.exitPolicy) {
@@ -564,20 +597,17 @@ export class OkxDemoExecutor {
     return response.code === "0" && item.sCode === "0" ? "acknowledged" as const : "uncertain" as const;
   }
 
-  private async sizeDemoBuy(symbol: string, reference: number, stop: number, quoteFree: number): Promise<number> {
+  private async sizeDemoBuy(symbol: string, reference: number, stop: number, quoteFree: number, book: OrderBook, fee: number, positions?: VerifiedDemoPosition[]): Promise<number> {
     const limits = this.options.riskSizing!;
     try {
       const market = this.resolveActiveSpotMarket(symbol);
       if (market.quote !== "USDT") return 0;
-      const [snapshot, fees, book] = await Promise.all([
-        this.getAccountSnapshot(true),
-        this.exchange.fetchTradingFee(symbol),
-        this.exchange.fetchOrderBook(symbol, 20),
-      ]);
-      const portfolio = demoTradingExposure(snapshot);
+      const snapshot = await this.getAccountSnapshot(true);
+      const budget = this.options.botBudget;
+      const account = demoTradingExposure(snapshot);
+      const bot = budget && positions ? demoBotExposure(snapshot, budget.usdt, positions) : null;
+      const portfolio = budget ? bot : account;
       if (!portfolio || !snapshot.assetValuesUsdt) return 0;
-      const fee = fees.taker;
-      if (typeof fee !== "number" || !Number.isFinite(fee) || fee < 0) return 0;
       const trigger = Number(this.exchange.priceToPrecision(symbol, stop));
       const worstEntry = reference * (1 + limits.slippage);
       if (!(trigger > 0 && trigger < reference)) return 0;
@@ -588,19 +618,27 @@ export class OkxDemoExecutor {
       const sized = positionSize({
         limits, equity: portfolio.tradingEquityUsdt, free: Math.min(portfolio.freeUsdt, quoteFree),
         exposure: portfolio.exposureUsdt,
-        altExposure: Math.max(0, portfolio.exposureUsdt - (snapshot.assetValuesUsdt.BTC ?? 0)),
-        symbolExposure: snapshot.assetValuesUsdt[market.base] ?? 0,
+        altExposure: bot?.altExposureUsdt ?? Math.max(0, portfolio.exposureUsdt - (snapshot.assetValuesUsdt.BTC ?? 0)),
+        symbolExposure: bot ? bot.byAsset.get(market.base) ?? 0 : snapshot.assetValuesUsdt[market.base] ?? 0,
         altcoin: market.base !== "BTC", ceiling: this.options.orderSizeUsdt,
         stopRate: 1 - trigger / reference, fee, slippage: limits.slippage, liquidity,
       });
-      if (sized <= 0) return 0;
-      const cost = Number(this.exchange.costToPrecision(symbol, sized));
+      return this.formatDemoBuyCost(market, symbol, sized, cost => cost / worstEntry, fee);
+    } catch {
+      return 0;
+    }
+  }
+
+  private formatDemoBuyCost(market: NonNullable<Market>, symbol: string, target: number, estimateQuantity: (cost: number) => number, fee: number): number {
+    if (target <= 0) return 0;
+    try {
+      const cost = Number(this.exchange.costToPrecision(symbol, target));
       const minimumAmount = market.limits.amount?.min;
       if (typeof minimumAmount !== "number" || minimumAmount <= 0 || !Number.isFinite(minimumAmount)) return 0;
-      // A fee charged in base currency must still leave a protectable lot.
-      const estimatedNet = Number(this.exchange.amountToPrecision(symbol, cost / worstEntry * (1 - fee)));
-      if (!(cost > 0 && cost <= sized && cost >= (market.limits.cost?.min ?? 0) && estimatedNet >= minimumAmount)) return 0;
-      return cost;
+      if (!(cost > 0 && cost <= target && cost >= (market.limits.cost?.min ?? 0) && cost <= (market.limits.cost?.max ?? Infinity))) return 0;
+      // Estimate whether the acquired base quantity remains protectable after fees.
+      const amount = Number(this.exchange.amountToPrecision(symbol, estimateQuantity(cost) * (1 - fee)));
+      return Number.isFinite(amount) && amount >= minimumAmount ? cost : 0;
     } catch {
       return 0;
     }
@@ -725,3 +763,23 @@ export function createClientOrderId(
   );
 }
 
+
+function isFreshDemoBook(book: OrderBook): boolean {
+  const now = Date.now();
+  return typeof book.timestamp === "number" && book.timestamp >= now - 10_000 && book.timestamp <= now + 1_000;
+}
+
+/** Estimate market execution from displayed asks. A shallow or invalid book cannot establish a minimum lot. */
+function estimateDemoBuyQuantity(book: OrderBook, cost: number, bestAsk: number): number {
+  let remaining = cost;
+  let quantity = 0;
+  for (const [price, size] of book.asks) {
+    if (typeof price !== "number" || typeof size !== "number" ||
+        !Number.isFinite(price) || price < bestAsk || !Number.isFinite(size) || size <= 0) return 0;
+    const spend = Math.min(remaining, price * size);
+    quantity += spend / price;
+    remaining -= spend;
+    if (remaining <= 0) return quantity;
+  }
+  return 0;
+}

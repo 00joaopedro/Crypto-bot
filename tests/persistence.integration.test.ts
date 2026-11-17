@@ -1,3 +1,6 @@
+import type { Order } from "ccxt";
+import { reconcilePendingDemoOrders } from "../src/demo-pending-reconciliation.js";
+import { inspectDemoExecutionState } from "../src/demo-execution-safety.js";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { exitPolicySchema } from "../src/exit-policy.js";
@@ -438,3 +441,102 @@ integration("PostgresPersistence", () => {
   });
 });
 
+
+integration("configuração e estatísticas Paper", () => {
+  it("persists, preserves and clears the independent Paper lot", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    try {
+      await persistence.initialize();
+      const current = await persistence.ensureDashboardSettings({
+        symbol: "BTC/USDT", orderSizeUsdt: 10, maxTrades: 10, maxConcurrentPositions: 10, intervalMinutes: 15,
+      });
+      try {
+        const { paperTradeSizeUsdt: _previous, ...other } = current;
+        await persistence.updateDashboardSettings({ ...other, paperTradeSizeUsdt: 10 }, "test");
+        await persistence.updateDashboardSettings(other, "test");
+        await expect(persistence.getDashboardSettings()).resolves.toMatchObject({ orderSizeUsdt: current.orderSizeUsdt, paperTradeSizeUsdt: 10 });
+        await persistence.updateDashboardSettings({ ...other, paperTradeSizeUsdt: null }, "test");
+        await expect(persistence.getDashboardSettings()).resolves.toMatchObject({ paperTradeSizeUsdt: null });
+      } finally {
+        await persistence.updateDashboardSettings(current, "test");
+      }
+    } finally {
+      await persistence.close();
+    }
+  });
+
+  it("filters closed trades by entry date and keeps the lifetime dashboard totals", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const since = Date.now(), symbol = "EXPERIMENT/USDT";
+    const ids = [`PAPER-OLD-${since}`, `PAPER-NEW-${since}`];
+    try {
+      await persistence.initialize();
+      await persistence.ensureDashboardSettings({
+        symbol: "BTC/USDT", orderSizeUsdt: 10, maxTrades: 10, maxConcurrentPositions: 10, intervalMinutes: 15,
+      });
+      for (const [index, id] of ids.entries()) {
+        const trade = { entryTimestamp: since + (index - 1) * 900_000, exitTimestamp: since + 900_000, netPnlUsdt: index === 0 ? -50 : 1 };
+        await db.query(`INSERT INTO paper_trades (event_key, symbol, event_type, candle_timestamp, replayed, trade)
+          VALUES ($1, $2, 'CLOSED', $3, false, $4)`, [id, symbol, trade.exitTimestamp, JSON.stringify(trade)]);
+      }
+      const all = await persistence.getDashboardData();
+      const filtered = await persistence.getDashboardData(40, undefined, since);
+      expect(all.analytics.bySymbol[symbol]).toMatchObject({ trades: 2, netPnlUsdt: -49 });
+      expect(filtered.analytics.bySymbol[symbol]).toMatchObject({ trades: 1, netPnlUsdt: 1 });
+      expect(filtered.metrics.netPnlUsdt).toBe(all.metrics.netPnlUsdt);
+      expect(filtered.metrics.closedTrades).toBe(all.metrics.closedTrades);
+    } finally {
+      await db.query("DELETE FROM paper_trades WHERE event_key = ANY($1::text[])", [ids]);
+      await db.end();
+      await persistence.close();
+    }
+  });
+});
+
+integration("Demo recovery after restarting the worker", () => {
+  it("holds a partly filled buy until exchange readback confirms the fill and protection", async () => {
+    const db = new Pool({ connectionString: databaseUrl });
+    const before = new PostgresPersistence(databaseUrl!);
+    const after = new PostgresPersistence(databaseUrl!);
+    const now = Date.now();
+    const clientOrderId = `CBRESTART${now}`, algoClientId = `APRESTART${now}`;
+    const symbol = "BTC/USDT", id = "1", identity = { uid: "123", mainUid: "123" };
+    let baselineId: string | undefined;
+    try {
+      await before.initialize();
+      const baseline = await db.query(`INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status)
+        VALUES (date_trunc('milliseconds', clock_timestamp()) + INTERVAL '1 millisecond', '{"USDT": 5000}', $1::jsonb, 'UNVERIFIED') RETURNING id, observed_at`, [JSON.stringify({ accountIdentity: identity })]);
+      baselineId = baseline.rows[0].id;
+      expect(await before.reserveDemoOrder(symbol, now, clientOrderId, 50, 15, algoClientId)).toBe(true);
+      await db.query("UPDATE demo_orders SET created_at = GREATEST(created_at, $2::timestamptz) WHERE client_order_id = $1", [clientOrderId, baseline.rows[0].observed_at]);
+      await before.close();
+
+      const filled = .009;
+      const order = { id, clientOrderId, symbol, side: "buy" as const, status: "open", filled };
+      const reconciliation = { reconcileOrder: async () => order as Order, inspectAccountIdentity: async () => ({ status: "confirmed" as const, identity }) };
+      let live = false;
+      const reader = { collectOrderEvidence: async () => ({
+        status: "collected" as const,
+        buys: [{ id, clientOrderId, symbol, side: "buy" as const, attachedAlgoClientIds: [algoClientId] }],
+        sells: [],
+        protections: [{ algoClientId, symbol, side: "sell" as const, spawnedOrderIds: [] }],
+        protectionStates: { [algoClientId]: live ? "live" : "canceled" },
+        orders: [{ id, symbol, side: "buy" as const, filled: order.filled, terminal: true, ownershipConfirmed: false }],
+      }) };
+      await reconcilePendingDemoOrders(after, reconciliation);
+      await expect(inspectDemoExecutionState(after, reader)).resolves.toMatchObject({ reason: "pending_demo_order" });
+      order.status = "closed";
+      await reconcilePendingDemoOrders(after, reconciliation);
+      await expect(inspectDemoExecutionState(after, reader)).resolves.toMatchObject({ reason: "demo_position_without_live_protection" });
+      live = true;
+      await expect(inspectDemoExecutionState(after, reader)).resolves.toEqual({ status: "safe", positions: [{ symbol, quantity: .009 }] });
+    } finally {
+      await before.close().catch(() => undefined);
+      await db.query("DELETE FROM demo_orders WHERE client_order_id = $1", [clientOrderId]);
+      if (baselineId) await db.query("DELETE FROM demo_accounting_baselines WHERE id = $1", [baselineId]);
+      await db.end();
+      await after.close();
+    }
+  });
+});

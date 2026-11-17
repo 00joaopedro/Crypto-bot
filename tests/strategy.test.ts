@@ -52,3 +52,12 @@ describe("strategy", () => {
     expect(evaluateStrategy(candles, { minimumScore: 4 }).action).toBe("HOLD");
   });
 });
+
+it("can reject a stretched buy with the experimental RSI ceiling without changing defaults", () => {
+  const candles = Array.from({ length: 112 }, (_, index) => {
+    const close = 100 + index * .09 + Math.sin(index * .73) * .55;
+    return { ...candle(close, index), high: close + .15, low: close - .15 };
+  });
+  expect(evaluateStrategy(candles).action).toBe("BUY");
+  expect(evaluateStrategy(candles, { maxBuyRsi: 63 }).action).toBe("HOLD");
+});

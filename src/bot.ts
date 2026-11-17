@@ -38,7 +38,6 @@ type BotOptions = {
   initialRiskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
   maxTradesPerInterval?: number;
   tradeIntervalMinutes?: number;
-  demoOrderSizeUsdt?: number;
   exitPolicy?: ExitPolicy;
   atrPeriod?: number;
   atrStopMultiplier?: number;
@@ -351,9 +350,7 @@ export class TradingBot {
     const managerBlock = approved && this.options.tradeManager
       ? this.options.tradeManager.canEnter(
           executionSymbol,
-          plannedPaperSize ?? (this.options.demoExecutor
-            ? this.options.demoOrderSizeUsdt ?? paperTrader.tradeSizeUsdt
-            : paperTrader.tradeSizeUsdt),
+          plannedPaperSize ?? paperTrader.tradeSizeUsdt,
         this.paperEquityEstimate(executionSymbol),
         ).reason
       : undefined;
@@ -418,9 +415,7 @@ export class TradingBot {
       this.lastTradeAtBySymbol.set(executionSymbol, currentCandle.timestamp);
       this.options.tradeManager?.recordEntry({
         symbol: executionSymbol,
-        notionalUsdt: riskSizing ? opened.notionalUsdt : this.options.demoExecutor
-          ? this.options.demoOrderSizeUsdt ?? paperTrader.tradeSizeUsdt
-          : paperTrader.tradeSizeUsdt,
+        notionalUsdt: opened.notionalUsdt,
         openedAt: currentCandle.timestamp,
       });
     }
@@ -476,13 +471,16 @@ export class TradingBot {
     }
     const paperOpened = paperResult.events.some((event) => event.type === "OPENED");
     let demoApproved = approved && paperOpened;
-    let entryRevision: string | undefined;
+    let entryAuthorization: Pick<DemoAdmission, "entryRevision" | "exposurePositions"> = {};
     if (this.options.demoExecutor && this.options.inspectDemoEntry) {
       demoApproved = false;
       if (demoCandidate && !this.demoExecutionBlocked && !(await this.options.persistence?.isPaused())) {
         const admission = await this.options.inspectDemoEntry(executionSymbol, exitRates.stopLossRate);
         demoApproved = admission.allowed;
-        entryRevision = admission.entryRevision;
+        entryAuthorization = {
+          ...(admission.entryRevision !== undefined ? { entryRevision: admission.entryRevision } : {}),
+          ...(admission.exposurePositions ? { exposurePositions: admission.exposurePositions } : {}),
+        };
         await this.recordOperationalEvent("DEMO_ENTRY_DECISION", admission.allowed ? "INFO" : "WARN", {
           symbol: executionSymbol, candleTimestamp: currentCandle.timestamp,
           approved: admission.allowed, reason: admission.reason ?? "demo_preflight_passed",
@@ -525,9 +523,9 @@ export class TradingBot {
             symbol: executionSymbol,
             candleTimestamp: currentCandle.timestamp,
             ...exitRates,
-            ...(entryRevision !== undefined ? { entryRevision } : {}),
+            ...entryAuthorization,
           });
-          if (demoResult.status === "SKIPPED" && ["risk_size_unavailable", "risk_entry_changed"].includes(demoResult.reason)) {
+          if (demoResult.status === "SKIPPED" && ["risk_size_unavailable", "risk_entry_changed", "demo_bot_budget_unavailable", "demo_book_unavailable", "demo_spread_exceeded", "demo_order_limits_unconfirmed"].includes(demoResult.reason)) {
             await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", {
               symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, approved: false, reason: demoResult.reason,
             });
@@ -939,9 +937,7 @@ export class TradingBot {
     const traderState = trader.exportState();
     if (traderState.position) return "position_already_open";
     const balance = Math.max(traderState.peakEquityUsdt, traderState.cashUsdt);
-    const tradeSize = this.options.demoExecutor && this.options.demoOrderSizeUsdt !== undefined
-      ? this.options.demoOrderSizeUsdt
-      : trader.tradeSizeUsdt;
+    const tradeSize = trader.tradeSizeUsdt;
     if (this.options.maxExposurePercent !== undefined && tradeSize / balance > this.options.maxExposurePercent) {
       return "max_exposure_percent";
     }
