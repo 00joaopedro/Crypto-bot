@@ -1,4 +1,5 @@
-import { demoTradingExposure } from "./demo-exposure.js";
+import type { VerifiedDemoPosition } from "./demo-execution-safety.js";
+import { demoBotExposure, demoTradingExposure } from "./demo-exposure.js";
 import { positionSize, type PositionSizingLimits } from "./position-sizing.js";
 import { calculateDemoLedger, type DemoFill } from "./demo-ledger.js";
 import type { ExitPolicy } from "./exit-policy.js";
@@ -24,6 +25,7 @@ export type OkxDemoOptions = {
   stopLossRate: number;
   takeProfitRate: number;
   exitPolicy?: ExitPolicy;
+  botBudget?: { usdt: number; maxExposure: number; riskPerTrade: number };
   riskSizing?: PositionSizingLimits & { slippage: number };
 };
 
@@ -45,6 +47,7 @@ export type OkxDemoAccountSnapshot = {
   unvaluedAssets: string[];
   valuationQuotes?: Record<string, ValuationQuote>;
   valuationFailures?: Record<string, ValuationAttempt[]>;
+  assetUnitValuesUsdt?: Record<string, number>;
   assetValuesUsdt?: Record<string, number>;
   freeBrlValueUsdt?: number;
   updatedAt: string;
@@ -54,6 +57,7 @@ export type DemoBuyRequest = {
   symbol?: string;
   candleTimestamp: number;
   entryRevision?: string;
+  exposurePositions?: VerifiedDemoPosition[];
   stopLossRate?: number;
   takeProfitRate?: number;
 };
@@ -85,7 +89,8 @@ export type DemoBuyResult =
         | "existing_open_order"
         | "insufficient_quote_balance"
         | "risk_size_unavailable"
-        | "risk_entry_changed";
+        | "risk_entry_changed"
+        | "demo_bot_budget_unavailable";
       clientOrderId: string;
   };
 
@@ -188,6 +193,7 @@ export class OkxDemoExecutor {
     const totals = (balance.total ?? {}) as Record<string, unknown>;
     let equity = 0;
     let freeBrlValueUsdt = 0;
+    const assetUnitValuesUsdt: Record<string, number> = Object.create(null);
     const assetValuesUsdt: Record<string, number> = Object.create(null);
     const unvaluedAssets: string[] = [];
     const valuationQuotes: Record<string, ValuationQuote> = Object.create(null);
@@ -211,6 +217,7 @@ export class OkxDemoExecutor {
       }
       valuationQuotes[currency] = valuation.quote;
       assetValuesUsdt[currency] = value;
+      assetUnitValuesUsdt[currency] = valuation.rate;
       equity += value;
       if (currency === "BRL") {
         const freeBrl = readFreeBalance(balance.free, "BRL");
@@ -221,7 +228,7 @@ export class OkxDemoExecutor {
     if (totalUsdt === null && !unvaluedAssets.includes("USDT")) unvaluedAssets.push("USDT");
     return {
       quoteCurrency, quoteFree: readFreeBalance(balance.free, quoteCurrency), totalUsdt,
-      equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, freeBrlValueUsdt,
+      equityUsdt: unvaluedAssets.length ? null : equity, unvaluedAssets, freeBrlValueUsdt, assetUnitValuesUsdt,
       ...(Object.keys(valuationQuotes).length ? { valuationQuotes } : {}),
       ...(Object.keys(valuationFailures).length ? { valuationFailures } : {}),
       ...(includeAssetValues ? { assetValuesUsdt } : {}),
@@ -430,10 +437,25 @@ export class OkxDemoExecutor {
     const takeProfitPrice = referencePrice * (1 + (request.takeProfitRate ?? this.options.takeProfitRate));
 
     let orderSizeUsdt = this.options.orderSizeUsdt;
+    const budget = this.options.botBudget;
+    const revisionRequired = Boolean(budget || this.options.riskSizing);
+    if (budget && (request.entryRevision === undefined || !request.exposurePositions)) {
+      return { status: "SKIPPED", reason: "demo_bot_budget_unavailable", clientOrderId };
+    }
     if (this.options.riskSizing) {
-      const sized = request.entryRevision === undefined ? 0 : await this.sizeDemoBuy(marketSymbol, referencePrice, stopLossPrice, quoteFree);
+      const sized = request.entryRevision === undefined ? 0 : await this.sizeDemoBuy(marketSymbol, referencePrice, stopLossPrice, quoteFree, request.exposurePositions);
       if (sized <= 0) return { status: "SKIPPED", reason: "risk_size_unavailable", clientOrderId };
       orderSizeUsdt = sized;
+    } else if (budget && request.exposurePositions) {
+      const snapshot = await this.getAccountSnapshot().catch(() => null);
+      const portfolio = snapshot && demoBotExposure(snapshot, budget.usdt, request.exposurePositions);
+      const trigger = Number(this.exchange.priceToPrecision(marketSymbol, stopLossPrice));
+      if (!portfolio || !(trigger > 0 && trigger < referencePrice) ||
+          Math.min(portfolio.freeUsdt, quoteFree) < orderSizeUsdt ||
+          (portfolio.exposureUsdt + orderSizeUsdt) / portfolio.tradingEquityUsdt > budget.maxExposure ||
+          orderSizeUsdt * (1 - trigger / referencePrice) / portfolio.tradingEquityUsdt > budget.riskPerTrade) {
+        return { status: "SKIPPED", reason: "demo_bot_budget_unavailable", clientOrderId };
+      }
     }
 
     const attachedAlgoClientId = `AP${clientOrderId.slice(2)}`;
@@ -447,10 +469,10 @@ export class OkxDemoExecutor {
     if (!this.reserveIntent) throw new Error("Demo order requires a persistent intent journal");
     const reserved = await this.reserveIntent(
       marketSymbol, request.candleTimestamp, clientOrderId, attachedAlgoClientId,
-      ...(this.options.riskSizing ? [request.entryRevision] as const : []),
+      ...(revisionRequired ? [request.entryRevision] as const : []),
     );
     if (!reserved) {
-      if (this.options.riskSizing) return { status: "SKIPPED", reason: "risk_entry_changed", clientOrderId };
+      if (revisionRequired) return { status: "SKIPPED", reason: "risk_entry_changed", clientOrderId };
       throw new Error(`Demo order intent already exists: ${clientOrderId}`);
     }
     if (this.options.exitPolicy) {
@@ -564,7 +586,7 @@ export class OkxDemoExecutor {
     return response.code === "0" && item.sCode === "0" ? "acknowledged" as const : "uncertain" as const;
   }
 
-  private async sizeDemoBuy(symbol: string, reference: number, stop: number, quoteFree: number): Promise<number> {
+  private async sizeDemoBuy(symbol: string, reference: number, stop: number, quoteFree: number, positions?: VerifiedDemoPosition[]): Promise<number> {
     const limits = this.options.riskSizing!;
     try {
       const market = this.resolveActiveSpotMarket(symbol);
@@ -574,7 +596,10 @@ export class OkxDemoExecutor {
         this.exchange.fetchTradingFee(symbol),
         this.exchange.fetchOrderBook(symbol, 20),
       ]);
-      const portfolio = demoTradingExposure(snapshot);
+      const budget = this.options.botBudget;
+      const account = demoTradingExposure(snapshot);
+      const bot = budget && positions ? demoBotExposure(snapshot, budget.usdt, positions) : null;
+      const portfolio = budget ? bot : account;
       if (!portfolio || !snapshot.assetValuesUsdt) return 0;
       const fee = fees.taker;
       if (typeof fee !== "number" || !Number.isFinite(fee) || fee < 0) return 0;
@@ -588,8 +613,8 @@ export class OkxDemoExecutor {
       const sized = positionSize({
         limits, equity: portfolio.tradingEquityUsdt, free: Math.min(portfolio.freeUsdt, quoteFree),
         exposure: portfolio.exposureUsdt,
-        altExposure: Math.max(0, portfolio.exposureUsdt - (snapshot.assetValuesUsdt.BTC ?? 0)),
-        symbolExposure: snapshot.assetValuesUsdt[market.base] ?? 0,
+        altExposure: bot?.altExposureUsdt ?? Math.max(0, portfolio.exposureUsdt - (snapshot.assetValuesUsdt.BTC ?? 0)),
+        symbolExposure: bot ? bot.byAsset.get(market.base) ?? 0 : snapshot.assetValuesUsdt[market.base] ?? 0,
         altcoin: market.base !== "BTC", ceiling: this.options.orderSizeUsdt,
         stopRate: 1 - trigger / reference, fee, slippage: limits.slippage, liquidity,
       });

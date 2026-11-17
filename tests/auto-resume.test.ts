@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { autoResumeAt, inspectAutoResumeMarket, inspectAutoResumePaperRisk, type PauseControl } from "../src/auto-resume.js";
+import { autoResumeAt, describeAutoResume, inspectAutoResumeMarket, inspectAutoResumePaperRisk, type PauseControl } from "../src/auto-resume.js";
 import { PaperTrader } from "../src/paper-trader.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS } from "../src/btc-regime.js";
 
@@ -38,4 +38,13 @@ it("requires recent closed BTC candles when the market gate is used", async () =
   }));
   await expect(inspectAutoResumeMarket({ fetchClosedCandles: async () => candles.slice(0, -1) }, now)).resolves.toBe("btc_regime_data_unavailable");
   await expect(inspectAutoResumeMarket({ fetchClosedCandles: async () => candles }, now)).resolves.toBeUndefined();
+});
+
+it("reports disabled, scheduled, blocked and manual states by the current pause revision", () => {
+  const enabled = { enabled: true, cooldownMinutes: 120, demo: true };
+  const check = { revision: "42", checkedAt: now, reason: "btc_regime_shock" };
+  expect(describeAutoResume(control, { ...enabled, enabled: false }, check)).toEqual({ enabled: false, eligibleAt: null });
+  expect(describeAutoResume(control, enabled, check)).toMatchObject({ enabled: true, reason: check.reason, eligibleAt: Date.parse("2026-11-17T01:30:00Z") });
+  expect(describeAutoResume({ ...control, revision: "43" }, enabled, check)).not.toHaveProperty("reason");
+  expect(describeAutoResume({ ...control, updatedBy: "dashboard" }, enabled, check)).toEqual({ enabled: true, eligibleAt: null });
 });

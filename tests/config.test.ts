@@ -50,3 +50,13 @@ describe("configuration", () => {
     ).toBe("test-password");
   });
 });
+
+it("requires explicit opt-in for auto resume and a positive Demo budget", () => {
+  const defaults = parseConfig({});
+  expect(defaults.AUTO_RESUME_ENABLED).toBe(false);
+  expect(defaults.AUTO_RESUME_LOSS_COOLDOWN_MINUTES).toBe(120);
+  expect(defaults.OKX_DEMO_BOT_BUDGET_USDT).toBeUndefined();
+  expect(parseConfig({ AUTO_RESUME_ENABLED: "true", OKX_DEMO_BOT_BUDGET_USDT: "5000" }))
+    .toMatchObject({ AUTO_RESUME_ENABLED: true, OKX_DEMO_BOT_BUDGET_USDT: 5000 });
+  expect(() => parseConfig({ OKX_DEMO_BOT_BUDGET_USDT: "0" })).toThrow();
+});

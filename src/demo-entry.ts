@@ -1,6 +1,6 @@
-import { demoTradingExposure } from './demo-exposure.js';
+import { demoBotExposure, demoTradingExposure } from './demo-exposure.js';
 import { demoRiskBlock } from './demo-risk.js';
-import { inspectDemoExecutionState } from './demo-execution-safety.js';
+import { inspectDemoExecutionState, type VerifiedDemoPosition } from './demo-execution-safety.js';
 import { sameDemoAccount } from './okx-demo-identity.js';
 import type { PostgresPersistence } from './persistence.js';
 import type { OkxDemoExecutor } from './okx-demo.js';
@@ -14,21 +14,23 @@ export type DemoExposure = {
   requestedUsdt: number;
   projectedRate: number;
   limitRate: number;
+  scope?: "bot" | "account";
 };
 
-export type DemoAdmission = { allowed: boolean; reason?: string; entryRevision?: string; exposure?: DemoExposure };
+export type DemoAdmission = { allowed: boolean; reason?: string; entryRevision?: string; exposurePositions?: VerifiedDemoPosition[]; exposure?: DemoExposure };
 
 /** Fresh admission using confirmed Demo balances and persisted account risk. */
 export async function inspectDemoEntry(
   persistence: Pick<PostgresPersistence, 'demoOrderJournal' | 'getDemoBaselineCandidate' | 'canEnterDemoSymbol' | 'observeDemoRisk'> & Partial<Pick<PostgresPersistence, 'readDemoEntryRevision'>>,
   executor: Pick<OkxDemoExecutor, 'collectOrderEvidence' | 'inspectAccountIdentity' | 'getAccountSnapshot'>,
-  input: { symbol: string; size: number; riskSizing?: boolean; stopLossRate: number; cooldownMinutes: number; maxPositions: number; maxExposure: number; riskPerTrade: number; maxDailyLoss: number; maxDrawdown: number },
+  input: { symbol: string; size: number; riskSizing?: boolean; botBudgetUsdt?: number; stopLossRate: number; cooldownMinutes: number; maxPositions: number; maxExposure: number; riskPerTrade: number; maxDailyLoss: number; maxDrawdown: number },
 ): Promise<DemoAdmission> {
   const no = (reason: string) => ({ allowed: false, reason });
   try {
     if (Object.values(input).some(v => typeof v === 'number' && (!Number.isFinite(v) || v < 0)) || input.size <= 0 || input.stopLossRate <= 0 || input.maxPositions < 1) return no('invalid_demo_risk_configuration');
-    const entryRevision = input.riskSizing ? await persistence.readDemoEntryRevision?.() : undefined;
-    if (input.riskSizing && entryRevision === undefined) return no("demo_risk_revision_unavailable");
+    const needsRevision = input.riskSizing || input.botBudgetUsdt !== undefined;
+    const entryRevision = needsRevision ? await persistence.readDemoEntryRevision?.() : undefined;
+    if (needsRevision && entryRevision === undefined) return no("demo_risk_revision_unavailable");
     const baseline = await persistence.getDemoBaselineCandidate();
     const account = await executor.inspectAccountIdentity();
     if (!baseline || account.status !== 'confirmed' || !sameDemoAccount(baseline.evidence.accountIdentity, account.identity)) return no('demo_account_identity_unconfirmed');
@@ -43,15 +45,22 @@ export async function inspectDemoEntry(
     const risk = await persistence.observeDemoRisk(`${account.identity.mainUid}:${account.identity.uid}`, portfolio.equityUsdt, Date.now());
     const lossBlock = demoRiskBlock(risk, input.maxDailyLoss, input.maxDrawdown);
     if (lossBlock) return no(lossBlock);
-    if (entryRevision !== undefined) return { allowed: true, entryRevision };
+    const botBudget = input.botBudgetUsdt;
+    const operational = botBudget === undefined ? portfolio : demoBotExposure(snapshot, botBudget, state.positions);
+    if (!operational) return no("demo_bot_exposure_unconfirmed");
+    const authorization = {
+      ...(entryRevision !== undefined ? { entryRevision } : {}),
+      ...(botBudget !== undefined ? { exposurePositions: state.positions } : {}),
+    };
+    if (input.riskSizing) return { allowed: true, ...authorization };
     if (portfolio.freeUsdt < input.size) return no('demo_insufficient_quote_balance');
-    const projectedRate = (portfolio.exposureUsdt + input.size) / portfolio.tradingEquityUsdt;
+    const projectedRate = (operational.exposureUsdt + input.size) / operational.tradingEquityUsdt;
     if (projectedRate > input.maxExposure) return {
       ...no('demo_max_exposure'),
-      exposure: { ...portfolio, requestedUsdt: input.size, projectedRate, limitRate: input.maxExposure },
+      exposure: { equityUsdt: operational.equityUsdt, freeUsdt: operational.freeUsdt, tradingEquityUsdt: operational.tradingEquityUsdt, brlReserveUsdt: operational.brlReserveUsdt, exposureUsdt: operational.exposureUsdt, scope: botBudget === undefined ? "account" : "bot", requestedUsdt: input.size, projectedRate, limitRate: input.maxExposure },
     };
-    if (input.size * input.stopLossRate / portfolio.tradingEquityUsdt > input.riskPerTrade) return no('demo_risk_per_trade');
-    return { allowed: true };
+    if (input.size * input.stopLossRate / operational.tradingEquityUsdt > input.riskPerTrade) return no('demo_risk_per_trade');
+    return { allowed: true, ...authorization };
   } catch { return no('demo_entry_check_failed'); }
 }
 

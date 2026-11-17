@@ -355,9 +355,10 @@ export class PostgresPersistence implements BotPersistence {
         `UPDATE dashboard_settings SET
            symbol = $1, order_size_usdt = $2, max_trades = $3,
            interval_minutes = $4, max_concurrent_positions = $5,
-           updated_at = NOW(), updated_by = $6
+           updated_at = NOW(), updated_by = $6,
+           paper_trade_size_usdt = CASE WHEN $7::boolean THEN $8::double precision ELSE paper_trade_size_usdt END
          WHERE id = 1`,
-        [settings.symbol, settings.orderSizeUsdt, settings.maxTrades, settings.intervalMinutes, settings.maxConcurrentPositions, actor],
+        [settings.symbol, settings.orderSizeUsdt, settings.maxTrades, settings.intervalMinutes, settings.maxConcurrentPositions, actor, settings.paperTradeSizeUsdt !== undefined, settings.paperTradeSizeUsdt ?? null],
       );
       await client.query(
         `INSERT INTO audit_events (event_type, actor, details)
@@ -390,7 +391,7 @@ export class PostgresPersistence implements BotPersistence {
 
   async readDemoEntryRevision(): Promise<string> {
     const result = await this.pool.query<{ revision: string }>(
-      "SELECT COUNT(*)::text AS revision FROM demo_orders WHERE status = 'PLACED'",
+      "SELECT CONCAT(COUNT(*), ':', COUNT(*) FILTER (WHERE status = 'PLACED')) AS revision FROM demo_orders",
     );
     return result.rows[0]!.revision;
   }
@@ -405,7 +406,7 @@ export class PostgresPersistence implements BotPersistence {
       await client.query("SELECT pg_advisory_xact_lock(hashtext('crypto-bot-demo-order-reservation'))");
       const counts = await client.query<{ pending: boolean; recent: string; revision: string }>(
         `SELECT COALESCE(BOOL_OR(status = 'PENDING'), false) AS pending,
-          COUNT(*) FILTER (WHERE status = 'PLACED')::text AS revision,
+          CONCAT(COUNT(*), ':', COUNT(*) FILTER (WHERE status = 'PLACED')) AS revision,
           COUNT(*) FILTER (WHERE status = 'PLACED' AND created_at >= NOW() - ($1 * INTERVAL '1 minute'))::text AS recent
          FROM demo_orders`, [intervalMinutes],
       );
@@ -649,7 +650,7 @@ export class PostgresPersistence implements BotPersistence {
     return equity === undefined ? undefined : Number(equity);
   }
 
-  async getDashboardData(limit = 40, historySymbol?: string): Promise<DashboardData> {
+  async getDashboardData(limit = 40, historySymbol?: string, paperSince?: number): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
     const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades, okxEvents] = await Promise.all([
       this.pool.query<{ paused: boolean; pause_reason: string | null }>("SELECT paused, pause_reason FROM bot_control WHERE id = 1"),
@@ -754,18 +755,23 @@ export class PostgresPersistence implements BotPersistence {
     const latestCycleAt = snapshot.rows[0]?.created_at ?? null;
     const health = Object.fromEntries(serviceEvents.rows.map((row) => [row.service, row.status]));
     health.postgresql ??= "ok";
-    const statisticalTrades: StatisticalTrade[] = analyticsTrades.rows.map((row) => {
+    const statisticalTrades: (StatisticalTrade & { entryTimestamp: number })[] = analyticsTrades.rows.map((row) => {
       const trade = (row.trade ?? {}) as Record<string, unknown>;
       const exitTimestamp = Number(trade.exitTimestamp ?? 0);
+      const entryTimestamp = Number(trade.entryTimestamp ?? 0);
       const signal = (row.signal ?? {}) as Record<string, unknown>;
       const breakdown = (signal.scoreBreakdown ?? {}) as Record<string, unknown>;
       const aiReason = String((row.ai_decision as Record<string, unknown> | undefined)?.reason ?? "");
       const trend = Number(breakdown.trend ?? 0); const volatility = Number(signal.volatilityPercent ?? 0);
-      return { symbol: String(row.symbol), netPnlUsdt: Number(trade.netPnlUsdt ?? 0), exitTimestamp, regime: Math.abs(trend) >= 2 ? "trend" : volatility > 2 ? "volatile" : "lateral", aiState: aiReason.includes("UNAVAILABLE") ? "AI_UNAVAILABLE" : aiReason.includes("disabled") ? "AI_DISABLED" : "AI_AVAILABLE" };
+      return { symbol: String(row.symbol), netPnlUsdt: Number(trade.netPnlUsdt ?? 0), entryTimestamp, exitTimestamp, regime: Math.abs(trend) >= 2 ? "trend" : volatility > 2 ? "volatile" : "lateral", aiState: aiReason.includes("UNAVAILABLE") ? "AI_UNAVAILABLE" : aiReason.includes("disabled") ? "AI_DISABLED" : "AI_AVAILABLE" };
     });
-    const analytics = buildStatisticalReport(statisticalTrades);
-    const closedTrades = analytics.trades;
-    const wins = analytics.wins;
+    const lifetime = buildStatisticalReport(statisticalTrades);
+    const analytics = paperSince === undefined ? lifetime : buildStatisticalReport(
+      // A trade opened before the selected date belongs to the prior experiment.
+      statisticalTrades.filter((trade) => trade.entryTimestamp >= paperSince),
+    );
+    const closedTrades = lifetime.trades;
+    const wins = lifetime.wins;
     return {
       paused: control.rows[0]?.paused ?? true,
       pauseReason: control.rows[0]?.pause_reason ?? null,
@@ -786,7 +792,7 @@ export class PostgresPersistence implements BotPersistence {
         wins,
         losses: Math.max(0, closedTrades - wins),
         winRate: closedTrades ? (wins / closedTrades) * 100 : 0,
-        netPnlUsdt: analytics.netPnlUsdt,
+        netPnlUsdt: lifetime.netPnlUsdt,
         feesUsdt: Number(latestSnapshot?.totalFeesUsdt ?? 0),
         currentDrawdownPercent: Number(latestSnapshot?.currentDrawdownPercent ?? 0),
         maxDrawdownPercent: Number(aggregateSnapshot.maxDrawdownPercent ?? 0),

@@ -438,3 +438,55 @@ integration("PostgresPersistence", () => {
   });
 });
 
+
+integration("configuração e estatísticas Paper", () => {
+  it("persists, preserves and clears the independent Paper lot", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    try {
+      await persistence.initialize();
+      const current = await persistence.ensureDashboardSettings({
+        symbol: "BTC/USDT", orderSizeUsdt: 10, maxTrades: 10, maxConcurrentPositions: 10, intervalMinutes: 15,
+      });
+      try {
+        const { paperTradeSizeUsdt: _previous, ...other } = current;
+        await persistence.updateDashboardSettings({ ...other, paperTradeSizeUsdt: 10 }, "test");
+        await persistence.updateDashboardSettings(other, "test");
+        await expect(persistence.getDashboardSettings()).resolves.toMatchObject({ orderSizeUsdt: current.orderSizeUsdt, paperTradeSizeUsdt: 10 });
+        await persistence.updateDashboardSettings({ ...other, paperTradeSizeUsdt: null }, "test");
+        await expect(persistence.getDashboardSettings()).resolves.toMatchObject({ paperTradeSizeUsdt: null });
+      } finally {
+        await persistence.updateDashboardSettings(current, "test");
+      }
+    } finally {
+      await persistence.close();
+    }
+  });
+
+  it("filters closed trades by entry date and keeps the lifetime dashboard totals", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const since = Date.now(), symbol = "EXPERIMENT/USDT";
+    const ids = [`PAPER-OLD-${since}`, `PAPER-NEW-${since}`];
+    try {
+      await persistence.initialize();
+      await persistence.ensureDashboardSettings({
+        symbol: "BTC/USDT", orderSizeUsdt: 10, maxTrades: 10, maxConcurrentPositions: 10, intervalMinutes: 15,
+      });
+      for (const [index, id] of ids.entries()) {
+        const trade = { entryTimestamp: since + (index - 1) * 900_000, exitTimestamp: since + 900_000, netPnlUsdt: index === 0 ? -50 : 1 };
+        await db.query(`INSERT INTO paper_trades (event_key, symbol, event_type, candle_timestamp, replayed, trade)
+          VALUES ($1, $2, 'CLOSED', $3, false, $4)`, [id, symbol, trade.exitTimestamp, JSON.stringify(trade)]);
+      }
+      const all = await persistence.getDashboardData();
+      const filtered = await persistence.getDashboardData(40, undefined, since);
+      expect(all.analytics.bySymbol[symbol]).toMatchObject({ trades: 2, netPnlUsdt: -49 });
+      expect(filtered.analytics.bySymbol[symbol]).toMatchObject({ trades: 1, netPnlUsdt: 1 });
+      expect(filtered.metrics.netPnlUsdt).toBe(all.metrics.netPnlUsdt);
+      expect(filtered.metrics.closedTrades).toBe(all.metrics.closedTrades);
+    } finally {
+      await db.query("DELETE FROM paper_trades WHERE event_key = ANY($1::text[])", [ids]);
+      await db.end();
+      await persistence.close();
+    }
+  });
+});

@@ -18,6 +18,7 @@ export type BacktestOptions = {
   takeProfitRate: number;
   executionDelayCandles?: number;
   minimumSignalScore?: number;
+  maxBuyRsi?: number;
   /** Number of leading candles used only to warm indicators/state. */
   warmupCandles?: number;
   qualityFilters?: boolean;
@@ -78,6 +79,7 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     const candle = candles[index]!;
     const signal = index >= (filtersEnabled ? 84 : 50) ? evaluateStrategy(candles.slice(0, index + 1), {
       ...(options.minimumSignalScore === undefined ? {} : { minimumScore: options.minimumSignalScore }),
+      ...(options.maxBuyRsi === undefined ? {} : { maxBuyRsi: options.maxBuyRsi }),
       ...(options.qualityFilters === undefined ? {} : { qualityFilters: options.qualityFilters }),
     }) : undefined;
     // A signal uses the just-closed candle; the earliest honest fill is the

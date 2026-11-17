@@ -1,4 +1,4 @@
-import { autoResumeAt, inspectAutoResumeMarket, inspectAutoResumePaperRisk } from "./auto-resume.js";
+import { describeAutoResume, autoResumeAt, inspectAutoResumeMarket, inspectAutoResumePaperRisk } from "./auto-resume.js";
 import { exitPolicySchema } from "./exit-policy.js";
 import { auditDemoProtections, superviseDemoExits } from "./demo-exit-supervisor.js";
 import type { Server } from "node:http";
@@ -77,6 +77,11 @@ async function main(): Promise<void> {
     maxSymbolExposure: config.RISK_MAX_SYMBOL_EXPOSURE_PERCENT,
   } : undefined;
   const demoRiskSizing = riskSizing ? { riskSizing: { ...riskSizing, slippage: config.EXIT_SLIPPAGE_RATE } } : {};
+  const demoBotBudget = config.OKX_DEMO_BOT_BUDGET_USDT === undefined ? undefined : {
+    usdt: config.OKX_DEMO_BOT_BUDGET_USDT,
+    maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
+    riskPerTrade: config.RISK_PER_TRADE_PERCENT,
+  };
   const tradeManager = new CentralTradeManager({
     maxConcurrentPositions: config.MAX_CONCURRENT_POSITIONS,
     maxExposurePercent: config.RISK_MAX_EXPOSURE_PERCENT,
@@ -200,6 +205,7 @@ async function main(): Promise<void> {
               tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
               orderSizeUsdt: tradingSettings.orderSizeUsdt,
               ...demoRiskSizing,
+              ...(demoBotBudget ? { botBudget: demoBotBudget } : {}),
               stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
               takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
               ...(exitPolicy ? { exitPolicy } : {}),
@@ -339,6 +345,7 @@ async function main(): Promise<void> {
         ...(demoExecutor && persistence ? { inspectDemoPositions: () => inspectDemoExecutionState(persistence, demoExecutor) } : {}),
         ...(demoExecutor && persistence ? { inspectDemoEntry: (symbol: string, stopLossRate: number) => inspectDemoEntry(persistence, demoExecutor, {
           symbol, stopLossRate, size: settings.orderSizeUsdt, riskSizing: Boolean(riskSizing), cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
+          ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
           maxPositions: settings.maxConcurrentPositions, maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
           riskPerTrade: config.RISK_PER_TRADE_PERCENT,
           maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT, maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
@@ -351,7 +358,6 @@ async function main(): Promise<void> {
         ...(state?.riskState ? { initialRiskState: state.riskState } : {}),
         maxTradesPerInterval: settings.maxTrades,
         tradeIntervalMinutes: settings.intervalMinutes,
-        demoOrderSizeUsdt: settings.orderSizeUsdt,
         ...(exitPolicy ? { exitPolicy } : {}),
         atrPeriod: config.ATR_PERIOD,
         atrStopMultiplier: config.ATR_STOP_MULTIPLIER,
@@ -444,6 +450,7 @@ async function main(): Promise<void> {
                 tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
                 orderSizeUsdt: nextSettings.orderSizeUsdt,
                 ...demoRiskSizing,
+                ...(demoBotBudget ? { botBudget: demoBotBudget } : {}),
                 stopLossRate: config.OKX_DEMO_STOP_LOSS_RATE,
                 takeProfitRate: config.OKX_DEMO_TAKE_PROFIT_RATE,
               ...(exitPolicy ? { exitPolicy } : {}),
@@ -506,13 +513,13 @@ async function main(): Promise<void> {
         supportedSymbols,
         onSettingsChanged: reconfigure,
         getLastSignalScan: () => bot.getLastSignalScan(),
-        ...(config.AUTO_RESUME_ENABLED ? { getAutoResumeStatus: async () => {
-          const control = await persistence.readControlState();
-          const eligibleAt = nextAutoResume(control);
-          if (eligibleAt === null) return null;
-          const check = lastAutoCheck?.revision === control.revision ? lastAutoCheck : undefined;
-          return { eligibleAt, ...(check ? { checkedAt: check.checkedAt, reason: check.reason } : {}) };
-        } } : {}),
+        paperDefaultTradeSize: config.PAPER_TRADE_SIZE_USDT,
+        ...(demoBotBudget ? { demoBotBudgetUsdt: demoBotBudget.usdt } : {}),
+        getAutoResumeStatus: async () => describeAutoResume(await persistence.readControlState(), {
+          enabled: config.AUTO_RESUME_ENABLED,
+          cooldownMinutes: config.AUTO_RESUME_LOSS_COOLDOWN_MINUTES,
+          demo: Boolean(okxDemo),
+        }, lastAutoCheck),
         ...(okxDemo ? { onResume: async () => {
           if (reconfiguring || !okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
           await activeCycle;

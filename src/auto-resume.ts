@@ -33,6 +33,20 @@ export function autoResumeAt(control: PauseControl, cooldownMinutes: number, dem
   return fromDemo && recheckableDemoReasons.has(control.pauseReason) ? updatedAt : null;
 }
 
+export function describeAutoResume(
+  control: PauseControl,
+  options: { enabled: boolean; cooldownMinutes: number; demo: boolean },
+  lastCheck?: { revision: string; checkedAt: number; reason: string },
+) {
+  const eligibleAt = options.enabled ? autoResumeAt(control, options.cooldownMinutes, options.demo) : null;
+  const check = eligibleAt !== null && lastCheck?.revision === control.revision ? lastCheck : undefined;
+  return {
+    enabled: options.enabled,
+    eligibleAt,
+    ...(check ? { checkedAt: check.checkedAt, reason: check.reason } : {}),
+  };
+}
+
 export async function inspectAutoResumePaperRisk(
   store: Pick<PostgresPersistence, "loadPaperResumeStates">,
   market: Pick<PublicMarketData, "fetchClosedCandles">,

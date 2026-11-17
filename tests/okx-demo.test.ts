@@ -483,3 +483,29 @@ describe("OkxDemoExecutor", () => {
   });
 });
 
+
+it.each([
+  { authorization: true, reserved: true, free: 5000, status: "PLACED" },
+  { authorization: true, reserved: false, free: 5000, status: "SKIPPED" },
+  { authorization: true, reserved: true, free: 95, status: "SKIPPED" },
+  { authorization: false, reserved: true, free: 5000, status: "SKIPPED" },
+])("rechecks the scoped fixed budget before reservation and exchange submission (%o)", async ({ authorization, reserved, free, status }) => {
+  const exchange = exchangeMock({
+    fetchBalance: vi.fn(async () => ({ free: { USDT: free }, total: { USDT: free, BTC: 750 } })),
+    fetchTicker: vi.fn(async () => ({ ask: 100, last: 100, timestamp: Date.now() })),
+  });
+  const executor = new OkxDemoExecutor(credentials, {
+    ...enabledOptions, botBudget: { usdt: 5000, maxExposure: 0.1, riskPerTrade: 0.01 },
+  }, exchange);
+  const reserve = vi.fn(async () => reserved);
+  executor.setIntentJournal(reserve);
+  await executor.initialize();
+  const result = await executor.executeApprovedBuy({
+    candleTimestamp: 1700000000000, ...(authorization ? { entryRevision: "0:0", exposurePositions: [] } : {}),
+  });
+  expect(result.status).toBe(status);
+  if (authorization && free === 5000) expect(reserve).toHaveBeenCalledWith("BTC/USDT", 1700000000000, expect.any(String), expect.any(String), "0:0");
+  else expect(reserve).not.toHaveBeenCalled();
+  if (status === "PLACED") expect(exchange.createMarketBuyOrderWithCost).toHaveBeenCalledWith("BTC/USDT", 10, expect.any(Object));
+  else expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+});

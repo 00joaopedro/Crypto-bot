@@ -23,7 +23,7 @@ it('explains a Demo refusal using the configured order and full account exposure
   const getAccountSnapshot = async () => ({ ...await executor.getAccountSnapshot(), equityUsdt: 200 });
   expect(await inspectDemoEntry(persistence, { ...executor, getAccountSnapshot }, input)).toEqual({
     allowed: false, reason: 'demo_max_exposure',
-    exposure: { equityUsdt: 200, freeUsdt: 100, exposureUsdt: 100, tradingEquityUsdt: 200, brlReserveUsdt: 0, requestedUsdt: 10, projectedRate: 0.55, limitRate: 0.5 },
+    exposure: { equityUsdt: 200, freeUsdt: 100, exposureUsdt: 100, tradingEquityUsdt: 200, brlReserveUsdt: 0, scope: 'account', requestedUsdt: 10, projectedRate: 0.55, limitRate: 0.5 },
   });
 });
 
@@ -59,4 +59,28 @@ it.each([6, 10])('uses the 10-position limit independently when %i positions rem
   });
   const result = await inspectDemoEntry({ ...persistence, demoOrderJournal: async () => rows }, { ...executor, collectOrderEvidence }, { ...input, maxPositions: 10 });
   expect(result).toEqual(count === 6 ? { allowed: true } : { allowed: false, reason: 'demo_max_concurrent_positions' });
+});
+
+it('admits 10 USDT against the explicit bot allocation while keeping full-account loss limits', async () => {
+  const observeDemoRisk = vi.fn(persistence.observeDemoRisk);
+  const store = { ...persistence, observeDemoRisk, readDemoEntryRevision: async () => '0:0' };
+  const getAccountSnapshot = async () => ({
+    ...await executor.getAccountSnapshot(),
+    equityUsdt: 84_488.05, quoteFree: 5000, totalUsdt: 5000, freeBrlValueUsdt: 4672.90,
+  });
+  const account = { ...executor, getAccountSnapshot };
+  const options = { ...input, maxExposure: 0.1 };
+  await expect(inspectDemoEntry(store, account, options)).resolves.toMatchObject({
+    reason: 'demo_max_exposure', exposure: { scope: 'account', exposureUsdt: expect.closeTo(74_815.15) },
+  });
+  await expect(inspectDemoEntry(store, account, { ...options, botBudgetUsdt: 5000 })).resolves.toEqual({
+    allowed: true, entryRevision: '0:0', exposurePositions: [],
+  });
+  expect(observeDemoRisk).toHaveBeenLastCalledWith('1:1', 84_488.05, expect.any(Number));
+  await expect(inspectDemoEntry({
+    ...store, observeDemoRisk: async () => ({ day: '2026-11-17', dayStartEquity: 100_000, peakEquity: 100_000, equity: 84_488.05, observedAt: Date.now() }),
+  }, account, { ...options, botBudgetUsdt: 5000 })).resolves.toMatchObject({ reason: 'demo_daily_loss_limit' });
+  await expect(inspectDemoEntry(persistence, account, { ...options, botBudgetUsdt: 5000 })).resolves.toMatchObject({
+    reason: 'demo_risk_revision_unavailable',
+  });
 });

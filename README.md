@@ -347,3 +347,49 @@ exigem retomada pelo operador. Bloqueios Demo conhecidos podem ser reavaliados
 quando as checagens de saldo, identidade, ordens e proteções forem conclusivas.
 O filtro de BTC participa quando habilitado. Durante a espera, o painel mostra
 a próxima verificação e oferece **Manter pausado**.
+
+
+### Orçamento OKX Demo e lote Paper
+
+No Railway, adicione `AUTO_RESUME_ENABLED=true` em **Crypto-bot → Variables**
+no ambiente `production` e aplique a mudança. O padrão é reavaliar após 120
+minutos da pausa por perdas consecutivas. Para usar outro prazo, configure
+`AUTO_RESUME_LOSS_COOLDOWN_MINUTES`. A data exibida no painel é o início das
+checagens. Se houver bloqueio, o painel mostra o motivo da última verificação.
+
+Para limitar novas entradas Demo ao capital dedicado ao bot, configure
+`OKX_DEMO_BOT_BUDGET_USDT` após implantar a versão que oferece esse ajuste.
+Exemplo: `5000` para alocar os 5.000 USDT livres mostrados na conta Demo.
+Com limite de exposição de 10%, isso dá até 500 USDT de exposição projetada
+enquanto a base efetiva for 5.000 USDT. A base é limitada ao menor valor entre
+a alocação, o patrimônio da conta sem a reserva em BRL e o USDT livre somado às
+posições verificadas do bot. Preços ou posições inconclusivos bloqueiam a entrada.
+A configuração afeta apenas a admissão e o dimensionamento de compras Demo.
+Travas de perda e drawdown continuam acompanhando o patrimônio total da conta.
+Sem a variável, o limite de exposição continua usando a carteira da conta.
+O bot não converte nem vende os saldos iniciais da conta.
+
+**Valor Paper por trade** é independente de **Valor Demo por trade**. Para
+comparar lotes de 10 USDT, configure 10 em cada campo. O campo Paper vazio usa
+`PAPER_TRADE_SIZE_USDT`. Quando houver dimensionamento por risco, os valores
+servem como tetos e os lotes efetivos podem ser menores. Alterar o valor afeta
+novas entradas. Em **Qualidade dos resultados**, escolha a data UTC do início
+do experimento para filtrar pela data de entrada, incluindo apenas trades
+fechados. Limpar o campo volta ao histórico completo. O filtro não redefine
+saldos, posições, métricas acumuladas ou dados do banco.
+
+### Experimento offline de RSI e distância do stop
+
+Use `examples/rsi-atr-comparison.options.json` como modelo. As variantes
+mudam um parâmetro por vez: teto de RSI de 63 na compra ou piso de ATR em
+1,2%/1,5%. Padronize o restante da política de saídas entre as variantes,
+incluindo os mesmos custos e dados. O Profit Factor agregado usa a soma dos
+ganhos dividida pela soma das perdas dos trades fechados de todas as janelas
+de teste. Sem perdas observadas, o campo vem como `null`.
+
+Rode a mesma configuração para todos os pares candidatos e para o universo
+de referência, em janelas comuns e fora da amostra. Compare retorno líquido,
+expectativa, drawdown, número de trades e estabilidade com custos adversos.
+Essas execuções são por símbolo. Limites agregados e rotação de watchlist
+exigem validação de carteira em Paper/Demo antes de qualquer mudança de
+produção. Não é preciso descartar pares com base em um ou dois trades.

@@ -1,5 +1,6 @@
 import { MAX_CONCURRENT_POSITIONS, MAX_DEMO_ORDERS_PER_INTERVAL } from "./trading-limits.js";
-import { demoTradingExposure } from "./demo-exposure.js";
+import type { DemoExecutionState } from "./demo-execution-safety.js";
+import { demoBotExposure, demoTradingExposure } from "./demo-exposure.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -11,6 +12,7 @@ import type { OkxDemoAccountSnapshot } from "./okx-demo.js";
 const settingsSchema = z.object({
   symbol: z.string().regex(/^[A-Z0-9]{2,15}\/USDT$/),
   orderSizeUsdt: z.number().positive().max(100),
+  paperTradeSizeUsdt: z.number().positive().max(100).nullable().optional(),
   maxTrades: z.number().int().min(1).max(MAX_DEMO_ORDERS_PER_INTERVAL),
   intervalMinutes: z.number().int().min(15).max(10_080),
   maxConcurrentPositions: z.number().int().min(1).max(MAX_CONCURRENT_POSITIONS),
@@ -28,7 +30,9 @@ type DashboardOptions = {
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
   inspectDemoAccounting?: () => Promise<unknown>;
   inspectDemoPermission?: () => Promise<unknown>;
-  inspectDemoPositions?: () => Promise<unknown>;
+  inspectDemoPositions?: () => Promise<DemoExecutionState>;
+  demoBotBudgetUsdt?: number;
+  paperDefaultTradeSize?: number;
   getAutoResumeStatus?: () => Promise<unknown>;
   onResume?: () => Promise<{ status: "resumed" } | { status: "blocked"; reason: string }>;
 };
@@ -57,12 +61,12 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
     }
     return accountingRequest;
   };
-  let positionsRequest: Promise<unknown> | undefined;
+  let positionsRequest: Promise<DemoExecutionState> | undefined;
   let positionsExpiresAt = 0;
-  const demoPositions = (): Promise<unknown> => {
+  const demoPositions = (): Promise<DemoExecutionState> => {
     if (!positionsRequest || Date.now() >= positionsExpiresAt) {
       positionsExpiresAt = Date.now() + 60_000;
-      positionsRequest = Promise.resolve().then(() => options.inspectDemoPositions?.() ?? { status: "blocked", reason: "demo_disabled" }).catch(() => ({ status: "blocked", reason: "diagnostic_failed" }));
+      positionsRequest = Promise.resolve().then<DemoExecutionState>(() => options.inspectDemoPositions?.() ?? { status: "blocked", reason: "demo_disabled" }).catch(() => ({ status: "blocked", reason: "diagnostic_failed" }));
     }
     return positionsRequest;
   };
@@ -109,18 +113,29 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
       }
       if (request.method === "GET" && url.pathname === "/api/dashboard") {
         const historySymbol = url.searchParams.get("symbol") || undefined;
-        const data = await options.persistence.getDashboardData(40, historySymbol);
-        let okxDemo: typeof data.okxDemo & { tradingExposure?: ReturnType<typeof demoTradingExposure> } = data.okxDemo;
+        const since = url.searchParams.get("paperSince");
+        const paperSince = since ? Date.parse(since + "T00:00:00Z") : undefined;
+        if (since && (!/^\d{4}-\d{2}-\d{2}$/.test(since) || !Number.isFinite(paperSince) ||
+          new Date(paperSince!).toISOString().slice(0, 10) !== since)) return json(response, 400, { error: "Data Paper inválida." });
+        const [data, positions] = await Promise.all([options.persistence.getDashboardData(40, historySymbol, paperSince), demoPositions()]);
+        const budget = options.demoBotBudgetUsdt;
+        let okxDemo: typeof data.okxDemo & {
+          tradingExposure?: ReturnType<typeof demoTradingExposure>;
+          botExposure?: { budgetUsdt: number; tradingEquityUsdt: number | null; exposureUsdt: number | null };
+        } = data.okxDemo;
         if (options.getOkxDemoSnapshot) {
           try {
             const snapshot = await options.getOkxDemoSnapshot();
-            okxDemo = { ...okxDemo, ...snapshot, tradingExposure: demoTradingExposure(snapshot), status: "ok" };
+            const scoped = budget !== undefined && positions.status === "safe" ? demoBotExposure(snapshot, budget, positions.positions) : null;
+            okxDemo = { ...okxDemo, ...snapshot, tradingExposure: demoTradingExposure(snapshot), status: "ok",
+              ...(budget === undefined ? {} : { botExposure: { budgetUsdt: budget, tradingEquityUsdt: scoped?.tradingEquityUsdt ?? null, exposureUsdt: scoped?.exposureUsdt ?? null } }),
+            };
           } catch (error) {
             okxDemo = { ...okxDemo, status: "unhealthy", lastError: error instanceof Error ? error.message : String(error) };
           }
         }
         const decisionLogs = await options.persistence.latestDemoDecision();
-        return json(response, 200, { ...data, ...(options.getAutoResumeStatus ? { autoResume: await options.getAutoResumeStatus() } : {}), latestDemoDecision: decisionLogs, lastDemoReconciliation: await options.persistence.latestDemoReconciliation(), okxDemo, demoAccounting: await accounting(), demoPositions: await demoPositions(), supportedSymbols: options.supportedSymbols, lastSignalScan: options.getLastSignalScan?.() ?? null });
+        return json(response, 200, { ...data, ...(options.getAutoResumeStatus ? { autoResume: await options.getAutoResumeStatus() } : {}), latestDemoDecision: decisionLogs, lastDemoReconciliation: await options.persistence.latestDemoReconciliation(), okxDemo, demoAccounting: await accounting(), demoPositions: positions, paperDefaultTradeSize: options.paperDefaultTradeSize, supportedSymbols: options.supportedSymbols, lastSignalScan: options.getLastSignalScan?.() ?? null });
       }
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);
@@ -154,7 +169,8 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         if (!parsed.success || !options.supportedSymbols.includes(parsed.data.symbol)) {
           return json(response, 400, { error: "Configuração ou par não suportado." });
         }
-        await options.persistence.updateDashboardSettings(parsed.data, "dashboard");
+        const { paperTradeSizeUsdt, ...settings } = parsed.data;
+        await options.persistence.updateDashboardSettings({ ...settings, ...(paperTradeSizeUsdt !== undefined ? { paperTradeSizeUsdt } : {}) }, "dashboard");
         const revision = settingsApply.revision + 1;
         settingsApply = { revision, status: "pending" };
         void Promise.resolve().then(() => options.onSettingsChanged()).then(() => {

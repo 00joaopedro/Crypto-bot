@@ -27,6 +27,7 @@ const schema = z
     EXECUTION_PROVIDER: z.enum(["disabled", "okx-demo"]).default("disabled"),
     LIVE_TRADING_ENABLED: z.literal("false").default("false").transform(() => false),
     OKX_DEMO_TRADING_ENABLED: booleanString,
+    OKX_DEMO_BOT_BUDGET_USDT: z.coerce.number().finite().positive().optional(),
     OKX_DEMO_ORDER_SIZE_USDT: z.coerce.number().positive().max(100).default(10),
     OKX_DEMO_STOP_LOSS_RATE: z.coerce.number().gt(0).lt(1).default(0.01),
     OKX_DEMO_TAKE_PROFIT_RATE: z.coerce.number().gt(0).lt(1).default(0.02),
