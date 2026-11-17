@@ -29,16 +29,23 @@ export type WalkForwardResult = {
   overfitWarning: boolean;
 };
 
+export function requiredWalkForwardWarmup(
+  base: Pick<BacktestOptions, "executionDelayCandles" | "exitPolicy" | "btcRegimeFilter" | "qualityFilters">,
+  candidates: ReadonlyArray<{ executionDelayCandles?: number | undefined; exitPolicy?: { atrPeriod: number } | undefined; btcRegimeFilter?: boolean | undefined }>,
+): number {
+  const delays = candidates.map((candidate) => candidate.executionDelayCandles ?? base.executionDelayCandles ?? 0);
+  if (delays.some((delay) => !Number.isInteger(delay) || delay < 0)) throw new Error("executionDelayCandles must be a non-negative integer");
+  const atrWarmup = Math.max(0, base.exitPolicy ? base.exitPolicy.atrPeriod + 1 : 0, ...candidates.map(c => c.exitPolicy ? c.exitPolicy.atrPeriod + 1 : 0));
+  const regimeWarmup = candidates.some(c => c.btcRegimeFilter ?? base.btcRegimeFilter) ? BTC_REGIME_HISTORY : 0;
+  return Math.max(atrWarmup, regimeWarmup, base.qualityFilters !== false ? 84 : 51) + Math.max(1, ...delays);
+}
+
 /**
  * Walk-forward validation. Each test window is evaluated only after selecting
  * parameters from its preceding training window; no future candle is consulted.
  */
 export function runWalkForward(candles: Candle[], options: WalkForwardOptions): WalkForwardResult {
-  const delays = options.candidates.map((candidate) => candidate.executionDelayCandles ?? options.base.executionDelayCandles ?? 0);
-  if (delays.some((delay) => !Number.isInteger(delay) || delay < 0)) throw new Error("executionDelayCandles must be a non-negative integer");
-  const atrWarmup = Math.max(0, options.base.exitPolicy ? options.base.exitPolicy.atrPeriod + 1 : 0, ...options.candidates.map(c => c.exitPolicy ? c.exitPolicy.atrPeriod + 1 : 0));
-  const regimeWarmup = options.candidates.some(c => c.btcRegimeFilter ?? options.base.btcRegimeFilter) ? BTC_REGIME_HISTORY : 0;
-  const requiredWarmup = Math.max(atrWarmup, regimeWarmup, options.base.qualityFilters !== false ? 84 : 51) + Math.max(1, ...delays);
+  const requiredWarmup = requiredWalkForwardWarmup(options.base, options.candidates);
   if (!Number.isInteger(options.trainCandles) || options.trainCandles < requiredWarmup) throw new Error(`trainCandles must be at least ${requiredWarmup}`);
   if (!Number.isInteger(options.testCandles) || options.testCandles < 2) throw new Error("testCandles must be at least 2");
   if (options.candidates.length === 0) throw new Error("At least one candidate is required");

@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "strategy:validate": "node dist/validate-strategy-cli.js"
+    "strategy:validate": "node dist/validate-strategy-cli.js",
+    "strategy:collect": "node dist/collect-okx-history-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

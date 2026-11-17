@@ -216,6 +216,26 @@ ATR, rotação de pares, IA e risco agregado de carteira permanecem fora deste
 modelo. Este PR entrega a ferramenta; a avaliação empírica ainda exige candles
 históricos reais, origem e custos verificáveis. Nenhuma ordem é enviada.
 
+### Coleta de candles históricos da OKX Spot
+
+Use um arquivo de opções da comparação por par, com os custos e mínimos
+aplicáveis ao instrumento. Depois do build, colete os dados em um diretório novo.
+
+```sh
+npm run build
+npm run strategy:collect -- ./candles-okx 2026-11-17T00:00:00Z 30 ./btc.options.json ./eth.options.json
+npm run --silent strategy:validate -- --compare ./candles-okx/BTC-USDT.json
+```
+
+O fim em UTC é exclusivo. Uma janela de 30 dias contém 2.880 candles fechados
+de 15 minutos, precedidos por `trainCandles` para aquecimento. A comparação
+usa apenas janelas de teste completas. Quando a configuração usa o filtro de
+regime, a referência BTC/USDT cobre a mesma janela. Cada arquivo registra o
+instrumento, os limites UTC, a origem, a contagem e o SHA-256 das séries.
+Lacunas ou candles confirmados conflitantes interrompem a coleta. O comando
+usa dados públicos e não precisa das credenciais da conta ou do PostgreSQL.
+Candles não incluem spread, profundidade ou preenchimentos históricos.
+
 ### Compartilhamento do histórico de diagnóstico
 
 O painel oferece JSON e TXT com o mesmo documento JSON em UTF-8. O download
