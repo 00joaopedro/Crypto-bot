@@ -210,8 +210,8 @@ export class TradingBot {
       console.log(JSON.stringify({ event: "cycle_skipped", reason: "candle_already_processed", symbol: executionSymbol }));
       return;
     }
-    const currentSymbolSelected = !pausedPairs.has(executionSymbol) &&
-      (selectedEligibleSymbol !== undefined || managedPositionSymbol !== undefined);
+    let pairPaused = pausedPairs.has(executionSymbol);
+    let replayedLoss = false;
 
     // Replayed candles can close an existing position, but cannot create a
     // retrospective entry. Approval is calculated only for the newest candle.
@@ -239,6 +239,7 @@ export class TradingBot {
         this.restoreRiskState(riskBefore);
         throw error;
       }
+      replayedLoss ||= paperResult.events.some(event => event.type === "CLOSED" && event.netPnlUsdt < 0);
       this.logPaperResult(candle, paperResult, true, executionSymbol);
       await this.sendTradeAlerts(executionSymbol, paperResult.events, true);
       this.lastProcessedCandleBySymbol.set(executionSymbol, candle.timestamp);
@@ -249,6 +250,11 @@ export class TradingBot {
       if (lossPause) return;
     }
 
+    if (this.options.pairCooldown && replayedLoss) {
+      pairPaused = await this.refreshPairCooldown(executionSymbol);
+    }
+    const currentSymbolSelected = !pairPaused &&
+      (selectedEligibleSymbol !== undefined || managedPositionSymbol !== undefined);
     const currentCandle = unseenCandles.at(-1)!;
     const currentIndex = executionCandles.findIndex(
       (candle) => candle.timestamp === currentCandle.timestamp,
@@ -492,6 +498,10 @@ export class TradingBot {
       await this.sendTradeAlerts(executionSymbol, paperResult.events, false);
       return;
     }
+    if (this.options.pairCooldown && paperResult.events.some(event => event.type === "CLOSED" && event.netPnlUsdt < 0)) {
+      pairPaused = await this.refreshPairCooldown(executionSymbol);
+      if (pairPaused) demoCandidate = false;
+    }
     const paperOpened = paperResult.events.some((event) => event.type === "OPENED");
     let demoApproved = approved && paperOpened;
     let entryAuthorization: Pick<DemoAdmission, "entryRevision" | "exposurePositions"> = {};
@@ -514,7 +524,7 @@ export class TradingBot {
     if (!demoCandidate && this.options.inspectDemoEntry) {
       await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", { symbol: executionSymbol,
         candleTimestamp: currentCandle.timestamp, approved: false,
-        reason: regimeBlock ?? (signal.action !== "BUY" ? `signal_${signal.action.toLowerCase()}` : "entry_filter_or_risk_circuit_breaker") });
+        reason: (pairPaused && signal.action === "BUY" ? "pair_loss_cooldown" : regimeBlock) ?? (signal.action !== "BUY" ? `signal_${signal.action.toLowerCase()}` : "entry_filter_or_risk_circuit_breaker") });
     }
     if (demoApproved && this.options.demoExecutor) {
       try {
@@ -796,6 +806,12 @@ export class TradingBot {
 
   private paperEquityEstimate(symbol = this.options.symbol): number {
     return this.paperTraders.get(symbol)?.exportState().cashUsdt ?? this.options.paperTrader.exportState().cashUsdt;
+  }
+
+  private async refreshPairCooldown(symbol: string): Promise<boolean> {
+    const cooldowns = await this.options.persistence!.activePairCooldowns!(Date.now(), this.options.pairCooldown!);
+    if (this.lastScan) this.lastScan.cooldowns = cooldowns;
+    return cooldowns.some(cooldown => cooldown.symbol === symbol);
   }
 
   private async scanSignals(currentCandles: Candle[], pausedPairs: Set<string>) {

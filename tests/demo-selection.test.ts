@@ -157,3 +157,41 @@ it('reuses aligned scan data, retries late pairs and lets cooled pairs rejoin', 
     log.mockRestore();
   }
 });
+
+it.each([
+  { replay: true, previousLosses: 2 },
+  { replay: false, previousLosses: 2 },
+  { replay: false, previousLosses: 1 },
+])('checks persisted pair losses before reentry (replay=$replay, previous losses=$previousLosses)', async ({ replay, previousLosses }) => {
+  const stopIndex = replay ? 83 : 84;
+  const candles = Array.from({ length: 85 }, (_, i) => ({
+    timestamp: i * 900_000, open: 100, high: 100.01, low: i === stopIndex ? 80 : 99.99, close: 100, volume: 1,
+  }));
+  const paperTrader = new PaperTrader({
+    initialBalanceUsdt: 1000, tradeSizeUsdt: 100, feeRate: 0, slippageRate: 0, stopLossRate: .1, takeProfitRate: .2,
+  });
+  paperTrader.processCandle(candles[stopIndex - 1]!, true);
+  const inspectDemoEntry = vi.fn(async () => ({ allowed: true }));
+  const executeApprovedBuy = vi.fn(async () => ({ status: 'PLACED' as const, orderId: '1', clientOrderId: 'CB1' }));
+  let persistedLosses = previousLosses;
+  const recordCycle = vi.fn(async (cycle: import('../src/persistence.js').PersistedCycle) => {
+    persistedLosses += cycle.paperResult.events.filter(event => event.type === 'CLOSED' && event.netPnlUsdt < 0).length;
+  });
+  const bot = new TradingBot({ fetchClosedCandles: async () => candles } as unknown as PublicMarketData, {
+    symbol: 'ETH/USDT', candleLimit: 85, minimumConfidence: .8, aiFailureMode: 'quantitative', paperTrader,
+    pairCooldown: { hours: 6, minLosses: 3 }, inspectDemoEntry,
+    demoExecutor: { executeApprovedBuy } as unknown as OkxDemoExecutor,
+    persistence: {
+      isPaused: async () => false, recordCycle, recordOperationalEvent: vi.fn(), recordDemoOrder: vi.fn(),
+      activePairCooldowns: async () => persistedLosses >= 3 ? [{ symbol: 'ETH/USDT', until: Date.now() + 21_600_000 }] : [],
+    } as unknown as BotPersistence,
+  });
+
+  await bot.runCycle();
+
+  expect(persistedLosses).toBe(previousLosses + 1);
+  expect(paperTrader.hasOpenPosition).toBe(false);
+  expect(inspectDemoEntry).toHaveBeenCalledTimes(previousLosses === 2 ? 0 : 1);
+  expect(executeApprovedBuy).toHaveBeenCalledTimes(previousLosses === 2 ? 0 : 1);
+  expect(bot.getLastSignalScan()?.cooldowns).toHaveLength(previousLosses === 2 ? 1 : 0);
+});
