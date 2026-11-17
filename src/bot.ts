@@ -525,7 +525,7 @@ export class TradingBot {
             ...exitRates,
             ...entryAuthorization,
           });
-          if (demoResult.status === "SKIPPED" && ["risk_size_unavailable", "risk_entry_changed", "demo_bot_budget_unavailable"].includes(demoResult.reason)) {
+          if (demoResult.status === "SKIPPED" && ["risk_size_unavailable", "risk_entry_changed", "demo_bot_budget_unavailable", "demo_book_unavailable", "demo_spread_exceeded", "demo_order_limits_unconfirmed"].includes(demoResult.reason)) {
             await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "INFO", {
               symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, approved: false, reason: demoResult.reason,
             });

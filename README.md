@@ -393,3 +393,17 @@ expectativa, drawdown, número de trades e estabilidade com custos adversos.
 Essas execuções são por símbolo. Limites agregados e rotação de watchlist
 exigem validação de carteira em Paper/Demo antes de qualquer mudança de
 produção. Não é preciso descartar pares com base em um ou dois trades.
+
+### Verificações de execução na OKX Demo
+
+Antes de reservar a compra, o bot verifica as melhores ofertas em um livro
+com no máximo 10 segundos e aplica `OKX_DEMO_MAX_SPREAD_PERCENT` (padrão:
+`0.15`, ou 0,15% do preço médio entre bid e ask). A ordem spot a mercado
+é enviada em USDT com a precisão de valor do instrumento. A taxa taker e
+a precisão da quantidade são usadas para estimar se a compra deixa
+quantidade suficiente para proteger a posição. Uma ordem a mercado ainda
+pode executar a preços diferentes dos consultados.
+
+Na inicialização, o primeiro ciclo reconcilia ordens pendentes do banco,
+verifica stops persistidos e audita a proteção na corretora antes de
+permitir entradas. Uma retomada manual também passa pela auditoria.

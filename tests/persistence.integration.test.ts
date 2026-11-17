@@ -1,3 +1,6 @@
+import type { Order } from "ccxt";
+import { reconcilePendingDemoOrders } from "../src/demo-pending-reconciliation.js";
+import { inspectDemoExecutionState } from "../src/demo-execution-safety.js";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { exitPolicySchema } from "../src/exit-policy.js";
@@ -487,6 +490,52 @@ integration("configuração e estatísticas Paper", () => {
       await db.query("DELETE FROM paper_trades WHERE event_key = ANY($1::text[])", [ids]);
       await db.end();
       await persistence.close();
+    }
+  });
+});
+
+integration("Demo recovery after restarting the worker", () => {
+  it("holds a partly filled buy until exchange readback confirms the fill and protection", async () => {
+    const db = new Pool({ connectionString: databaseUrl });
+    const before = new PostgresPersistence(databaseUrl!);
+    const after = new PostgresPersistence(databaseUrl!);
+    const now = Date.now();
+    const clientOrderId = `CBRESTART${now}`, algoClientId = `APRESTART${now}`;
+    const symbol = "BTC/USDT", id = "1", identity = { uid: "123", mainUid: "123" };
+    let baselineId: string | undefined;
+    try {
+      await before.initialize();
+      const baseline = await db.query(`INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status)
+        VALUES (NOW() - INTERVAL '1 second', '{"USDT": 5000}', $1::jsonb, 'UNVERIFIED') RETURNING id`, [JSON.stringify({ accountIdentity: identity })]);
+      baselineId = baseline.rows[0].id;
+      expect(await before.reserveDemoOrder(symbol, now, clientOrderId, 50, 15, algoClientId)).toBe(true);
+      await before.close();
+
+      const filled = .009;
+      const order = { id, clientOrderId, symbol, side: "buy" as const, status: "open", filled };
+      const reconciliation = { reconcileOrder: async () => order as Order, inspectAccountIdentity: async () => ({ status: "confirmed" as const, identity }) };
+      let live = false;
+      const reader = { collectOrderEvidence: async () => ({
+        status: "collected" as const,
+        buys: [{ id, clientOrderId, symbol, side: "buy" as const, attachedAlgoClientIds: [algoClientId] }],
+        sells: [],
+        protections: [{ algoClientId, symbol, side: "sell" as const, spawnedOrderIds: [] }],
+        protectionStates: { [algoClientId]: live ? "live" : "canceled" },
+        orders: [{ id, symbol, side: "buy" as const, filled: order.filled, terminal: true, ownershipConfirmed: false }],
+      }) };
+      await reconcilePendingDemoOrders(after, reconciliation);
+      await expect(inspectDemoExecutionState(after, reader)).resolves.toMatchObject({ reason: "pending_demo_order" });
+      order.status = "closed";
+      await reconcilePendingDemoOrders(after, reconciliation);
+      await expect(inspectDemoExecutionState(after, reader)).resolves.toMatchObject({ reason: "demo_position_without_live_protection" });
+      live = true;
+      await expect(inspectDemoExecutionState(after, reader)).resolves.toEqual({ status: "safe", positions: [{ symbol, quantity: .009 }] });
+    } finally {
+      await before.close().catch(() => undefined);
+      await db.query("DELETE FROM demo_orders WHERE client_order_id = $1", [clientOrderId]);
+      if (baselineId) await db.query("DELETE FROM demo_accounting_baselines WHERE id = $1", [baselineId]);
+      await db.end();
+      await after.close();
     }
   });
 });

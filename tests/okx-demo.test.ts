@@ -35,7 +35,7 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
       quote: "USDT",
       spot: true,
       active: true,
-      limits: { cost: { min: 1, max: undefined } },
+      limits: { cost: { min: 1, max: undefined }, amount: { min: .01 } },
     })),
     fetchBalance: vi.fn(async () => ({ free: { USDT: 5000 } })),
     fetchOrder: vi.fn(async () => {
@@ -43,6 +43,10 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
     }),
     fetchOpenOrders: vi.fn(async () => []),
     fetchTicker: vi.fn(async () => ({ ask: 100 })),
+    fetchTradingFee: vi.fn(async () => ({ taker: .001 })),
+    fetchOrderBook: vi.fn(async () => ({ bids: [[99.99, 100]], asks: [[100, 100]], timestamp: Date.now() })),
+    costToPrecision: (_symbol: string, size: number) => String(size),
+    amountToPrecision: (_symbol: string, size: number) => String(size),
     priceToPrecision: vi.fn((_symbol: string, value: number) => String(value)),
     createMarketBuyOrderWithCost: vi.fn(async () => ({
       id: "order-1",
@@ -72,7 +76,7 @@ describe("OkxDemoExecutor", () => {
       fetchTicker: vi.fn(async (symbol: string) => ({ ask: 100, last: symbol === "USDT/BRL" ? 5 : 100, timestamp: Date.now() })),
       fetchBalance: vi.fn(async () => ({ free: { USDT: 100, BRL: 4000 }, total: { USDT: 100, BRL: 4000 } })),
       fetchTradingFee: vi.fn(async () => ({ taker: 0.001 })),
-      fetchOrderBook: vi.fn(async () => ({ asks: [[100, 0.05]] })),
+      fetchOrderBook: vi.fn(async () => ({ bids: [[99.99, 100]], asks: [[100, 0.05]], timestamp: Date.now() })),
       costToPrecision: (_symbol: string, size: number) => size.toFixed(2),
       amountToPrecision: (_symbol: string, amount: number) => String(Math.floor(amount * 1000) / 1000),
     });
@@ -508,4 +512,77 @@ it.each([
   else expect(reserve).not.toHaveBeenCalled();
   if (status === "PLACED") expect(exchange.createMarketBuyOrderWithCost).toHaveBeenCalledWith("BTC/USDT", 10, expect.any(Object));
   else expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+});
+
+it.each([
+  { bid: 99, age: 0, cost: "10", reason: "demo_spread_exceeded" },
+  { bid: 99.99, age: 11_000, cost: "10", reason: "demo_book_unavailable" },
+  { bid: 101, age: 0, cost: "10", reason: "demo_book_unavailable" },
+  { bid: 99.99, age: 0, cost: "10.01", reason: "demo_order_limits_unconfirmed" },
+  { bid: 99.99, age: 0, cost: "1", reason: "demo_order_limits_unconfirmed" },
+])("declines a fixed buy before persisting intent when preflight fails (%o)", async ({ bid, age, cost, reason }) => {
+  const exchange = exchangeMock({
+    fetchOrderBook: async () => ({ bids: [[bid, 100]], asks: [[100, 100]], timestamp: Date.now() - age }),
+    costToPrecision: () => cost,
+  });
+  const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+  const reserve = vi.fn(async () => true);
+  executor.setIntentJournal(reserve);
+  await executor.initialize();
+  await expect(executor.executeApprovedBuy({ candleTimestamp: 1700000000000 })).resolves.toMatchObject({ status: "SKIPPED", reason });
+  expect(reserve).not.toHaveBeenCalled();
+  expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+});
+
+it("uses quote precision for fixed buys and accepts a configured spread cap", async () => {
+  const exchange = exchangeMock({
+    fetchOrderBook: async () => ({ bids: [[99.8, 100]], asks: [[100, 100]], timestamp: Date.now() }),
+    costToPrecision: () => "9.99",
+  });
+  const executor = new OkxDemoExecutor(credentials, { ...enabledOptions, maxSpreadPercent: .25 }, exchange);
+  executor.setIntentJournal(async () => true);
+  await executor.initialize();
+  await expect(executor.executeApprovedBuy({ candleTimestamp: 1700000000000 })).resolves.toMatchObject({ status: "PLACED" });
+  expect(exchange.createMarketBuyOrderWithCost).toHaveBeenCalledWith("BTC/USDT", 9.99, expect.any(Object));
+});
+
+it("declines a fixed buy when higher-priced levels would leave less than the minimum quantity", async () => {
+  const exchange = exchangeMock({
+    market: () => ({ symbol: "BTC/USDT", quote: "USDT", spot: true, active: true, limits: { amount: { min: .09 } } }),
+    fetchOrderBook: async () => ({ bids: [[99.99, 2]], asks: [[100, .001], [125, 1]], timestamp: Date.now() }),
+  });
+  const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+  const reserve = vi.fn(async () => true);
+  executor.setIntentJournal(reserve);
+  await executor.initialize();
+  await expect(executor.executeApprovedBuy({ candleTimestamp: 1700000000000 })).resolves.toMatchObject({
+    status: "SKIPPED", reason: "demo_order_limits_unconfirmed",
+  });
+  expect(reserve).not.toHaveBeenCalled();
+});
+
+it("sizes against verified holdings and excludes unrelated assets under the scoped budget", async () => {
+  const exchange = exchangeMock({
+    market: () => ({ symbol: "BTC/USDT", base: "BTC", quote: "USDT", spot: true, active: true, limits: { amount: { min: .01 } } }),
+  });
+  const executor = new OkxDemoExecutor(credentials, {
+    ...enabledOptions,
+    botBudget: { usdt: 5000, maxExposure: .1, riskPerTrade: .01 },
+    riskSizing: { riskPerTrade: .01, maxExposure: .1, maxAltExposure: .1, maxSymbolExposure: .1, slippage: .001 },
+  }, exchange);
+  executor.setIntentJournal(async () => true);
+  vi.spyOn(executor, "getAccountSnapshot").mockResolvedValue({
+    quoteCurrency: "USDT", quoteFree: 5000, totalUsdt: 5000, equityUsdt: 80_000, updatedAt: new Date().toISOString(),
+    unvaluedAssets: [], assetValuesUsdt: { BTC: 75_000 }, assetUnitValuesUsdt: { BTC: 100 },
+  });
+  await executor.initialize();
+  const request = { candleTimestamp: 1700000000000, entryRevision: "2:2" };
+  await expect(executor.executeApprovedBuy({
+    ...request, exposurePositions: [{ symbol: "BTC/USDT", quantity: 4.995 }],
+  })).resolves.toMatchObject({ status: "SKIPPED", reason: "risk_size_unavailable" });
+  expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+  await expect(executor.executeApprovedBuy({
+    ...request, exposurePositions: [{ symbol: "BTC/USDT", quantity: .1 }],
+  })).resolves.toMatchObject({ status: "PLACED" });
+  expect(exchange.createMarketBuyOrderWithCost).toHaveBeenCalledWith("BTC/USDT", 10, expect.any(Object));
 });

@@ -203,6 +203,7 @@ async function main(): Promise<void> {
             {
               symbol: tradingSettings.symbol,
               tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
+              maxSpreadPercent: config.OKX_DEMO_MAX_SPREAD_PERCENT,
               orderSizeUsdt: tradingSettings.orderSizeUsdt,
               ...demoRiskSizing,
               ...(demoBotBudget ? { botBudget: demoBotBudget } : {}),
@@ -448,6 +449,7 @@ async function main(): Promise<void> {
               {
                 symbol: nextSettings.symbol,
                 tradingEnabled: config.OKX_DEMO_TRADING_ENABLED,
+                maxSpreadPercent: config.OKX_DEMO_MAX_SPREAD_PERCENT,
                 orderSizeUsdt: nextSettings.orderSizeUsdt,
                 ...demoRiskSizing,
                 ...(demoBotBudget ? { botBudget: demoBotBudget } : {}),
@@ -527,10 +529,11 @@ async function main(): Promise<void> {
           const currentBot = bot;
           const currentExecutor = okxDemo;
           await reconcilePendingDemoOrders(persistence, currentExecutor);
-          const safety = await inspectDemoResume(persistence, currentExecutor, {
+          const resume = await inspectDemoResume(persistence, currentExecutor, {
             maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
             maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
           });
+          const safety = resume.status === "safe" ? await auditDemoProtections(persistence, currentExecutor) : resume;
           if (reconfiguring || currentBot !== bot || currentExecutor !== okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
           if (safety.status !== "safe") {
             await persistence.setPaused(true, "system:demo_execution_safety", safety.reason);
