@@ -1,3 +1,4 @@
+import { auditDemoProtections } from "../src/demo-exit-supervisor.js";
 import ccxt, { type Exchange } from "ccxt";
 import { describe, expect, it, vi } from "vitest";
 import { OkxDemoExecutor } from "../src/okx-demo.js";
@@ -69,4 +70,44 @@ describe("OKX managed stop protocol",()=>{
     expect(await f.executor.amendExitStop(journal,f.from,105,"REQ1")).toBe("uncertain");
     expect(f.algo.slTriggerPx).toBe("95");
   });
+});
+
+it("requires the exact persisted buy and proves net stop coverage after a fresh start", async () => {
+  const initial = setup();
+  const restarted = setup();
+  const row = {
+    client_order_id: journal.clientOrderId, symbol: journal.symbol, status: "PLACED",
+    result: { orderId: journal.orderId }, attached_algo_client_id: journal.attachedAlgoClientId,
+    created_at: new Date(initial.from),
+  };
+  const identity = { uid: "1", mainUid: "1" };
+  const store = {
+    demoOrderJournal: vi.fn(async () => [row]),
+    getDemoBaselineCandidate: async () => ({
+      observedAt: new Date(initial.from - 60_000), evidence: { accountIdentity: identity },
+      balances: {}, status: "UNVERIFIED",
+    }),
+    getDemoAccountingCheckpoint: async () => null,
+  };
+  const readOnlyAudit = (executor: OkxDemoExecutor) => ({
+    inspectAccountIdentity: async () => ({ status: "confirmed" as const, identity }),
+    inspectExitProtection: executor.inspectExitProtection.bind(executor),
+  });
+  await initial.executor.initialize();
+  await restarted.executor.initialize();
+
+  store.demoOrderJournal.mockResolvedValueOnce([]);
+  await expect(auditDemoProtections(store, readOnlyAudit(initial.executor), journal)).resolves.toMatchObject({
+    status: "blocked", reason: "protection_order_not_persisted",
+  });
+  initial.exchange.privateGetTradeOrderAlgo.mockRejectedValueOnce(new Error("stop readback failed"));
+  await expect(auditDemoProtections(store, readOnlyAudit(initial.executor), journal)).resolves.toMatchObject({ status: "blocked" });
+
+  restarted.algo.sz = "0.998";
+  await expect(auditDemoProtections(store, readOnlyAudit(restarted.executor))).resolves.toMatchObject({
+    status: "blocked", reason: "exit_quantity_not_covered",
+  });
+  restarted.algo.sz = "0.999";
+  await expect(auditDemoProtections(store, readOnlyAudit(restarted.executor))).resolves.toEqual({ status: "safe" });
+  expect(restarted.exchange.privatePostTradeAmendAlgos).not.toHaveBeenCalled();
 });

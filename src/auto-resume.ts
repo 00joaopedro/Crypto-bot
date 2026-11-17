@@ -15,6 +15,7 @@ const recheckableDemoReasons = new Set([
   "demo_trading_permission_unconfirmed", "demo_resume_check_failed", "pending_demo_order",
   "unresolved_demo_failure", "demo_position_without_live_protection", "demo_safety_check_failed",
   "protection_audit_failed", "protection_account_unconfirmed", "exit_supervision_failed",
+  "exit_fills_incomplete", "protective_order_unconfirmed", "exit_protection_not_live",
   "exit_candles_invalid", "exit_candles_stale", "exit_candle_gap",
 ]);
 

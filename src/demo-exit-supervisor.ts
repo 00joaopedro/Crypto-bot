@@ -1,3 +1,4 @@
+import type { JournaledDemoBuy } from "./demo-ownership.js";
 import type { DemoFill } from "./demo-ledger.js";
 import type { CachedDemoParent } from "./okx-demo-order-evidence.js";
 import { createHash } from "node:crypto";
@@ -105,25 +106,51 @@ export async function superviseDemoExits(store: Store, executor: Executor, marke
   } catch { return blocked("exit_supervision_failed"); }
 }
 
-/** Continuous read-only coverage check, including positions opened before managed exits. */
-export async function auditDemoProtections(store: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate" | "getDemoAccountingCheckpoint">, executor: Pick<OkxDemoExecutor, "inspectAccountIdentity" | "inspectExitProtection">) {
+export type FilledDemoBuy = Pick<JournaledDemoBuy, "orderId" | "clientOrderId" | "symbol">;
+
+/** Audit the current journal, or require evidence for a specific newly filled buy. */
+export async function auditDemoProtections(
+  store: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate" | "getDemoAccountingCheckpoint">,
+  executor: Pick<OkxDemoExecutor, "inspectAccountIdentity" | "inspectExitProtection">,
+  requiredBuy?: FilledDemoBuy,
+) {
+  const blocked = (reason: string) => ({ status: "blocked" as const, reason });
   try {
     const rows = await store.demoOrderJournal();
-    const placed = rows.filter(r => r.status === "PLACED");
+    const placed = rows.filter(row => row.status === "PLACED");
+    const newBuy = requiredBuy && placed.find(row =>
+      row.client_order_id === requiredBuy.clientOrderId && row.symbol === requiredBuy.symbol &&
+      (row.result as { orderId?: unknown } | null)?.orderId === requiredBuy.orderId,
+    );
+    if (requiredBuy && !newBuy) return blocked("protection_order_not_persisted");
     if (!placed.length) return { status: "safe" as const };
+
     const baseline = await store.getDemoBaselineCandidate();
     const account = await executor.inspectAccountIdentity();
-    if (!baseline || account.status !== "confirmed" || !sameDemoAccount(baseline.evidence.accountIdentity,account.identity)) return { status: "blocked" as const, reason: "protection_account_unconfirmed" };
-    const checkpoint = await store.getDemoAccountingCheckpoint(baseline.observedAt);
-    const carry = checkpoint?.evidence.ledgerCarry as { from?: number } | undefined;
+    if (!baseline || account.status !== "confirmed" || !sameDemoAccount(baseline.evidence.accountIdentity, account.identity)) {
+      return blocked("protection_account_unconfirmed");
+    }
+    const checkpoint = requiredBuy ? null : await store.getDemoAccountingCheckpoint(baseline.observedAt);
+    const carry = checkpoint?.evidence.ledgerCarry as { from?: number; fills?: DemoFill[] } | undefined;
     const from = carry?.from ?? checkpoint?.observedAt.getTime() ?? baseline.observedAt.getTime();
-    const cached = checkpoint ? { parents: (checkpoint.evidence.parentOrderEvidence ?? []) as CachedDemoParent[], fills: ((checkpoint.evidence.ledgerCarry as { fills?: DemoFill[] } | undefined)?.fills ?? checkpoint.evidence.reconciledFills ?? []) as DemoFill[], from: checkpoint.observedAt.getTime() } : undefined;
-    for (const row of placed.filter(r => new Date(r.created_at).getTime() >= from)) {
+    const cached = checkpoint ? {
+      parents: (checkpoint.evidence.parentOrderEvidence ?? []) as CachedDemoParent[],
+      fills: (carry?.fills ?? checkpoint.evidence.reconciledFills ?? []) as DemoFill[],
+      from: checkpoint.observedAt.getTime(),
+    } : undefined;
+    for (const row of newBuy ? [newBuy] : placed) {
+      const createdAt = new Date(row.created_at).getTime();
+      if (!Number.isSafeInteger(createdAt)) return blocked("protection_journal_date_invalid");
+      if (!newBuy && createdAt < from) continue;
       const orderId = (row.result as { orderId?: unknown } | null)?.orderId;
-      if (typeof orderId !== "string" || !row.attached_algo_client_id) return { status: "blocked" as const, reason: "protection_identity_missing" };
-      const result = await executor.inspectExitProtection({ orderId,clientOrderId:row.client_order_id,symbol:row.symbol,attachedAlgoClientId:row.attached_algo_client_id },new Date(row.created_at).getTime(),cached);
+      if (typeof orderId !== "string" || !orderId || !row.attached_algo_client_id) return blocked("protection_identity_missing");
+      const result = await executor.inspectExitProtection({
+        orderId, clientOrderId: row.client_order_id, symbol: row.symbol, attachedAlgoClientId: row.attached_algo_client_id,
+      }, createdAt, cached);
       if (result.status === "blocked") return result;
     }
     return { status: "safe" as const };
-  } catch { return { status: "blocked" as const, reason: "protection_audit_failed" }; }
+  } catch {
+    return blocked("protection_audit_failed");
+  }
 }

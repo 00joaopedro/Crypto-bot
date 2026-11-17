@@ -116,6 +116,7 @@ describe("OkxDemoExecutor", () => {
       const params=vi.mocked(exchange.createMarketBuyOrderWithCost).mock.calls[0]![2]!;
       const attached=params.attachAlgoOrds[0];
       expect(attached.slOrdPx).toBe("-1");
+      expect(attached.slTriggerPxType).toBe("last");
       expect(attached.tpTriggerPx !== undefined).toBe(mode === "fixed");
     }
   });
@@ -408,7 +409,7 @@ describe("OkxDemoExecutor", () => {
       {
         clientOrderId: createClientOrderId("BTC/USDT", candleTimestamp),
         tdMode: "cash",
-        attachAlgoOrds: [{ attachAlgoClOrdId: `AP${createClientOrderId("BTC/USDT", candleTimestamp).slice(2)}`, slTriggerPx: "99", slOrdPx: "-1", tpTriggerPx: "102", tpOrdPx: "-1" }],
+        attachAlgoOrds: [{ attachAlgoClOrdId: `AP${createClientOrderId("BTC/USDT", candleTimestamp).slice(2)}`, slTriggerPx: "99", slTriggerPxType: "last", slOrdPx: "-1", tpTriggerPx: "102", tpOrdPx: "-1" }],
       },
     );
     expect(journal).toHaveBeenCalledWith("BTC/USDT", candleTimestamp, createClientOrderId("BTC/USDT", candleTimestamp), `AP${createClientOrderId("BTC/USDT", candleTimestamp).slice(2)}`);
@@ -416,7 +417,7 @@ describe("OkxDemoExecutor", () => {
     actualCcxt.setMarkets([{ id: "BTC-USDT", symbol: "BTC/USDT", base: "BTC", quote: "USDT", baseId: "BTC", quoteId: "USDT", type: "spot", spot: true, active: true, precision: { amount: 0.0001, price: 0.1 }, limits: {} }] as never);
     const args = vi.mocked(exchange.createMarketBuyOrderWithCost).mock.calls[0]!;
     const payload = actualCcxt.createOrderRequest("BTC/USDT", "market", "buy", 10, undefined, { ...args[2], tgtCcy: "quote_ccy" });
-    expect(payload).toMatchObject({ instId: "BTC-USDT", side: "buy", ordType: "market", tdMode: "cash", tgtCcy: "quote_ccy", attachAlgoOrds: [{ slTriggerPx: "99", slOrdPx: "-1", tpTriggerPx: "102", tpOrdPx: "-1", attachAlgoClOrdId: `AP${createClientOrderId("BTC/USDT", candleTimestamp).slice(2)}` }] });
+    expect(payload).toMatchObject({ instId: "BTC-USDT", side: "buy", ordType: "market", tdMode: "cash", tgtCcy: "quote_ccy", attachAlgoOrds: [{ slTriggerPx: "99", slTriggerPxType: "last", slOrdPx: "-1", tpTriggerPx: "102", tpOrdPx: "-1", attachAlgoClOrdId: `AP${createClientOrderId("BTC/USDT", candleTimestamp).slice(2)}` }] });
   });
 
   it("skips a candle whose deterministic client order already exists", async () => {

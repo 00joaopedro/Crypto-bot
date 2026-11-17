@@ -1,6 +1,6 @@
 import { describeAutoResume, autoResumeAt, inspectAutoResumeMarket, inspectAutoResumePaperRisk } from "./auto-resume.js";
 import { exitPolicySchema } from "./exit-policy.js";
-import { auditDemoProtections, superviseDemoExits } from "./demo-exit-supervisor.js";
+import { auditDemoProtections, superviseDemoExits, type FilledDemoBuy } from "./demo-exit-supervisor.js";
 import type { Server } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 
@@ -339,6 +339,9 @@ async function main(): Promise<void> {
         paperTrader,
         ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),
         ...(demoExecutor ? { inspectEntryMarket: (symbol: string) => demoExecutor.inspectEntryMarket(symbol) } : {}),
+        ...(demoExecutor && persistence ? { verifyFilledDemoBuy: (buy: FilledDemoBuy) =>
+          auditDemoProtections(persistence, demoExecutor, buy),
+        } : {}),
         ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: async () => {
           const safety = await inspectDemoExecutionSafety(persistence, demoExecutor);
           if (safety.status !== "safe") return safety;

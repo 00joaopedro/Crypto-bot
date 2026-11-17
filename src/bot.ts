@@ -1,3 +1,4 @@
+import type { FilledDemoBuy } from "./demo-exit-supervisor.js";
 import type { PairCooldown } from "./pair-cooldown.js";
 import type { DemoAdmission } from "./demo-entry.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
@@ -32,6 +33,7 @@ type BotOptions = {
   paperTrader: PaperTrader;
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
   inspectEntryMarket?: (symbol: string) => Promise<DemoEntryMarketCheck>;
+  verifyFilledDemoBuy?: (buy: FilledDemoBuy) => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
   verifyDemoExecutionSafety?: () => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
   inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<DemoAdmission>;
   inspectDemoPositions?: () => Promise<{ status: "safe"; positions: Array<{ symbol: string }> } | { status: "blocked"; reason: string }>;
@@ -607,14 +609,20 @@ export class TradingBot {
               });
               await this.recordServiceStatus("postgresql", "unhealthy", error);
             }
-            if (demoResult.status === "PLACED" && this.options.verifyDemoExecutionSafety) {
-              const safety = await this.options.verifyDemoExecutionSafety();
-              if (safety.status !== "safe") {
+            if (demoResult.status === "PLACED" && this.options.verifyFilledDemoBuy) {
+              const protection = await this.options.verifyFilledDemoBuy({
+                symbol: executionSymbol, orderId: demoResult.orderId, clientOrderId: demoResult.clientOrderId,
+              });
+              if (protection.status === "blocked") {
                 this.demoExecutionBlocked = true;
-                try { await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason); }
+                try { await this.options.persistence?.setPaused(true, "system:demo_execution_safety", protection.reason); }
                 catch { console.error(JSON.stringify({ event: "demo_safety_pause_write_failed" })); }
-                console.error(JSON.stringify({ event: "demo_protection_unconfirmed", reason: safety.reason }));
               }
+              await this.recordOperationalEvent("DEMO_ENTRY_PROTECTION", protection.status === "safe" ? "INFO" : "WARN", {
+                symbol: executionSymbol, candleTimestamp: currentCandle.timestamp, clientOrderId: demoResult.clientOrderId,
+                verified: protection.status === "safe",
+                ...(protection.status === "blocked" ? { reason: protection.reason } : {}),
+              });
             }
             if (demoResult.status !== "PLACED") {
               this.demoExecutionBlocked = true;

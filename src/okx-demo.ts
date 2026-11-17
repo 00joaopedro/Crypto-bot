@@ -497,7 +497,7 @@ export class OkxDemoExecutor {
     // raw attachAlgoOrds replaces those parameters, so include both full legs.
     const attachAlgoOrds = [{
       attachAlgoClOrdId: attachedAlgoClientId,
-      slTriggerPx: this.exchange.priceToPrecision(marketSymbol, stopLossPrice), slOrdPx: "-1",
+      slTriggerPx: this.exchange.priceToPrecision(marketSymbol, stopLossPrice), slTriggerPxType: "last", slOrdPx: "-1",
       ...(this.options.exitPolicy?.mode === "trailing_atr" ? {} : { tpTriggerPx: this.exchange.priceToPrecision(marketSymbol, takeProfitPrice), tpOrdPx: "-1" }),
     }];
     if (!this.reserveIntent) throw new Error("Demo order requires a persistent intent journal");
