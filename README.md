@@ -432,6 +432,12 @@ Essas execuções são por símbolo. Limites agregados e rotação de watchlist
 exigem validação de carteira em Paper/Demo antes de qualquer mudança de
 produção. Não é preciso descartar pares com base em um ou dois trades.
 
+### Validação operacional de 48 horas
+
+O [roteiro da OKX Demo](docs/okx-demo-48h.md) documenta o início da janela,
+a coleta dos logs e o comando `demo:validation-report` para consolidar
+ordens, proteções, spreads e reconciliações de exportações do painel.
+
 ### Verificações de execução na OKX Demo
 
 Antes de reservar a compra, o bot verifica as melhores ofertas em um livro

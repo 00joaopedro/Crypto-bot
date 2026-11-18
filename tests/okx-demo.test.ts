@@ -598,10 +598,10 @@ it("checks a fresh book again before reserving or sending the Demo order", async
   executor.setIntentJournal(reserve);
   await executor.initialize();
 
-  await expect(executor.inspectEntryMarket("BTC/USDT")).resolves.toEqual({ status: "safe" });
+  await expect(executor.inspectEntryMarket("BTC/USDT")).resolves.toMatchObject({ status: "safe", spreadPercent: expect.any(Number) });
   expect(exchange.fetchTradingFee).not.toHaveBeenCalled();
   await expect(executor.executeApprovedBuy({ candleTimestamp: 1_800_000 })).resolves.toMatchObject({
-    status: "SKIPPED", reason: "demo_spread_exceeded",
+    status: "SKIPPED", reason: "demo_spread_exceeded", spreadPercent: expect.closeTo(1.005025, 5),
   });
   expect(fetchOrderBook).toHaveBeenCalledTimes(2);
   expect(reserve).not.toHaveBeenCalled();
@@ -619,7 +619,7 @@ it("reports an exchange cancellation with a partial fill as pending", async () =
   executor.setIntentJournal(reserve);
   await executor.initialize();
 
-  await expect(executor.inspectEntryMarket("BTC/USDT")).resolves.toEqual({ status: "safe" });
+  await expect(executor.inspectEntryMarket("BTC/USDT")).resolves.toMatchObject({ status: "safe", spreadPercent: expect.any(Number) });
   await expect(executor.executeApprovedBuy({ candleTimestamp: 1_800_000 })).resolves.toMatchObject({
     status: "PENDING", confirmed: false, orderStatus: "canceled", filled: 0.04,
   });

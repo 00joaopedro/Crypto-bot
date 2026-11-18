@@ -657,7 +657,7 @@ export class PostgresPersistence implements BotPersistence {
       this.pool.query(`SELECT created_at, event_type, severity, symbol, details FROM operational_events WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
       this.pool.query(`SELECT created_at, symbol, candle_timestamp, mode, signal, ai_decision, approved, strategy_id FROM decisions WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
       this.pool.query(`SELECT created_at, symbol, candle_timestamp, event_type, trade, trade->>'strategyId' AS strategy_id FROM paper_trades WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
-      this.pool.query(`SELECT created_at, symbol, candle_timestamp, status, result, strategy_id FROM demo_orders WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
+      this.pool.query(`SELECT created_at, updated_at, client_order_id, symbol, candle_timestamp, status, result, strategy_id FROM demo_orders WHERE created_at >= NOW() - ($1 * INTERVAL '1 hour') ORDER BY created_at DESC LIMIT $2`, [safeHours, safeLimit]),
     ]);
     const lines = [
       { section: "operational_events", rows: events.rows },

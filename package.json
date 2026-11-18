@@ -12,7 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "strategy:validate": "node dist/validate-strategy-cli.js",
     "strategy:collect": "node dist/collect-okx-history-cli.js",
-    "strategy:study": "node dist/strategy-study-cli.js"
+    "strategy:study": "node dist/strategy-study-cli.js",
+    "demo:validation-report": "node dist/demo-validation-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

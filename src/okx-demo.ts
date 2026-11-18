@@ -66,9 +66,9 @@ export type DemoBuyRequest = {
 };
 export type DemoSellRequest = { symbol?: string; candleTimestamp: number; quantity: number };
 
-type DemoEntryBookBlock = { status: "blocked"; reason: "demo_book_unavailable" | "demo_spread_exceeded" };
-type DemoEntryBook = DemoEntryBookBlock | { status: "safe"; book: OrderBook; referencePrice: number };
-export type DemoEntryMarketCheck = DemoEntryBookBlock | { status: "safe" };
+type DemoEntryBookBlock = { status: "blocked"; reason: "demo_book_unavailable" | "demo_spread_exceeded"; spreadPercent?: number };
+type DemoEntryBook = DemoEntryBookBlock | { status: "safe"; book: OrderBook; referencePrice: number; spreadPercent: number };
+export type DemoEntryMarketCheck = DemoEntryBookBlock | { status: "safe"; spreadPercent?: number };
 
 export type DemoBuyResult =
   | {
@@ -102,6 +102,7 @@ export type DemoBuyResult =
         | "demo_spread_exceeded"
         | "demo_order_limits_unconfirmed";
       clientOrderId: string;
+      spreadPercent?: number;
   };
 
 export type OkxExecutionError = Error & {
@@ -362,7 +363,7 @@ export class OkxDemoExecutor {
   /** Read-only check for the shared Paper/Demo candidate, before either entry. */
   async inspectEntryMarket(symbol: string): Promise<DemoEntryMarketCheck> {
     const result = await this.readEntryBook(symbol);
-    return result.status === "safe" ? { status: "safe" } : result;
+    return result.status === "safe" ? { status: "safe", spreadPercent: result.spreadPercent } : result;
   }
 
   private async readEntryBook(symbol: string): Promise<DemoEntryBook> {
@@ -378,9 +379,9 @@ export class OkxDemoExecutor {
       }
       const spreadPercent = 200 * (referencePrice - bid) / (referencePrice + bid);
       if (spreadPercent > (this.options.maxSpreadPercent ?? 0.15)) {
-        return { status: "blocked", reason: "demo_spread_exceeded" };
+        return { status: "blocked", reason: "demo_spread_exceeded", spreadPercent };
       }
-      return { status: "safe", book, referencePrice };
+      return { status: "safe", book, referencePrice, spreadPercent };
     } catch {
       return unavailable;
     }
@@ -456,7 +457,10 @@ export class OkxDemoExecutor {
       this.readEntryBook(marketSymbol),
       this.exchange.fetchTradingFee(marketSymbol).catch(() => null),
     ]);
-    if (entryBook.status === "blocked") return { status: "SKIPPED", reason: entryBook.reason, clientOrderId };
+    if (entryBook.status === "blocked") {
+      return { status: "SKIPPED", reason: entryBook.reason, clientOrderId,
+        ...(entryBook.spreadPercent === undefined ? {} : { spreadPercent: entryBook.spreadPercent }) };
+    }
     const { book, referencePrice } = entryBook;
     const fee = fees?.taker;
     if (typeof fee !== "number" || !Number.isFinite(fee) || fee < 0 || fee >= 1) {
