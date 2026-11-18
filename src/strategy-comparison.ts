@@ -37,6 +37,12 @@ export const comparisonSchema = z.object({
 }).strict();
 export type ComparisonOptions = z.infer<typeof comparisonSchema>;
 
+export function comparisonSlippage(scenario: { slippageRate: number; spreadRate: number }): number {
+  const effective = (1 + scenario.slippageRate) * (1 + scenario.spreadRate / 2) - 1;
+  if (effective >= 1) throw new Error("Combined execution cost is too high");
+  return effective;
+}
+
 /** Fixed, predeclared alternatives. No selection or configuration is applied to the bot. */
 export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonOptions, btcReference?: Candle[]) {
   const options = comparisonSchema.parse(rawOptions);
@@ -62,8 +68,7 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
   const results = options.scenarios.map(s => ({
     scenario: s,
     variants: variants.map(v => {
-      const effectiveSlippage = (1 + s.slippageRate) * (1 + s.spreadRate / 2) - 1;
-      if (effectiveSlippage >= 1) throw new Error("Combined execution cost is too high");
+      const effectiveSlippage = comparisonSlippage(s);
       const { exitPolicy, riskSizing, btcRegimeFilter, maxBuyRsi, pairCooldown, ...fixedParameters } = v.parameters;
       const candidate = { ...fixedParameters, ...(pairCooldown ? { pairCooldown } : {}), ...(maxBuyRsi !== undefined ? { maxBuyRsi } : {}), ...(btcRegimeFilter !== undefined ? { btcRegimeFilter } : {}), ...(riskSizing ? { riskSizing } : {}), ...(exitPolicy ? { exitPolicy: { ...exitPolicy, exitFeeRate: s.feeRate, exitSlippageRate: effectiveSlippage } } : {}) };
       const report = validateDemoStrategy(candles, {

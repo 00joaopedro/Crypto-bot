@@ -236,6 +236,24 @@ Lacunas ou candles confirmados conflitantes interrompem a coleta. O comando
 usa dados públicos e não precisa das credenciais da conta ou do PostgreSQL.
 Candles não incluem spread, profundidade ou preenchimentos históricos.
 
+### Estudo histórico de carteira e cenários
+
+O estudo reproduzível em `examples/okx-2026-11-17.study.json` define os pares,
+as hipóteses, os custos simulados e a janela de 30 dias. Execute, após o build:
+
+```sh
+npm run --silent strategy:study -- --prepare examples/okx-2026-11-17.study.json ./opcoes-estudo
+npm run --silent strategy:collect -- ./candles-estudo 2026-11-17T00:00:00Z 30 ./opcoes-estudo/*.options.json
+npm run --silent strategy:study -- examples/okx-2026-11-17.study.json ./candles-estudo > estudo.json
+```
+
+`perSymbol` contém as janelas e métricas independentes de cada par.
+`results` usa caixa compartilhado e mede a exposição agregada em um replay
+contínuo. Os limites de simultaneidade e exposição valem a cada abertura,
+com as exposições pelo valor de entrada e o patrimônio do fechamento anterior.
+Os resultados e as premissas desta execução estão em
+[Validação histórica OKX](docs/okx-2026-11-17-study.md).
+
 ### Compartilhamento do histórico de diagnóstico
 
 O painel oferece JSON e TXT com o mesmo documento JSON em UTF-8. O download
