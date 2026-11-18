@@ -8,8 +8,10 @@ import { initialExitRates } from "./exit-policy.js";
 import { pairCooldownUntil } from "./pair-cooldown.js";
 import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
 import { evaluateStrategy } from "./strategy.js";
-import { compareDemoStrategies, comparisonSchema, comparisonSlippage, type ComparisonOptions } from "./strategy-comparison.js";
+import { assertComparisonCandidatesAndScenarios, compareDemoStrategies, comparisonSchema, comparisonSlippage, type ComparisonOptions } from "./strategy-comparison.js";
 import { TREND_STRATEGY_ID } from "./strategy-id.js";
+import { assertValidHistoricalCandles } from "./strategy-validation.js";
+import { requiredWalkForwardWarmup } from "./walk-forward.js";
 import type { Candle } from "./types.js";
 
 type Parameters = ComparisonOptions["baseline"];
@@ -25,7 +27,7 @@ export const portfolioLimitsSchema = z.object({
 }).strict();
 type PortfolioLimits = z.infer<typeof portfolioLimitsSchema>;
 
-export function comparePortfolio(datasets: Dataset[], rawLimits: PortfolioLimits) {
+function resolvePortfolio(datasets: Dataset[], rawLimits: PortfolioLimits) {
   const limits = portfolioLimitsSchema.parse(rawLimits);
   const inputs = datasets.map(dataset => ({ ...dataset, options: comparisonSchema.parse(dataset.options) }));
   const reference = inputs[0];
@@ -54,6 +56,21 @@ export function comparePortfolio(datasets: Dataset[], rawLimits: PortfolioLimits
   if (usesBtc && inputs.some(input => input.btcCandles && hash(input.btcCandles) !== btcHash)) {
     throw new Error("Inconsistent BTC regime reference series");
   }
+  return { inputs, instruments, options, limits, variants, btc, usesBtc, clock };
+}
+
+function portfolioScores(instruments: Instrument[], parameters: Parameters, start: number) {
+  return new Map(instruments.map(({ symbol, candles }) => [symbol, candles.map((_, index) => {
+    if (index < start) return undefined;
+    const signal = evaluateStrategy(candles.slice(0, index + 1), {
+      minimumScore: parameters.minimumSignalScore, maxBuyRsi: parameters.maxBuyRsi ?? 70,
+    });
+    return signal.action === "BUY" ? signal.score : undefined;
+  })]));
+}
+
+export function comparePortfolio(datasets: Dataset[], rawLimits: PortfolioLimits) {
+  const { inputs, instruments, options, limits, variants, btc, usesBtc, clock } = resolvePortfolio(datasets, rawLimits);
   const perSymbol = inputs.map(input => compareDemoStrategies(input.candles, input.options, usesBtc ? btc : undefined));
   const signals = new Map<string, Map<string, Array<number | undefined>>>();
   const evaluationStart = options.trainCandles;
@@ -69,11 +86,7 @@ export function comparePortfolio(datasets: Dataset[], rawLimits: PortfolioLimits
         const key = JSON.stringify([parameters.minimumSignalScore, parameters.maxBuyRsi ?? 70]);
         let scores = signals.get(key);
         if (!scores) {
-          scores = new Map(instruments.map(({ symbol, candles }) => [symbol, candles.map((_, index) => {
-            if (index < evaluationStart) return undefined;
-            const signal = evaluateStrategy(candles.slice(0, index + 1), { minimumScore: parameters.minimumSignalScore, maxBuyRsi: parameters.maxBuyRsi ?? 70 });
-            return signal.action === "BUY" ? signal.score : undefined;
-          })]));
+          scores = portfolioScores(instruments, parameters, evaluationStart);
           signals.set(key, scores);
         }
         return {
@@ -91,6 +104,58 @@ export function comparePortfolio(datasets: Dataset[], rawLimits: PortfolioLimits
   };
 }
 
+const TEN_DAYS = 10 * 96;
+
+export function comparePortfolioHoldout(datasets: Dataset[], rawLimits: PortfolioLimits) {
+  const { instruments, options, limits, variants, btc, clock } = resolvePortfolio(datasets, rawLimits);
+  assertComparisonCandidatesAndScenarios(options);
+  const start = options.trainCandles;
+  const holdoutStart = start + TEN_DAYS;
+  const split = holdoutStart + TEN_DAYS;
+  if (clock.length !== start + 3 * TEN_DAYS || clock[0]!.timestamp % REGIME_CANDLE_MS !== 0) {
+    throw new Error("Holdout requires exactly 30 contiguous evaluation days plus warmup");
+  }
+  for (const instrument of instruments) assertValidHistoricalCandles(instrument.candles);
+  const minimumWarmup = Math.max(...variants.map(({ parameters }) =>
+    requiredWalkForwardWarmup({ qualityFilters: true }, [parameters])));
+  if (start < minimumWarmup) throw new Error(`Holdout requires at least ${minimumWarmup} warmup candles`);
+
+  const run = (series: Instrument[], from: number, parameters: Parameters, scenario: Scenario, btcSeries?: Candle[], boundary?: number) =>
+    runPortfolioScenario(series, portfolioScores(series, parameters, from), from, parameters, scenario,
+      limits, options.initialBalanceUsdt, options.tradeSizeUsdt, btcSeries, boundary);
+
+  // Only the calibration prefix is passed to strategy selection.
+  const calibration = instruments.map(instrument => ({ ...instrument, candles: instrument.candles.slice(0, holdoutStart) }));
+  const calibrationBtc = btc?.slice(0, holdoutStart);
+  const standard = options.scenarios[0]!;
+  const training = variants.map(variant => ({
+    ...variant, result: run(calibration, start, variant.parameters, standard, calibrationBtc),
+  }));
+  const winner = [...training].sort((a, b) =>
+    b.result.netReturnUsdt - a.result.netReturnUsdt || a.result.maxDrawdownUsdt - b.result.maxDrawdownUsdt)[0]!;
+  const results = options.scenarios.map(scenario => {
+    const result = run(instruments, holdoutStart, winner.parameters, scenario, btc, split);
+    return { scenario, result, bothBlocksPositive: result.blocks!.every(block => block.netReturnUsdt > 0) };
+  });
+  const utc = (index: number) => new Date(clock[0]!.timestamp + index * REGIME_CANDLE_MS).toISOString();
+  return {
+    status: "simulation_only",
+    assets: instruments.map(({ symbol, constraints, candles }) => ({
+      symbol, constraints, candleCount: candles.length, sha256: hash(candles),
+    })),
+    limits, initialBalanceUsdt: options.initialBalanceUsdt, tradeSizeUsdt: options.tradeSizeUsdt,
+    calibration: { startUtc: utc(start), endExclusiveUtc: utc(holdoutStart), scenario: standard, candidates: training },
+    selected: { name: winner.name, parameters: winner.parameters },
+    results,
+    methodology: [
+      "Calibrate on D1-D10 using only the standard scenario. Rank by net marked P&L, then lower drawdown in USDT, then manifest order.",
+      "Start a fresh wallet on D11. Carry equity, positions and cooldowns from D20 into D21 with frozen parameters.",
+      "Block return uses marked equity. Count each closed trade and its realized P&L in the block containing its exit.",
+      "Historical simulation uses assumed costs and liquidity. Both holdout blocks positive is a descriptive screen.",
+    ],
+  };
+}
+
 export function runPortfolioScenario(
   instruments: Instrument[],
   scores: ReadonlyMap<string, ReadonlyArray<number | undefined>>,
@@ -101,7 +166,11 @@ export function runPortfolioScenario(
   initialBalance: number,
   tradeSize: number,
   btc?: Candle[],
+  split?: number,
 ) {
+  if (split !== undefined && (!Number.isInteger(split) || split <= start || split >= instruments[0]!.candles.length)) {
+    throw new Error("Portfolio split must be inside the replay window");
+  }
   const slippageRate = comparisonSlippage(scenario);
   const feeRate = scenario.feeRate;
   const assets = instruments.map(instrument => ({
@@ -125,6 +194,7 @@ export function runPortfolioScenario(
   let peakConcurrentPositions = 0;
   let peakExposureRate = 0;
   let peakAltExposureRate = 0;
+  const marks: number[] = [];
   const delay = Math.max(1, parameters.executionDelayCandles);
   const reject = (asset: typeof assets[number], reason: Rejection) => { asset.rejected[reason] = (asset.rejected[reason] ?? 0) + 1; };
   const regimeBlocked = (index: number) => parameters.btcRegimeFilter &&
@@ -207,6 +277,7 @@ export function runPortfolioScenario(
       marketValue += (asset.trader.exportState().position?.quantity ?? 0) * candle.close * (1 - feeRate);
     }
     equity = cash + marketValue;
+    if (split !== undefined) marks.push(equity);
     peak = Math.max(equity, peak);
     maxDrawdownUsdt = Math.max(maxDrawdownUsdt, peak - equity);
     maxDrawdownPercent = Math.max(maxDrawdownPercent, (peak - equity) / peak * 100);
@@ -223,8 +294,35 @@ export function runPortfolioScenario(
       openPosition: open ? { entryTimestamp: open.entryTimestamp, quantity: open.quantity, entryNotional: open.entryNotional } : null,
     };
   });
+  const trades = assets.flatMap(asset => asset.trades);
+  const blocks = split === undefined ? undefined : ([[start, split], [split, instruments[0]!.candles.length]] as const).map(([from, to]) => {
+    const clock = instruments[0]!.candles;
+    const startAt = clock[from]!.timestamp;
+    const endAt = clock[to - 1]!.timestamp + REGIME_CANDLE_MS;
+    const startingEquity = marks[from - start - 1] ?? initialBalance;
+    const endingEquity = marks[to - start - 1]!;
+    let blockPeak = startingEquity, drawdownUsdt = 0, drawdownPercent = 0;
+    for (const mark of marks.slice(from - start, to - start)) {
+      blockPeak = Math.max(blockPeak, mark);
+      drawdownUsdt = Math.max(drawdownUsdt, blockPeak - mark);
+      drawdownPercent = Math.max(drawdownPercent, (blockPeak - mark) / blockPeak * 100);
+    }
+    const closed = trades.filter(trade => trade.exitTimestamp >= startAt && trade.exitTimestamp < endAt);
+    const netReturnUsdt = endingEquity - startingEquity;
+    return {
+      startUtc: new Date(startAt).toISOString(), endExclusiveUtc: new Date(endAt).toISOString(),
+      startingEquityUsdt: startingEquity, endingEquityUsdt: endingEquity, netReturnUsdt,
+      maxDrawdownUsdt: drawdownUsdt, maxDrawdownPercent: drawdownPercent,
+      recoveryFactor: drawdownUsdt > 0 ? netReturnUsdt / drawdownUsdt : null,
+      ...tradeMetrics(closed),
+      perSymbol: assets.map(asset => ({
+        symbol: asset.symbol, ...tradeMetrics(asset.trades.filter(trade => trade.exitTimestamp >= startAt && trade.exitTimestamp < endAt)),
+      })),
+    };
+  });
   return {
-    ...tradeMetrics(assets.flatMap(asset => asset.trades)),
+    ...tradeMetrics(trades),
+    ...(blocks ? { blocks } : {}),
     finalEquityUsdt: equity, netReturnUsdt: equity - initialBalance, netReturnPercent: (equity / initialBalance - 1) * 100,
     maxDrawdownPercent, maxDrawdownUsdt, recoveryFactor: maxDrawdownUsdt > 0 ? (equity - initialBalance) / maxDrawdownUsdt : null,
     cashUsdt: cash, peakConcurrentPositions, peakExposureRate, peakAltExposureRate,

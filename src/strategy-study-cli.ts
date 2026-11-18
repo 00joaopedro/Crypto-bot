@@ -4,23 +4,33 @@ import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { REGIME_CANDLE_MS } from "./btc-regime.js";
-import { comparePortfolio, portfolioLimitsSchema } from "./portfolio-comparison.js";
+import { comparePortfolio, comparePortfolioHoldout, portfolioLimitsSchema } from "./portfolio-comparison.js";
 import { comparisonSchema } from "./strategy-comparison.js";
 import type { Candle } from "./types.js";
 
 const prepare = process.argv[2] === "--prepare";
-const [studyPath, directory] = process.argv.slice(prepare ? 3 : 2);
+const holdout = process.argv[2] === "--holdout";
+const [studyPath, directory] = process.argv.slice(prepare || holdout ? 3 : 2);
 if (!studyPath || !directory) {
-  throw new Error("Usage: npm run strategy:study -- [--prepare] <study.json> <directory>");
+  throw new Error("Usage: npm run strategy:study -- [--prepare | --holdout] <study.json> <directory>");
 }
 const study = z.object({
   endExclusiveUtc: z.iso.datetime(),
+  holdoutEndExclusiveUtc: z.iso.datetime().optional(),
   days: z.number().int().min(1).max(365),
   portfolio: portfolioLimitsSchema,
   comparison: comparisonSchema.omit({ symbol: true, constraints: true }).strict(),
   instruments: z.record(z.string().regex(/^[A-Z0-9]+\/USDT$/), comparisonSchema.shape.constraints),
 }).strict().parse(await readJson(studyPath));
-const end = Date.parse(study.endExclusiveUtc);
+const referenceEnd = Date.parse(study.endExclusiveUtc);
+const end = holdout ? Date.parse(study.holdoutEndExclusiveUtc ?? "") : referenceEnd;
+if (holdout) {
+  const coverageMs = (30 * 96 + study.comparison.trainCandles) * REGIME_CANDLE_MS;
+  if (study.days !== 30 || !Number.isSafeInteger(end) ||
+      (end > referenceEnd - coverageMs && end - coverageMs < referenceEnd)) {
+    throw new Error("Holdout requires a disjoint 30-day study period, including warmup");
+  }
+}
 if (!Number.isSafeInteger(end) || end % REGIME_CANDLE_MS) throw new Error("Study end must align to a 15-minute UTC boundary");
 const entries = Object.entries(study.instruments);
 if (entries.length < 2) throw new Error("Study requires at least two instruments");
@@ -61,7 +71,8 @@ if (prepare) {
     }
     return { ...input, options: parsed };
   }));
-  console.log(JSON.stringify(comparePortfolio(datasets, study.portfolio), (_key, value: unknown) =>
+  const report = holdout ? comparePortfolioHoldout(datasets, study.portfolio) : comparePortfolio(datasets, study.portfolio);
+  console.log(JSON.stringify(report, (_key, value: unknown) =>
     typeof value === "number" && !Number.isFinite(value) ? null : value, 2));
 }
 

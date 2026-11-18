@@ -263,6 +263,12 @@ slippage de 0,10% por lado. O spread de 0,15% é modelado à parte, com
 metade aplicada a cada lado. Os resultados anteriores do estudo estão em
 [Validação histórica OKX](docs/okx-2026-11-17-study.md).
 
+O modo `strategy:study -- --holdout` usa a data configurada em
+`holdoutEndExclusiveUtc` e exige uma série de 30 dias disjunta do estudo
+exploratório, incluindo o aquecimento. Os dez primeiros dias selecionam
+uma variante. Os vinte dias seguintes avaliam essa variante em dois blocos
+contínuos de dez dias. [Resultados e reprodução](docs/okx-2026-10-10-holdout.md).
+
 ### Compartilhamento do histórico de diagnóstico
 
 O painel oferece JSON e TXT com o mesmo documento JSON em UTF-8. O download

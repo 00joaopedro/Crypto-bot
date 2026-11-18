@@ -44,12 +44,16 @@ export function comparisonSlippage(scenario: { slippageRate: number; spreadRate:
   return effective;
 }
 
-/** Fixed, predeclared alternatives. No selection or configuration is applied to the bot. */
-export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonOptions, btcReference?: Candle[]) {
-  const options = comparisonSchema.parse(rawOptions);
+export function assertComparisonCandidatesAndScenarios(options: ComparisonOptions): void {
   if (new Set(options.scenarios.map(s => s.name)).size !== options.scenarios.length || new Set(["baseline", ...options.alternatives.map(a => a.name)]).size !== options.alternatives.length + 1) throw new Error("Names must be unique; baseline is reserved");
   const standard = options.scenarios[0]!;
   if (!options.scenarios.slice(1).some(s => s.feeRate >= standard.feeRate && s.slippageRate >= standard.slippageRate && s.spreadRate >= standard.spreadRate && s.assumedDepthUsdt <= standard.assumedDepthUsdt && s.maxParticipationRate <= standard.maxParticipationRate && (s.feeRate > standard.feeRate || s.slippageRate > standard.slippageRate || s.spreadRate > standard.spreadRate || s.assumedDepthUsdt < standard.assumedDepthUsdt || s.maxParticipationRate < standard.maxParticipationRate))) throw new Error("Include a strictly adverse cost/liquidity scenario after the standard scenario");
+}
+
+/** Fixed, predeclared alternatives. No selection or configuration is applied to the bot. */
+export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonOptions, btcReference?: Candle[]) {
+  const options = comparisonSchema.parse(rawOptions);
+  assertComparisonCandidatesAndScenarios(options);
   const variants = [{ name: "baseline", parameters: options.baseline }, ...options.alternatives];
   const usesRegime = variants.some(v => v.parameters.btcRegimeFilter);
   const btcCandles = usesRegime ? btcReference ?? (options.symbol === "BTC/USDT" ? candles : undefined) : undefined;
