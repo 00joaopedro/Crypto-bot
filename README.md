@@ -251,7 +251,16 @@ npm run --silent strategy:study -- examples/okx-2026-11-17.study.json ./candles-
 `results` usa caixa compartilhado e mede a exposição agregada em um replay
 contínuo. Os limites de simultaneidade e exposição valem a cada abertura,
 com as exposições pelo valor de entrada e o patrimônio do fechamento anterior.
-Os resultados e as premissas desta execução estão em
+O fator de recuperação divide a variação líquida do patrimônio pelo maior
+drawdown em USDT, na carteira contínua ou em cada janela. Drawdown zero gera
+`null`. A expectativa usa P&L líquido por trade fechado. A concentração
+divide a soma dos três melhores trades pela soma dos trades vencedores,
+sinaliza participação acima de 35% e mostra o P&L realizado sem esses três.
+Sem vencedores, a participação vem como `null`.
+
+O manifesto inclui `fixed-cost-stress`, com taxa simulada de 0,20% e
+slippage de 0,10% por lado. O spread de 0,15% é modelado à parte, com
+metade aplicada a cada lado. Os resultados anteriores do estudo estão em
 [Validação histórica OKX](docs/okx-2026-11-17-study.md).
 
 ### Compartilhamento do histórico de diagnóstico

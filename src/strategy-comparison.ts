@@ -1,3 +1,4 @@
+import { tradeProfitConcentration } from "./backtest-performance.js";
 import { TREND_STRATEGY_ID } from "./strategy-id.js";
 import { pairCooldownSchema } from "./pair-cooldown.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS } from "./btc-regime.js";
@@ -82,16 +83,19 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
       });
       const metrics = report.result.windows.map(w => w.testMetrics);
       const losses = metrics.reduce((n, m) => n + m.grossLossUsdt, 0);
+      const profits = metrics.reduce((n, m) => n + m.grossProfitUsdt, 0);
       const trades = metrics.reduce((n, m) => n + m.trades, 0);
       return { name: v.name, strategyId: TREND_STRATEGY_ID, parameters: v.parameters, report,
         summary: {
           closedTrades: trades,
           meanWindowNetReturnPercent: report.result.averageTestReturnPercent,
           profitableWindowsPercent: report.result.consistencyPercent,
+          ...tradeProfitConcentration(metrics.flatMap(m => m.topWinningTradePnLsUsdt), profits, profits - losses),
+          worstWindowDrawdownUsdt: Math.max(...metrics.map(m => m.maxDrawdownUsdt)),
           worstWindowDrawdownPercent: Math.max(...metrics.map(m => m.maxDrawdownPercent)),
-          closedTradeExpectancyUsdt: trades ? metrics.reduce((n, m) => n + m.expectancyUsdt * m.trades, 0) / trades : null,
+          closedTradeExpectancyUsdt: trades ? (profits - losses) / trades : null,
           pairCooldownBlockedEntries: metrics.reduce((n, m) => n + m.pairCooldownBlockedEntries, 0),
-          profitFactor: losses > 0 ? metrics.reduce((sum, m) => sum + m.grossProfitUsdt, 0) / losses : null,
+          profitFactor: losses > 0 ? profits / losses : null,
           totalFeesUsdt: metrics.reduce((n, m) => n + m.totalFeesUsdt, 0),
           regimeBlockedSignals: metrics.reduce((n, m) => n + m.regimeBlockedSignals, 0),
           rejectedEntries: metrics.reduce((n, m) => n + m.rejectedEntries, 0),
@@ -109,6 +113,7 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
     results,
     limitations: [
       "Predeclare alternatives before viewing test outcomes; comparing many alternatives can overfit the test data.",
+      "Recovery factor uses marked equity within each window. Independent windows have no combined equity curve.",
       "All windows start with fresh capital and no position. Returns are not a continuous portfolio result or compounded profit.",
       "Spread, depth, fees and slippage are supplied assumptions, not observed historical OKX liquidity. No order-book reconstruction is claimed.",
       "Participation uses previous candle base volume times its close; supply base-asset volume, not quote volume or contracts.",

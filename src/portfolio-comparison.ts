@@ -1,3 +1,4 @@
+import { tradeProfitConcentration } from "./backtest-performance.js";
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
@@ -120,6 +121,7 @@ export function runPortfolioScenario(
   let equity = cash;
   let peak = cash;
   let maxDrawdownPercent = 0;
+  let maxDrawdownUsdt = 0;
   let peakConcurrentPositions = 0;
   let peakExposureRate = 0;
   let peakAltExposureRate = 0;
@@ -206,6 +208,7 @@ export function runPortfolioScenario(
     }
     equity = cash + marketValue;
     peak = Math.max(equity, peak);
+    maxDrawdownUsdt = Math.max(maxDrawdownUsdt, peak - equity);
     maxDrawdownPercent = Math.max(maxDrawdownPercent, (peak - equity) / peak * 100);
   }
 
@@ -223,7 +226,8 @@ export function runPortfolioScenario(
   return {
     ...tradeMetrics(assets.flatMap(asset => asset.trades)),
     finalEquityUsdt: equity, netReturnUsdt: equity - initialBalance, netReturnPercent: (equity / initialBalance - 1) * 100,
-    maxDrawdownPercent, cashUsdt: cash, peakConcurrentPositions, peakExposureRate, peakAltExposureRate,
+    maxDrawdownPercent, maxDrawdownUsdt, recoveryFactor: maxDrawdownUsdt > 0 ? (equity - initialBalance) / maxDrawdownUsdt : null,
+    cashUsdt: cash, peakConcurrentPositions, peakExposureRate, peakAltExposureRate,
     feesUsdt: perSymbol.reduce((sum, asset) => sum + asset.feesUsdt, 0),
     openPositions: perSymbol.filter(asset => asset.openPosition).length,
     perSymbol,
@@ -234,6 +238,7 @@ function tradeMetrics(trades: PaperTradeClosed[]) {
   const profit = trades.reduce((sum, trade) => sum + Math.max(0, trade.netPnlUsdt), 0);
   const loss = trades.reduce((sum, trade) => sum + Math.max(0, -trade.netPnlUsdt), 0);
   return {
+    ...tradeProfitConcentration(trades.map(trade => trade.netPnlUsdt), profit, profit - loss),
     closedTrades: trades.length,
     realizedPnlUsdt: profit - loss,
     profitFactor: loss > 0 ? profit / loss : null,

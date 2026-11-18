@@ -54,6 +54,9 @@ describe("portfolio comparison", () => {
     expect(result.openPositions).toBe(0);
     expect(result.perSymbol[1]?.rejected).toEqual({ positions: 1 });
     expect(result.finalEquityUsdt).toBeCloseTo(99.8801);
+    expect(result.maxDrawdownUsdt).toBeCloseTo(0.1199);
+    expect(result.recoveryFactor).toBeCloseTo(-1);
+    expect(result.top3TradesProfitSharePercent).toBeNull();
   });
 
   it("rejects mismatched market timelines before comparing", () => {

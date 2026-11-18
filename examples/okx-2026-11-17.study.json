@@ -202,6 +202,14 @@
         "spreadRate": 0.0015,
         "assumedDepthUsdt": 500,
         "maxParticipationRate": 0.0005
+      },
+      {
+        "name": "fixed-cost-stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
       }
     ]
   },

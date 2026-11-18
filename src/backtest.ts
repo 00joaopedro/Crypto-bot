@@ -1,3 +1,4 @@
+import { tradeProfitConcentration } from "./backtest-performance.js";
 import { TREND_STRATEGY_ID, type StrategyId } from "./strategy-id.js";
 import { pairCooldownSchema, pairCooldownUntil, type PairCooldown } from "./pair-cooldown.js";
 import { REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
@@ -32,7 +33,7 @@ export type BacktestOptions = {
   executionProfile?: "paper" | "demo-proxy";
 };
 
-export type BacktestMetrics = {
+export type BacktestMetrics = ReturnType<typeof tradeProfitConcentration> & {
   strategyId: StrategyId;
   initialBalanceUsdt: number;
   finalEquityUsdt: number;
@@ -51,6 +52,8 @@ export type BacktestMetrics = {
   wins: number;
   losses: number;
   maxDrawdownPercent: number;
+  maxDrawdownUsdt: number;
+  recoveryFactor: number | null;
   executionDelayCandles: number;
   rejectedEntries: number;
   regimeBlockedSignals: number;
@@ -149,8 +152,10 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
   const grossLossUsdt = Math.abs(closedTrades.filter((trade) => trade.netPnlUsdt < 0).reduce((sum, trade) => sum + trade.netPnlUsdt, 0));
   let peak = baselineEquity;
   let maxDrawdownPercent = 0;
+  let maxDrawdownUsdt = 0;
   for (const equity of equities) {
     peak = Math.max(peak, equity);
+    maxDrawdownUsdt = Math.max(maxDrawdownUsdt, peak - equity);
     maxDrawdownPercent = Math.max(maxDrawdownPercent, peak > 0 ? ((peak - equity) / peak) * 100 : 0);
   }
   const wins = closedTrades.filter((trade) => trade.netPnlUsdt > 0).length;
@@ -161,6 +166,8 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
     netReturnPercent: (netReturnUsdt / baselineEquity) * 100,
     buyAndHoldEquityUsdt, buyAndHoldReturnPercent: ((buyAndHoldEquityUsdt / baselineEquity) - 1) * 100,
     excessReturnVsBuyAndHoldPercent: (netReturnUsdt / baselineEquity) * 100 - ((buyAndHoldEquityUsdt / baselineEquity) - 1) * 100,
+    ...tradeProfitConcentration(closedTrades.map(trade => trade.netPnlUsdt), grossProfitUsdt, grossProfitUsdt - grossLossUsdt),
+    maxDrawdownUsdt, recoveryFactor: maxDrawdownUsdt > 0 ? netReturnUsdt / maxDrawdownUsdt : null,
     grossProfitUsdt, grossLossUsdt, totalFeesUsdt: trader.exportState().totalFeesUsdt,
     profitFactor: grossLossUsdt === 0 ? (grossProfitUsdt > 0 ? Number.POSITIVE_INFINITY : 0) : grossProfitUsdt / grossLossUsdt,
     expectancyUsdt: closedTrades.length ? closedTrades.reduce((sum, trade) => sum + trade.netPnlUsdt, 0) / closedTrades.length : 0,

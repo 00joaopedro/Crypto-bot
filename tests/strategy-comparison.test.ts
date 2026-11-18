@@ -115,3 +115,34 @@ it("compares the baseline with 4, 6, 8 and 24 hour pair cooldowns", () => {
   expect(blocked[0]).toBe(0);
   expect(blocked.every((value, index) => index === 0 || value > blocked[index - 1]!)).toBe(true);
 });
+
+it("reports realized concentration across windows and recovery for each equity curve", () => {
+  const data = candles().map(bar => ({ ...bar, low: 100, high: 110 }));
+  const r = compareDemoStrategies(data, options).results[0]!.variants[0]!;
+  const windows = r.report.result.windows.map(w => w.testMetrics);
+  expect(windows).toHaveLength(3);
+  expect(windows.every(m => m.recoveryFactor === null && m.maxDrawdownUsdt === 0)).toBe(true);
+  expect(r.summary.profitFactor).toBeNull();
+  expect(r.summary.topWinningTradePnLsUsdt).toHaveLength(3);
+  expect(r.summary.top3TradesProfitSharePercent).toBeCloseTo(100 * 3 / r.summary.closedTrades);
+  expect(r.summary.realizedPnlWithoutTop3Usdt).toBeCloseTo(r.summary.closedTradeExpectancyUsdt! * (r.summary.closedTrades - 3));
+});
+
+it("applies the study's fixed stress costs to both sides of a completed trade", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { comparisonSlippage } = await import("../src/strategy-comparison.js");
+  const study = JSON.parse(await readFile(new URL("../examples/okx-2026-11-17.study.json", import.meta.url), "utf8"));
+  const report = compareDemoStrategies(candles(), { ...options, scenarios: study.comparison.scenarios });
+  const fixed = report.results.find(s => s.scenario.name === "fixed-cost-stress")!;
+  expect(fixed.scenario).toMatchObject({ feeRate: 0.002, slippageRate: 0.001, spreadRate: 0.0015 });
+  const rate = comparisonSlippage(fixed.scenario);
+  const stressed = runBacktest(candles(87), { ...base, feeRate: fixed.scenario.feeRate, slippageRate: rate });
+  const trade = stressed.trades[0]!;
+  const entryPrice = 100 * (1 + rate);
+  const exitPrice = entryPrice * 0.99 * (1 - rate);
+  expect(trade.entryPrice).toBeCloseTo(entryPrice);
+  expect(trade.exitPrice).toBeCloseTo(exitPrice);
+  expect(trade.feesUsdt).toBeCloseTo((entryPrice + exitPrice) * trade.quantity * 0.002);
+  expect(stressed.metrics.recoveryFactor).toBeCloseTo(-1);
+  expect(stressed.metrics.top3TradesProfitSharePercent).toBeNull();
+});
