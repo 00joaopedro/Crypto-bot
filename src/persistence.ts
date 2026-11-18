@@ -1,3 +1,5 @@
+import { EDGE_SAMPLE_SIZE, EDGE_THRESHOLD, profitFactor, rollingDemoEdge } from "./demo-cycle.js";
+import type { ConfirmedDemoTrade } from "./demo-ledger.js";
 import type { ManagedPosition } from "./trade-manager.js";
 import type { StrategyId } from "./strategy-id.js";
 import { REGIME_CANDLE_MS } from "./btc-regime.js";
@@ -60,6 +62,7 @@ export type DashboardData = {
   paused: boolean;
   pauseReason?: string | null;
   settings: DashboardSettings;
+  demoCycle: Awaited<ReturnType<PostgresPersistence["getDemoCycle"]>>;
   latestDecision: Record<string, unknown> | null;
   latestSnapshot: Record<string, unknown> | null;
   snapshots: Array<Record<string, unknown>>;
@@ -544,6 +547,109 @@ export class PostgresPersistence implements BotPersistence {
     );
   }
 
+  async startDemoCycle(expectedStart: string | null): Promise<string | null> {
+    const result = await this.pool.query<{ cycle_started_at: Date }>(`
+      WITH started AS (
+        UPDATE dashboard_settings
+        SET cycle_started_at = GREATEST(date_trunc('milliseconds', clock_timestamp()), cycle_started_at + INTERVAL '1 millisecond')
+        WHERE id = 1 AND cycle_started_at IS NOT DISTINCT FROM $1::timestamptz
+        RETURNING cycle_started_at
+      ), audit AS (
+        INSERT INTO operational_events (event_type, severity, details)
+        SELECT 'DEMO_CYCLE_STARTED', 'INFO', jsonb_build_object('actor', 'dashboard', 'cycleStartedAt', cycle_started_at)
+        FROM started
+      )
+      SELECT cycle_started_at FROM started`, [expectedStart]);
+    return result.rows[0]?.cycle_started_at.toISOString() ?? null;
+  }
+
+  async getDemoCycle() {
+    const result = await this.pool.query<{
+      cycle_started_at: Date | null; confirmed_through: Date | null; closed: number;
+      wins: number; gains: number; losses: number; recent: number[];
+    }>(`
+      WITH settings AS (
+        SELECT cycle_started_at FROM dashboard_settings WHERE id = 1
+      ), baseline AS (
+        SELECT observed_at, CONCAT_WS(':', evidence->'accountIdentity'->>'mainUid',
+          evidence->'accountIdentity'->>'uid') AS account_id
+        FROM demo_accounting_baselines WHERE status = 'UNVERIFIED'
+        ORDER BY id DESC LIMIT 1
+      ), eligible AS (
+        SELECT t.net_pnl_usdt, t.closed_at, t.buy_order_id
+        FROM demo_closed_trades t JOIN baseline b USING (account_id)
+        CROSS JOIN settings s WHERE t.opened_at >= s.cycle_started_at
+      ), totals AS (
+        SELECT COUNT(*)::int AS closed, COUNT(*) FILTER (WHERE net_pnl_usdt > 0)::int AS wins,
+          COALESCE(SUM(GREATEST(net_pnl_usdt, 0)), 0) AS gains,
+          COALESCE(SUM(GREATEST(-net_pnl_usdt, 0)), 0) AS losses FROM eligible
+      ), recent AS (
+        SELECT net_pnl_usdt, closed_at, buy_order_id FROM eligible
+        ORDER BY closed_at DESC, buy_order_id DESC LIMIT $1
+      )
+      SELECT s.cycle_started_at, totals.*,
+        (SELECT MAX(c.observed_at) FROM demo_accounting_checkpoints c JOIN baseline b ON c.baseline_at = b.observed_at
+          WHERE c.observed_at >= s.cycle_started_at) AS confirmed_through,
+        ARRAY(SELECT net_pnl_usdt FROM recent ORDER BY closed_at, buy_order_id) AS recent
+      FROM settings s CROSS JOIN totals`, [EDGE_SAMPLE_SIZE]);
+    const row = result.rows[0];
+    if (!row?.cycle_started_at) return null;
+    return {
+      cycleStartedAt: row.cycle_started_at.toISOString(), confirmedThrough: row.confirmed_through?.toISOString() ?? null,
+      closedTrades: row.closed, netPnlUsdt: row.gains - row.losses,
+      winRatePercent: row.closed ? row.wins / row.closed * 100 : null,
+      profitFactor: profitFactor(row.gains, row.losses),
+      rolling: { ...rollingDemoEdge(row.recent), minimumTrades: EDGE_SAMPLE_SIZE, threshold: EDGE_THRESHOLD },
+    };
+  }
+
+  private async recordConfirmedDemoTrades(client: PoolClient, accountId: string, closedTrades: ConfirmedDemoTrade[]): Promise<void> {
+    const settings = await client.query<{ cycle_started_at: Date | null }>(
+      "SELECT cycle_started_at FROM dashboard_settings WHERE id = 1 FOR UPDATE");
+    const start = settings.rows[0]?.cycle_started_at;
+    type Close = { buy_order_id: string; opened_at: Date; closed_at: Date; net_pnl_usdt: number };
+    const recent = async () => (await client.query<Close>(`
+      SELECT buy_order_id, opened_at, closed_at, net_pnl_usdt FROM demo_closed_trades
+      WHERE account_id = $1 AND opened_at >= $2 ORDER BY closed_at DESC, buy_order_id DESC LIMIT $3
+    `, [accountId, start, EDGE_SAMPLE_SIZE])).rows.reverse();
+
+    const before = start ? await recent() : [];
+    const inserted = await client.query<Close>(`
+      INSERT INTO demo_closed_trades (account_id, buy_order_id, opened_at, closed_at, net_pnl_usdt)
+      SELECT $1, t."buyOrderId", to_timestamp(t."openedAt" / 1000.0),
+        to_timestamp(t."closedAt" / 1000.0), t."netPnlUsdt"
+      FROM jsonb_to_recordset($2::jsonb) AS t("buyOrderId" text, "openedAt" bigint, "closedAt" bigint, "netPnlUsdt" double precision)
+      ON CONFLICT (account_id, buy_order_id) DO NOTHING
+      RETURNING buy_order_id, opened_at, closed_at, net_pnl_usdt
+    `, [accountId, JSON.stringify(closedTrades)]);
+    if (!start) return;
+    const newEligible = inserted.rows.filter(row => row.opened_at >= start);
+    if (!newEligible.length) return;
+
+    const compare = (a: Close, b: Close) => a.closed_at.getTime() - b.closed_at.getTime() ||
+      (a.buy_order_id < b.buy_order_id ? -1 : Number(a.buy_order_id > b.buy_order_id));
+    const anchor = before.at(-1);
+    let degraded = rollingDemoEdge(before.map(row => row.net_pnl_usdt)).degraded;
+    const check = async (sample: number[], closedAt: Date) => {
+      const current = rollingDemoEdge(sample);
+      if (current.degraded && !degraded) {
+        await client.query(`INSERT INTO operational_events (event_type, severity, details)
+          VALUES ('EDGE_DEGRADATION', 'WARN', $1::jsonb)`,
+        [JSON.stringify({ cycleStartedAt: start, closedAt, ...current, threshold: EDGE_THRESHOLD })]);
+      }
+      degraded = current.degraded;
+    };
+    const sample: number[] = [];
+    const ordered = [...before, ...newEligible].sort(compare);
+    for (const row of ordered) {
+      sample.push(row.net_pnl_usdt);
+      if (sample.length > EDGE_SAMPLE_SIZE) sample.shift();
+      if (!anchor || compare(row, anchor) > 0) await check(sample, row.closed_at);
+    }
+    // A late arrival may change the latest window without advancing the latest exchange close.
+    if (anchor && compare(ordered.at(-1)!, anchor) === 0) await check(sample, anchor.closed_at);
+  }
+
   async getDemoAccountingCheckpoint(baselineAt: Date): Promise<{ observedAt: Date; balances: Record<string, number>; evidence: Record<string, unknown>; status: string; realizedPnlOffset: number } | null> {
     const result = await this.pool.query("SELECT * FROM demo_accounting_checkpoints WHERE baseline_at = $1 ORDER BY observed_at DESC LIMIT 1", [baselineAt]);
     const row = result.rows[0];
@@ -551,7 +657,7 @@ export class PostgresPersistence implements BotPersistence {
   }
 
   /** Commit a reconciled observation only if its predecessor and order journal remain current. */
-  async saveDemoAccountingCheckpoint(input: { baselineAt: Date; observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown>; realizedPnl: number; previousObservedAt?: number }): Promise<boolean> {
+  async saveDemoAccountingCheckpoint(input: { baselineAt: Date; observedAt: number; balances: Record<string, number>; evidence: Record<string, unknown>; realizedPnl: number; previousObservedAt?: number; closedTrades?: ConfirmedDemoTrade[] }): Promise<boolean> {
     if (!Number.isSafeInteger(input.observedAt) || input.observedAt <= input.baselineAt.getTime() || !Number.isFinite(input.realizedPnl)) throw new Error("Invalid Demo checkpoint");
     const client = await this.pool.connect();
     try {
@@ -566,6 +672,11 @@ export class PostgresPersistence implements BotPersistence {
         VALUES ($1, to_timestamp($2 / 1000.0), $3::jsonb, $4::jsonb, $5)
         ON CONFLICT (baseline_at, observed_at) DO NOTHING`,
         [input.baselineAt, input.observedAt, JSON.stringify(input.balances), JSON.stringify(input.evidence), input.realizedPnl]);
+      if (input.closedTrades?.length) {
+        const identity = readDemoAccountIdentity({ code: "0", data: [input.evidence.accountIdentity] });
+        if (!identity) throw new Error("Missing account identity for confirmed Demo trades");
+        await this.recordConfirmedDemoTrades(client, `${identity.mainUid}:${identity.uid}`, input.closedTrades);
+      }
       await client.query("COMMIT");
       return true;
     } catch (error) { await client.query("ROLLBACK"); throw error; }
@@ -681,7 +792,7 @@ export class PostgresPersistence implements BotPersistence {
 
   async getDashboardData(limit = 40, historySymbol?: string, paperSince?: number): Promise<DashboardData> {
     const settings = await this.getDashboardSettings();
-    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades, okxEvents] = await Promise.all([
+    const [control, decision, snapshot, snapshots, trades, orders, decisionMetrics, tradeMetrics, eventMetrics, serviceEvents, portfolioRows, periodPnl, analyticsTrades, okxEvents, demoCycle] = await Promise.all([
       this.pool.query<{ paused: boolean; pause_reason: string | null }>("SELECT paused, pause_reason FROM bot_control WHERE id = 1"),
       this.pool.query<Record<string, unknown>>(
         `SELECT symbol, candle_timestamp, mode, signal, ai_decision, approved, strategy_id, created_at
@@ -753,6 +864,7 @@ export class PostgresPersistence implements BotPersistence {
       ),
       this.pool.query<Record<string, unknown>>(`SELECT pt.symbol, pt.trade, d.signal, d.ai_decision FROM paper_trades pt LEFT JOIN LATERAL (SELECT signal, ai_decision FROM decisions WHERE decisions.symbol = pt.symbol AND decisions.candle_timestamp = (pt.trade->>'entryTimestamp')::bigint ORDER BY decisions.created_at DESC LIMIT 1) d ON TRUE WHERE pt.event_type = 'CLOSED'`),
       this.pool.query<Record<string, unknown>>(`SELECT event_type, severity, details, created_at FROM operational_events WHERE details->>'service' = 'okx-demo' ORDER BY created_at DESC LIMIT 20`),
+      this.getDemoCycle(),
     ]);
     const decisionRow = decisionMetrics.rows[0] ?? {};
     const tradeRow = tradeMetrics.rows[0] ?? {};
@@ -805,6 +917,7 @@ export class PostgresPersistence implements BotPersistence {
       paused: control.rows[0]?.paused ?? true,
       pauseReason: control.rows[0]?.pause_reason ?? null,
       settings,
+      demoCycle,
       latestDecision: decision.rows[0] ?? null,
       latestSnapshot: snapshot.rows[0] ? { ...snapshot.rows[0], snapshot: { ...latestSnapshot, ...aggregateSnapshot } } : null,
       snapshots: snapshots.rows.reverse(),

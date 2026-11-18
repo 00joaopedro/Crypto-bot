@@ -252,5 +252,16 @@ export const migrations: readonly Migration[] = [
     ALTER TABLE decisions ADD COLUMN strategy_id TEXT;
     ALTER TABLE demo_orders ADD COLUMN strategy_id TEXT;
   ` },
+  { version: 18, name: "demo_validation_cycle", sql: `
+    ALTER TABLE dashboard_settings ADD COLUMN cycle_started_at TIMESTAMPTZ;
+    CREATE TABLE demo_closed_trades (
+      account_id TEXT NOT NULL, buy_order_id TEXT COLLATE "C" NOT NULL,
+      opened_at TIMESTAMPTZ NOT NULL, closed_at TIMESTAMPTZ NOT NULL,
+      net_pnl_usdt DOUBLE PRECISION NOT NULL,
+      PRIMARY KEY (account_id, buy_order_id), CHECK (opened_at <= closed_at)
+    );
+    CREATE INDEX demo_closed_trades_recent_idx ON demo_closed_trades
+      (account_id, closed_at DESC, buy_order_id DESC);
+  ` },
 ] as const;
 

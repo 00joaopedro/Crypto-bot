@@ -453,6 +453,20 @@ O [roteiro da OKX Demo](docs/okx-demo-48h.md) documenta o início da janela,
 a coleta dos logs e o comando `demo:validation-report` para consolidar
 ordens, proteções, spreads e reconciliações de exportações do painel.
 
+O painel **Ciclo OKX Demo** registra um marco em UTC pelo botão **Iniciar
+novo ciclo**. As métricas usam compras cujo primeiro preenchimento ocorreu a
+partir do marco e cuja quantidade foi totalmente encerrada e reconciliada.
+Vendas parciais entram no resultado da compra quando ela fecha. O horário
+dos fills define o ciclo, inclusive quando a conferência chega mais tarde.
+O painel mostra até quando os dados foram confirmados. Métricas Paper e o
+histórico de operações continuam disponíveis em suas seções.
+
+Com 30 fechamentos no ciclo, o Profit Factor móvel usa os últimos 30 em ordem
+de fechamento. Ao cruzar abaixo de 0,95, o bot registra `EDGE_DEGRADATION`
+como alerta WARN. Novas amostras abaixo do limiar mantêm o mesmo episódio.
+O painel mostra o tamanho da amostra e o alerta funciona apenas como
+diagnóstico, sem comandar o estado operacional do bot.
+
 ### Verificações de execução na OKX Demo
 
 Antes de reservar a compra, o bot verifica as melhores ofertas em um livro

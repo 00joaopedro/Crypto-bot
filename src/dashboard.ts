@@ -9,6 +9,8 @@ import { z } from "zod";
 import type { DashboardSettings, PostgresPersistence } from "./persistence.js";
 import type { OkxDemoAccountSnapshot } from "./okx-demo.js";
 
+const demoCycleSchema = z.object({ expectedStart: z.iso.datetime({ precision: 3 }).nullable() }).strict();
+
 const settingsSchema = z.object({
   symbol: z.string().regex(/^[A-Z0-9]{2,15}\/USDT$/),
   orderSizeUsdt: z.number().positive().max(100),
@@ -148,6 +150,15 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         response.writeHead(200, { "content-type": extension === "txt" ? "text/plain; charset=utf-8" : "application/json; charset=utf-8", "content-disposition": `attachment; filename="crypto-bot-diagnostic-logs.${extension}"`, "content-length": Buffer.byteLength(content), "x-content-type-options": "nosniff", "cache-control": "no-store" });
         response.end(content);
         return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/demo-cycle") {
+        try { requireSameOrigin(request); }
+        catch { return json(response, 403, { error: "Origem inválida." }); }
+        const input = demoCycleSchema.safeParse(await readJson(request));
+        if (!input.success) return json(response, 400, { error: "Marco de ciclo inválido." });
+        const cycleStartedAt = await options.persistence.startDemoCycle(input.data.expectedStart);
+        if (!cycleStartedAt) return json(response, 409, { error: "O ciclo já mudou. Atualize o painel." });
+        return json(response, 200, { cycleStartedAt });
       }
       if (request.method === "POST" && url.pathname === "/api/control") {
         requireSameOrigin(request);

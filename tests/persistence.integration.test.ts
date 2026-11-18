@@ -571,4 +571,76 @@ integration("pair cooldown history", () => {
       await store.close();
     }
   });
+  it("persists the Demo cycle and alerts only on confirmed rolling threshold crossings", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const restarted = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const baselineAt = new Date(Date.now() - 100_000);
+    const uid = String(Date.now());
+    const accountId = `${uid}:${uid}`;
+    const evidence = { accountIdentity: { uid, mainUid: uid } };
+    let previousStart: Date | null = null;
+    const testMarkers: string[] = [];
+    try {
+      await persistence.initialize();
+      await persistence.ensureDashboardSettings({ symbol: "BTC/USDT", orderSizeUsdt: 10,
+        maxTrades: 10, intervalMinutes: 15, maxConcurrentPositions: 10 });
+      const previous = await db.query("SELECT cycle_started_at FROM dashboard_settings WHERE id = 1");
+      previousStart = previous.rows[0].cycle_started_at;
+      const started = (await persistence.startDemoCycle(previousStart?.toISOString() ?? null))!;
+      testMarkers.push(started);
+      expect(started).toBeTruthy();
+      await expect(restarted.startDemoCycle(previousStart?.toISOString() ?? null)).resolves.toBeNull();
+      await db.query(`INSERT INTO demo_accounting_baselines (observed_at, balances, evidence, status)
+        VALUES ($1, '{"USDT":1000}', $2::jsonb, 'UNVERIFIED')`, [baselineAt, JSON.stringify(evidence)]);
+      const start = Date.parse(started);
+      const trade = (i: number, pnl: number, openedAt = start) => ({
+        buyOrderId: String(i), openedAt, closedAt: start + i + 1, netPnlUsdt: pnl,
+      });
+      const save = (step: number, closedTrades: ReturnType<typeof trade>[]) =>
+        persistence.saveDemoAccountingCheckpoint({ baselineAt, observedAt: start + step * 1000,
+          balances: { USDT: 1000 }, evidence, realizedPnl: 0, closedTrades });
+      const warnings = async () => (await db.query(
+        "SELECT details FROM operational_events WHERE event_type = 'EDGE_DEGRADATION' AND (details->>'cycleStartedAt')::timestamptz = $1",
+        [started])).rows;
+      const first = Array.from({ length: 29 }, (_, i) => trade(i, -1));
+      expect(await save(1, [...first, trade(99, -100, start - 1)])).toBe(true);
+      expect(await restarted.getDemoCycle()).toMatchObject({ cycleStartedAt: started, closedTrades: 29, netPnlUsdt: -29,
+        rolling: { sampleSize: 29, degraded: false } });
+      expect(await warnings()).toHaveLength(0);
+
+      // A late close (older than the latest exchange timestamp) still enters the present sample.
+      const late = trade(100, -1);
+      late.closedAt = start + 2;
+      expect(await save(2, [...first, late])).toBe(true);
+      expect(await restarted.getDemoCycle()).toMatchObject({ closedTrades: 30, netPnlUsdt: -30, profitFactor: 0,
+        rolling: { sampleSize: 30, degraded: true } });
+      expect(await warnings()).toHaveLength(1);
+      expect(await save(3, [...first, late, trade(101, -1)])).toBe(true);
+      expect(await warnings()).toHaveLength(1);
+      expect(await save(4, [trade(102, 30)])).toBe(true);
+      expect((await restarted.getDemoCycle())?.rolling.degraded).toBe(false);
+      const moreLosses = Array.from({ length: 30 }, (_, i) => trade(i + 103, -1));
+      expect(await save(5, moreLosses)).toBe(true);
+      expect(await warnings()).toHaveLength(2);
+      expect((await restarted.getDemoCycle())?.rolling.degraded).toBe(true);
+
+      const next = (await restarted.startDemoCycle(started))!;
+      testMarkers.push(next);
+      expect(next).not.toBe(started);
+      expect(await persistence.getDemoCycle()).toMatchObject({ cycleStartedAt: next, closedTrades: 0,
+        rolling: { sampleSize: 0, degraded: false } });
+      const history = await db.query("SELECT COUNT(*)::int AS count FROM demo_closed_trades WHERE account_id = $1", [accountId]);
+      expect(history.rows[0].count).toBe(63);
+    } finally {
+      await db.query("DELETE FROM operational_events WHERE event_type IN ('DEMO_CYCLE_STARTED', 'EDGE_DEGRADATION') AND (details->>'cycleStartedAt')::timestamptz = ANY($1::timestamptz[])", [testMarkers]);
+      await db.query("UPDATE dashboard_settings SET cycle_started_at = $1 WHERE id = 1", [previousStart]);
+      await db.query("DELETE FROM demo_closed_trades WHERE account_id = $1", [accountId]);
+      await db.query("DELETE FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt]);
+      await db.query("DELETE FROM demo_accounting_baselines WHERE evidence = $1::jsonb", [JSON.stringify(evidence)]);
+      await db.end();
+      await persistence.close();
+      await restarted.close();
+    }
+  });
 });
