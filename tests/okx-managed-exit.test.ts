@@ -7,7 +7,7 @@ const journal={orderId:"1",clientOrderId:"CB1",attachedAlgoClientId:"AP1",symbol
 function setup(){
   const now=Date.now();
   const algo={instType:"SPOT",instId:"BTC-USDT",algoClOrdId:"AP1",algoId:"2",side:"sell",state:"live",ordIdList:[],slOrdPx:"-1",slTriggerPxType:"last",ordType:"conditional",sz:"0.999",slTriggerPx:"95"};
-  const exchange={precisionMode:ccxt.TICK_SIZE,setSandboxMode:vi.fn(),loadMarkets:vi.fn(async()=>({})),market:vi.fn(()=>({symbol:"BTC/USDT",spot:true,active:true,quote:"USDT",base:"BTC",precision:{amount:.001},limits:{cost:{min:1}}})),fetchBalance:vi.fn(async()=>({free:{USDT:1000,BTC:.999},total:{USDT:1000,BTC:.999}})),fetchTicker:vi.fn(async()=>({bid:110,ask:111})),fetchTradingFee:vi.fn(async()=>({taker:.002})),priceToPrecision:(_s:string,p:number)=>String(p),
+  const exchange={precisionMode:ccxt.TICK_SIZE,setSandboxMode:vi.fn(),loadMarkets:vi.fn(async()=>({})),market:vi.fn(()=>({symbol:"BTC/USDT",spot:true,active:true,quote:"USDT",base:"BTC",precision:{amount:.001},limits:{cost:{min:1},amount:{min:.001}}})),fetchBalance:vi.fn(async()=>({free:{USDT:1000,BTC:.999},total:{USDT:1000,BTC:.999}})),fetchTicker:vi.fn(async()=>({bid:110,ask:111})),fetchTradingFee:vi.fn(async()=>({taker:.002})),priceToPrecision:(_s:string,p:number)=>String(p),
     privateGetTradeOrder:vi.fn(async()=>({code:"0",data:[{instType:"SPOT",instId:"BTC-USDT",ordId:"1",clOrdId:"CB1",side:"buy",state:"filled",accFillSz:"1",attachAlgoOrds:[{attachAlgoClOrdId:"AP1"}]}]})),
     privateGetTradeOrderAlgo:vi.fn(async()=>({code:"0",data:[algo]})),
     privateGetTradeFills:vi.fn(async(p:Record<string,string>)=>({code:"0",data:p.after?[]:[{billId:"123",instType:"SPOT",instId:"BTC-USDT",ordId:"1",side:"buy",fillSz:"1",fillPx:"100",fee:"-0.001",feeCcy:"BTC",fillTime:String(now-1000),ts:String(now-1000)}]})),privateGetTradeFillsHistory:vi.fn(async()=>({code:"0",data:[]})),
@@ -121,4 +121,31 @@ it("requires the exact persisted buy and proves net stop coverage after a fresh 
   restarted.algo.sz = "0.999";
   await expect(auditDemoProtections(store, readOnlyAudit(restarted.executor))).resolves.toEqual({ status: "safe" });
   expect(restarted.exchange.privatePostTradeAmendAlgos).not.toHaveBeenCalled();
+});
+
+it("recognizes only sub-step dust after a linked, verified recovery sell", async () => {
+  const f = setup();
+  await f.executor.initialize();
+  const now = Date.now() - 2000;
+  const recovery = { status: "collected" as const, buys: [], sells: [], protectionStates: { AP1: "effective" },
+    protections: [{ algoClientId: "AP1", symbol: journal.symbol, side: "sell" as const, spawnedOrderIds: ["3"], recoverySellOrderId: "4" }],
+    orders: [
+      { id: "1", symbol: journal.symbol, side: "buy" as const, filled: 1, terminal: true, ownershipConfirmed: false },
+      { id: "3", symbol: journal.symbol, side: "sell" as const, filled: 0.5, terminal: true, ownershipConfirmed: false },
+      { id: "4", symbol: journal.symbol, side: "sell" as const, filled: 0.4989, terminal: true, ownershipConfirmed: false },
+    ],
+  };
+  vi.spyOn(f.executor, "collectOrderEvidence").mockResolvedValue(recovery);
+  const fills = vi.spyOn(f.executor, "collectFillHistory");
+  const fill = (id: string, side: "buy" | "sell", amount: number, timestamp: number, fee: number) => ({
+    id, orderId: id, symbol: journal.symbol, side, amount, timestamp, costUsdt: 100 * amount,
+    fees: [{ currency: "BTC", cost: fee }],
+  });
+  const buy = fill("1", "buy", 1, now, 0.001);
+  const first = fill("3", "sell", 0.5, now + 10, 0);
+  fills.mockResolvedValue({ status: "collected", from: f.from, to: now + 100, fills: [buy, first, fill("4", "sell", 0.4989, now + 20, 0)] });
+  expect(await f.executor.inspectExitProtection(journal, f.from)).toEqual({ status: "closed" });
+  recovery.orders[2]!.filled = 0.48;
+  fills.mockResolvedValue({ status: "collected", from: f.from, to: now + 100, fills: [buy, first, fill("4", "sell", 0.48, now + 20, 0)] });
+  expect(await f.executor.inspectExitProtection(journal, f.from)).toMatchObject({ reason: "partial_exit_without_live_coverage" });
 });

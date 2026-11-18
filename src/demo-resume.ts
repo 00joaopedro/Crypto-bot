@@ -6,8 +6,8 @@ import type { OkxDemoExecutor } from "./okx-demo.js";
 
 /** Runs the Demo safety checks before admitting an operator resume. */
 export async function inspectDemoResume(
-  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate" | "observeDemoRisk">,
-  executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "inspectAccountIdentity" | "inspectTradingPermission" | "getAccountSnapshot">,
+  persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate" | "observeDemoRisk"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint">>,
+  executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "inspectAccountIdentity" | "inspectTradingPermission" | "getAccountSnapshot"> & Partial<Pick<OkxDemoExecutor, "inspectExitProtection">>,
   limits: { maxDailyLoss: number; maxDrawdown: number },
 ): Promise<{ status: "safe" } | { status: "blocked"; reason: string }> {
   try {

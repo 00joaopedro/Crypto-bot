@@ -467,6 +467,24 @@ como alerta WARN. Novas amostras abaixo do limiar mantêm o mesmo episódio.
 O painel mostra o tamanho da amostra e o alerta funciona apenas como
 diagnóstico, sem comandar o estado operacional do bot.
 
+### Recuperar uma saída parcial na OKX Demo
+
+Com o bot pausado, confirme na OKX Demo a compra, o preenchimento da ordem
+de saída, a ausência de uma ordem ainda capaz de vender o saldo e o saldo
+disponível do ativo. Se precisar encerrar o residual manualmente, use a
+quantidade líquida mostrada em `DEMO_PROTECTION_BLOCKED`, arredondada para
+baixo pelo incremento do instrumento. Registre o ID da venda realmente
+executada em `OKX_DEMO_RECOVERY_SELL=ID_COMPRA:ID_VENDA`. Use apenas uma
+venda Demo feita para fechar o saldo dessa compra.
+
+O bot consulta os dois IDs com o cliente Demo e confirma origem, instrumento,
+lado, sequência, terminalidade e fills. Só aceita como encerrado o residual
+zero ou menor que o incremento e o mínimo da OKX. A sobra continua no
+balanço. A reconciliação exige cobertura e taxas verificadas. Se houver
+outra movimentação sem origem confirmada, a retomada fica bloqueada.
+Mantenha o vínculo configurado para que consultas futuras possam reconhecer
+a venda vinculada.
+
 ### Verificações de execução na OKX Demo
 
 Antes de reservar a compra, o bot verifica as melhores ofertas em um livro

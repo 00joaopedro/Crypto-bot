@@ -15,7 +15,7 @@ export type OrderEvidenceResult =
  * ID. This is attribution evidence, not proof of complete history, no external
  * transactions, current balance, or P&L. Live orders retain terminal=false.
  */
-export async function collectOkxDemoOrderEvidence(client: OkxOrderEvidenceClient, journal: JournaledDemoBuy[], cachedParents: CachedDemoParent[] = []): Promise<OrderEvidenceResult> {
+export async function collectOkxDemoOrderEvidence(client: OkxOrderEvidenceClient, journal: JournaledDemoBuy[], cachedParents: CachedDemoParent[] = [], recovery?: { buyId: string; sellId: string }): Promise<OrderEvidenceResult> {
   const unavailable = (reason: string): OrderEvidenceResult => ({ status: "unavailable", reason });
   if (!Array.isArray(journal) || journal.length === 0 || journal.length > 500) return unavailable("journal_empty_or_too_large");
   const orderIds = new Set<string>(), algoIds = new Set<string>();
@@ -28,7 +28,7 @@ export async function collectOkxDemoOrderEvidence(client: OkxOrderEvidenceClient
     return payload.data[0] as Record<string, unknown>;
   };
   const validId = (id: unknown): id is string => typeof id === "string" && /^[A-Za-z0-9]{1,64}$/.test(id);
-  const readOrder = async (symbol: string, id: string, side: "buy" | "sell"): Promise<{ order: ExchangeDemoOrder; evidence: ConfirmedDemoOrder } | null> => {
+  const readOrder = async (symbol: string, id: string, side: "buy" | "sell"): Promise<{ order: ExchangeDemoOrder; evidence: ConfirmedDemoOrder; createdAt: number; updatedAt: number } | null> => {
     const instId = symbol.replace("/", "-");
     const row = one(await client.privateGetTradeOrder({ instId, ordId: id }));
     if (!row || row.instType !== "SPOT" || row.instId !== instId || row.ordId !== id || row.side !== side || typeof row.clOrdId !== "string" || typeof row.accFillSz !== "string" || !/^(?:\d+)(?:\.\d+)?$/.test(row.accFillSz)) return null;
@@ -44,7 +44,8 @@ export async function collectOkxDemoOrderEvidence(client: OkxOrderEvidenceClient
       }
     }
     if (typeof row.attachAlgoClOrdId === "string" && row.attachAlgoClOrdId && !attached.includes(row.attachAlgoClOrdId)) attached.push(row.attachAlgoClOrdId);
-    return { order: { id, symbol, side, clientOrderId: row.clOrdId || null, attachedAlgoClientIds: attached }, evidence: { id, symbol, side, filled, terminal: ["filled", "canceled", "mmp_canceled"].includes(row.state), ownershipConfirmed: false } };
+    return { createdAt: Number(row.cTime), updatedAt: Number(row.uTime),
+      order: { id, symbol, side, clientOrderId: row.clOrdId || null, attachedAlgoClientIds: attached }, evidence: { id, symbol, side, filled, terminal: ["filled", "canceled", "mmp_canceled"].includes(row.state), ownershipConfirmed: false } };
   };
   try {
     for (const item of journal) {
@@ -61,16 +62,37 @@ export async function collectOkxDemoOrderEvidence(client: OkxOrderEvidenceClient
       const row = one(await client.privateGetTradeOrderAlgo({ algoClOrdId: item.attachedAlgoClientId }));
       if (!row || row.instType !== "SPOT" || row.instId !== item.symbol.replace("/", "-") || row.algoClOrdId !== item.attachedAlgoClientId || row.side !== "sell" || !validId(row.algoId) || typeof row.state !== "string" || !["live", "effective", "canceled", "order_failed"].includes(row.state) || !Array.isArray(row.ordIdList)) return unavailable("protective_order_unconfirmed");
       const spawned: string[] = [];
+      let partialExitConfirmedAt = 0;
+      let validChildren = true;
       for (const id of row.ordIdList) {
         if (!validId(id) || orderIds.has(id)) return unavailable("invalid_spawned_order_ids");
         orderIds.add(id); spawned.push(id);
         const sell = await readOrder(item.symbol, id, "sell");
         if (!sell) return unavailable("spawned_order_unconfirmed");
         sells.push(sell.order); orders.push(sell.evidence);
+        validChildren &&= sell.evidence.terminal && Number.isSafeInteger(sell.updatedAt) && sell.updatedAt > 0;
+        if (sell.evidence.filled > 0) partialExitConfirmedAt = Math.max(partialExitConfirmedAt, sell.updatedAt);
       }
       if (row.state === "effective" && spawned.length === 0) return unavailable("effective_order_without_spawned_order");
       buys.push(buy.order); orders.push(buy.evidence);
-      protections.push({ algoClientId: item.attachedAlgoClientId, symbol: item.symbol, side: "sell", spawnedOrderIds: spawned });
+      let recoverySellOrderId: string | undefined;
+      if (recovery?.buyId === item.orderId) {
+        if (row.state !== "effective" || !buy.evidence.terminal || !validChildren || partialExitConfirmedAt <= 0 ||
+            orderIds.has(recovery.sellId) || journal.some(entry => entry.orderId === recovery.sellId) || !validId(recovery.sellId)) {
+          return unavailable("recovery_sell_not_attributable");
+        }
+        const sell = await readOrder(item.symbol, recovery.sellId, "sell");
+        if (!sell || !sell.evidence.terminal || sell.evidence.filled <= 0 ||
+            !Number.isSafeInteger(sell.createdAt) || sell.createdAt <= partialExitConfirmedAt) {
+          return unavailable("recovery_sell_not_confirmed");
+        }
+        orderIds.add(recovery.sellId);
+        recoverySellOrderId = recovery.sellId;
+        sells.push(sell.order);
+        orders.push(sell.evidence);
+      }
+      protections.push({ algoClientId: item.attachedAlgoClientId, symbol: item.symbol, side: "sell", spawnedOrderIds: spawned,
+        ...(recoverySellOrderId ? { recoverySellOrderId } : {}) });
       protectionStates[item.attachedAlgoClientId] = row.state;
     }
     return { status: "collected", buys, sells, protections, orders, protectionStates };

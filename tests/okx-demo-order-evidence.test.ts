@@ -50,3 +50,24 @@ it('reuses a checkpoint-proven terminal buy but always reads live protection and
   client.privateGetTradeOrderAlgo.mockRejectedValueOnce(Error('protection unavailable'));
   expect(await collectOkxDemoOrderEvidence(client,journal,[parent])).toMatchObject({status:'unavailable'});
 });
+
+it("only imports the named terminal Spot sell placed after the terminal partial exit", async () => {
+  const client = setup();
+  let recoveryCreatedAt = "3000";
+  let recoveryState = "filled";
+  client.privateGetTradeOrder.mockImplementation(async ({ ordId }) => {
+    if (ordId === "101") return order("101", "buy");
+    const result = order(ordId!, "sell", ordId === "202" ? "canceled" : recoveryState);
+    return { ...result, data: result.data.map(row => ({ ...row, cTime: ordId === "202" ? "1000" : recoveryCreatedAt, uTime: "2000" })) };
+  });
+  const repair = { buyId: "101", sellId: "404" };
+  expect(await collectOkxDemoOrderEvidence(client, journal, [], repair)).toMatchObject({
+    status: "collected", protections: [{ spawnedOrderIds: ["202"], recoverySellOrderId: "404" }],
+  });
+  recoveryCreatedAt = "1500";
+  expect(await collectOkxDemoOrderEvidence(client, journal, [], repair)).toMatchObject({ reason: "recovery_sell_not_confirmed" });
+  recoveryCreatedAt = "3000";
+  recoveryState = "partially_filled";
+  expect(await collectOkxDemoOrderEvidence(client, journal, [], repair)).toMatchObject({ reason: "recovery_sell_not_confirmed" });
+  expect(await collectOkxDemoOrderEvidence(client, journal, [], { ...repair, sellId: "202" })).toMatchObject({ reason: "recovery_sell_not_attributable" });
+});

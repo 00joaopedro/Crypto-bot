@@ -22,6 +22,7 @@ export type OkxDemoCredentials = {
 export type OkxDemoOptions = {
   symbol: string;
   tradingEnabled: boolean;
+  recoverySell?: string;
   orderSizeUsdt: number;
   maxSpreadPercent?: number;
   stopLossRate: number;
@@ -336,10 +337,13 @@ export class OkxDemoExecutor {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
     const client = this.exchange as unknown as Partial<OkxOrderEvidenceClient>;
     if (typeof client.privateGetTradeOrder !== "function" || typeof client.privateGetTradeOrderAlgo !== "function") return { status: "unavailable", reason: "order_evidence_endpoint_unavailable" };
+    const [buyId, sellId] = (this.options.recoverySell ?? "").split(":");
+    // Both exact order IDs must be visible to the same authenticated Demo client.
+    const recovery = buyId && sellId && journal.some(entry => entry.orderId === buyId) ? { buyId, sellId } : undefined;
     return collectOkxDemoOrderEvidence({
       privateGetTradeOrder: (params) => client.privateGetTradeOrder!(params),
       privateGetTradeOrderAlgo: (params) => client.privateGetTradeOrderAlgo!(params),
-    }, journal, cachedParents);
+    }, journal, cachedParents, recovery);
   }
 
   /** Read account permissions without submitting orders or disclosing credentials. */
@@ -581,6 +585,17 @@ export class OkxDemoExecutor {
     const position = ledger.positions[journal.symbol];
     const state = evidence.protectionStates[journal.attachedAlgoClientId!];
     if (!position || position.quantity <= 0) return state === "live" ? blocked("live_protection_without_position") : { status: "closed" as const };
+    const recovery = evidence.protections.find(item => item.algoClientId === journal.attachedAlgoClientId)?.recoverySellOrderId;
+    if (recovery && state === "effective") {
+      const market = this.resolveActiveSpotMarket(journal.symbol);
+      const step = market.precision.amount;
+      const minimum = market.limits.amount?.min;
+      if (this.exchange.precisionMode === ccxt.TICK_SIZE && typeof step === "number" && Number.isFinite(step) && step > 0 &&
+          typeof minimum === "number" && Number.isFinite(minimum) && minimum > 0 &&
+          position.quantity < Math.min(step, minimum) * (1 - 1e-10)) {
+        return { status: "closed" as const };
+      }
+    }
     if (state !== "live" || evidence.sells.length) {
       const market = this.resolveActiveSpotMarket(journal.symbol);
       const positive = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
