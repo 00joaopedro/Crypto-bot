@@ -581,7 +581,22 @@ export class OkxDemoExecutor {
     const position = ledger.positions[journal.symbol];
     const state = evidence.protectionStates[journal.attachedAlgoClientId!];
     if (!position || position.quantity <= 0) return state === "live" ? blocked("live_protection_without_position") : { status: "closed" as const };
-    if (state !== "live" || evidence.sells.length) return blocked("partial_exit_without_live_coverage");
+    if (state !== "live" || evidence.sells.length) {
+      const market = this.resolveActiveSpotMarket(journal.symbol);
+      const positive = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+      const sellOrders = evidence.orders.filter(order => order.side === "sell");
+      return {
+        ...blocked("partial_exit_without_live_coverage"),
+        positionEvidence: {
+          symbol: journal.symbol, buyOrderId: journal.orderId, protectionState: state ?? null,
+          grossBought: parent.filled, grossSold: sellOrders.reduce((total, order) => total + order.filled, 0),
+          remainingNet: position.quantity,
+          amountStep: this.exchange.precisionMode === ccxt.TICK_SIZE ? positive(market.precision.amount) : null,
+          minimumAmount: positive(market.limits.amount?.min),
+          sellOrders: sellOrders.map(({ id, filled }) => ({ id, filled })),
+        },
+      };
+    }
     const client = this.exchange as unknown as { privateGetTradeOrderAlgo(params: Record<string,string>): Promise<unknown> };
     const payload = await client.privateGetTradeOrderAlgo({ algoClOrdId: journal.attachedAlgoClientId! }) as { code?: string; data?: Array<Record<string,unknown>> };
     const row = payload?.data?.[0];

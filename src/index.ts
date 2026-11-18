@@ -591,7 +591,11 @@ async function main(): Promise<void> {
                 const reason = coverage.status !== "safe" ? coverage.reason : safety.status !== "safe" ? safety.reason : exits.status !== "safe" ? exits.reason : "unknown";
                 protectionReason = reason;
                 if (!awaitingReadback || coverage.status !== "safe" || safety.status !== "safe") await persistence.setPaused(true, "system:demo_exit_supervision", reason);
-                await persistence.recordOperationalEvent({ eventType: "DEMO_PROTECTION_BLOCKED", severity: "WARN", details: { reason } });
+                const position = coverage.status === "blocked" && "positionEvidence" in coverage ? coverage.positionEvidence : undefined;
+                await persistence.recordOperationalEvent({
+                  eventType: "DEMO_PROTECTION_BLOCKED", severity: "WARN",
+                  ...(position && typeof position === "object" && "symbol" in position && typeof position.symbol === "string" ? { symbol: position.symbol } : {}), details: { reason, ...(position ? { position } : {}) },
+                });
               }
               if (Date.now() - lastAccountingCheck >= 15 * 60_000) {
                 lastAccountingCheck = Date.now();

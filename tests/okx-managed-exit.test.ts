@@ -65,6 +65,17 @@ describe("OKX managed stop protocol",()=>{
     expect(await f.executor.inspectExitProtection(journal,f.from)).toMatchObject({reason:"partial_sell_or_child_pending"});
     expect(f.exchange.privatePostTradeAmendAlgos).not.toHaveBeenCalled();
   });
+  it("reports net residual and protection state without unblocking a canceled stop", async () => {
+    const f = setup();
+    await f.executor.initialize();
+    f.algo.state = "canceled";
+    expect(await f.executor.inspectExitProtection(journal, f.from)).toMatchObject({
+      status: "blocked", reason: "partial_exit_without_live_coverage",
+      positionEvidence: { symbol: "BTC/USDT", buyOrderId: "1", protectionState: "canceled",
+        grossBought: 1, grossSold: 0, remainingNet: 0.999, amountStep: 0.001, sellOrders: [] },
+    });
+    expect(f.exchange.privatePostTradeAmendAlgos).not.toHaveBeenCalled();
+  });
   it("keeps rejected or mismatched acknowledgements uncertain, preserving the existing protection",async()=>{
     const f=setup();await f.executor.initialize();f.exchange.privatePostTradeAmendAlgos.mockResolvedValue({code:"0",data:[{algoId:"2",reqId:"OTHER",sCode:"51000"}]});
     expect(await f.executor.amendExitStop(journal,f.from,105,"REQ1")).toBe("uncertain");
