@@ -4,7 +4,7 @@ import type { PairCooldown } from "./pair-cooldown.js";
 import type { DemoAdmission } from "./demo-entry.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
-import type { PublicMarketData } from "./market-data.js";
+import type { PublicMarketData, MarketDataProvider } from "./market-data.js";
 import type { GeminiRiskFilter } from "./gemini.js";
 import { PaperTrader, type PaperCycleResult } from "./paper-trader.js";
 import type { DemoEntryMarketCheck, OkxDemoExecutor } from "./okx-demo.js";
@@ -16,6 +16,12 @@ import type { AiDecision, Candle } from "./types.js";
 import type { EmailTradeAlert } from "./email-alerts.js";
 import type { CentralTradeManager } from "./trade-manager.js";
 
+export type ScanStatistics = {
+  eligibleMarkets: number; targetCandidates: number; analyzedCandidates: number;
+  pendingCandidates: number; candleRequests: number; failedRequests: number;
+  cacheHits: number; durationMs: number; requestBudget: number; timeBudgetMs: number; concurrency: number;
+};
+
 type BotOptions = {
   symbol: string;
   candleLimit: number;
@@ -25,6 +31,9 @@ type BotOptions = {
   minimumSignalScore?: number;
   signalScanSymbols?: string[];
   dynamicUniverseSize?: number;
+  scanConcurrency?: number;
+  scanRequestBudget?: number;
+  scanTimeBudgetMs?: number;
   marketEligibility?: MarketEligibilityPolicy;
   pairCooldown?: PairCooldown;
   marketMinQuoteVolumeUsdt?: number;
@@ -77,7 +86,7 @@ export class TradingBot {
   private readonly reportedPaperGaps = new Map<string, number>();
   private demoOccupiedSymbols = new Set<string>();
   private activeUniverse: string[] = [];
-  private lastScan: { pairs: string[]; candleTimestamp: number; cooldowns: Array<{ symbol: string; until: number }> } | null = null;
+  private lastScan: { statistics?: ScanStatistics; pairs: string[]; candleTimestamp: number; cooldowns: Array<{ symbol: string; until: number }> } | null = null;
   private scanCache?: {
     timestamp: number;
     provider: string;
@@ -88,6 +97,9 @@ export class TradingBot {
     ranking?: RankedSignal[];
   };
   private lastLoggedRanking?: string;
+  private scanCursor = 0;
+  private readonly supervisedPaper = new Map<string, { timestamp: number; result: PaperCycleResult }>();
+  private lastLoggedScanProgress?: string;
 
   getLastSignalScan() { return this.lastScan; }
   private lastUniverseSwitchAt = 0;
@@ -159,6 +171,7 @@ export class TradingBot {
       }
       this.demoOccupiedSymbols = new Set(state.positions.map(position => position.symbol));
     }
+    this.supervisedPaper.clear();
     const candles = await this.market.fetchClosedCandles(
       this.options.symbol,
       this.options.candleLimit,
@@ -166,13 +179,17 @@ export class TradingBot {
     await this.recordServiceStatus(`market-data-${this.market.active}`, "ok");
     const latest = candles.at(-1);
     if (!latest) throw new Error("Market data provider returned no closed candles");
+    const anchorProvider = this.market.active;
+    // Exits precede the broad entry scanner, including excluded/open positions.
+    await this.supervisePaperPositions(candles, control?.revision);
+    if (this.observedPaused) return;
 
     const cooldowns = this.options.pairCooldown
       ? await this.options.persistence!.activePairCooldowns!(Date.now(), this.options.pairCooldown)
       : [];
     const pausedPairs = new Set(cooldowns.map(item => item.symbol));
-    const { ranking, requests } = await this.scanSignals(candles, pausedPairs);
-    this.lastScan = { pairs: ranking.map(candidate => candidate.symbol), candleTimestamp: latest.timestamp, cooldowns };
+    const { ranking, requests, statistics } = await this.scanSignals(candles, pausedPairs, anchorProvider);
+    this.lastScan = { pairs: ranking.map(candidate => candidate.symbol), candleTimestamp: latest.timestamp, cooldowns, statistics };
     const rankingKey = JSON.stringify([latest.timestamp, ranking.map(({ symbol, eligible, signal }) => [symbol, eligible, signal.action, signal.score])]);
     if (ranking.length > 0 && rankingKey !== this.lastLoggedRanking) {
       this.lastLoggedRanking = rankingKey;
@@ -181,7 +198,8 @@ export class TradingBot {
         candleTimestamp: latest.timestamp,
         scanRequests: requests,
         selected: ranking[0],
-        candidates: ranking.map((candidate) => ({
+        candidateCount: ranking.length,
+        candidates: ranking.slice(0, 20).map((candidate) => ({
           rank: candidate.rank,
           symbol: candidate.symbol,
           action: candidate.signal.action,
@@ -198,21 +216,24 @@ export class TradingBot {
     const executionSymbol = this.options.inspectDemoEntry
       ? selectedEligibleSymbol ?? managedPositionSymbol ?? this.options.symbol
       : managedPositionSymbol ?? selectedEligibleSymbol ?? this.options.symbol;
-    await this.monitorOtherPaperPositions(executionSymbol, control?.revision);
+    // Open Paper positions were already supervised before scanning.
     if (this.observedPaused) return;
     const paperTrader = await this.getPaperTrader(executionSymbol);
     const { strategyId } = paperTrader.configuration;
     const executionCandles = executionSymbol === this.options.symbol
       ? candles
-      : await this.market.fetchClosedCandles(executionSymbol, this.options.candleLimit);
+      : this.scanCache?.candles.get(executionSymbol)?.slice(-this.options.candleLimit)
+        ?? await this.market.fetchClosedCandles(executionSymbol, this.options.candleLimit);
     const executionLatest = executionCandles.at(-1);
     if (!executionLatest) throw new Error(`Market data provider returned no closed candles for ${executionSymbol}`);
     const lastProcessedCandle = this.lastProcessedCandleBySymbol.get(executionSymbol);
     const paperCursor = lastProcessedCandle ?? paperTrader.exportState().position?.entryTimestamp;
-    const unseenCandles = paperCursor === undefined
+    const supervised = this.supervisedPaper.get(executionSymbol);
+    const supervisedCurrent = supervised?.timestamp === executionLatest.timestamp ? supervised : undefined;
+    const unseenCandles = supervisedCurrent ? [executionLatest] : paperCursor === undefined
       ? [executionLatest]
       : executionCandles.filter((candle) => candle.timestamp > paperCursor);
-    if (await this.paperHistoryGap(paperTrader, executionSymbol, paperCursor, unseenCandles)) return;
+    if (!supervisedCurrent && await this.paperHistoryGap(paperTrader, executionSymbol, paperCursor, unseenCandles)) return;
     if (unseenCandles.length === 0) {
       console.log(JSON.stringify({ event: "cycle_skipped", reason: "candle_already_processed", symbol: executionSymbol }));
       return;
@@ -429,9 +450,10 @@ export class TradingBot {
       demoCandidate = false;
     }
 
+    if (supervisedCurrent) approved = false;
     const previousState = paperTrader.exportState();
     const riskBefore = this.exportRiskState();
-    const paperResult = paperTrader.processCandle(
+    const paperResult = supervisedCurrent ? { events: [], snapshot: supervisedCurrent.result.snapshot } : paperTrader.processCandle(
       currentCandle,
       approved,
       exitRates,
@@ -439,7 +461,7 @@ export class TradingBot {
       undefined,
       plannedPaperSize,
     );
-    paperTrader.advanceManagedExit(signalCandles);
+    if (!supervisedCurrent) paperTrader.advanceManagedExit(signalCandles);
     const lossPause = this.applyLossControls(paperResult.events, currentCandle.timestamp);
     try {
       await this.persistPaperCycle({
@@ -481,22 +503,7 @@ export class TradingBot {
       this.options.tradeManager?.recordExit(executionSymbol);
     }
 
-    const contraryClose = paperResult.events.find((event) => event.type === "CLOSED" && event.reason === "SIGNAL_CONTRARY");
-    if (contraryClose && this.options.demoExecutor?.executeApprovedSell) {
-      try {
-        const demoResult = await this.options.demoExecutor.executeApprovedSell({
-          symbol: executionSymbol,
-          candleTimestamp: currentCandle.timestamp,
-          quantity: contraryClose.quantity,
-        });
-        await this.options.persistence?.recordDemoOrder(executionSymbol, currentCandle.timestamp, demoResult);
-        console.log(JSON.stringify({ event: "okx_demo_sell_submitted", symbol: executionSymbol, result: demoResult }));
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        await this.options.persistence?.recordDemoOrderFailure(executionSymbol, currentCandle.timestamp, message);
-        console.error(JSON.stringify({ event: "okx_demo_sell_failed", symbol: executionSymbol, error: message }));
-      }
-    }
+    await this.executeContraryDemoSell(executionSymbol, currentCandle.timestamp, paperResult);
     this.lastProcessedCandleBySymbol.set(executionSymbol, currentCandle.timestamp);
 
     await this.updateDailyRiskBaseline(executionSymbol, paperResult.snapshot.equityUsdt);
@@ -805,12 +812,35 @@ export class TradingBot {
     return false;
   }
 
-  private async monitorOtherPaperPositions(selectedSymbol: string, controlRevision?: string): Promise<void> {
-    if (!this.options.inspectDemoEntry && !this.options.paperTrader.configuration.riskSizing) return;
-    for (const position of this.options.tradeManager?.activePositions ?? []) {
-      if (position.symbol === selectedSymbol) continue;
+  private async executeContraryDemoSell(symbol: string, candleTimestamp: number, result: PaperCycleResult): Promise<void> {
+    const contraryClose = result.events.find((event) => event.type === "CLOSED" && event.reason === "SIGNAL_CONTRARY");
+    if (contraryClose && this.options.demoExecutor?.executeApprovedSell) {
+      try {
+        const demoResult = await this.options.demoExecutor.executeApprovedSell({
+          symbol,
+          candleTimestamp,
+          quantity: contraryClose.quantity,
+        });
+        await this.options.persistence?.recordDemoOrder(symbol, candleTimestamp, demoResult);
+        console.log(JSON.stringify({ event: "okx_demo_sell_submitted", symbol, result: demoResult }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await this.options.persistence?.recordDemoOrderFailure(symbol, candleTimestamp, message);
+        console.error(JSON.stringify({ event: "okx_demo_sell_failed", symbol, error: message }));
+      }
+    }
+  }
+
+  private async supervisePaperPositions(principalCandles: Candle[], controlRevision?: string): Promise<void> {
+    const positions = [...(this.options.tradeManager?.activePositions ?? [])];
+    const principal = this.options.paperTrader.exportState().position;
+    if (principal && !positions.some(position => position.symbol === this.options.symbol)) {
+      positions.push({ symbol: this.options.symbol, notionalUsdt: principal.entryNotional, openedAt: principal.entryTimestamp });
+    }
+    for (const position of positions) {
       const trader = await this.getPaperTrader(position.symbol);
-      const candles = await this.market.fetchClosedCandles(position.symbol, this.options.candleLimit);
+      const candles = position.symbol === this.options.symbol
+        ? principalCandles : await this.market.fetchClosedCandles(position.symbol, this.options.candleLimit);
       const last = this.lastProcessedCandleBySymbol.get(position.symbol) ?? position.openedAt;
       const unseen = candles.filter(c => c.timestamp > last);
       if (await this.paperHistoryGap(trader, position.symbol, last, unseen)) continue;
@@ -822,16 +852,22 @@ export class TradingBot {
         const result = trader.processCandle(candle, false, undefined, signal?.action === "SELL");
         trader.advanceManagedExit(candles.slice(0, index + 1));
         const lossPause = this.applyLossControls(result.events, candle.timestamp);
+        const replayed = candle.timestamp !== principalCandles.at(-1)?.timestamp;
         try {
-          await this.persistPaperCycle({ symbol: position.symbol, candle, replayed: true, paperResult: result, paperState: trader.exportState(), riskState: this.exportRiskState() }, lossPause, controlRevision);
+          await this.persistPaperCycle({ symbol: position.symbol, candle, replayed, paperResult: result, paperState: trader.exportState(), riskState: this.exportRiskState() }, lossPause, controlRevision);
         } catch (error) {
           trader.restoreState(before);
           this.restoreRiskState(riskBefore);
           throw error;
         }
+        this.supervisedPaper.set(position.symbol, { timestamp: candle.timestamp, result });
+        this.logPaperResult(candle, result, replayed, position.symbol);
+        await this.sendTradeAlerts(position.symbol, result.events, replayed);
+        if (!replayed) await this.executeContraryDemoSell(position.symbol, candle.timestamp, result);
         this.lastProcessedCandleBySymbol.set(position.symbol, candle.timestamp);
         if (result.events.some(e => e.type === "CLOSED")) {
           this.options.tradeManager?.recordExit(position.symbol);
+          this.lastTradeAtBySymbol.set(position.symbol, candle.timestamp);
           if (lossPause) return;
           break;
         }
@@ -863,9 +899,10 @@ export class TradingBot {
     return cooldowns.some(cooldown => cooldown.symbol === symbol);
   }
 
-  private async scanSignals(currentCandles: Candle[], pausedPairs: Set<string>) {
+  private async scanSignals(currentCandles: Candle[], pausedPairs: Set<string>, anchorProvider = this.market.active) {
+    const startedAt = performance.now();
     const timestamp = currentCandles.at(-1)!.timestamp;
-    const provider = this.market.active;
+    const provider = anchorProvider;
     if (this.scanCache?.timestamp !== timestamp || this.scanCache.provider !== provider) {
       this.scanCache = { timestamp, provider, candles: new Map() };
     }
@@ -877,12 +914,12 @@ export class TradingBot {
       maxSpreadPercent: this.options.marketMaxSpreadPercent ?? 1,
     };
     const configuredSymbols = [this.options.symbol, ...(this.options.signalScanSymbols ?? [])];
-    const universeSize = this.options.dynamicUniverseSize ?? 10;
+    const requestedUniverseSize = this.options.dynamicUniverseSize ?? 10;
     if (!cache.screening && typeof this.market.screenSpotSymbols === "function") {
       try {
         requests.discovery++;
         cache.screening = await this.market.screenSpotSymbols(screenOptions);
-        cache.discovered = cache.screening.eligible.slice(0, universeSize);
+        cache.discovered = cache.screening.eligible.slice(0, requestedUniverseSize === 0 ? undefined : requestedUniverseSize);
         const details = {
           candleTimestamp: timestamp,
           eligibleCount: cache.screening.eligible.length,
@@ -900,8 +937,8 @@ export class TradingBot {
         cache.discovered = [];
         console.error(JSON.stringify({ event: "signal_universe_screen_failed", error: String(error) }));
       }
-    } else if (!cache.discovered && this.options.dynamicUniverseSize && typeof this.market.selectSpotSymbols === "function") {
-      cache.discovered = await this.market.selectSpotSymbols({ ...screenOptions, limit: universeSize }).catch(error => {
+    } else if (!cache.discovered && this.options.dynamicUniverseSize !== undefined && typeof this.market.selectSpotSymbols === "function") {
+      cache.discovered = await this.market.selectSpotSymbols({ ...screenOptions, limit: requestedUniverseSize }).catch(error => {
         console.error(JSON.stringify({ event: "dynamic_universe_scan_failed", error: String(error) }));
         return [];
       });
@@ -911,42 +948,77 @@ export class TradingBot {
     this.activeUniverse = this.activeUniverse.filter(entryAllowed);
     const allowedConfigured = configuredSymbols.filter(entryAllowed);
     const symbols = new Set([...allowedConfigured, ...this.activeUniverse, ...(cache.discovered ?? []).filter(entryAllowed)]);
-    const candidates: Array<{ symbol: string; candles: Candle[] }> = [];
-    for (const symbol of symbols) {
-      if (pausedPairs.has(symbol)) continue;
-      if (symbol === this.options.symbol) {
-        candidates.push({ symbol, candles: currentCandles });
-        continue;
+    const allSymbols = [...symbols].filter(symbol => !pausedPairs.has(symbol));
+    const requestBudget = this.options.scanRequestBudget ?? 20;
+    const timeBudgetMs = this.options.scanTimeBudgetMs ?? 10_000;
+    const concurrency = this.options.scanConcurrency ?? 2;
+    const deadline = startedAt + timeBudgetMs;
+    const cacheHits = allSymbols.filter(symbol => symbol !== this.options.symbol && cache.candles.has(symbol)).length;
+    let failures = 0;
+    let cursor = this.scanCursor % Math.max(1, allSymbols.length);
+    let visited = 0;
+    // A bounded queue, not one promise per market. The cursor carries over to
+    // the next candle so a large universe cannot starve low-ranked candidates.
+    const nextSymbol = () => {
+      if (requests.candles >= requestBudget || performance.now() >= deadline) return undefined;
+      while (visited < allSymbols.length) {
+        const symbol = allSymbols[cursor]!;
+        cursor = (cursor + 1) % allSymbols.length;
+        this.scanCursor = cursor;
+        visited++;
+        if (symbol === this.options.symbol || cache.candles.has(symbol)) continue;
+        requests.candles++;
+        return symbol;
       }
-      try {
-        let aligned = cache.candles.get(symbol);
-        if (!aligned) {
-          requests.candles++;
-          const candles = await this.market.fetchClosedCandles(symbol, this.options.candleLimit + 5);
+      return undefined;
+    };
+    const worker = async () => {
+      for (let symbol = nextSymbol(); symbol; symbol = nextSymbol()) {
+        try {
+          const candles = typeof this.market.fetchScanCandles === "function"
+            ? await this.market.fetchScanCandles(symbol, this.options.candleLimit + 5, provider as MarketDataProvider)
+            : await this.market.fetchClosedCandles(symbol, this.options.candleLimit + 5);
           const targetIndex = candles.findIndex(candle => candle.timestamp === timestamp);
-          if (targetIndex < 49) continue;
-          aligned = candles.slice(0, targetIndex + 1);
-          if (this.market.active === provider) cache.candles.set(symbol, aligned);
+          if (targetIndex < 49) { failures++; continue; }
+          if (typeof this.market.fetchScanCandles === "function" || this.market.active === provider) {
+            cache.candles.set(symbol, candles.slice(0, targetIndex + 1));
+          } else { failures++; }
+        } catch (error) {
+          failures++;
+          console.error(JSON.stringify({ event: "signal_scan_failed", symbol, error: String(error) }));
         }
-        candidates.push({ symbol, candles: aligned });
-      } catch (error) {
-        console.error(JSON.stringify({
-          event: "signal_scan_failed",
-          symbol,
-          error: error instanceof Error ? error.message : String(error),
-        }));
       }
-    }
+    };
+    await Promise.all(Array.from({ length: concurrency }, worker));
+    const candidates = allSymbols.flatMap(symbol => {
+      const candles = symbol === this.options.symbol ? currentCandles : cache.candles.get(symbol);
+      return candles ? [{ symbol, candles }] : [];
+    });
+    const statistics: ScanStatistics = {
+      eligibleMarkets: cache.screening?.eligible.length ?? cache.discovered?.length ?? 0,
+      targetCandidates: allSymbols.length, analyzedCandidates: candidates.length,
+      pendingCandidates: allSymbols.length - candidates.length,
+      candleRequests: requests.candles, failedRequests: failures,
+      cacheHits,
+      durationMs: Math.round(performance.now() - startedAt), requestBudget, timeBudgetMs, concurrency,
+    };
+    const universeSize = requestedUniverseSize === 0 ? symbols.size : requestedUniverseSize;
 
     const blockedSymbols = new Set(this.options.inspectDemoEntry ? this.demoOccupiedSymbols : this.options.tradeManager?.activePositions.map(position => position.symbol));
     const key = JSON.stringify([candidates.map(candidate => candidate.symbol), [...blockedSymbols].sort()]);
-    if (cache.rankingKey !== key || !cache.ranking || this.market.active !== provider) {
+    if (cache.rankingKey !== key || !cache.ranking || (typeof this.market.fetchScanCandles !== "function" && this.market.active !== provider)) {
       cache.ranking = rankSignals(candidates, this.options.minimumSignalScore, blockedSymbols);
       cache.rankingKey = key;
     }
     const activeSymbols = await this.updateUniverse(cache.ranking, allowedConfigured, timestamp, universeSize, pausedPairs);
     const ranking = cache.ranking.filter(candidate => activeSymbols.has(candidate.symbol) && !pausedPairs.has(candidate.symbol));
-    return { ranking, requests };
+    statistics.durationMs = Math.round(performance.now() - startedAt);
+    const progressKey = JSON.stringify([timestamp, statistics.analyzedCandidates, statistics.pendingCandidates, failures]);
+    if (progressKey !== this.lastLoggedScanProgress) {
+      this.lastLoggedScanProgress = progressKey;
+      console.log(JSON.stringify({ event: "signal_scan_progress", candleTimestamp: timestamp, ...statistics }));
+    }
+    return { ranking, requests, statistics };
   }
 
   private async updateUniverse(
@@ -967,6 +1039,11 @@ export class TradingBot {
       return new Set(this.activeUniverse);
     }
 
+    const freeSlots = Math.max(0, universeSize - this.activeUniverse.filter(symbol => !configured.has(symbol)).length);
+    if (freeSlots) {
+      this.activeUniverse.push(...ranked.map(candidate => candidate.symbol)
+        .filter(symbol => !configured.has(symbol) && !this.activeUniverse.includes(symbol)).slice(0, freeSlots));
+    }
     const cooldownMs = (this.options.universeSwitchCooldownMinutes ?? 60) * 60_000;
     if (candleTimestamp - this.lastUniverseSwitchAt < cooldownMs) return new Set(this.activeUniverse);
 

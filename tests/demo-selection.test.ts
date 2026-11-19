@@ -26,7 +26,7 @@ it('selects the Demo candidate while monitoring a Paper position in a paused pai
   });
   await bot.runCycle();
   expect(executeApprovedBuy).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'ETH/USDT' }));
-  expect(recordCycle).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'BTC/USDT', replayed: true }));
+  expect(recordCycle).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'BTC/USDT', replayed: false }));
   expect(evaluateStrategy).toHaveBeenCalledWith(expect.any(Array), { minimumScore: 4 });
   log.mockRestore();
 });
@@ -47,7 +47,7 @@ it('persists monitored Paper loss controls in the same cycle as its exit', async
   });
   await bot.runCycle();
   expect(executeApprovedBuy).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'ETH/USDT' }));
-  expect(recordCycle).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'BTC/USDT', replayed: true }));
+  expect(recordCycle).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'BTC/USDT', replayed: false }));
   expect(recordCycle).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'BTC/USDT', riskState: expect.objectContaining({ consecutiveLosses: 1 }) }));
   log.mockRestore();
 });

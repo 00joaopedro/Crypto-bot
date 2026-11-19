@@ -31,7 +31,7 @@ describe("new entry market eligibility", () => {
     expect(symbolEntryBlock("USDC/USDT", { excludeStablecoins: false })).toBeUndefined();
     expect(symbolEntryBlock("XNVDA/USDT", { excludeTokenizedAssets: false })).toBeUndefined();
     expect(parseConfig({})).toMatchObject({ SIGNAL_EXCLUDED_SYMBOLS: [], SIGNAL_EXCLUDE_STABLECOINS: true, SIGNAL_EXCLUDE_TOKENIZED_ASSETS: true, DYNAMIC_UNIVERSE_SIZE: 10 });
-    expect(() => parseConfig({ DYNAMIC_UNIVERSE_SIZE: "100" })).toThrow();
+    expect(() => parseConfig({ DYNAMIC_UNIVERSE_SIZE: "1001" })).toThrow();
   });
   it.each([
     [{ ...ticker, bid: 0 }, "ticker_unconfirmed"],

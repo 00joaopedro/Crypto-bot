@@ -78,6 +78,19 @@ export class PublicMarketData {
     throw new Error(`Market data unavailable for ${symbol}: ${String(lastError)}`);
   }
 
+  /** Bounded scanner: one attempt, fixed venue, no shared provider mutation. */
+  async fetchScanCandles(symbol: string, limit: number, provider: MarketDataProvider): Promise<Candle[]> {
+    const exchange = this.exchanges.get(provider);
+    if (!exchange || !this.initializedProviders.has(provider)) throw new Error("Scan provider is not initialized");
+    const rows = await exchange.fetchOHLCV(symbol, "15m", undefined, limit + 1);
+    const now = Date.now();
+    return rows.map(row => ({
+      timestamp: requiredNumber(row[0], "timestamp"), open: requiredNumber(row[1], "open"),
+      high: requiredNumber(row[2], "high"), low: requiredNumber(row[3], "low"),
+      close: requiredNumber(row[4], "close"), volume: requiredNumber(row[5], "volume"),
+    })).filter(candle => candle.timestamp + FIFTEEN_MINUTES_MS <= now).slice(-limit);
+  }
+
   listSpotSymbols(quote = "USDT"): string[] {
     const exchange = this.exchanges.get(this.activeProvider)!;
     return Object.values(exchange.markets ?? {})
@@ -97,7 +110,7 @@ export class PublicMarketData {
   }
 
   async selectSpotSymbols(options: MarketScreenOptions & { limit: number }): Promise<string[]> {
-    return (await this.screenSpotSymbols(options)).eligible.slice(0, options.limit);
+    return (await this.screenSpotSymbols(options)).eligible.slice(0, options.limit === 0 ? undefined : options.limit);
   }
 
   async close(): Promise<void> {
@@ -114,11 +127,11 @@ export class PublicMarketData {
 
 function createExchange(provider: MarketDataProvider): Exchange {
   return provider === "okx"
-    ? new ccxt.okx({ enableRateLimit: true })
+    ? new ccxt.okx({ enableRateLimit: true, timeout: 10_000 })
     : provider === "kraken"
-      ? new ccxt.kraken({ enableRateLimit: true })
+      ? new ccxt.kraken({ enableRateLimit: true, timeout: 10_000 })
       : new ccxt.bybit({
-            enableRateLimit: true,
+            enableRateLimit: true, timeout: 10_000,
             options: { defaultType: "spot" },
           });
 }

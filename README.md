@@ -78,7 +78,10 @@ Variáveis principais:
 - `ENTRY_COOLDOWN_MINUTES=60` (intervalo mínimo entre novas entradas no mesmo par)
 - `RISK_MAX_CONSECUTIVE_LOSSES=3` (pausa novas entradas após três perdas consecutivas)
 - `STOP_LOSS_COOLDOWN_MINUTES=60` (cooldown adicional após stop-loss)
-- `DYNAMIC_UNIVERSE_SIZE=10` (até 10 candidatos da descoberta dinâmica; aceita 1–50 nesta etapa. Pares fixos e ativos podem ampliar o total analisado)
+- `DYNAMIC_UNIVERSE_SIZE=10` (até 10 candidatos da descoberta dinâmica; aceita 1–1000 ou `0` para todos os elegíveis. Pares fixos e ativos podem ampliar o total analisado)
+- `SIGNAL_SCAN_CONCURRENCY=2` (padrão; até 4 consultas de candles simultâneas)
+- `SIGNAL_SCAN_REQUEST_BUDGET=20` (padrão; até 20 consultas de candles de candidatos por passagem)
+- `SIGNAL_SCAN_TIME_BUDGET_MS=10000` (padrão; tempo para iniciar consultas de candidatos, aguardando as que já estão em andamento)
 - `SIGNAL_EXCLUDED_SYMBOLS=USDC/USDT,XNVDA/USDT` (opcional: impede novas entradas desses pares, inclusive quando descobertos dinamicamente)
 - `SIGNAL_EXCLUDE_STABLECOINS=true` e `SIGNAL_EXCLUDE_TOKENIZED_ASSETS=true` (padrões automáticos; não é necessário adicioná-los na Railway)
 - `MARKET_MIN_QUOTE_VOLUME_USDT=1000000` (liquidez mínima do par)
@@ -477,8 +480,35 @@ entradas aguardam outra consulta e a gestão das posições existentes continua.
 
 `SIGNAL_UNIVERSE_SCREENED` registra contagens por motivo e os pares configurados
 bloqueados, uma vez por fotografia, sem gravar uma lista inteira da corretora.
-A ampliação para 100+ candidatos e a comparação dos tamanhos de universo ficam
-para as próximas execuções; não aumente o limite desta etapa acima de 50.
+A descoberta consulta os tickers em conjunto e inclui até o tamanho configurado
+na fila de candidatos. `DYNAMIC_UNIVERSE_SIZE=0` significa **todos os elegíveis**,
+não desativar a descoberta; valores de 1 a 1000 limitam a seleção dinâmica.
+A configuração atual de 10 continua válida e o limite de posições/ordens não muda.
+
+A fila busca candles em lotes de até 20 consultas por passagem, com dois workers
+por padrão. Esses limites são independentes do tamanho do universo, dos trades e
+das consultas usadas para proteger posições. Ao atingir o prazo de 10 segundos,
+a fila deixa de iniciar consultas e aguarda as que já estão em andamento. Cada
+consulta do scanner usa uma tentativa no provedor dos candles do par principal,
+sem amplificar falhas com retries ou fallback; cada cliente de dados tem timeout
+de rede de 10 segundos. O prazo de agendamento é um limite suave, não uma garantia
+de duração total incluindo rede, rate limit e descoberta.
+
+Resultados são reutilizados dentro do mesmo candle e provedor, inclusive na
+avaliação da entrada selecionada. Pares atrasados ou com falha voltam à fila em
+outra passagem. O cursor continua no candle seguinte para distribuir a cobertura;
+candles antigos não são reutilizados como sinais do candle novo. Uma lista muito
+grande pode não ser totalmente analisada em 15 minutos: o painel mostra o total
+avaliado/pendente e apenas uma amostra de pares para caber no celular.
+
+A supervisão Demo e as saídas Paper acontecem antes da fila de novas entradas.
+A decisão Demo continua independente do processamento Paper do mesmo candle.
+O evento `signal_scan_progress` informa candidatos elegíveis, alvo, cobertura,
+consultas, falhas, cache e duração. O ranking é recalculado só quando o conjunto
+avaliado ou os símbolos ocupados mudam, e seus logs listam no máximo 20 pares.
+Os limites opcionais de agendamento já têm padrões; não exigem variáveis novas na
+Railway. A comparação de rentabilidade entre tamanhos de universo continua na
+execução 3, sem prometer melhora de resultado pela simples ampliação da busca.
 
 ### Validação operacional de 48 horas
 

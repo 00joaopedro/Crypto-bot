@@ -72,7 +72,10 @@ function render(){renderControl();renderDemoAccounting();renderDemoCycle();const
  const settings=state.settings;if(!settingsDirty){$('symbol').innerHTML=state.supportedSymbols.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');$('symbol').value=settings.symbol;$('order-size').value=settings.orderSizeUsdt;$('paper-order-size').value=settings.paperTradeSizeUsdt??'';$('paper-order-size').placeholder=state.paperDefaultTradeSize??'';$('max-trades').value=settings.maxTrades;$('max-positions').value=settings.maxConcurrentPositions;$('interval').value=String(settings.intervalMinutes);}$('history-symbol').innerHTML='<option value="">Todos os pares</option>'+state.supportedSymbols.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');$('history-symbol').value=historySymbol;
  const signal=state.latestDecision?.signal||{};$('decision-action').textContent=signal.action||'—';$('decision').textContent=signal.reason?`${signal.reason} · RSI ${Number(signal.rsi14||0).toFixed(2)} · Confiança ${percent((state.latestDecision?.ai_decision?.confidence||0)*100)}`:'Aguardando a primeira decisão.';
  const scan=state.lastSignalScan;
- $('scan-pairs').textContent=scan?.pairs.length?'Pares no último ciclo ('+new Date(scan.candleTimestamp).toLocaleString('pt-BR')+'): '+scan.pairs.join(', '):'Aguardando a primeira análise de pares.';
+ const scanPairs=scan?.pairs||[];
+ const scanPrefix=scan?'Análise de pares ('+new Date(scan.candleTimestamp).toLocaleString('pt-BR')+'): ':'';
+ const scanProgress=scan?.statistics?scan.statistics.analyzedCandidates+' de '+scan.statistics.targetCandidates+' avaliados; '+scan.statistics.pendingCandidates+' pendentes. ':'';
+ $('scan-pairs').textContent=scan?scanPrefix+scanProgress+scanPairs.slice(0,12).join(', ')+(scanPairs.length>12?' (+'+(scanPairs.length-12)+' pares)':''):'Aguardando a primeira análise de pares.';
  const cooledPairs=(scan?.cooldowns||[]).filter(item=>item.until>Date.now());
  if(cooledPairs.length)$('scan-pairs').textContent+=' | Pausa por perdas Paper consecutivas · '+cooledPairs.map(item=>item.symbol+' até '+new Date(item.until).toLocaleString('pt-BR')).join(', ');
  renderDemoExposure(okx);

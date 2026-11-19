@@ -388,6 +388,9 @@ async function main(): Promise<void> {
           hours: config.PAIR_COOLDOWN_HOURS, minLosses: config.PAIR_COOLDOWN_MIN_LOSSES,
         } } : {}),
         dynamicUniverseSize: config.DYNAMIC_UNIVERSE_SIZE,
+        scanConcurrency: config.SIGNAL_SCAN_CONCURRENCY,
+        scanRequestBudget: config.SIGNAL_SCAN_REQUEST_BUDGET,
+        scanTimeBudgetMs: config.SIGNAL_SCAN_TIME_BUDGET_MS,
         marketEligibility: {
           excludedSymbols: config.SIGNAL_EXCLUDED_SYMBOLS,
           excludeStablecoins: config.SIGNAL_EXCLUDE_STABLECOINS,
