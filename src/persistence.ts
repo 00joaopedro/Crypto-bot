@@ -33,6 +33,7 @@ export type PersistedCycle = {
   paperState: PaperTraderState;
   riskState?: { consecutiveLosses: number; stopLossCooldownUntil: number };
   lossPause?: { controlRevision?: string };
+  riskPause?: { reason: "paper_drawdown_limit" | "paper_daily_loss_limit"; controlRevision?: string };
   decision?: {
     mode: "PAPER" | "PAPER_WITH_OKX_DEMO";
     strategyId?: StrategyId;
@@ -964,7 +965,7 @@ export class PostgresPersistence implements BotPersistence {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
-      if (cycle.lossPause) await client.query("SELECT id FROM bot_control WHERE id = 1 FOR UPDATE");
+      if (cycle.lossPause || cycle.riskPause) await client.query("SELECT id FROM bot_control WHERE id = 1 FOR UPDATE");
       if (cycle.decision) await this.upsertDecision(client, cycle);
       await this.upsertSnapshot(client, cycle);
       for (const trade of cycle.paperResult.events) {
@@ -990,7 +991,9 @@ export class PostgresPersistence implements BotPersistence {
       if (checkpoint.rowCount !== 1) {
         throw new Error("Refusing to overwrite a newer portfolio checkpoint");
       }
-      if (cycle.lossPause) {
+      if (cycle.riskPause) {
+        await this.writePause(client, true, "system:risk_limit", cycle.riskPause.reason, cycle.riskPause.controlRevision);
+      } else if (cycle.lossPause) {
         await this.writePause(client, true, "system:consecutive_losses", undefined, cycle.lossPause.controlRevision);
       }
       await client.query("COMMIT");

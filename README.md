@@ -74,6 +74,7 @@ Variáveis principais:
 - `RISK_MAX_EXPOSURE_PERCENT=0.25` (exposição agregada; a configuração aceita no máximo 30%)
 - `RISK_MAX_DAILY_LOSS_PERCENT=0.03` (pausa ao perder 3% no dia)
 - `RISK_MAX_DRAWDOWN_PERCENT=0.10` (pausa ao atingir 10% de drawdown)
+- Os limites percentuais Paper são conferidos após a supervisão de cada par, antes de novas entradas. A pausa e o checkpoint são gravados juntos; a revisão do controle impede que um ciclo antigo sobrescreva uma retomada mais recente. As saídas já em supervisão continuam sendo processadas.
 - O limite de ordens usa uma janela móvel. Uma ordem Demo pendente de confirmação bloqueia novas entradas. Saídas executadas por proteções na corretora seguem o fluxo de proteção.
 - `ENTRY_COOLDOWN_MINUTES=60` (intervalo mínimo entre novas entradas no mesmo par)
 - `RISK_MAX_CONSECUTIVE_LOSSES=3` (pausa novas entradas após três perdas consecutivas)

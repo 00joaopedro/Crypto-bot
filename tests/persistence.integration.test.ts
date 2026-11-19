@@ -370,6 +370,19 @@ integration("PostgresPersistence", () => {
     await expect(persistence.isPaused()).resolves.toBe(false);
     expect(await alerts()).toBe(previousAlerts + 1);
 
+    const percentControl = await persistence.readControlState();
+    const percentCheckpoint = { ...checkpoint, candle: { ...candle, timestamp: candle.timestamp + 1_800_000 } };
+    await persistence.recordCycle({ ...percentCheckpoint, riskPause: { reason: "paper_daily_loss_limit", controlRevision: percentControl.revision } });
+    await expect(persistence.readControlState()).resolves.toMatchObject({ paused: true, pauseReason: "paper_daily_loss_limit" });
+    const percentRevision = (await persistence.readControlState()).revision;
+    await persistence.recordCycle({ ...percentCheckpoint, riskPause: { reason: "paper_daily_loss_limit" } });
+    expect((await persistence.readControlState()).revision).toBe(percentRevision);
+    await persistence.setPaused(false, "dashboard");
+    await persistence.recordCycle({ ...percentCheckpoint, riskPause: { reason: "paper_drawdown_limit", controlRevision: percentControl.revision } });
+    await expect(persistence.isPaused()).resolves.toBe(false);
+    await expect(persistence.recordCycle({ ...checkpoint, riskPause: { reason: "paper_drawdown_limit" } })).rejects.toThrow("newer portfolio checkpoint");
+    await expect(persistence.isPaused()).resolves.toBe(false);
+
     await persistence.setPaused(true, "system:consecutive_losses");
     const timedPause = await persistence.readControlState();
     await persistence.setPaused(true, "system:demo_exit_supervision", "pending_demo_order");

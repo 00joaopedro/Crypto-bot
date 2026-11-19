@@ -452,6 +452,7 @@ export class TradingBot {
 
     if (supervisedCurrent) approved = false;
     const previousState = paperTrader.exportState();
+    await this.updateDailyRiskBaseline(executionSymbol, previousState.cashUsdt + (previousState.position?.quantity ?? 0) * currentCandle.open);
     const riskBefore = this.exportRiskState();
     const paperResult = supervisedCurrent ? { events: [], snapshot: supervisedCurrent.result.snapshot } : paperTrader.processCandle(
       currentCandle,
@@ -506,29 +507,7 @@ export class TradingBot {
     await this.executeContraryDemoSell(executionSymbol, currentCandle.timestamp, paperResult);
     this.lastProcessedCandleBySymbol.set(executionSymbol, currentCandle.timestamp);
 
-    await this.updateDailyRiskBaseline(executionSymbol, paperResult.snapshot.equityUsdt);
-    const dailyStartEquity = this.dailyStartEquityBySymbol.get(executionSymbol) ?? paperResult.snapshot.equityUsdt;
-    const dailyLossPercent = dailyStartEquity
-      ? Math.max(0, (dailyStartEquity - paperResult.snapshot.equityUsdt) / dailyStartEquity)
-      : 0;
-    if (
-      !lossPause && this.options.persistence &&
-      ((this.options.maxDrawdownPercent !== undefined &&
-        paperResult.snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent * 100) ||
-        (this.options.maxDailyLossPercent !== undefined && dailyLossPercent >= this.options.maxDailyLossPercent))
-    ) {
-      const drawdownExceeded = this.options.maxDrawdownPercent !== undefined &&
-        paperResult.snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent * 100;
-      await this.options.persistence.setPaused(true, "system:risk_limit", drawdownExceeded ? "paper_drawdown_limit" : "paper_daily_loss_limit");
-      console.log(JSON.stringify({
-        event: "risk_pause_triggered",
-        symbol: executionSymbol,
-        currentDrawdownPercent: paperResult.snapshot.currentDrawdownPercent,
-        dailyLossPercent,
-      }));
-    }
-
-    if (lossPause) {
+    if (this.observedPaused) {
       this.logPaperResult(currentCandle, paperResult, false, executionSymbol);
       await this.sendTradeAlerts(executionSymbol, paperResult.events, false);
       return;
@@ -788,8 +767,20 @@ export class TradingBot {
   }
 
   private async persistPaperCycle(cycle: PersistedCycle, lossPause: boolean, controlRevision?: string): Promise<void> {
-    await this.options.persistence?.recordCycle(lossPause ? { ...cycle, lossPause: controlRevision === undefined ? {} : { controlRevision } } : cycle);
-    if (lossPause) this.observedPaused = true;
+    await this.updateDailyRiskBaseline(cycle.symbol, cycle.paperResult.snapshot.equityUsdt);
+    const snapshot = cycle.paperResult.snapshot;
+    const baseline = this.dailyStartEquityBySymbol.get(cycle.symbol) ?? snapshot.equityUsdt;
+    const dailyLossPercent = baseline > 0 ? Math.max(0, (baseline - snapshot.equityUsdt) / baseline) : 0;
+    const drawdownExceeded = this.options.maxDrawdownPercent !== undefined && snapshot.currentDrawdownPercent >= this.options.maxDrawdownPercent * 100;
+    const dailyExceeded = this.options.maxDailyLossPercent !== undefined && dailyLossPercent >= this.options.maxDailyLossPercent;
+    const reason = drawdownExceeded ? "paper_drawdown_limit" as const : dailyExceeded ? "paper_daily_loss_limit" as const : undefined;
+    const riskPause = reason && this.options.persistence && !this.observedPaused ? { reason, ...(controlRevision === undefined ? {} : { controlRevision }) } : undefined;
+    await this.options.persistence?.recordCycle({ ...cycle,
+      ...(riskPause ? { riskPause } : lossPause ? { lossPause: controlRevision === undefined ? {} : { controlRevision } } : {}),
+    });
+    if (lossPause || riskPause) this.observedPaused = true;
+    if (riskPause) console.log(JSON.stringify({ event: "risk_pause_triggered", symbol: cycle.symbol,
+      currentDrawdownPercent: snapshot.currentDrawdownPercent, dailyLossPercent }));
   }
 
   private async paperHistoryGap(trader: PaperTrader, symbol: string, cursor: number | undefined, candles: Candle[]): Promise<boolean> {
@@ -846,6 +837,7 @@ export class TradingBot {
       if (await this.paperHistoryGap(trader, position.symbol, last, unseen)) continue;
       for (const candle of unseen) {
         const before = trader.exportState();
+        await this.updateDailyRiskBaseline(position.symbol, before.cashUsdt + (before.position?.quantity ?? 0) * candle.open);
         const index = candles.findIndex(c => c.timestamp === candle.timestamp);
         const signal = index >= 49 ? evaluateStrategy(candles.slice(0, index + 1), this.options.minimumSignalScore === undefined ? undefined : { minimumScore: this.options.minimumSignalScore }) : undefined;
         const riskBefore = this.exportRiskState();
