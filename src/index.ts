@@ -1,3 +1,4 @@
+import { effectiveExecutionSnapshot, executionFidelityReport, TradingTermsCache, type EffectiveExecutionSnapshot, type TradingTerms } from "./execution-fidelity.js";
 import { TREND_STRATEGY_ID } from "./strategy-id.js";
 import { describeAutoResume, autoResumeAt, inspectAutoResumeMarket, inspectAutoResumePaperRisk } from "./auto-resume.js";
 import { exitPolicySchema } from "./exit-policy.js";
@@ -66,6 +67,32 @@ async function main(): Promise<void> {
   let okxDemo: OkxDemoExecutor | undefined;
   let bot: TradingBot;
   let reconfiguring = false;
+  let appliedExecution: EffectiveExecutionSnapshot | undefined;
+  let configurationPersistence: "recorded" | "unavailable" | "disabled" = "disabled";
+  const feeQuotes = new TradingTermsCache();
+  const captureAppliedExecution = async (settings: DashboardSettings, recovery: Awaited<ReturnType<PostgresPersistence["loadRecoveryState"]>>) => {
+    appliedExecution = effectiveExecutionSnapshot(config, settings, exitPolicy, recovery ?? undefined, {
+      ...(process.env.RAILWAY_GIT_COMMIT_SHA ? { commitSha: process.env.RAILWAY_GIT_COMMIT_SHA } : {}),
+      ...(process.env.RAILWAY_DEPLOYMENT_ID ? { deploymentId: process.env.RAILWAY_DEPLOYMENT_ID } : {}),
+    });
+    console.log(JSON.stringify({ event: "execution_config_applied", snapshot: appliedExecution }));
+    configurationPersistence = persistence ? "unavailable" : "disabled";
+    if (persistence) {
+      try { await persistence.recordOperationalEvent({ eventType: "EXECUTION_CONFIG_APPLIED", severity: "INFO", symbol: settings.symbol, details: appliedExecution }); configurationPersistence = "recorded"; }
+      catch { console.error(JSON.stringify({ event: "execution_config_journal_unavailable" })); }
+    }
+  };
+  const inspectExecutionFidelity = async () => {
+    const snapshot = appliedExecution;
+    if (!snapshot) return { status: "unavailable", reason: "runtime_not_initialized" };
+    const executor = okxDemo;
+    const journalStatus = configurationPersistence;
+    let terms: TradingTerms = { status: "unavailable", reason: "demo_disabled" };
+    if (executor) {
+      terms = await feeQuotes.read(executor, snapshot.settings.symbol);
+    }
+    return { ...executionFidelityReport(snapshot, terms), configurationPersistence: journalStatus };
+  };
   const exitPolicy = config.EXIT_MANAGEMENT_ENABLED ? exitPolicySchema.parse({ mode: config.EXIT_MODE, breakeven: config.EXIT_BREAKEVEN_ENABLED, atrPeriod: config.ATR_PERIOD, stopMultiplier: config.ATR_STOP_MULTIPLIER, targetMultiplier: config.ATR_TAKE_PROFIT_MULTIPLIER, minStopRate: config.ATR_MIN_STOP_RATE, maxStopRate: config.ATR_MAX_STOP_RATE, trailingMultiplier: config.EXIT_TRAILING_ATR_MULTIPLIER, activationRate: config.EXIT_ACTIVATION_RATE, exitFeeRate: config.EXIT_FEE_RATE, exitSlippageRate: config.EXIT_SLIPPAGE_RATE }) : undefined;
   let lastAccountingCheck = 0;
   let activeCycle: Promise<void> | undefined;
@@ -314,9 +341,11 @@ async function main(): Promise<void> {
           ...(state.paperState.position.strategyId ? { strategyId: state.paperState.position.strategyId } : {}),
         }]);
       }
+      const configurationHash = effectiveExecutionSnapshot(config, settings, exitPolicy, state ?? undefined).configurationHash;
       const paperTrader = new PaperTrader(
         {
           strategyId: TREND_STRATEGY_ID,
+          configurationHash,
           initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
           tradeSizeUsdt:
             settings.paperTradeSizeUsdt ?? config.PAPER_TRADE_SIZE_USDT,
@@ -334,6 +363,7 @@ async function main(): Promise<void> {
         ? new ExecutionQueue(demoExecutor)
         : undefined;
       return new TradingBot(market, {
+        configurationHash,
         symbol: settings.symbol,
         candleLimit: config.CANDLE_LIMIT,
         btcRegimeFilter: config.BTC_REGIME_FILTER_ENABLED,
@@ -406,6 +436,7 @@ async function main(): Promise<void> {
     };
 
     bot = createBot(tradingSettings, recoveryState, okxDemo);
+    await captureAppliedExecution(tradingSettings, recoveryState);
 
     console.log(
       JSON.stringify({
@@ -494,6 +525,7 @@ async function main(): Promise<void> {
           recoveryState = nextRecoveryState;
           okxDemo = nextOkxDemo;
           bot = createBot(nextSettings, nextRecoveryState, nextOkxDemo);
+          await captureAppliedExecution(nextSettings, nextRecoveryState);
           await previousOkxDemo?.close();
 
           console.log(
@@ -528,6 +560,7 @@ async function main(): Promise<void> {
       };
 
       dashboardServer = await startDashboard({
+        getExecutionFidelity: inspectExecutionFidelity,
         port: config.PORT,
         password: config.DASHBOARD_PASSWORD,
         sessionSecret: config.DASHBOARD_SESSION_SECRET,

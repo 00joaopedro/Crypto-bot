@@ -657,3 +657,30 @@ integration("pair cooldown history", () => {
     }
   });
 });
+
+integration("configuration provenance", () => {
+  it("retains the opening configuration hash across Paper recovery and persisted closure", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const symbol = `FIDELITY${Date.now()}/USDT`;
+    try {
+      await persistence.initialize();
+      const configuration = { initialBalanceUsdt: 100, tradeSizeUsdt: 10, feeRate: .001, slippageRate: 0, stopLossRate: .01, takeProfitRate: .02 };
+      const candle: Candle = { timestamp: Date.now(), open: 100, high: 100, low: 100, close: 100, volume: 1 };
+      const trader = new PaperTrader({ ...configuration, configurationHash: "a".repeat(64) });
+      const opened = trader.processCandle(candle, true);
+      await persistence.recordCycle({ symbol, candle, replayed: false, paperResult: opened, paperState: trader.exportState() });
+      const state = await persistence.loadRecoveryState(symbol);
+      expect(state?.paperState.position?.configurationHash).toBe("a".repeat(64));
+      const restored = new PaperTrader({ ...configuration, configurationHash: "b".repeat(64) }, state!.paperState);
+      const next = { ...candle, timestamp: candle.timestamp + 900000, low: 90 };
+      await persistence.recordCycle({ symbol, candle: next, replayed: false, paperResult: restored.processCandle(next, false), paperState: restored.exportState() });
+      const rows = await db.query("SELECT trade->>'configurationHash' AS hash FROM paper_trades WHERE symbol = $1", [symbol]);
+      expect(rows.rows).toHaveLength(2);
+      expect(rows.rows.every(row => row.hash === "a".repeat(64))).toBe(true);
+    } finally {
+      for (const table of ["paper_trades", "portfolio_snapshots", "paper_trader_state"]) await db.query(`DELETE FROM ${table} WHERE symbol = $1`, [symbol]);
+      await db.end(); await persistence.close();
+    }
+  });
+});

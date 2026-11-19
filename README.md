@@ -589,3 +589,16 @@ No modo `--compare`, compare o filtro desativado com alternativas que acrescenta
 Use também 4, 8 e 24 horas para comparar custo, resultados líquidos e entradas
 bloqueadas. Cada janela do backtest começa com histórico de operações vazio.
 A redução de consultas e o impacto na estratégia dependem dos dados em uso.
+
+### Auditoria da configuração aplicada
+
+O diagnóstico JSON inclui configuração efetiva, hash e condições de execução
+consultadas na OKX. Compare com um estudo sem enviar ordens:
+
+```sh
+npm run build
+npm run execution:fidelity -- diagnostico.json examples/universe-validation.study.json
+```
+
+Consulte [diferenças e limites da auditoria](docs/execution-fidelity.md).
+Nenhuma variável nova é necessária. Evidência ausente permanece desconhecida.

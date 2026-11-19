@@ -23,6 +23,7 @@ export type ScanStatistics = {
 };
 
 type BotOptions = {
+  configurationHash?: string;
   symbol: string;
   candleLimit: number;
   btcRegimeFilter?: boolean;
@@ -1170,7 +1171,7 @@ export class TradingBot {
         eventType,
         severity,
         symbol: this.options.symbol,
-        details,
+        details: { ...details, ...(this.options.configurationHash ? { configurationHash: this.options.configurationHash } : {}) },
       });
     } catch (error) {
       console.error(JSON.stringify({

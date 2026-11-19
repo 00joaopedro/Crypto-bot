@@ -27,6 +27,26 @@ describe("dashboard authentication", () => {
     }
   });
 
+  networkTest("protects runtime fidelity and includes it in diagnostic exports without relabeling records", async () => {
+    const content = { generatedAt: "2026-11-19T00:00:00Z", records: [{ section: "paper_trades", trade: { type: "CLOSED" } }] };
+    const getExecutionFidelity = vi.fn(async () => ({ status: "equivalence_not_established", snapshot: { configurationHash: "a".repeat(64) } }));
+    server = await startDashboard({ port: 0, host: "127.0.0.1", password: "password", sessionSecret: "s".repeat(32),
+      persistence: { getDiagnosticLogs: async () => JSON.stringify(content) } as unknown as PostgresPersistence,
+      supportedSymbols: [], onSettingsChanged: () => undefined, getExecutionFidelity });
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    expect((await fetch(`${base}/api/execution-fidelity`)).status).toBe(401);
+    expect(getExecutionFidelity).not.toHaveBeenCalled();
+    const login = await fetch(`${base}/api/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "password" }) });
+    const headers = { cookie: login.headers.get("set-cookie")!.split(";")[0]! };
+    expect(await (await fetch(`${base}/api/execution-fidelity`, { headers })).json()).toHaveProperty("status", "equivalence_not_established");
+    const response = await fetch(`${base}/api/logs`, { headers });
+    const text = await response.text();
+    expect(Number(response.headers.get("content-length"))).toBe(Buffer.byteLength(text));
+    const parsed = JSON.parse(text);
+    expect(parsed.records).toEqual(content.records);
+    expect(parsed.executionFidelity.snapshot.configurationHash).toBe("a".repeat(64));
+  });
+
   networkTest("starts a Demo cycle only for an authenticated same-origin request with the current marker", async () => {
     const started = "2026-11-18T00:00:00.001Z";
     const startDemoCycle = vi.fn().mockResolvedValueOnce(started).mockResolvedValueOnce(null);

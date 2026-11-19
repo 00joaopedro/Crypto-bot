@@ -17,7 +17,8 @@
     "strategy:study": "node dist/strategy-study-cli.js",
     "demo:validation-report": "node dist/demo-validation-cli.js",
     "strategy:universe": "node dist/universe-study-cli.js",
-    "strategy:universe-benchmark": "node dist/universe-scan-benchmark-cli.js"
+    "strategy:universe-benchmark": "node dist/universe-scan-benchmark-cli.js",
+    "execution:fidelity": "node dist/execution-fidelity-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
