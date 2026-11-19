@@ -79,6 +79,12 @@ resultado ao regime. As tabelas por par não autorizam banir moedas pela amostra
 Os bloqueios de exposição do relatório original são oportunidades repetidas,
 não ordens rejeitadas pela corretora; não somam trades independentes.
 
+O teto específico de altcoins do estudo é sempre aplicado. No Paper ao vivo,
+esse teto depende de `RISK_SIZING_ENABLED=true`; com a função desligada, valores
+numéricos iguais não representam restrições equivalentes. A auditoria compara
+também esse estado de ativação. O resultado histórico descreve o manifesto,
+sem afirmar que reproduz a carteira atual.
+
 ## Como usar com um novo diagnóstico Paper
 
 ```sh

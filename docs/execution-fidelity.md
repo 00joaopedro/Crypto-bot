@@ -30,6 +30,7 @@ essa evidência. Nenhum deployment, saldo, variável ou controle do bot foi alte
 | Gestão de saída | Paper observa OHLC e usa seus custos no breakeven. Demo depende de proteção nativa, confirmação de alterações e reconciliação. Venda Demo por sinal contrário continua desabilitada. |
 | Indicadores | EMA 9/21 e RSI 14; teto de compra compilado em 70. Não há EMA 200 de 1h. Não descrever RSI 63 ou EMA 200 como regras já aplicadas. |
 | Carteira | Replay não reproduz todos os controles de pausa, frequência, agendamento, desempate, troca de universo e reconciliação. Mesmo sinal pode ser admitido em um motor e bloqueado em outro. |
+| Exposição a altcoins | O estudo aplica sempre o teto por classe. O Paper só aplica seu teto específico de altcoins com `RISK_SIZING_ENABLED=true`. Um valor configurado com a função desligada não é uma restrição ativa equivalente. |
 | Recuperação | Posições restauradas podem carregar política anterior; configuração atual não reconstitui todo o histórico. |
 
 Essas diferenças são documentadas sem mudar a estratégia durante a auditoria.

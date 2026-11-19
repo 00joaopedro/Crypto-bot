@@ -100,7 +100,10 @@ export function executionFidelityReport(input: unknown, rawTerms: TradingTerms, 
     difference("paper_fee", c.PAPER_FEE_RATE, study.scenarios[0]!.feeRate, "Paper rate versus the standard study assumption per side.");
     difference("paper_execution_cost", c.PAPER_SLIPPAGE_RATE, comparisonSlippage(study.scenarios[0]!), "Historical execution combines slippage and half the modeled spread per leg; Paper does not fill from the observed order book.");
     difference("total_exposure", c.RISK_MAX_EXPOSURE_PERCENT, study.portfolio.maxExposureRate, "Shared exposure limits differ.");
-    difference("alt_exposure", c.RISK_MAX_ALT_EXPOSURE_PERCENT, study.portfolio.maxAltExposureRate, "Altcoin exposure limits differ.");
+    difference("alt_exposure", { enabled: c.RISK_SIZING_ENABLED === true, rate: c.RISK_SIZING_ENABLED === true ? c.RISK_MAX_ALT_EXPOSURE_PERCENT : null },
+      { enabled: true, rate: study.portfolio.maxAltExposureRate },
+      "The historical portfolio always enforces its altcoin cap. Live Paper only enforces the dedicated altcoin cap when risk sizing is enabled; a dormant configured value is not an active constraint.");
+    difference("position_sizing", c.RISK_SIZING_ENABLED, false, "The universe study uses fixed trade ceilings; live risk sizing can reduce quantity according to stop distance and remaining exposure.");
     difference("positions", s.maxPositions, study.portfolio.maxConcurrentPositions, "Concurrent position limits differ.");
     difference("pair_cooldown", c.PAIR_COOLDOWN_ENABLED ? { hours: c.PAIR_COOLDOWN_HOURS, minLosses: c.PAIR_COOLDOWN_MIN_LOSSES } : null, study.parameters.pairCooldown ?? null, "Pair-loss pauses change the admitted trade sample.");
     if (terms.status === "confirmed" && terms.symbol === s.symbol) difference("study_account_fee", study.scenarios[0]!.feeRate, terms.takerFeeRate, "Historical standard fee versus current quoted taker fee; quote is not a reconstruction of historical fees.");

@@ -7,6 +7,18 @@ import { exitPolicySchema } from "../src/exit-policy.js";
 const settings = { symbol: "BTC/USDT", orderSizeUsdt: 10, paperTradeSizeUsdt: null, maxConcurrentPositions: 10, maxTrades: 10, intervalMinutes: 15 };
 const unknownFee = { status: "unavailable" as const, reason: "fee_unconfirmed" as const };
 const study = JSON.parse(readFileSync(new URL("../examples/universe-validation.study.json", import.meta.url), "utf8"));
+it("compares the active Paper altcoin cap rather than a dormant configured value", () => {
+  const report = (enabled: boolean, rate: number) => executionFidelityReport(effectiveExecutionSnapshot(parseConfig({
+    RISK_SIZING_ENABLED: String(enabled), RISK_MAX_ALT_EXPOSURE_PERCENT: String(rate),
+  }), settings, undefined), unknownFee, study);
+  const offMatching = report(false, .1).findings.find(f => f.id === "alt_exposure");
+  const offDifferent = report(false, .2).findings.find(f => f.id === "alt_exposure");
+  expect(offMatching).toMatchObject({ observed: { enabled: false, rate: null }, expected: { enabled: true, rate: .1 } });
+  expect(offDifferent).toEqual(offMatching);
+  expect(report(true, .1).findings.some(f => f.id === "alt_exposure")).toBe(false);
+  expect(report(true, .2).findings.find(f => f.id === "alt_exposure")).toMatchObject({ observed: { enabled: true, rate: .2 }, expected: { enabled: true, rate: .1 } });
+  expect(report(true, .1).findings.some(f => f.id === "position_sizing")).toBe(true);
+});
 it("captures effective persisted sizes and omits secrets, personal data and recovery order IDs", () => {
   const config = parseConfig({ OKX_API_KEY: "SECRET_KEY_SENTINEL", OKX_SECRET_KEY: "SECRET_SENTINEL", DATABASE_URL: "postgresql://sensitive/secret", DASHBOARD_SESSION_SECRET: "PRIVATE_SENTINEL".repeat(3), DASHBOARD_PASSWORD: "PRIVATE_PASSWORD", PAPER_TRADE_SIZE_USDT: "25", OKX_DEMO_ORDER_SIZE_USDT: "15" });
   const snapshot = effectiveExecutionSnapshot(config, { ...settings, orderSizeUsdt: 12 }, undefined);
