@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.build.json",
@@ -13,7 +15,9 @@
     "strategy:validate": "node dist/validate-strategy-cli.js",
     "strategy:collect": "node dist/collect-okx-history-cli.js",
     "strategy:study": "node dist/strategy-study-cli.js",
-    "demo:validation-report": "node dist/demo-validation-cli.js"
+    "demo:validation-report": "node dist/demo-validation-cli.js",
+    "strategy:universe": "node dist/universe-study-cli.js",
+    "strategy:universe-benchmark": "node dist/universe-scan-benchmark-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

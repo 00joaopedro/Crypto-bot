@@ -16,7 +16,8 @@ import type { Candle } from "./types.js";
 
 type Parameters = ComparisonOptions["baseline"];
 type Scenario = ComparisonOptions["scenarios"][number];
-type Instrument = { symbol: string; candles: Candle[]; constraints: ComparisonOptions["constraints"] };
+export type PortfolioInstrument = { symbol: string; candles: Candle[]; constraints: ComparisonOptions["constraints"]; quoteVolumesUsdt?: number[] };
+type Instrument = PortfolioInstrument;
 type Dataset = { candles: Candle[]; btcCandles?: Candle[]; options: ComparisonOptions };
 type Rejection = "cash" | "positions" | "totalExposure" | "altExposure" | "liquidity" | "minimum" | "regime" | "cooldown";
 
@@ -226,7 +227,7 @@ export function runPortfolioScenario(
       const previous = asset.candles[index - 1]!;
       if (regimeBlocked(entryIndex) || (delay > 1 && regimeBlocked(index - 1))) { reject(asset, "regime"); continue; }
       if (asset.cooldownUntil !== undefined && timestamp < asset.cooldownUntil) { reject(asset, "cooldown"); continue; }
-      if (tradeSize > Math.min(scenario.assumedDepthUsdt, previous.volume * previous.close * scenario.maxParticipationRate)) {
+      if (tradeSize > Math.min(scenario.assumedDepthUsdt, (asset.quoteVolumesUsdt?.[index - 1] ?? previous.volume * previous.close) * scenario.maxParticipationRate)) {
         reject(asset, "liquidity"); continue;
       }
       const { quantity, notional } = quantizeQuantityDown(tradeSize, candle.open * (1 + slippageRate), asset.constraints.quantityStep);

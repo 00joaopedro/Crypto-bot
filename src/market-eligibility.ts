@@ -55,20 +55,26 @@ export type MarketScreenOptions = MarketEligibilityPolicy & {
 };
 export type MarketScreen = { eligible: string[]; blocked: Record<string, string> };
 
+export function marketEntryBlock(market: EntryMarket, policy: MarketEligibilityPolicy = {}, quote = "USDT"): string | undefined {
+  let reason = symbolEntryBlock(market.symbol, policy);
+  if (!reason && !market.spot) reason = "not_spot";
+  if (!reason && market.active === false) reason = "market_inactive";
+  if (!reason && market.quote !== quote) reason = "quote_mismatch";
+  // Only trust explicit category labels; never infer a category from an X prefix.
+  const info = market.info as { assetClass?: unknown; instCategory?: unknown } | undefined;
+  const category = typeof info?.assetClass === "string" ? info.assetClass.toLowerCase() : "";
+  if (!reason && policy.excludeTokenizedAssets !== false && ["equity", "stock", "tokenized_stock", "tokenized_equity"].includes(category)) reason = "tokenized_asset";
+  if (!reason && policy.excludeTokenizedAssets !== false && ["3", "4", "5", "6"].includes(String(info?.instCategory ?? ""))) reason = "non_crypto_asset";
+  return reason;
+}
+
 export function screenEntryMarkets(
   markets: readonly EntryMarket[], tickers: Record<string, EntryTicker>, options: MarketScreenOptions,
 ): MarketScreen {
   const blocked: Record<string, string> = {};
   const accepted: Array<{ symbol: string; volume: number; volatility: number }> = [];
   for (const market of markets) {
-    let reason = symbolEntryBlock(market.symbol, options);
-    if (!reason && !market.spot) reason = "not_spot";
-    if (!reason && market.active === false) reason = "market_inactive";
-    if (!reason && market.quote !== (options.quote ?? "USDT")) reason = "quote_mismatch";
-    // Only trust explicit category labels; never infer a category from an X prefix.
-    const info = market.info as { assetClass?: unknown } | undefined;
-    const category = typeof info?.assetClass === "string" ? info.assetClass.toLowerCase() : "";
-    if (!reason && options.excludeTokenizedAssets !== false && ["equity", "stock", "tokenized_stock", "tokenized_equity"].includes(category)) reason = "tokenized_asset";
+    let reason = marketEntryBlock(market, options, options.quote ?? "USDT");
     const ticker = tickers[market.symbol];
     const { bid, ask, last, quoteVolume } = ticker ?? {};
     if (!reason && ![bid, ask, last].every(value => typeof value === "number" && Number.isFinite(value) && value > 0)) reason = "ticker_unconfirmed";

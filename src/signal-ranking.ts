@@ -53,7 +53,7 @@ function compareSignals(left: QuantSignal, right: QuantSignal, leftQuality: Mark
   return right.momentumPercent - left.momentumPercent;
 }
 
-function assessMarketQuality(candles: Candle[]): MarketQuality {
+export function assessMarketQuality(candles: Candle[]): MarketQuality {
   const historyAvailable = candles.length >= 50;
   if (!historyAvailable) {
     return { score: 0, historyAvailable, volumeHealthy: false, volatilityHealthy: false, candleHealthy: false };
