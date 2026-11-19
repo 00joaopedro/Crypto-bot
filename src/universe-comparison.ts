@@ -86,7 +86,7 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
     return rank !== undefined && (size === 0 || rank < size || study.fixedSymbols.includes(d.symbol)) ? score : undefined;
   })]));
   const run = (series: UniverseDataset[], masked: ReturnType<typeof mask>, from: number, scenario: UniverseStudy["scenarios"][number], boundary?: number) =>
-    runPortfolioScenario(series, masked, from, study.parameters, scenario, study.portfolio, study.initialBalanceUsdt, study.tradeSizeUsdt, btc, boundary);
+    runPortfolioScenario(series, masked, from, study.parameters, scenario, study.portfolio, study.initialBalanceUsdt, study.tradeSizeUsdt, btc, boundary, study.candleLimit);
   const prefixes = datasets.map(d => ({ ...d, candles: d.candles.slice(0, holdout), quoteVolumesUsdt: d.quoteVolumesUsdt.slice(0, holdout) }));
   const calibration = study.sizes.map(size => ({ size, result: run(prefixes, mask(size), start, study.scenarios[0]!) }));
   const selected = [...calibration].sort((a, b) => b.result.netReturnUsdt - a.result.netReturnUsdt || a.result.maxDrawdownUsdt - b.result.maxDrawdownUsdt)[0]!;

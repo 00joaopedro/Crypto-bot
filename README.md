@@ -602,3 +602,15 @@ npm run execution:fidelity -- diagnostico.json examples/universe-validation.stud
 
 Consulte [diferenças e limites da auditoria](docs/execution-fidelity.md).
 Nenhuma variável nova é necessária. Evidência ausente permanece desconhecida.
+
+### Diagnóstico das perdas da estratégia
+
+Para separar resultado antes das taxas, custos, saídas, pares, tamanhos e
+contexto de entrada, use o diagnóstico offline:
+
+```sh
+npm run strategy:diagnose -- --paper diagnostico.json
+npm run strategy:diagnose -- --portfolio dados/.universe-data/report.json
+```
+
+O relatório não altera parâmetros. Consulte o [diagnóstico e suas limitações](docs/strategy-loss-diagnosis.md).

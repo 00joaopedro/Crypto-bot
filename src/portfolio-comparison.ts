@@ -10,6 +10,7 @@ import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
 import { evaluateStrategy } from "./strategy.js";
 import { assertComparisonCandidatesAndScenarios, compareDemoStrategies, comparisonSchema, comparisonSlippage, type ComparisonOptions } from "./strategy-comparison.js";
 import { TREND_STRATEGY_ID } from "./strategy-id.js";
+import { diagnoseClosedTrades, paperDiagnosticTrade, type DiagnosticTrade, type EntryDiagnosticContext } from "./strategy-diagnostics.js";
 import { assertValidHistoricalCandles } from "./strategy-validation.js";
 import { requiredWalkForwardWarmup } from "./walk-forward.js";
 import type { Candle } from "./types.js";
@@ -168,12 +169,15 @@ export function runPortfolioScenario(
   tradeSize: number,
   btc?: Candle[],
   split?: number,
+  signalCandleLimit?: number,
 ) {
   if (split !== undefined && (!Number.isInteger(split) || split <= start || split >= instruments[0]!.candles.length)) {
     throw new Error("Portfolio split must be inside the replay window");
   }
   const slippageRate = comparisonSlippage(scenario);
   const feeRate = scenario.feeRate;
+  const entryContexts = new Map<string, EntryDiagnosticContext>();
+  const closedTradeLedger: DiagnosticTrade[] = [];
   const assets = instruments.map(instrument => ({
     ...instrument,
     trader: new PaperTrader({
@@ -264,9 +268,19 @@ export function runPortfolioScenario(
       for (const event of events) {
         if (event.type === "OPENED") {
           cash -= event.notionalUsdt + event.feeUsdt;
+          const history = asset.candles.slice(signalCandleLimit ? Math.max(0, entryIndex + 1 - signalCandleLimit) : 0, entryIndex + 1);
+          const signal = history.length >= 50 ? evaluateStrategy(history, { minimumScore: parameters.minimumSignalScore, maxBuyRsi: parameters.maxBuyRsi ?? 70 }) : undefined;
+          entryContexts.set(asset.symbol, {
+            decisionTimestamp: asset.candles[entryIndex]!.timestamp,
+            ...(scores.get(asset.symbol)?.[entryIndex] !== undefined ? { score: scores.get(asset.symbol)![entryIndex]! } : {}),
+            ...(signal ? { rsi14: signal.rsi14 } : {}),
+            btcState: btc ? btcRegimeBlock(btc, asset.candles[entryIndex]!.timestamp, entryIndex) ?? "allowed" : "unknown",
+          });
         } else {
           cash += event.grossProceedsUsdt - event.grossProceedsUsdt * feeRate;
           asset.trades.push(event);
+          closedTradeLedger.push(paperDiagnosticTrade(asset.symbol, event, entryContexts.get(asset.symbol)));
+          entryContexts.delete(asset.symbol);
           if (parameters.pairCooldown) {
             const recent = asset.trades.slice(-parameters.pairCooldown.minLosses).reverse()
               .map(trade => ({ closedAt: trade.exitTimestamp + REGIME_CANDLE_MS, netPnlUsdt: trade.netPnlUsdt }));
@@ -323,6 +337,8 @@ export function runPortfolioScenario(
   });
   return {
     ...tradeMetrics(trades),
+    closedTradeLedger,
+    diagnostics: diagnoseClosedTrades(closedTradeLedger),
     ...(blocks ? { blocks } : {}),
     finalEquityUsdt: equity, netReturnUsdt: equity - initialBalance, netReturnPercent: (equity / initialBalance - 1) * 100,
     maxDrawdownPercent, maxDrawdownUsdt, recoveryFactor: maxDrawdownUsdt > 0 ? (equity - initialBalance) / maxDrawdownUsdt : null,
