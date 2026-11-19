@@ -388,6 +388,11 @@ async function main(): Promise<void> {
           hours: config.PAIR_COOLDOWN_HOURS, minLosses: config.PAIR_COOLDOWN_MIN_LOSSES,
         } } : {}),
         dynamicUniverseSize: config.DYNAMIC_UNIVERSE_SIZE,
+        marketEligibility: {
+          excludedSymbols: config.SIGNAL_EXCLUDED_SYMBOLS,
+          excludeStablecoins: config.SIGNAL_EXCLUDE_STABLECOINS,
+          excludeTokenizedAssets: config.SIGNAL_EXCLUDE_TOKENIZED_ASSETS,
+        },
         marketMinQuoteVolumeUsdt: config.MARKET_MIN_QUOTE_VOLUME_USDT,
         marketMaxSpreadPercent: config.MARKET_MAX_SPREAD_PERCENT,
         universeSwitchCooldownMinutes: config.UNIVERSE_SWITCH_COOLDOWN_MINUTES,

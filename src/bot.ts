@@ -1,3 +1,4 @@
+import { symbolEntryBlock, type MarketEligibilityPolicy, type MarketScreen } from "./market-eligibility.js";
 import type { FilledDemoBuy } from "./demo-exit-supervisor.js";
 import type { PairCooldown } from "./pair-cooldown.js";
 import type { DemoAdmission } from "./demo-entry.js";
@@ -24,6 +25,7 @@ type BotOptions = {
   minimumSignalScore?: number;
   signalScanSymbols?: string[];
   dynamicUniverseSize?: number;
+  marketEligibility?: MarketEligibilityPolicy;
   pairCooldown?: PairCooldown;
   marketMinQuoteVolumeUsdt?: number;
   marketMaxSpreadPercent?: number;
@@ -80,6 +82,7 @@ export class TradingBot {
     timestamp: number;
     provider: string;
     discovered?: string[];
+    screening?: MarketScreen;
     candles: Map<string, Candle[]>;
     rankingKey?: string;
     ranking?: RankedSignal[];
@@ -257,7 +260,7 @@ export class TradingBot {
     if (this.options.pairCooldown && replayedLoss) {
       pairPaused = await this.refreshPairCooldown(executionSymbol);
     }
-    const currentSymbolSelected = !pairPaused &&
+    const currentSymbolSelected = !pairPaused && ranking.some(candidate => candidate.symbol === executionSymbol) &&
       (selectedEligibleSymbol !== undefined || managedPositionSymbol !== undefined);
     const currentCandle = unseenCandles.at(-1)!;
     const currentIndex = executionCandles.findIndex(
@@ -868,24 +871,46 @@ export class TradingBot {
     }
     const cache = this.scanCache;
     const requests = { discovery: 0, candles: 0 };
-    if (!cache.discovered && this.options.dynamicUniverseSize && typeof this.market.selectSpotSymbols === "function") {
-      try {
-        requests.discovery++;
-        cache.discovered = await this.market.selectSpotSymbols({
-          limit: this.options.dynamicUniverseSize,
-          minQuoteVolume: this.options.marketMinQuoteVolumeUsdt ?? 1_000_000,
-          maxSpreadPercent: this.options.marketMaxSpreadPercent ?? 1,
-        });
-      } catch (error) {
-        console.error(JSON.stringify({
-          event: "dynamic_universe_scan_failed",
-          error: error instanceof Error ? error.message : String(error),
-        }));
-      }
-    }
+    const screenOptions = {
+      ...this.options.marketEligibility,
+      minQuoteVolume: this.options.marketMinQuoteVolumeUsdt ?? 1_000_000,
+      maxSpreadPercent: this.options.marketMaxSpreadPercent ?? 1,
+    };
     const configuredSymbols = [this.options.symbol, ...(this.options.signalScanSymbols ?? [])];
     const universeSize = this.options.dynamicUniverseSize ?? 10;
-    const symbols = new Set([...configuredSymbols, ...this.activeUniverse, ...(cache.discovered ?? [])]);
+    if (!cache.screening && typeof this.market.screenSpotSymbols === "function") {
+      try {
+        requests.discovery++;
+        cache.screening = await this.market.screenSpotSymbols(screenOptions);
+        cache.discovered = cache.screening.eligible.slice(0, universeSize);
+        const details = {
+          candleTimestamp: timestamp,
+          eligibleCount: cache.screening.eligible.length,
+          blockedConfigured: configuredSymbols.filter(symbol => !cache.screening!.eligible.includes(symbol))
+            .map(symbol => ({ symbol, reason: cache.screening!.blocked[symbol] ?? "market_unavailable" })),
+          blockedCounts: Object.values(cache.screening.blocked).reduce<Record<string, number>>((counts, reason) => {
+            counts[reason] = (counts[reason] ?? 0) + 1;
+            return counts;
+          }, {}),
+        };
+        console.log(JSON.stringify({ event: "signal_universe_screened", ...details }));
+        await this.recordOperationalEvent("SIGNAL_UNIVERSE_SCREENED", "INFO", details);
+      } catch (error) {
+        // No stale eligibility fallback: exits continue below, new entries wait.
+        cache.discovered = [];
+        console.error(JSON.stringify({ event: "signal_universe_screen_failed", error: String(error) }));
+      }
+    } else if (!cache.discovered && this.options.dynamicUniverseSize && typeof this.market.selectSpotSymbols === "function") {
+      cache.discovered = await this.market.selectSpotSymbols({ ...screenOptions, limit: universeSize }).catch(error => {
+        console.error(JSON.stringify({ event: "dynamic_universe_scan_failed", error: String(error) }));
+        return [];
+      });
+    }
+    const entryAllowed = (symbol: string) => !symbolEntryBlock(symbol, this.options.marketEligibility) &&
+      (typeof this.market.screenSpotSymbols !== "function" || Boolean(cache.screening?.eligible.includes(symbol)));
+    this.activeUniverse = this.activeUniverse.filter(entryAllowed);
+    const allowedConfigured = configuredSymbols.filter(entryAllowed);
+    const symbols = new Set([...allowedConfigured, ...this.activeUniverse, ...(cache.discovered ?? []).filter(entryAllowed)]);
     const candidates: Array<{ symbol: string; candles: Candle[] }> = [];
     for (const symbol of symbols) {
       if (pausedPairs.has(symbol)) continue;
@@ -919,7 +944,7 @@ export class TradingBot {
       cache.ranking = rankSignals(candidates, this.options.minimumSignalScore, blockedSymbols);
       cache.rankingKey = key;
     }
-    const activeSymbols = await this.updateUniverse(cache.ranking, configuredSymbols, timestamp, universeSize, pausedPairs);
+    const activeSymbols = await this.updateUniverse(cache.ranking, allowedConfigured, timestamp, universeSize, pausedPairs);
     const ranking = cache.ranking.filter(candidate => activeSymbols.has(candidate.symbol) && !pausedPairs.has(candidate.symbol));
     return { ranking, requests };
   }

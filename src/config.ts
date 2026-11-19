@@ -1,3 +1,4 @@
+import { normalizeSymbols } from "./market-eligibility.js";
 import { DEFAULT_CONCURRENT_POSITIONS, DEFAULT_DEMO_ORDERS_PER_INTERVAL, MAX_CONCURRENT_POSITIONS, MAX_DEMO_ORDERS_PER_INTERVAL } from "./trading-limits.js";
 import "dotenv/config";
 import { z } from "zod";
@@ -61,6 +62,14 @@ const schema = z
     PAIR_COOLDOWN_HOURS: z.coerce.number().int().min(1).max(168).default(6),
     PAIR_COOLDOWN_MIN_LOSSES: z.coerce.number().int().min(2).max(20).default(3),
     SIGNAL_SCAN_SYMBOLS: z.string().default(""),
+    SIGNAL_EXCLUDED_SYMBOLS: z.string().default("").transform((value, ctx) => {
+      try { return normalizeSymbols(value); } catch {
+        ctx.addIssue({ code: "custom", message: "Invalid SIGNAL_EXCLUDED_SYMBOLS: use comma-separated Spot pairs" });
+        return z.NEVER;
+      }
+    }),
+    SIGNAL_EXCLUDE_STABLECOINS: z.enum(["true", "false"]).default("true").transform(value => value === "true"),
+    SIGNAL_EXCLUDE_TOKENIZED_ASSETS: z.enum(["true", "false"]).default("true").transform(value => value === "true"),
     DYNAMIC_UNIVERSE_SIZE: z.coerce.number().int().min(1).max(50).default(10),
     MARKET_MIN_QUOTE_VOLUME_USDT: z.coerce.number().nonnegative().default(1_000_000),
     MARKET_MAX_SPREAD_PERCENT: z.coerce.number().positive().max(10).default(1),

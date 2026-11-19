@@ -78,7 +78,9 @@ Variáveis principais:
 - `ENTRY_COOLDOWN_MINUTES=60` (intervalo mínimo entre novas entradas no mesmo par)
 - `RISK_MAX_CONSECUTIVE_LOSSES=3` (pausa novas entradas após três perdas consecutivas)
 - `STOP_LOSS_COOLDOWN_MINUTES=60` (cooldown adicional após stop-loss)
-- `DYNAMIC_UNIVERSE_SIZE=10` (quantidade máxima de pares classificados por candle)
+- `DYNAMIC_UNIVERSE_SIZE=10` (até 10 candidatos da descoberta dinâmica; aceita 1–50 nesta etapa. Pares fixos e ativos podem ampliar o total analisado)
+- `SIGNAL_EXCLUDED_SYMBOLS=USDC/USDT,XNVDA/USDT` (opcional: impede novas entradas desses pares, inclusive quando descobertos dinamicamente)
+- `SIGNAL_EXCLUDE_STABLECOINS=true` e `SIGNAL_EXCLUDE_TOKENIZED_ASSETS=true` (padrões automáticos; não é necessário adicioná-los na Railway)
 - `MARKET_MIN_QUOTE_VOLUME_USDT=1000000` (liquidez mínima do par)
 - `MARKET_MAX_SPREAD_PERCENT=1` (spread máximo aceito)
 - `UNIVERSE_SWITCH_COOLDOWN_MINUTES=60` (tempo mínimo entre rotações)
@@ -446,6 +448,37 @@ expectativa, drawdown, número de trades e estabilidade com custos adversos.
 Essas execuções são por símbolo. Limites agregados e rotação de watchlist
 exigem validação de carteira em Paper/Demo antes de qualquer mudança de
 produção. Não é preciso descartar pares com base em um ou dois trades.
+
+### Elegibilidade do universo de novas entradas
+
+Antes de buscar candles dos candidatos, o bot consulta uma única fotografia de
+mercados/tickers da corretora principal por candle de 15 minutos. A mesma triagem
+vale para pares fixos, o par principal e a descoberta dinâmica: Spot ativo,
+cotação USDT, volume mínimo e spread válido abaixo do limite configurado.
+Livros cruzados ou cotações ausentes/não finitas não autorizam novas entradas.
+A verificação do livro imediatamente antes da ordem continua necessária.
+
+Stablecoins de base e ações tokenizadas conhecidas são inelegíveis por padrão
+para esta estratégia direcional. A classificação combina uma lista mantida em
+`src/market-eligibility.ts` com metadados explícitos de ações, quando presentes.
+Não há uma classificação universal nos metadados das corretoras: ativos novos
+não são reconhecidos automaticamente com garantia. Use
+`SIGNAL_EXCLUDED_SYMBOLS` para complementar a classificação; ela normaliza os
+pares e rejeita formatos inválidos. Não se usa o prefixo X como bloqueio:
+XRP/XLM/XMR e ADA continuam elegíveis, sujeitos às demais verificações.
+
+As duas opções de categoria são reversíveis por configuração; uma exclusão
+explícita prevalece sobre elas. Remover uma exclusão exige redeploy/reinício para
+reavaliar. A pausa por perdas de seis horas permanece um mecanismo separado.
+Exclusões não vendem ativos, não apagam histórico e não desligam a supervisão de
+saídas Paper ou Demo. O principal pode continuar fornecendo candles como relógio
+mesmo quando inelegível para novas entradas. Se a fotografia falhar, novas
+entradas aguardam outra consulta e a gestão das posições existentes continua.
+
+`SIGNAL_UNIVERSE_SCREENED` registra contagens por motivo e os pares configurados
+bloqueados, uma vez por fotografia, sem gravar uma lista inteira da corretora.
+A ampliação para 100+ candidatos e a comparação dos tamanhos de universo ficam
+para as próximas execuções; não aumente o limite desta etapa acima de 50.
 
 ### Validação operacional de 48 horas
 

@@ -1,4 +1,5 @@
 import ccxt, { type Exchange } from "ccxt";
+import { screenEntryMarkets, type MarketScreen, type MarketScreenOptions } from "./market-eligibility.js";
 import type { Candle } from "./types.js";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
@@ -85,44 +86,18 @@ export class PublicMarketData {
       .sort();
   }
 
-  async selectSpotSymbols(options: {
-    quote?: string;
-    limit: number;
-    minQuoteVolume: number;
-    maxSpreadPercent: number;
-  }): Promise<string[]> {
-    // Keep the universe aligned with the execution venue. A temporary data
-    // fallback must not replace OKX symbols with pairs that Demo cannot trade.
+  async screenSpotSymbols(options: MarketScreenOptions): Promise<MarketScreen> {
+    // Use the execution venue even when candles temporarily use a fallback.
     const exchange = this.exchanges.get(this.provider)!;
     if (!this.initializedProviders.has(this.provider)) {
       await this.initializeProvider(this.provider, exchange);
     }
     const tickers = await retry("fetchTickers", () => exchange.fetchTickers());
-    const candidates = Object.values(exchange.markets ?? {})
-      .filter((market) => market.spot && market.active !== false && market.quote === (options.quote ?? "USDT"))
-      .map((market) => {
-        const ticker = tickers[market.symbol];
-        const last = ticker?.last;
-        const quoteVolume = ticker?.quoteVolume ?? 0;
-        const spreadPercent = ticker?.bid && ticker?.ask && last
-          ? ((ticker.ask - ticker.bid) / last) * 100
-          : Number.POSITIVE_INFINITY;
-        const volatilityPercent = ticker?.high && ticker?.low && last
-          ? ((ticker.high - ticker.low) / last) * 100
-          : 0;
-        return { symbol: market.symbol, quoteVolume, spreadPercent, volatilityPercent };
-      })
-      .filter((candidate) =>
-        Number.isFinite(candidate.quoteVolume) &&
-        candidate.quoteVolume >= options.minQuoteVolume &&
-        candidate.spreadPercent <= options.maxSpreadPercent,
-      )
-      .sort((left, right) => {
-        const liquidity = right.quoteVolume - left.quoteVolume;
-        if (liquidity !== 0) return liquidity;
-        return right.volatilityPercent - left.volatilityPercent;
-      });
-    return candidates.slice(0, options.limit).map((candidate) => candidate.symbol);
+    return screenEntryMarkets(Object.values(exchange.markets ?? {}), tickers, options);
+  }
+
+  async selectSpotSymbols(options: MarketScreenOptions & { limit: number }): Promise<string[]> {
+    return (await this.screenSpotSymbols(options)).eligible.slice(0, options.limit);
   }
 
   async close(): Promise<void> {
