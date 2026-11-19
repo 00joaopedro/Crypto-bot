@@ -60,3 +60,12 @@ it("requires explicit opt-in for auto resume and a positive Demo budget", () => 
     .toMatchObject({ AUTO_RESUME_ENABLED: true, OKX_DEMO_BOT_BUDGET_USDT: 5000 });
   expect(() => parseConfig({ OKX_DEMO_BOT_BUDGET_USDT: "0" })).toThrow();
 });
+
+it("supports a bounded or all-eligible universe with conservative scheduling defaults", () => {
+  expect(parseConfig({})).toMatchObject({ DYNAMIC_UNIVERSE_SIZE: 10, SIGNAL_SCAN_CONCURRENCY: 2, SIGNAL_SCAN_REQUEST_BUDGET: 20, SIGNAL_SCAN_TIME_BUDGET_MS: 10000 });
+  for (const value of ["0", "100", "200", "1000"]) expect(parseConfig({ DYNAMIC_UNIVERSE_SIZE: value }).DYNAMIC_UNIVERSE_SIZE).toBe(Number(value));
+  for (const value of ["-1", "1001", "1.5"]) expect(() => parseConfig({ DYNAMIC_UNIVERSE_SIZE: value })).toThrow();
+  expect(() => parseConfig({ SIGNAL_SCAN_CONCURRENCY: "5" })).toThrow();
+  expect(() => parseConfig({ SIGNAL_SCAN_REQUEST_BUDGET: "0" })).toThrow();
+  expect(() => parseConfig({ SIGNAL_SCAN_TIME_BUDGET_MS: "999" })).toThrow();
+});

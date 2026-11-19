@@ -1,0 +1,92 @@
+{
+  "endExclusiveUtc": "2026-08-31T00:00:00Z",
+  "days": 30,
+  "warmupCandles": 672,
+  "candleLimit": 100,
+  "sizes": [
+    15,
+    30,
+    50,
+    100,
+    0
+  ],
+  "fixedSymbols": [
+    "BTC/USDT"
+  ],
+  "minDailyQuoteVolumeUsdt": 1000000,
+  "initialBalanceUsdt": 100,
+  "tradeSizeUsdt": 10,
+  "portfolio": {
+    "maxConcurrentPositions": 10,
+    "maxExposureRate": 0.25,
+    "maxAltExposureRate": 0.1
+  },
+  "parameters": {
+    "stopLossRate": 0.01,
+    "takeProfitRate": 0.02,
+    "minimumSignalScore": 5,
+    "executionDelayCandles": 1,
+    "maxBuyRsi": 70,
+    "btcRegimeFilter": true,
+    "exitPolicy": {
+      "mode": "fixed",
+      "minStopRate": 0.005,
+      "maxStopRate": 0.03
+    },
+    "pairCooldown": {
+      "hours": 6,
+      "minLosses": 3
+    }
+  },
+  "scenarios": [
+    {
+      "name": "standard",
+      "feeRate": 0.001,
+      "slippageRate": 0.0005,
+      "spreadRate": 0.001,
+      "assumedDepthUsdt": 1000,
+      "maxParticipationRate": 0.001
+    },
+    {
+      "name": "stress",
+      "feeRate": 0.002,
+      "slippageRate": 0.0015,
+      "spreadRate": 0.0015,
+      "assumedDepthUsdt": 500,
+      "maxParticipationRate": 0.0005
+    },
+    {
+      "name": "fixed-cost-stress",
+      "feeRate": 0.002,
+      "slippageRate": 0.001,
+      "spreadRate": 0.0015,
+      "assumedDepthUsdt": 500,
+      "maxParticipationRate": 0.0005
+    }
+  ],
+  "collection": {
+    "maximumSymbols": 120,
+    "preferredSymbols": [
+      "BTC/USDT",
+      "ETH/USDT",
+      "SOL/USDT",
+      "XRP/USDT",
+      "ADA/USDT",
+      "DOGE/USDT",
+      "SUI/USDT",
+      "NEAR/USDT",
+      "AVAX/USDT",
+      "LINK/USDT",
+      "DOT/USDT",
+      "ATOM/USDT",
+      "UNI/USDT",
+      "AAVE/USDT",
+      "LTC/USDT",
+      "WLD/USDT",
+      "ZEC/USDT",
+      "HYPE/USDT",
+      "LIT/USDT",
+      "TRX/USDT"
+    ]
+  }
+}

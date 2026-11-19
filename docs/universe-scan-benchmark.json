@@ -1,0 +1,86 @@
+{
+  "status": "synthetic_scheduling_benchmark",
+  "requestBudget": 20,
+  "concurrency": 2,
+  "assumedLoopDelayMs": 60000,
+  "rows": [
+    {
+      "size": 15,
+      "poolSize": 500,
+      "targetCandidates": 15,
+      "passes": 1,
+      "candleRequests": 14,
+      "anchorCandleRequests": 1,
+      "totalCandleRequests": 15,
+      "maximumConcurrentRequests": 2,
+      "localWallMs": 5.33,
+      "minimumLoopDelaySpanMs": 0
+    },
+    {
+      "size": 30,
+      "poolSize": 500,
+      "targetCandidates": 30,
+      "passes": 2,
+      "candleRequests": 29,
+      "anchorCandleRequests": 2,
+      "totalCandleRequests": 31,
+      "maximumConcurrentRequests": 2,
+      "localWallMs": 5.15,
+      "minimumLoopDelaySpanMs": 60000
+    },
+    {
+      "size": 50,
+      "poolSize": 500,
+      "targetCandidates": 50,
+      "passes": 3,
+      "candleRequests": 49,
+      "anchorCandleRequests": 3,
+      "totalCandleRequests": 52,
+      "maximumConcurrentRequests": 2,
+      "localWallMs": 5.46,
+      "minimumLoopDelaySpanMs": 120000
+    },
+    {
+      "size": 100,
+      "poolSize": 500,
+      "targetCandidates": 100,
+      "passes": 5,
+      "candleRequests": 99,
+      "anchorCandleRequests": 5,
+      "totalCandleRequests": 104,
+      "maximumConcurrentRequests": 2,
+      "localWallMs": 9.63,
+      "minimumLoopDelaySpanMs": 240000
+    },
+    {
+      "size": 200,
+      "poolSize": 500,
+      "targetCandidates": 200,
+      "passes": 10,
+      "candleRequests": 199,
+      "anchorCandleRequests": 10,
+      "totalCandleRequests": 209,
+      "maximumConcurrentRequests": 2,
+      "localWallMs": 27.24,
+      "minimumLoopDelaySpanMs": 540000
+    },
+    {
+      "size": 0,
+      "poolSize": 500,
+      "targetCandidates": 500,
+      "passes": 25,
+      "candleRequests": 499,
+      "anchorCandleRequests": 25,
+      "totalCandleRequests": 524,
+      "maximumConcurrentRequests": 2,
+      "localWallMs": 126.52,
+      "minimumLoopDelaySpanMs": 1440000
+    }
+  ],
+  "limitations": [
+    "Local CPU and fake transport only, not exchange or Railway latency.",
+    "Loop-delay spans are lower bounds ignoring API time, retries, open-position supervision and other work.",
+    "Actual scheduling may require more passes; every new candle invalidates cached analysis while preserving cursor fairness.",
+    "No financial result or recommendation is inferred from synthetic candles."
+  ]
+}

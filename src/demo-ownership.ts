@@ -23,6 +23,7 @@ export type ExchangeProtection = {
   symbol: string;
   side: "buy" | "sell";
   spawnedOrderIds: string[];
+  recoverySellOrderId?: string;
 };
 
 export type OwnershipResult =
@@ -54,7 +55,7 @@ export function verifyDemoOwnership(
     if (matchingProtection.length !== 1) return unavailable("protection_identity_unconfirmed");
     const protection = matchingProtection[0]!;
     if (protection.symbol !== entry.symbol || protection.side !== "sell" || !Array.isArray(protection.spawnedOrderIds)) return unavailable("protection_identity_mismatch");
-    for (const id of protection.spawnedOrderIds) {
+    for (const id of [...protection.spawnedOrderIds, ...(protection.recoverySellOrderId ? [protection.recoverySellOrderId] : [])]) {
       if (!id || owned.has(id)) return unavailable("duplicate_spawned_order");
       const matches = sells.filter((sell) => sell.id === id);
       if (matches.length !== 1 || matches[0]!.symbol !== entry.symbol || matches[0]!.side !== "sell") return unavailable("spawned_order_unconfirmed");

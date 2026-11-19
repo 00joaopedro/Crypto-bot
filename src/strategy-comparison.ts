@@ -1,3 +1,5 @@
+import { tradeProfitConcentration } from "./backtest-performance.js";
+import { TREND_STRATEGY_ID } from "./strategy-id.js";
 import { pairCooldownSchema } from "./pair-cooldown.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS } from "./btc-regime.js";
 import { positionSizingSchema } from "./position-sizing.js";
@@ -36,12 +38,22 @@ export const comparisonSchema = z.object({
 }).strict();
 export type ComparisonOptions = z.infer<typeof comparisonSchema>;
 
-/** Fixed, predeclared alternatives. No selection or configuration is applied to the bot. */
-export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonOptions, btcReference?: Candle[]) {
-  const options = comparisonSchema.parse(rawOptions);
+export function comparisonSlippage(scenario: { slippageRate: number; spreadRate: number }): number {
+  const effective = (1 + scenario.slippageRate) * (1 + scenario.spreadRate / 2) - 1;
+  if (effective >= 1) throw new Error("Combined execution cost is too high");
+  return effective;
+}
+
+export function assertComparisonCandidatesAndScenarios(options: ComparisonOptions): void {
   if (new Set(options.scenarios.map(s => s.name)).size !== options.scenarios.length || new Set(["baseline", ...options.alternatives.map(a => a.name)]).size !== options.alternatives.length + 1) throw new Error("Names must be unique; baseline is reserved");
   const standard = options.scenarios[0]!;
   if (!options.scenarios.slice(1).some(s => s.feeRate >= standard.feeRate && s.slippageRate >= standard.slippageRate && s.spreadRate >= standard.spreadRate && s.assumedDepthUsdt <= standard.assumedDepthUsdt && s.maxParticipationRate <= standard.maxParticipationRate && (s.feeRate > standard.feeRate || s.slippageRate > standard.slippageRate || s.spreadRate > standard.spreadRate || s.assumedDepthUsdt < standard.assumedDepthUsdt || s.maxParticipationRate < standard.maxParticipationRate))) throw new Error("Include a strictly adverse cost/liquidity scenario after the standard scenario");
+}
+
+/** Fixed, predeclared alternatives. No selection or configuration is applied to the bot. */
+export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonOptions, btcReference?: Candle[]) {
+  const options = comparisonSchema.parse(rawOptions);
+  assertComparisonCandidatesAndScenarios(options);
   const variants = [{ name: "baseline", parameters: options.baseline }, ...options.alternatives];
   const usesRegime = variants.some(v => v.parameters.btcRegimeFilter);
   const btcCandles = usesRegime ? btcReference ?? (options.symbol === "BTC/USDT" ? candles : undefined) : undefined;
@@ -61,8 +73,7 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
   const results = options.scenarios.map(s => ({
     scenario: s,
     variants: variants.map(v => {
-      const effectiveSlippage = (1 + s.slippageRate) * (1 + s.spreadRate / 2) - 1;
-      if (effectiveSlippage >= 1) throw new Error("Combined execution cost is too high");
+      const effectiveSlippage = comparisonSlippage(s);
       const { exitPolicy, riskSizing, btcRegimeFilter, maxBuyRsi, pairCooldown, ...fixedParameters } = v.parameters;
       const candidate = { ...fixedParameters, ...(pairCooldown ? { pairCooldown } : {}), ...(maxBuyRsi !== undefined ? { maxBuyRsi } : {}), ...(btcRegimeFilter !== undefined ? { btcRegimeFilter } : {}), ...(riskSizing ? { riskSizing } : {}), ...(exitPolicy ? { exitPolicy: { ...exitPolicy, exitFeeRate: s.feeRate, exitSlippageRate: effectiveSlippage } } : {}) };
       const report = validateDemoStrategy(candles, {
@@ -76,16 +87,19 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
       });
       const metrics = report.result.windows.map(w => w.testMetrics);
       const losses = metrics.reduce((n, m) => n + m.grossLossUsdt, 0);
+      const profits = metrics.reduce((n, m) => n + m.grossProfitUsdt, 0);
       const trades = metrics.reduce((n, m) => n + m.trades, 0);
-      return { name: v.name, parameters: v.parameters, report,
+      return { name: v.name, strategyId: TREND_STRATEGY_ID, parameters: v.parameters, report,
         summary: {
           closedTrades: trades,
           meanWindowNetReturnPercent: report.result.averageTestReturnPercent,
           profitableWindowsPercent: report.result.consistencyPercent,
+          ...tradeProfitConcentration(metrics.flatMap(m => m.topWinningTradePnLsUsdt), profits, profits - losses),
+          worstWindowDrawdownUsdt: Math.max(...metrics.map(m => m.maxDrawdownUsdt)),
           worstWindowDrawdownPercent: Math.max(...metrics.map(m => m.maxDrawdownPercent)),
-          closedTradeExpectancyUsdt: trades ? metrics.reduce((n, m) => n + m.expectancyUsdt * m.trades, 0) / trades : null,
+          closedTradeExpectancyUsdt: trades ? (profits - losses) / trades : null,
           pairCooldownBlockedEntries: metrics.reduce((n, m) => n + m.pairCooldownBlockedEntries, 0),
-          profitFactor: losses > 0 ? metrics.reduce((sum, m) => sum + m.grossProfitUsdt, 0) / losses : null,
+          profitFactor: losses > 0 ? profits / losses : null,
           totalFeesUsdt: metrics.reduce((n, m) => n + m.totalFeesUsdt, 0),
           regimeBlockedSignals: metrics.reduce((n, m) => n + m.regimeBlockedSignals, 0),
           rejectedEntries: metrics.reduce((n, m) => n + m.rejectedEntries, 0),
@@ -103,6 +117,7 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
     results,
     limitations: [
       "Predeclare alternatives before viewing test outcomes; comparing many alternatives can overfit the test data.",
+      "Recovery factor uses marked equity within each window. Independent windows have no combined equity curve.",
       "All windows start with fresh capital and no position. Returns are not a continuous portfolio result or compounded profit.",
       "Spread, depth, fees and slippage are supplied assumptions, not observed historical OKX liquidity. No order-book reconstruction is claimed.",
       "Participation uses previous candle base volume times its close; supply base-asset volume, not quote volume or contracts.",

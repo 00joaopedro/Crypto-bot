@@ -1,3 +1,4 @@
+import type { StrategyId } from "./strategy-id.js";
 import type { VerifiedDemoPosition } from "./demo-execution-safety.js";
 import { demoBotExposure, demoTradingExposure } from "./demo-exposure.js";
 import { positionSize, type PositionSizingLimits } from "./position-sizing.js";
@@ -21,6 +22,7 @@ export type OkxDemoCredentials = {
 export type OkxDemoOptions = {
   symbol: string;
   tradingEnabled: boolean;
+  recoverySell?: string;
   orderSizeUsdt: number;
   maxSpreadPercent?: number;
   stopLossRate: number;
@@ -55,6 +57,7 @@ export type OkxDemoAccountSnapshot = {
 };
 
 export type DemoBuyRequest = {
+  strategyId?: StrategyId;
   symbol?: string;
   candleTimestamp: number;
   entryRevision?: string;
@@ -63,6 +66,10 @@ export type DemoBuyRequest = {
   takeProfitRate?: number;
 };
 export type DemoSellRequest = { symbol?: string; candleTimestamp: number; quantity: number };
+
+type DemoEntryBookBlock = { status: "blocked"; reason: "demo_book_unavailable" | "demo_spread_exceeded"; spreadPercent?: number };
+type DemoEntryBook = DemoEntryBookBlock | { status: "safe"; book: OrderBook; referencePrice: number; spreadPercent: number };
+export type DemoEntryMarketCheck = DemoEntryBookBlock | { status: "safe"; spreadPercent?: number };
 
 export type DemoBuyResult =
   | {
@@ -96,6 +103,7 @@ export type DemoBuyResult =
         | "demo_spread_exceeded"
         | "demo_order_limits_unconfirmed";
       clientOrderId: string;
+      spreadPercent?: number;
   };
 
 export type OkxExecutionError = Error & {
@@ -122,7 +130,7 @@ type Pause = (milliseconds: number) => Promise<void>;
 export class OkxDemoExecutor {
   private sandboxConfigured = false;
   private initialized = false;
-  private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string) => Promise<boolean>;
+  private reserveIntent?: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string, strategyId?: StrategyId) => Promise<boolean>;
 
   private exitJournal?: (clientOrderId: string, algoId: string, symbol: string, candle: number, policy: ExitPolicy) => Promise<void>;
   setExitJournal(save: NonNullable<OkxDemoExecutor["exitJournal"]>): void { this.exitJournal = save; }
@@ -130,7 +138,7 @@ export class OkxDemoExecutor {
   setExitReservationCheck(check: NonNullable<OkxDemoExecutor["verifyExitReservation"]>): void { this.verifyExitReservation = check; }
   get exitManagementEnabled(): boolean { return this.options.tradingEnabled && !!this.options.exitPolicy; }
 
-  setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string) => Promise<boolean>): void {
+  setIntentJournal(reserve: (symbol: string, timestamp: number, clientOrderId: string, attachedAlgoClientId: string, entryRevision?: string, strategyId?: StrategyId) => Promise<boolean>): void {
     this.reserveIntent = reserve;
   }
 
@@ -329,10 +337,13 @@ export class OkxDemoExecutor {
     if (!this.initialized || !this.sandboxConfigured) return { status: "unavailable", reason: "demo_not_initialized" };
     const client = this.exchange as unknown as Partial<OkxOrderEvidenceClient>;
     if (typeof client.privateGetTradeOrder !== "function" || typeof client.privateGetTradeOrderAlgo !== "function") return { status: "unavailable", reason: "order_evidence_endpoint_unavailable" };
+    const [buyId, sellId] = (this.options.recoverySell ?? "").split(":");
+    // Both exact order IDs must be visible to the same authenticated Demo client.
+    const recovery = buyId && sellId && journal.some(entry => entry.orderId === buyId) ? { buyId, sellId } : undefined;
     return collectOkxDemoOrderEvidence({
       privateGetTradeOrder: (params) => client.privateGetTradeOrder!(params),
       privateGetTradeOrderAlgo: (params) => client.privateGetTradeOrderAlgo!(params),
-    }, journal, cachedParents);
+    }, journal, cachedParents, recovery);
   }
 
   /** Read account permissions without submitting orders or disclosing credentials. */
@@ -350,6 +361,33 @@ export class OkxDemoExecutor {
       return { status: "available", trading: permissions.includes("trade") };
     } catch {
       return { status: "unavailable", reason: "permission_request_failed" };
+    }
+  }
+
+  /** Read-only check for the shared Paper/Demo candidate, before either entry. */
+  async inspectEntryMarket(symbol: string): Promise<DemoEntryMarketCheck> {
+    const result = await this.readEntryBook(symbol);
+    return result.status === "safe" ? { status: "safe", spreadPercent: result.spreadPercent } : result;
+  }
+
+  private async readEntryBook(symbol: string): Promise<DemoEntryBook> {
+    const unavailable = { status: "blocked", reason: "demo_book_unavailable" } as const;
+    try {
+      if (!this.initialized) return unavailable;
+      const book = await this.exchange.fetchOrderBook(this.resolveActiveSpotMarket(symbol).symbol, 20);
+      const bid = book.bids[0]?.[0];
+      const referencePrice = book.asks[0]?.[0];
+      if (!isFreshDemoBook(book) || typeof bid !== "number" || typeof referencePrice !== "number" ||
+          !Number.isFinite(bid) || !Number.isFinite(referencePrice) || bid <= 0 || referencePrice < bid) {
+        return unavailable;
+      }
+      const spreadPercent = 200 * (referencePrice - bid) / (referencePrice + bid);
+      if (spreadPercent > (this.options.maxSpreadPercent ?? 0.15)) {
+        return { status: "blocked", reason: "demo_spread_exceeded", spreadPercent };
+      }
+      return { status: "safe", book, referencePrice, spreadPercent };
+    } catch {
+      return unavailable;
     }
   }
 
@@ -419,20 +457,15 @@ export class OkxDemoExecutor {
       return { status: "SKIPPED", reason: "insufficient_quote_balance", clientOrderId };
     }
 
-    const [book, fees] = await Promise.all([
-      this.exchange.fetchOrderBook(marketSymbol, 20).catch(() => null),
+    const [entryBook, fees] = await Promise.all([
+      this.readEntryBook(marketSymbol),
       this.exchange.fetchTradingFee(marketSymbol).catch(() => null),
     ]);
-    const bid = book?.bids[0]?.[0];
-    const referencePrice = book?.asks[0]?.[0];
-    if (!book || !isFreshDemoBook(book) || typeof bid !== "number" || typeof referencePrice !== "number" ||
-        !Number.isFinite(bid) || !Number.isFinite(referencePrice) || bid <= 0 || referencePrice < bid) {
-      return { status: "SKIPPED", reason: "demo_book_unavailable", clientOrderId };
+    if (entryBook.status === "blocked") {
+      return { status: "SKIPPED", reason: entryBook.reason, clientOrderId,
+        ...(entryBook.spreadPercent === undefined ? {} : { spreadPercent: entryBook.spreadPercent }) };
     }
-    const spreadPercent = 200 * (referencePrice - bid) / (referencePrice + bid);
-    if (spreadPercent > (this.options.maxSpreadPercent ?? 0.15)) {
-      return { status: "SKIPPED", reason: "demo_spread_exceeded", clientOrderId };
-    }
+    const { book, referencePrice } = entryBook;
     const fee = fees?.taker;
     if (typeof fee !== "number" || !Number.isFinite(fee) || fee < 0 || fee >= 1) {
       return { status: "SKIPPED", reason: "demo_order_limits_unconfirmed", clientOrderId };
@@ -474,13 +507,14 @@ export class OkxDemoExecutor {
     // raw attachAlgoOrds replaces those parameters, so include both full legs.
     const attachAlgoOrds = [{
       attachAlgoClOrdId: attachedAlgoClientId,
-      slTriggerPx: this.exchange.priceToPrecision(marketSymbol, stopLossPrice), slOrdPx: "-1",
+      slTriggerPx: this.exchange.priceToPrecision(marketSymbol, stopLossPrice), slTriggerPxType: "last", slOrdPx: "-1",
       ...(this.options.exitPolicy?.mode === "trailing_atr" ? {} : { tpTriggerPx: this.exchange.priceToPrecision(marketSymbol, takeProfitPrice), tpOrdPx: "-1" }),
     }];
     if (!this.reserveIntent) throw new Error("Demo order requires a persistent intent journal");
     const reserved = await this.reserveIntent(
       marketSymbol, request.candleTimestamp, clientOrderId, attachedAlgoClientId,
-      ...(revisionRequired ? [request.entryRevision] as const : []),
+      ...(request.strategyId ? [request.entryRevision, request.strategyId] as const
+        : revisionRequired ? [request.entryRevision] as const : []),
     );
     if (!reserved) {
       if (revisionRequired) return { status: "SKIPPED", reason: "risk_entry_changed", clientOrderId };
@@ -551,7 +585,33 @@ export class OkxDemoExecutor {
     const position = ledger.positions[journal.symbol];
     const state = evidence.protectionStates[journal.attachedAlgoClientId!];
     if (!position || position.quantity <= 0) return state === "live" ? blocked("live_protection_without_position") : { status: "closed" as const };
-    if (state !== "live" || evidence.sells.length) return blocked("partial_exit_without_live_coverage");
+    const recovery = evidence.protections.find(item => item.algoClientId === journal.attachedAlgoClientId)?.recoverySellOrderId;
+    if (recovery && state === "effective") {
+      const market = this.resolveActiveSpotMarket(journal.symbol);
+      const step = market.precision.amount;
+      const minimum = market.limits.amount?.min;
+      if (this.exchange.precisionMode === ccxt.TICK_SIZE && typeof step === "number" && Number.isFinite(step) && step > 0 &&
+          typeof minimum === "number" && Number.isFinite(minimum) && minimum > 0 &&
+          position.quantity < Math.min(step, minimum) * (1 - 1e-10)) {
+        return { status: "closed" as const };
+      }
+    }
+    if (state !== "live" || evidence.sells.length) {
+      const market = this.resolveActiveSpotMarket(journal.symbol);
+      const positive = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+      const sellOrders = evidence.orders.filter(order => order.side === "sell");
+      return {
+        ...blocked("partial_exit_without_live_coverage"),
+        positionEvidence: {
+          symbol: journal.symbol, buyOrderId: journal.orderId, protectionState: state ?? null,
+          grossBought: parent.filled, grossSold: sellOrders.reduce((total, order) => total + order.filled, 0),
+          remainingNet: position.quantity,
+          amountStep: this.exchange.precisionMode === ccxt.TICK_SIZE ? positive(market.precision.amount) : null,
+          minimumAmount: positive(market.limits.amount?.min),
+          sellOrders: sellOrders.map(({ id, filled }) => ({ id, filled })),
+        },
+      };
+    }
     const client = this.exchange as unknown as { privateGetTradeOrderAlgo(params: Record<string,string>): Promise<unknown> };
     const payload = await client.privateGetTradeOrderAlgo({ algoClOrdId: journal.attachedAlgoClientId! }) as { code?: string; data?: Array<Record<string,unknown>> };
     const row = payload?.data?.[0];

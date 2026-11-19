@@ -74,11 +74,17 @@ Variáveis principais:
 - `RISK_MAX_EXPOSURE_PERCENT=0.25` (exposição agregada; a configuração aceita no máximo 30%)
 - `RISK_MAX_DAILY_LOSS_PERCENT=0.03` (pausa ao perder 3% no dia)
 - `RISK_MAX_DRAWDOWN_PERCENT=0.10` (pausa ao atingir 10% de drawdown)
+- Os limites percentuais Paper são conferidos após a supervisão de cada par, antes de novas entradas. A pausa e o checkpoint são gravados juntos; a revisão do controle impede que um ciclo antigo sobrescreva uma retomada mais recente. As saídas já em supervisão continuam sendo processadas.
 - O limite de ordens usa uma janela móvel. Uma ordem Demo pendente de confirmação bloqueia novas entradas. Saídas executadas por proteções na corretora seguem o fluxo de proteção.
 - `ENTRY_COOLDOWN_MINUTES=60` (intervalo mínimo entre novas entradas no mesmo par)
 - `RISK_MAX_CONSECUTIVE_LOSSES=3` (pausa novas entradas após três perdas consecutivas)
 - `STOP_LOSS_COOLDOWN_MINUTES=60` (cooldown adicional após stop-loss)
-- `DYNAMIC_UNIVERSE_SIZE=10` (quantidade máxima de pares classificados por candle)
+- `DYNAMIC_UNIVERSE_SIZE=10` (até 10 candidatos da descoberta dinâmica; aceita 1–1000 ou `0` para todos os elegíveis. Pares fixos e ativos podem ampliar o total analisado)
+- `SIGNAL_SCAN_CONCURRENCY=2` (padrão; até 4 consultas de candles simultâneas)
+- `SIGNAL_SCAN_REQUEST_BUDGET=20` (padrão; até 20 consultas de candles de candidatos por passagem)
+- `SIGNAL_SCAN_TIME_BUDGET_MS=10000` (padrão; tempo para iniciar consultas de candidatos, aguardando as que já estão em andamento)
+- `SIGNAL_EXCLUDED_SYMBOLS=USDC/USDT,XNVDA/USDT` (opcional: impede novas entradas desses pares, inclusive quando descobertos dinamicamente)
+- `SIGNAL_EXCLUDE_STABLECOINS=true` e `SIGNAL_EXCLUDE_TOKENIZED_ASSETS=true` (padrões automáticos; não é necessário adicioná-los na Railway)
 - `MARKET_MIN_QUOTE_VOLUME_USDT=1000000` (liquidez mínima do par)
 - `MARKET_MAX_SPREAD_PERCENT=1` (spread máximo aceito)
 - `UNIVERSE_SWITCH_COOLDOWN_MINUTES=60` (tempo mínimo entre rotações)
@@ -215,6 +221,70 @@ estimativa de taxa de saída, sem liquidar artificialmente como trade fechado.
 ATR, rotação de pares, IA e risco agregado de carteira permanecem fora deste
 modelo. Este PR entrega a ferramenta; a avaliação empírica ainda exige candles
 históricos reais, origem e custos verificáveis. Nenhuma ordem é enviada.
+
+### Coleta de candles históricos da OKX Spot
+
+Use um arquivo de opções da comparação por par, com os custos e mínimos
+aplicáveis ao instrumento. Depois do build, colete os dados em um diretório novo.
+
+```sh
+npm run build
+npm run strategy:collect -- ./candles-okx 2026-11-17T00:00:00Z 30 ./btc.options.json ./eth.options.json
+npm run --silent strategy:validate -- --compare ./candles-okx/BTC-USDT.json
+```
+
+O fim em UTC é exclusivo. Uma janela de 30 dias contém 2.880 candles fechados
+de 15 minutos, precedidos por `trainCandles` para aquecimento. A comparação
+usa apenas janelas de teste completas. Quando a configuração usa o filtro de
+regime, a referência BTC/USDT cobre a mesma janela. Cada arquivo registra o
+instrumento, os limites UTC, a origem, a contagem e o SHA-256 das séries.
+Lacunas ou candles confirmados conflitantes interrompem a coleta. O comando
+usa dados públicos e não precisa das credenciais da conta ou do PostgreSQL.
+Candles não incluem spread, profundidade ou preenchimentos históricos.
+
+### Estudo histórico de carteira e cenários
+
+O estudo reproduzível em `examples/okx-2026-11-17.study.json` define os pares,
+as hipóteses, os custos simulados e a janela de 30 dias. Execute, após o build:
+
+```sh
+npm run --silent strategy:study -- --prepare examples/okx-2026-11-17.study.json ./opcoes-estudo
+npm run --silent strategy:collect -- ./candles-estudo 2026-11-17T00:00:00Z 30 ./opcoes-estudo/*.options.json
+npm run --silent strategy:study -- examples/okx-2026-11-17.study.json ./candles-estudo > estudo.json
+```
+
+`perSymbol` contém as janelas e métricas independentes de cada par.
+`results` usa caixa compartilhado e mede a exposição agregada em um replay
+contínuo. Os limites de simultaneidade e exposição valem a cada abertura,
+com as exposições pelo valor de entrada e o patrimônio do fechamento anterior.
+O fator de recuperação divide a variação líquida do patrimônio pelo maior
+drawdown em USDT, na carteira contínua ou em cada janela. Drawdown zero gera
+`null`. A expectativa usa P&L líquido por trade fechado. A concentração
+divide a soma dos três melhores trades pela soma dos trades vencedores,
+sinaliza participação acima de 35% e mostra o P&L realizado sem esses três.
+Sem vencedores, a participação vem como `null`.
+
+O manifesto inclui `fixed-cost-stress`, com taxa simulada de 0,20% e
+slippage de 0,10% por lado. O spread de 0,15% é modelado à parte, com
+metade aplicada a cada lado. Os resultados anteriores do estudo estão em
+[Validação histórica OKX](docs/okx-2026-11-17-study.md).
+
+O modo `strategy:study -- --holdout` usa a data configurada em
+`holdoutEndExclusiveUtc` e exige uma série de 30 dias disjunta do estudo
+exploratório, incluindo o aquecimento. Os dez primeiros dias selecionam
+uma variante. Os vinte dias seguintes avaliam essa variante em dois blocos
+contínuos de dez dias. [Resultados e reprodução](docs/okx-2026-10-10-holdout.md).
+
+### Comparação do tamanho do universo
+
+`strategy:universe` compara 15, 30, 50, 100 e todos os pares de um conjunto
+histórico validado, usando volume efetivo em USDT das últimas 24 horas, sem
+ordenar o passado pelo volume atual. A seleção do tamanho usa D1–D10 e os
+parâmetros ficam congelados nos dois blocos seguintes. Não envia ordens nem
+altera variáveis da Railway. O [método, limites e reprodução](docs/universe-validation.md)
+documenta o viés de cobertura da fonte, os custos assumidos e a diferença entre
+capacidade do scanner e rentabilidade. `strategy:universe-benchmark` mede o
+agendamento com dados sintéticos, sem acesso à corretora.
 
 ### Compartilhamento do histórico de diagnóstico
 
@@ -393,6 +463,102 @@ expectativa, drawdown, número de trades e estabilidade com custos adversos.
 Essas execuções são por símbolo. Limites agregados e rotação de watchlist
 exigem validação de carteira em Paper/Demo antes de qualquer mudança de
 produção. Não é preciso descartar pares com base em um ou dois trades.
+
+### Elegibilidade do universo de novas entradas
+
+Antes de buscar candles dos candidatos, o bot consulta uma única fotografia de
+mercados/tickers da corretora principal por candle de 15 minutos. A mesma triagem
+vale para pares fixos, o par principal e a descoberta dinâmica: Spot ativo,
+cotação USDT, volume mínimo e spread válido abaixo do limite configurado.
+Livros cruzados ou cotações ausentes/não finitas não autorizam novas entradas.
+A verificação do livro imediatamente antes da ordem continua necessária.
+
+Stablecoins de base e ações tokenizadas conhecidas são inelegíveis por padrão
+para esta estratégia direcional. A classificação combina uma lista mantida em
+`src/market-eligibility.ts` com metadados explícitos de ações, quando presentes.
+Não há uma classificação universal nos metadados das corretoras: ativos novos
+não são reconhecidos automaticamente com garantia. Use
+`SIGNAL_EXCLUDED_SYMBOLS` para complementar a classificação; ela normaliza os
+pares e rejeita formatos inválidos. Não se usa o prefixo X como bloqueio:
+XRP/XLM/XMR e ADA continuam elegíveis, sujeitos às demais verificações.
+
+As duas opções de categoria são reversíveis por configuração; uma exclusão
+explícita prevalece sobre elas. Remover uma exclusão exige redeploy/reinício para
+reavaliar. A pausa por perdas de seis horas permanece um mecanismo separado.
+Exclusões não vendem ativos, não apagam histórico e não desligam a supervisão de
+saídas Paper ou Demo. O principal pode continuar fornecendo candles como relógio
+mesmo quando inelegível para novas entradas. Se a fotografia falhar, novas
+entradas aguardam outra consulta e a gestão das posições existentes continua.
+
+`SIGNAL_UNIVERSE_SCREENED` registra contagens por motivo e os pares configurados
+bloqueados, uma vez por fotografia, sem gravar uma lista inteira da corretora.
+A descoberta consulta os tickers em conjunto e inclui até o tamanho configurado
+na fila de candidatos. `DYNAMIC_UNIVERSE_SIZE=0` significa **todos os elegíveis**,
+não desativar a descoberta; valores de 1 a 1000 limitam a seleção dinâmica.
+A configuração atual de 10 continua válida e o limite de posições/ordens não muda.
+
+A fila busca candles em lotes de até 20 consultas por passagem, com dois workers
+por padrão. Esses limites são independentes do tamanho do universo, dos trades e
+das consultas usadas para proteger posições. Ao atingir o prazo de 10 segundos,
+a fila deixa de iniciar consultas e aguarda as que já estão em andamento. Cada
+consulta do scanner usa uma tentativa no provedor dos candles do par principal,
+sem amplificar falhas com retries ou fallback; cada cliente de dados tem timeout
+de rede de 10 segundos. O prazo de agendamento é um limite suave, não uma garantia
+de duração total incluindo rede, rate limit e descoberta.
+
+Resultados são reutilizados dentro do mesmo candle e provedor, inclusive na
+avaliação da entrada selecionada. Pares atrasados ou com falha voltam à fila em
+outra passagem. O cursor continua no candle seguinte para distribuir a cobertura;
+candles antigos não são reutilizados como sinais do candle novo. Uma lista muito
+grande pode não ser totalmente analisada em 15 minutos: o painel mostra o total
+avaliado/pendente e apenas uma amostra de pares para caber no celular.
+
+A supervisão Demo e as saídas Paper acontecem antes da fila de novas entradas.
+A decisão Demo continua independente do processamento Paper do mesmo candle.
+O evento `signal_scan_progress` informa candidatos elegíveis, alvo, cobertura,
+consultas, falhas, cache e duração. O ranking é recalculado só quando o conjunto
+avaliado ou os símbolos ocupados mudam, e seus logs listam no máximo 20 pares.
+Os limites opcionais de agendamento já têm padrões; não exigem variáveis novas na
+Railway. A comparação de rentabilidade entre tamanhos de universo continua na
+execução 3, sem prometer melhora de resultado pela simples ampliação da busca.
+
+### Validação operacional de 48 horas
+
+O [roteiro da OKX Demo](docs/okx-demo-48h.md) documenta o início da janela,
+a coleta dos logs e o comando `demo:validation-report` para consolidar
+ordens, proteções, spreads e reconciliações de exportações do painel.
+
+O painel **Ciclo OKX Demo** registra um marco em UTC pelo botão **Iniciar
+novo ciclo**. As métricas usam compras cujo primeiro preenchimento ocorreu a
+partir do marco e cuja quantidade foi totalmente encerrada e reconciliada.
+Vendas parciais entram no resultado da compra quando ela fecha. O horário
+dos fills define o ciclo, inclusive quando a conferência chega mais tarde.
+O painel mostra até quando os dados foram confirmados. Métricas Paper e o
+histórico de operações continuam disponíveis em suas seções.
+
+Com 30 fechamentos no ciclo, o Profit Factor móvel usa os últimos 30 em ordem
+de fechamento. Ao cruzar abaixo de 0,95, o bot registra `EDGE_DEGRADATION`
+como alerta WARN. Novas amostras abaixo do limiar mantêm o mesmo episódio.
+O painel mostra o tamanho da amostra e o alerta funciona apenas como
+diagnóstico, sem comandar o estado operacional do bot.
+
+### Recuperar uma saída parcial na OKX Demo
+
+Com o bot pausado, confirme na OKX Demo a compra, o preenchimento da ordem
+de saída, a ausência de uma ordem ainda capaz de vender o saldo e o saldo
+disponível do ativo. Se precisar encerrar o residual manualmente, use a
+quantidade líquida mostrada em `DEMO_PROTECTION_BLOCKED`, arredondada para
+baixo pelo incremento do instrumento. Registre o ID da venda realmente
+executada em `OKX_DEMO_RECOVERY_SELL=ID_COMPRA:ID_VENDA`. Use apenas uma
+venda Demo feita para fechar o saldo dessa compra.
+
+O bot consulta os dois IDs com o cliente Demo e confirma origem, instrumento,
+lado, sequência, terminalidade e fills. Só aceita como encerrado o residual
+zero ou menor que o incremento e o mínimo da OKX. A sobra continua no
+balanço. A reconciliação exige cobertura e taxas verificadas. Se houver
+outra movimentação sem origem confirmada, a retomada fica bloqueada.
+Mantenha o vínculo configurado para que consultas futuras possam reconhecer
+a venda vinculada.
 
 ### Verificações de execução na OKX Demo
 

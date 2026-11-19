@@ -27,6 +27,25 @@ describe("dashboard authentication", () => {
     }
   });
 
+  networkTest("starts a Demo cycle only for an authenticated same-origin request with the current marker", async () => {
+    const started = "2026-11-18T00:00:00.001Z";
+    const startDemoCycle = vi.fn().mockResolvedValueOnce(started).mockResolvedValueOnce(null);
+    const persistence = { startDemoCycle } as unknown as PostgresPersistence;
+    server = await startDashboard({ port: 0, host: "127.0.0.1", password: "password", sessionSecret: "s".repeat(32),
+      persistence, supportedSymbols: [], onSettingsChanged: () => undefined });
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const call = (cookie = "", origin = base, body: unknown = { expectedStart: null }) =>
+      fetch(`${base}/api/demo-cycle`, { method: "POST", headers: { cookie, origin, "content-type": "application/json" }, body: JSON.stringify(body) });
+    expect((await call()).status).toBe(401);
+    const login = await fetch(`${base}/api/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "password" }) });
+    const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
+    expect((await call(cookie, "https://other.invalid")).status).toBe(403);
+    expect((await call(cookie, base, {})).status).toBe(400);
+    expect(await (await call(cookie)).json()).toEqual({ cycleStartedAt: started });
+    expect((await call(cookie)).status).toBe(409);
+    expect(startDemoCycle.mock.calls).toEqual([[null], [null]]);
+  });
+
   networkTest("applies a later pause after an in-flight resume", async () => {
     let paused = true;
     const operations: string[] = [];

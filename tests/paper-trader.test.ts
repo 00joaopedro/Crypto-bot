@@ -157,3 +157,18 @@ it("only applies a newly tightened legacy trailing stop to a later candle", () =
   const exit = trader.processCandle(candle(4, 101.5, 100, 102, 100.5), false).events[0];
   expect(exit).toMatchObject({ type: "CLOSED", reason: "TRAILING_STOP", exitPrice: 100.5 * (1 - options.slippageRate) });
 });
+
+it("attributes a recovered Paper position to its opening strategy only when the identity was recorded", () => {
+  const configured = { ...options, strategyId: "trend" as const };
+  const tagged = new PaperTrader(configured);
+  const legacy = new PaperTrader(options);
+  expect(tagged.processCandle(candle(1, 100), true).events[0]).toMatchObject({ type: "OPENED", strategyId: "trend" });
+  legacy.processCandle(candle(1, 100), true);
+
+  const close = candle(2, 103, 102.5, 103.5);
+  const recovered = new PaperTrader(options, tagged.exportState()).processCandle(close, false);
+  expect(recovered.events[0]).toMatchObject({ type: "CLOSED", strategyId: "trend" });
+  const recoveredLegacy = new PaperTrader(configured, legacy.exportState()).processCandle(close, false);
+  expect(recoveredLegacy.events[0]).toMatchObject({ type: "CLOSED" });
+  expect(recoveredLegacy.events[0]).not.toHaveProperty("strategyId");
+});

@@ -1,3 +1,4 @@
+import type { DemoFill } from "./demo-ledger.js";
 import type { CachedDemoParent } from "./okx-demo-order-evidence.js";
 import { collectDemoEvidenceBatches } from "./demo-evidence-batches.js";
 import { verifyDemoOwnership } from "./demo-ownership.js";
@@ -16,7 +17,7 @@ export type DemoExecutionState =
  */
 export async function inspectDemoExecutionState(
   persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint">>,
-  executor: Pick<OkxDemoExecutor, "collectOrderEvidence">,
+  executor: Pick<OkxDemoExecutor, "collectOrderEvidence"> & Partial<Pick<OkxDemoExecutor, "inspectExitProtection">>,
 ): Promise<DemoExecutionState> {
   const blocked = (reason: string) => ({ status: "blocked" as const, reason });
   try {
@@ -54,13 +55,24 @@ export async function inspectDemoExecutionState(
       const protection = evidence.protections.find((item) => item.algoClientId === buy.attachedAlgoClientId);
       if (!parent || !protection || !Number.isFinite(parent.filled) || parent.filled < 0) return blocked("demo_position_unconfirmed");
       let sold = 0;
-      for (const id of protection.spawnedOrderIds) {
+      for (const id of [...protection.spawnedOrderIds, ...(protection.recoverySellOrderId ? [protection.recoverySellOrderId] : [])]) {
         const child = orders.get(id);
         if (!child || !Number.isFinite(child.filled) || child.filled < 0) return blocked("demo_position_unconfirmed");
         if (!child.terminal) return blocked("demo_sell_not_terminal");
         sold += child.filled;
       }
       if (sold > parent.filled * (1 + 1e-8)) return blocked("demo_oversold_position");
+      if (protection.recoverySellOrderId) {
+        const row = placed.find(item => item.client_order_id === buy.clientOrderId)!;
+        const recovery = await executor.inspectExitProtection?.(buy, new Date(row.created_at).getTime(), checkpoint ? {
+          parents: (checkpoint.evidence.parentOrderEvidence ?? []) as CachedDemoParent[],
+          fills: ((checkpoint.evidence.ledgerCarry as { fills?: DemoFill[] } | undefined)?.fills ??
+            checkpoint.evidence.reconciledFills ?? []) as DemoFill[],
+          from: checkpoint.observedAt.getTime(),
+        } : undefined);
+        if (recovery?.status !== "closed") return blocked("demo_recovery_sell_not_reconciled");
+        continue;
+      }
       const remaining = parent.filled - sold;
       if (remaining > Math.max(parent.filled * 1e-8, 1e-12) && evidence.protectionStates[buy.attachedAlgoClientId] !== "live") return blocked("demo_position_without_live_protection");
       if (!parent.terminal) return blocked("demo_buy_not_terminal");
@@ -75,7 +87,7 @@ export async function inspectDemoExecutionState(
 /** Compatibility gate: consumers must explicitly opt in to the position snapshot. */
 export async function inspectDemoExecutionSafety(
   persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint">>,
-  executor: Pick<OkxDemoExecutor, "collectOrderEvidence">,
+  executor: Pick<OkxDemoExecutor, "collectOrderEvidence"> & Partial<Pick<OkxDemoExecutor, "inspectExitProtection">>,
 ): Promise<{ status: "safe" } | { status: "blocked"; reason: string }> {
   const result = await inspectDemoExecutionState(persistence, executor);
   return result.status === "safe" ? { status: "safe" } : result;

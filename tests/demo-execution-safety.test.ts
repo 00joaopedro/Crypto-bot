@@ -52,3 +52,15 @@ describe("OKX Demo execution safety gate", () => {
     expect(await inspectDemoExecutionSafety(persistence([{ ...row, status: "REJECTED_CONFIRMED" }]), { collectOrderEvidence: reader })).toEqual({ status: "safe" });
   });
 });
+
+it("keeps an explicitly linked recovery sell blocked until the fill ledger confirms closure", async () => {
+  const recovered = { ...evidence, protectionStates: { AP1: "effective" }, protections: [{ ...protection, recoverySellOrderId: "3" }],
+    sells: [...evidence.sells, { ...sell, id: "3" }],
+    orders: [...evidence.orders, { ...evidence.orders[1]!, id: "3", filled: 0.49 }],
+  };
+  const exchange = { collectOrderEvidence: async () => recovered, inspectExitProtection: vi.fn()
+    .mockResolvedValueOnce({ status: "blocked", reason: "partial_exit_without_live_coverage" })
+    .mockResolvedValueOnce({ status: "closed" }) };
+  expect(await inspectDemoExecutionState(persistence(), exchange)).toMatchObject({ reason: "demo_recovery_sell_not_reconciled" });
+  expect(await inspectDemoExecutionState(persistence(), exchange)).toEqual({ status: "safe", positions: [] });
+});

@@ -1,3 +1,4 @@
+import { auditDemoProtections } from "../src/demo-exit-supervisor.js";
 import ccxt, { type Exchange } from "ccxt";
 import { describe, expect, it, vi } from "vitest";
 import { OkxDemoExecutor } from "../src/okx-demo.js";
@@ -6,7 +7,7 @@ const journal={orderId:"1",clientOrderId:"CB1",attachedAlgoClientId:"AP1",symbol
 function setup(){
   const now=Date.now();
   const algo={instType:"SPOT",instId:"BTC-USDT",algoClOrdId:"AP1",algoId:"2",side:"sell",state:"live",ordIdList:[],slOrdPx:"-1",slTriggerPxType:"last",ordType:"conditional",sz:"0.999",slTriggerPx:"95"};
-  const exchange={precisionMode:ccxt.TICK_SIZE,setSandboxMode:vi.fn(),loadMarkets:vi.fn(async()=>({})),market:vi.fn(()=>({symbol:"BTC/USDT",spot:true,active:true,quote:"USDT",base:"BTC",precision:{amount:.001},limits:{cost:{min:1}}})),fetchBalance:vi.fn(async()=>({free:{USDT:1000,BTC:.999},total:{USDT:1000,BTC:.999}})),fetchTicker:vi.fn(async()=>({bid:110,ask:111})),fetchTradingFee:vi.fn(async()=>({taker:.002})),priceToPrecision:(_s:string,p:number)=>String(p),
+  const exchange={precisionMode:ccxt.TICK_SIZE,setSandboxMode:vi.fn(),loadMarkets:vi.fn(async()=>({})),market:vi.fn(()=>({symbol:"BTC/USDT",spot:true,active:true,quote:"USDT",base:"BTC",precision:{amount:.001},limits:{cost:{min:1},amount:{min:.001}}})),fetchBalance:vi.fn(async()=>({free:{USDT:1000,BTC:.999},total:{USDT:1000,BTC:.999}})),fetchTicker:vi.fn(async()=>({bid:110,ask:111})),fetchTradingFee:vi.fn(async()=>({taker:.002})),priceToPrecision:(_s:string,p:number)=>String(p),
     privateGetTradeOrder:vi.fn(async()=>({code:"0",data:[{instType:"SPOT",instId:"BTC-USDT",ordId:"1",clOrdId:"CB1",side:"buy",state:"filled",accFillSz:"1",attachAlgoOrds:[{attachAlgoClOrdId:"AP1"}]}]})),
     privateGetTradeOrderAlgo:vi.fn(async()=>({code:"0",data:[algo]})),
     privateGetTradeFills:vi.fn(async(p:Record<string,string>)=>({code:"0",data:p.after?[]:[{billId:"123",instType:"SPOT",instId:"BTC-USDT",ordId:"1",side:"buy",fillSz:"1",fillPx:"100",fee:"-0.001",feeCcy:"BTC",fillTime:String(now-1000),ts:String(now-1000)}]})),privateGetTradeFillsHistory:vi.fn(async()=>({code:"0",data:[]})),
@@ -64,9 +65,87 @@ describe("OKX managed stop protocol",()=>{
     expect(await f.executor.inspectExitProtection(journal,f.from)).toMatchObject({reason:"partial_sell_or_child_pending"});
     expect(f.exchange.privatePostTradeAmendAlgos).not.toHaveBeenCalled();
   });
+  it("reports net residual and protection state without unblocking a canceled stop", async () => {
+    const f = setup();
+    await f.executor.initialize();
+    f.algo.state = "canceled";
+    expect(await f.executor.inspectExitProtection(journal, f.from)).toMatchObject({
+      status: "blocked", reason: "partial_exit_without_live_coverage",
+      positionEvidence: { symbol: "BTC/USDT", buyOrderId: "1", protectionState: "canceled",
+        grossBought: 1, grossSold: 0, remainingNet: 0.999, amountStep: 0.001, sellOrders: [] },
+    });
+    expect(f.exchange.privatePostTradeAmendAlgos).not.toHaveBeenCalled();
+  });
   it("keeps rejected or mismatched acknowledgements uncertain, preserving the existing protection",async()=>{
     const f=setup();await f.executor.initialize();f.exchange.privatePostTradeAmendAlgos.mockResolvedValue({code:"0",data:[{algoId:"2",reqId:"OTHER",sCode:"51000"}]});
     expect(await f.executor.amendExitStop(journal,f.from,105,"REQ1")).toBe("uncertain");
     expect(f.algo.slTriggerPx).toBe("95");
   });
+});
+
+it("requires the exact persisted buy and proves net stop coverage after a fresh start", async () => {
+  const initial = setup();
+  const restarted = setup();
+  const row = {
+    client_order_id: journal.clientOrderId, symbol: journal.symbol, status: "PLACED",
+    result: { orderId: journal.orderId }, attached_algo_client_id: journal.attachedAlgoClientId,
+    created_at: new Date(initial.from),
+  };
+  const identity = { uid: "1", mainUid: "1" };
+  const store = {
+    demoOrderJournal: vi.fn(async () => [row]),
+    getDemoBaselineCandidate: async () => ({
+      observedAt: new Date(initial.from - 60_000), evidence: { accountIdentity: identity },
+      balances: {}, status: "UNVERIFIED",
+    }),
+    getDemoAccountingCheckpoint: async () => null,
+  };
+  const readOnlyAudit = (executor: OkxDemoExecutor) => ({
+    inspectAccountIdentity: async () => ({ status: "confirmed" as const, identity }),
+    inspectExitProtection: executor.inspectExitProtection.bind(executor),
+  });
+  await initial.executor.initialize();
+  await restarted.executor.initialize();
+
+  store.demoOrderJournal.mockResolvedValueOnce([]);
+  await expect(auditDemoProtections(store, readOnlyAudit(initial.executor), journal)).resolves.toMatchObject({
+    status: "blocked", reason: "protection_order_not_persisted",
+  });
+  initial.exchange.privateGetTradeOrderAlgo.mockRejectedValueOnce(new Error("stop readback failed"));
+  await expect(auditDemoProtections(store, readOnlyAudit(initial.executor), journal)).resolves.toMatchObject({ status: "blocked" });
+
+  restarted.algo.sz = "0.998";
+  await expect(auditDemoProtections(store, readOnlyAudit(restarted.executor))).resolves.toMatchObject({
+    status: "blocked", reason: "exit_quantity_not_covered",
+  });
+  restarted.algo.sz = "0.999";
+  await expect(auditDemoProtections(store, readOnlyAudit(restarted.executor))).resolves.toEqual({ status: "safe" });
+  expect(restarted.exchange.privatePostTradeAmendAlgos).not.toHaveBeenCalled();
+});
+
+it("recognizes only sub-step dust after a linked, verified recovery sell", async () => {
+  const f = setup();
+  await f.executor.initialize();
+  const now = Date.now() - 2000;
+  const recovery = { status: "collected" as const, buys: [], sells: [], protectionStates: { AP1: "effective" },
+    protections: [{ algoClientId: "AP1", symbol: journal.symbol, side: "sell" as const, spawnedOrderIds: ["3"], recoverySellOrderId: "4" }],
+    orders: [
+      { id: "1", symbol: journal.symbol, side: "buy" as const, filled: 1, terminal: true, ownershipConfirmed: false },
+      { id: "3", symbol: journal.symbol, side: "sell" as const, filled: 0.5, terminal: true, ownershipConfirmed: false },
+      { id: "4", symbol: journal.symbol, side: "sell" as const, filled: 0.4989, terminal: true, ownershipConfirmed: false },
+    ],
+  };
+  vi.spyOn(f.executor, "collectOrderEvidence").mockResolvedValue(recovery);
+  const fills = vi.spyOn(f.executor, "collectFillHistory");
+  const fill = (id: string, side: "buy" | "sell", amount: number, timestamp: number, fee: number) => ({
+    id, orderId: id, symbol: journal.symbol, side, amount, timestamp, costUsdt: 100 * amount,
+    fees: [{ currency: "BTC", cost: fee }],
+  });
+  const buy = fill("1", "buy", 1, now, 0.001);
+  const first = fill("3", "sell", 0.5, now + 10, 0);
+  fills.mockResolvedValue({ status: "collected", from: f.from, to: now + 100, fills: [buy, first, fill("4", "sell", 0.4989, now + 20, 0)] });
+  expect(await f.executor.inspectExitProtection(journal, f.from)).toEqual({ status: "closed" });
+  recovery.orders[2]!.filled = 0.48;
+  fills.mockResolvedValue({ status: "collected", from: f.from, to: now + 100, fills: [buy, first, fill("4", "sell", 0.48, now + 20, 0)] });
+  expect(await f.executor.inspectExitProtection(journal, f.from)).toMatchObject({ reason: "partial_exit_without_live_coverage" });
 });

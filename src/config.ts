@@ -1,3 +1,4 @@
+import { normalizeSymbols } from "./market-eligibility.js";
 import { DEFAULT_CONCURRENT_POSITIONS, DEFAULT_DEMO_ORDERS_PER_INTERVAL, MAX_CONCURRENT_POSITIONS, MAX_DEMO_ORDERS_PER_INTERVAL } from "./trading-limits.js";
 import "dotenv/config";
 import { z } from "zod";
@@ -27,6 +28,7 @@ const schema = z
     EXECUTION_PROVIDER: z.enum(["disabled", "okx-demo"]).default("disabled"),
     LIVE_TRADING_ENABLED: z.literal("false").default("false").transform(() => false),
     OKX_DEMO_TRADING_ENABLED: booleanString,
+    OKX_DEMO_RECOVERY_SELL: z.string().regex(/^\d{1,32}:\d{1,32}$/).optional(),
     OKX_DEMO_MAX_SPREAD_PERCENT: z.coerce.number().positive().max(10).default(0.15),
     OKX_DEMO_BOT_BUDGET_USDT: z.coerce.number().finite().positive().optional(),
     OKX_DEMO_ORDER_SIZE_USDT: z.coerce.number().positive().max(100).default(10),
@@ -60,7 +62,18 @@ const schema = z
     PAIR_COOLDOWN_HOURS: z.coerce.number().int().min(1).max(168).default(6),
     PAIR_COOLDOWN_MIN_LOSSES: z.coerce.number().int().min(2).max(20).default(3),
     SIGNAL_SCAN_SYMBOLS: z.string().default(""),
-    DYNAMIC_UNIVERSE_SIZE: z.coerce.number().int().min(1).max(50).default(10),
+    SIGNAL_EXCLUDED_SYMBOLS: z.string().default("").transform((value, ctx) => {
+      try { return normalizeSymbols(value); } catch {
+        ctx.addIssue({ code: "custom", message: "Invalid SIGNAL_EXCLUDED_SYMBOLS: use comma-separated Spot pairs" });
+        return z.NEVER;
+      }
+    }),
+    SIGNAL_EXCLUDE_STABLECOINS: z.enum(["true", "false"]).default("true").transform(value => value === "true"),
+    SIGNAL_EXCLUDE_TOKENIZED_ASSETS: z.enum(["true", "false"]).default("true").transform(value => value === "true"),
+    DYNAMIC_UNIVERSE_SIZE: z.coerce.number().int().min(0).max(1000).default(10),
+    SIGNAL_SCAN_CONCURRENCY: z.coerce.number().int().min(1).max(4).default(2),
+    SIGNAL_SCAN_REQUEST_BUDGET: z.coerce.number().int().min(1).max(100).default(20),
+    SIGNAL_SCAN_TIME_BUDGET_MS: z.coerce.number().int().min(1000).max(60000).default(10000),
     MARKET_MIN_QUOTE_VOLUME_USDT: z.coerce.number().nonnegative().default(1_000_000),
     MARKET_MAX_SPREAD_PERCENT: z.coerce.number().positive().max(10).default(1),
     UNIVERSE_SWITCH_COOLDOWN_MINUTES: z.coerce.number().int().min(15).max(10_080).default(60),

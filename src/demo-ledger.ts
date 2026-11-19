@@ -12,11 +12,19 @@ export type DemoFill = {
   fees: Array<{ currency: string; cost: number }>;
 };
 
+export type ConfirmedDemoTrade = {
+  buyOrderId: string;
+  openedAt: number;
+  closedAt: number;
+  netPnlUsdt: number;
+};
+
 export type DemoLedgerResult =
   | { status: "unavailable"; reason: string }
-  | { status: "confirmed"; realizedPnlUsdt: number; positions: Record<string, { quantity: number; costUsdt: number }> };
+  | { status: "confirmed"; realizedPnlUsdt: number; closedTrades: ConfirmedDemoTrade[]; positions: Record<string, { quantity: number; costUsdt: number }> };
 
-type Lot = { quantity: number; cost: number };
+type Buy = { orderId: string; openedAt: number; openLots: number; netPnlUsdt: number };
+type Lot = { quantity: number; cost: number; buy: Buy };
 
 export function calculateDemoLedger(fills: DemoFill[], coverageConfirmed: boolean): DemoLedgerResult {
   const unavailable = (reason: string): DemoLedgerResult => ({ status: "unavailable", reason });
@@ -24,6 +32,12 @@ export function calculateDemoLedger(fills: DemoFill[], coverageConfirmed: boolea
   const ids = new Set<string>();
   const times = new Map<string, "buy" | "sell">();
   const lots = new Map<string, Lot[]>();
+  const buys = new Map<string, Buy>();
+  const remainingBuyFills = new Map<string, number>();
+  for (const fill of fills) {
+    if (fill.side === "buy") remainingBuyFills.set(fill.orderId, (remainingBuyFills.get(fill.orderId) ?? 0) + 1);
+  }
+  const closedTrades: ConfirmedDemoTrade[] = [];
   let pnl = 0;
   for (const fill of [...fills].sort((a, b) => a.timestamp - b.timestamp || a.id.localeCompare(b.id))) {
     const [base, quote, extra] = fill.symbol.split("/");
@@ -48,7 +62,14 @@ export function calculateDemoLedger(fills: DemoFill[], coverageConfirmed: boolea
       const cost = fill.costUsdt + quoteFee;
       if (quantity <= 0) return unavailable("invalid_base_fee");
       if (!Number.isFinite(cost)) return unavailable("invalid_calculation");
-      queue.push({ quantity, cost });
+      let buy = buys.get(fill.orderId);
+      if (!buy) {
+        buy = { orderId: fill.orderId, openedAt: fill.timestamp, openLots: 0, netPnlUsdt: 0 };
+        buys.set(fill.orderId, buy);
+      }
+      remainingBuyFills.set(fill.orderId, remainingBuyFills.get(fill.orderId)! - 1);
+      buy.openLots++;
+      queue.push({ quantity, cost, buy });
       continue;
     }
     if (fill.side !== "sell") return unavailable("invalid_side");
@@ -61,11 +82,21 @@ export function calculateDemoLedger(fills: DemoFill[], coverageConfirmed: boolea
     while (remaining > 0 && queue.length) {
       const lot = queue[0]!;
       const used = Math.min(remaining, lot.quantity);
-      const allocated = lot.cost * (used / lot.quantity);
+      // Discard only arithmetic residue near machine precision, preserving exchange dust.
+      const exhausted = lot.quantity - used <= lot.quantity * 8 * Number.EPSILON;
+      const allocated = exhausted ? lot.cost : lot.cost * (used / lot.quantity);
       basis += allocated;
-      const exhausted = used === lot.quantity;
       lot.quantity -= used; lot.cost -= allocated; remaining -= used;
-      if (exhausted) queue.shift();
+      lot.buy.netPnlUsdt += proceeds * (used / required) - allocated;
+      if (!Number.isFinite(lot.buy.netPnlUsdt)) return unavailable("invalid_calculation");
+      if (exhausted) {
+        queue.shift();
+        lot.buy.openLots--;
+        if (lot.buy.openLots === 0 && remainingBuyFills.get(lot.buy.orderId) === 0) {
+          closedTrades.push({ buyOrderId: lot.buy.orderId, openedAt: lot.buy.openedAt,
+            closedAt: fill.timestamp, netPnlUsdt: lot.buy.netPnlUsdt });
+        }
+      }
     }
     // Permit only relative floating-point residue after actually consuming inventory;
     // an absolute epsilon would falsely confirm a tiny sell without any buy.
@@ -80,5 +111,5 @@ export function calculateDemoLedger(fills: DemoFill[], coverageConfirmed: boolea
     if (!Number.isFinite(quantity) || !Number.isFinite(costUsdt)) return unavailable("invalid_calculation");
     positions[symbol] = { quantity, costUsdt };
   }
-  return { status: "confirmed", realizedPnlUsdt: pnl, positions };
+  return { status: "confirmed", realizedPnlUsdt: pnl, closedTrades, positions };
 }

@@ -1,0 +1,1394 @@
+{
+  "status": "simulation_only",
+  "assets": [
+    {
+      "symbol": "BTC/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1e-05,
+        "quantityStep": 1e-08
+      },
+      "candleCount": 3552,
+      "sha256": "b776ff750179dea6bb6c30025ecd0cca36e7e0163f82a3c8af105820c15282b3"
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552,
+      "sha256": "c40680393b0c5c3d22e9ddbafdb47109aacf2c0ac3714b7b02c3fd27058dbc5f"
+    },
+    {
+      "symbol": "ETH/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.0001,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552,
+      "sha256": "e0fece44a7d3961aadf78a615bf6643bee67c49407747c084c0d1ebc702f6422"
+    },
+    {
+      "symbol": "HYPE/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.01,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552,
+      "sha256": "bdafa4a6d019de6fa506230cdcca6f4046bd3795bd52f9555b8a96abc0366f0d"
+    },
+    {
+      "symbol": "LIT/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552,
+      "sha256": "92b78b3002f5b510925e3004901e2df18fd4bc60fc0eba79c462afb6fdbc2609"
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-08
+      },
+      "candleCount": 3552,
+      "sha256": "7efd874d0351077c3e296ed9589b5f5fc24d902fadfd6163b003de3abfcfcc31"
+    },
+    {
+      "symbol": "SOL/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.01,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552,
+      "sha256": "26240d5ff740c7354b717636f23346afdf102e75cc21fed1e789c029d07454af"
+    },
+    {
+      "symbol": "SUI/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552,
+      "sha256": "786bd653e56307666e60845fbecd21ae55ef88a765c435f8421611db4aaf563f"
+    },
+    {
+      "symbol": "XRP/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552,
+      "sha256": "4df119c3300a1da2c51e68367c5643c29aa430eb9ddef3c0dab0fdf5e9ef06d2"
+    },
+    {
+      "symbol": "ZEC/USDT",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.001,
+        "quantityStep": 1e-05
+      },
+      "candleCount": 3552,
+      "sha256": "d5faf581d590a426df21c3b569d46195f852268ba51f4fc905907e8a3e1be20d"
+    }
+  ],
+  "limits": {
+    "maxConcurrentPositions": 10,
+    "maxExposureRate": 0.25,
+    "maxAltExposureRate": 0.1
+  },
+  "initialBalanceUsdt": 100,
+  "tradeSizeUsdt": 10,
+  "calibration": {
+    "startUtc": "2026-09-10T00:00:00.000Z",
+    "endExclusiveUtc": "2026-09-20T00:00:00.000Z",
+    "scenario": {
+      "name": "standard",
+      "feeRate": 0.001,
+      "slippageRate": 0.0005,
+      "spreadRate": 0.001,
+      "assumedDepthUsdt": 1000,
+      "maxParticipationRate": 0.001
+    },
+    "candidates": [
+      {
+        "name": "baseline",
+        "parameters": {
+          "exitPolicy": {
+            "mode": "fixed",
+            "breakeven": false,
+            "atrPeriod": 14,
+            "stopMultiplier": 1.5,
+            "targetMultiplier": 3,
+            "minStopRate": 0.005,
+            "maxStopRate": 0.03,
+            "trailingMultiplier": 2,
+            "activationRate": 0.02,
+            "exitFeeRate": 0.001,
+            "exitSlippageRate": 0.001
+          },
+          "pairCooldown": {
+            "hours": 6,
+            "minLosses": 3
+          },
+          "btcRegimeFilter": true,
+          "stopLossRate": 0.01,
+          "takeProfitRate": 0.02,
+          "maxBuyRsi": 70,
+          "minimumSignalScore": 5,
+          "executionDelayCandles": 1
+        },
+        "result": {
+          "topWinningTradePnLsUsdt": [
+            0.0783103332063123,
+            0.06552657752949138,
+            0.0562179441200439
+          ],
+          "top3TradesProfitSharePercent": 61.21102938886207,
+          "realizedPnlWithoutTop3Usdt": -0.9212762542088071,
+          "top3ProfitConcentrationWarning": true,
+          "closedTrades": 17,
+          "realizedPnlUsdt": -0.7212213993529595,
+          "profitFactor": 0.31184415623665174,
+          "winRatePercent": 41.17647058823529,
+          "expectancyUsdt": -0.04242478819723291,
+          "finalEquityUsdt": 99.27877860064704,
+          "netReturnUsdt": -0.7212213993529559,
+          "netReturnPercent": -0.7212213993529559,
+          "maxDrawdownPercent": 0.8076759261492011,
+          "maxDrawdownUsdt": 0.8083798842493053,
+          "recoveryFactor": -0.8921812793779643,
+          "cashUsdt": 99.27877860064704,
+          "peakConcurrentPositions": 1,
+          "peakExposureRate": 0.10071904044235594,
+          "peakAltExposureRate": 0.10024927854041893,
+          "feesUsdt": 0.3395817636869796,
+          "openPositions": 0
+        }
+      },
+      {
+        "name": "rsi-63",
+        "parameters": {
+          "exitPolicy": {
+            "mode": "fixed",
+            "breakeven": false,
+            "atrPeriod": 14,
+            "stopMultiplier": 1.5,
+            "targetMultiplier": 3,
+            "minStopRate": 0.005,
+            "maxStopRate": 0.03,
+            "trailingMultiplier": 2,
+            "activationRate": 0.02,
+            "exitFeeRate": 0.001,
+            "exitSlippageRate": 0.001
+          },
+          "pairCooldown": {
+            "hours": 6,
+            "minLosses": 3
+          },
+          "btcRegimeFilter": true,
+          "stopLossRate": 0.01,
+          "takeProfitRate": 0.02,
+          "maxBuyRsi": 63,
+          "minimumSignalScore": 5,
+          "executionDelayCandles": 1
+        },
+        "result": {
+          "topWinningTradePnLsUsdt": [
+            0.08338835120726604,
+            0.05010455027951535,
+            0.02487246444796301
+          ],
+          "top3TradesProfitSharePercent": 88.83320562864967,
+          "realizedPnlWithoutTop3Usdt": -0.9482587800657499,
+          "top3ProfitConcentrationWarning": true,
+          "closedTrades": 13,
+          "realizedPnlUsdt": -0.7898934141310056,
+          "profitFactor": 0.18413442507678732,
+          "winRatePercent": 30.76923076923077,
+          "expectancyUsdt": -0.0607610318562312,
+          "finalEquityUsdt": 99.210106585869,
+          "netReturnUsdt": -0.7898934141310008,
+          "netReturnPercent": -0.7898934141310043,
+          "maxDrawdownPercent": 0.8762881395615818,
+          "maxDrawdownUsdt": 0.8770518990273501,
+          "recoveryFactor": -0.9006233439628737,
+          "cashUsdt": 99.210106585869,
+          "peakConcurrentPositions": 1,
+          "peakExposureRate": 0.10077534241669198,
+          "peakAltExposureRate": 0.10024927854041893,
+          "feesUsdt": 0.259440692799735,
+          "openPositions": 0
+        }
+      },
+      {
+        "name": "atr-floor-1.2pct",
+        "parameters": {
+          "exitPolicy": {
+            "mode": "fixed",
+            "breakeven": false,
+            "atrPeriod": 14,
+            "stopMultiplier": 1.5,
+            "targetMultiplier": 3,
+            "minStopRate": 0.012,
+            "maxStopRate": 0.03,
+            "trailingMultiplier": 2,
+            "activationRate": 0.02,
+            "exitFeeRate": 0.001,
+            "exitSlippageRate": 0.001
+          },
+          "pairCooldown": {
+            "hours": 6,
+            "minLosses": 3
+          },
+          "btcRegimeFilter": true,
+          "stopLossRate": 0.01,
+          "takeProfitRate": 0.02,
+          "maxBuyRsi": 70,
+          "minimumSignalScore": 5,
+          "executionDelayCandles": 1
+        },
+        "result": {
+          "topWinningTradePnLsUsdt": [
+            0.08976625472427842,
+            0.08976444753056712,
+            0.08976124773613142
+          ],
+          "top3TradesProfitSharePercent": 75.00068284909999,
+          "realizedPnlWithoutTop3Usdt": -0.509230024831477,
+          "top3ProfitConcentrationWarning": true,
+          "closedTrades": 8,
+          "realizedPnlUsdt": -0.2399380748405,
+          "profitFactor": 0.5994294082134022,
+          "winRatePercent": 50,
+          "expectancyUsdt": -0.0299922593550625,
+          "finalEquityUsdt": 99.72328241650386,
+          "netReturnUsdt": -0.2767175834961364,
+          "netReturnPercent": -0.2767175834961333,
+          "maxDrawdownPercent": 0.5103720695359755,
+          "maxDrawdownUsdt": 0.5103720695359755,
+          "recoveryFactor": -0.5421879448609421,
+          "cashUsdt": 89.75057423537586,
+          "peakConcurrentPositions": 1,
+          "peakExposureRate": 0.1005058859473585,
+          "peakAltExposureRate": 0.1001111880785147,
+          "feesUsdt": 0.16991289959706565,
+          "openPositions": 1
+        }
+      },
+      {
+        "name": "atr-floor-1.5pct",
+        "parameters": {
+          "exitPolicy": {
+            "mode": "fixed",
+            "breakeven": false,
+            "atrPeriod": 14,
+            "stopMultiplier": 1.5,
+            "targetMultiplier": 3,
+            "minStopRate": 0.015,
+            "maxStopRate": 0.03,
+            "trailingMultiplier": 2,
+            "activationRate": 0.02,
+            "exitFeeRate": 0.001,
+            "exitSlippageRate": 0.001
+          },
+          "pairCooldown": {
+            "hours": 6,
+            "minLosses": 3
+          },
+          "btcRegimeFilter": true,
+          "stopLossRate": 0.01,
+          "takeProfitRate": 0.02,
+          "maxBuyRsi": 70,
+          "minimumSignalScore": 5,
+          "executionDelayCandles": 1
+        },
+        "result": {
+          "topWinningTradePnLsUsdt": [
+            0.11970310755185287,
+            0.11969953767933098,
+            0.11969915407602733
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5389502811737006,
+          "top3ProfitConcentrationWarning": true,
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.17984848186648938,
+          "profitFactor": 0.6662985656583686,
+          "winRatePercent": 50,
+          "expectancyUsdt": -0.02997474697774823,
+          "finalEquityUsdt": 99.78337200947787,
+          "netReturnUsdt": -0.21662799052212733,
+          "netReturnPercent": -0.21662799052212245,
+          "maxDrawdownPercent": 0.6437242749719687,
+          "maxDrawdownUsdt": 0.6445896721789666,
+          "recoveryFactor": -0.3360711470753783,
+          "cashUsdt": 89.81066382834987,
+          "peakConcurrentPositions": 2,
+          "peakExposureRate": 0.20038559111956306,
+          "peakAltExposureRate": 0.10016227835193023,
+          "feesUsdt": 0.1299218495317345,
+          "openPositions": 1
+        }
+      },
+      {
+        "name": "trailing-atr",
+        "parameters": {
+          "exitPolicy": {
+            "mode": "trailing_atr",
+            "breakeven": false,
+            "atrPeriod": 14,
+            "stopMultiplier": 1.5,
+            "targetMultiplier": 3,
+            "minStopRate": 0.005,
+            "maxStopRate": 0.03,
+            "trailingMultiplier": 2,
+            "activationRate": 0.02,
+            "exitFeeRate": 0.001,
+            "exitSlippageRate": 0.001
+          },
+          "pairCooldown": {
+            "hours": 6,
+            "minLosses": 3
+          },
+          "btcRegimeFilter": true,
+          "stopLossRate": 0.01,
+          "takeProfitRate": 0.02,
+          "maxBuyRsi": 70,
+          "minimumSignalScore": 5,
+          "executionDelayCandles": 1
+        },
+        "result": {
+          "topWinningTradePnLsUsdt": [
+            0.3349888546588086,
+            0.20342122925359554,
+            0.15793178066819089
+          ],
+          "top3TradesProfitSharePercent": 94.55301774869751,
+          "realizedPnlWithoutTop3Usdt": -1.0301557425382994,
+          "top3ProfitConcentrationWarning": true,
+          "closedTrades": 15,
+          "realizedPnlUsdt": -0.33381387795770434,
+          "profitFactor": 0.6881032322062852,
+          "winRatePercent": 26.666666666666668,
+          "expectancyUsdt": -0.02225425853051362,
+          "finalEquityUsdt": 99.6661861220423,
+          "netReturnUsdt": -0.3338138779576951,
+          "netReturnPercent": -0.33381387795770046,
+          "maxDrawdownPercent": 0.6960235470007038,
+          "maxDrawdownUsdt": 0.6985622817786066,
+          "recoveryFactor": -0.47785843390767246,
+          "cashUsdt": 99.6661861220423,
+          "peakConcurrentPositions": 2,
+          "peakExposureRate": 0.199964512981093,
+          "peakAltExposureRate": 0.10007752713843733,
+          "feesUsdt": 0.29990872057125045,
+          "openPositions": 0
+        }
+      },
+      {
+        "name": "pair-cooldown-4h",
+        "parameters": {
+          "exitPolicy": {
+            "mode": "fixed",
+            "breakeven": false,
+            "atrPeriod": 14,
+            "stopMultiplier": 1.5,
+            "targetMultiplier": 3,
+            "minStopRate": 0.005,
+            "maxStopRate": 0.03,
+            "trailingMultiplier": 2,
+            "activationRate": 0.02,
+            "exitFeeRate": 0.001,
+            "exitSlippageRate": 0.001
+          },
+          "pairCooldown": {
+            "hours": 4,
+            "minLosses": 3
+          },
+          "btcRegimeFilter": true,
+          "stopLossRate": 0.01,
+          "takeProfitRate": 0.02,
+          "maxBuyRsi": 70,
+          "minimumSignalScore": 5,
+          "executionDelayCandles": 1
+        },
+        "result": {
+          "topWinningTradePnLsUsdt": [
+            0.0783103332063123,
+            0.06552657752949138,
+            0.0562179441200439
+          ],
+          "top3TradesProfitSharePercent": 61.21102938886207,
+          "realizedPnlWithoutTop3Usdt": -0.9212762542088071,
+          "top3ProfitConcentrationWarning": true,
+          "closedTrades": 17,
+          "realizedPnlUsdt": -0.7212213993529595,
+          "profitFactor": 0.31184415623665174,
+          "winRatePercent": 41.17647058823529,
+          "expectancyUsdt": -0.04242478819723291,
+          "finalEquityUsdt": 99.27877860064704,
+          "netReturnUsdt": -0.7212213993529559,
+          "netReturnPercent": -0.7212213993529559,
+          "maxDrawdownPercent": 0.8076759261492011,
+          "maxDrawdownUsdt": 0.8083798842493053,
+          "recoveryFactor": -0.8921812793779643,
+          "cashUsdt": 99.27877860064704,
+          "peakConcurrentPositions": 1,
+          "peakExposureRate": 0.10071904044235594,
+          "peakAltExposureRate": 0.10024927854041893,
+          "feesUsdt": 0.3395817636869796,
+          "openPositions": 0
+        }
+      },
+      {
+        "name": "pair-cooldown-8h",
+        "parameters": {
+          "exitPolicy": {
+            "mode": "fixed",
+            "breakeven": false,
+            "atrPeriod": 14,
+            "stopMultiplier": 1.5,
+            "targetMultiplier": 3,
+            "minStopRate": 0.005,
+            "maxStopRate": 0.03,
+            "trailingMultiplier": 2,
+            "activationRate": 0.02,
+            "exitFeeRate": 0.001,
+            "exitSlippageRate": 0.001
+          },
+          "pairCooldown": {
+            "hours": 8,
+            "minLosses": 3
+          },
+          "btcRegimeFilter": true,
+          "stopLossRate": 0.01,
+          "takeProfitRate": 0.02,
+          "maxBuyRsi": 70,
+          "minimumSignalScore": 5,
+          "executionDelayCandles": 1
+        },
+        "result": {
+          "topWinningTradePnLsUsdt": [
+            0.0783103332063123,
+            0.06552657752949138,
+            0.0562179441200439
+          ],
+          "top3TradesProfitSharePercent": 61.21102938886207,
+          "realizedPnlWithoutTop3Usdt": -0.9212762542088071,
+          "top3ProfitConcentrationWarning": true,
+          "closedTrades": 17,
+          "realizedPnlUsdt": -0.7212213993529595,
+          "profitFactor": 0.31184415623665174,
+          "winRatePercent": 41.17647058823529,
+          "expectancyUsdt": -0.04242478819723291,
+          "finalEquityUsdt": 99.27877860064704,
+          "netReturnUsdt": -0.7212213993529559,
+          "netReturnPercent": -0.7212213993529559,
+          "maxDrawdownPercent": 0.8076759261492011,
+          "maxDrawdownUsdt": 0.8083798842493053,
+          "recoveryFactor": -0.8921812793779643,
+          "cashUsdt": 99.27877860064704,
+          "peakConcurrentPositions": 1,
+          "peakExposureRate": 0.10071904044235594,
+          "peakAltExposureRate": 0.10024927854041893,
+          "feesUsdt": 0.3395817636869796,
+          "openPositions": 0
+        }
+      },
+      {
+        "name": "pair-cooldown-24h",
+        "parameters": {
+          "exitPolicy": {
+            "mode": "fixed",
+            "breakeven": false,
+            "atrPeriod": 14,
+            "stopMultiplier": 1.5,
+            "targetMultiplier": 3,
+            "minStopRate": 0.005,
+            "maxStopRate": 0.03,
+            "trailingMultiplier": 2,
+            "activationRate": 0.02,
+            "exitFeeRate": 0.001,
+            "exitSlippageRate": 0.001
+          },
+          "pairCooldown": {
+            "hours": 24,
+            "minLosses": 3
+          },
+          "btcRegimeFilter": true,
+          "stopLossRate": 0.01,
+          "takeProfitRate": 0.02,
+          "maxBuyRsi": 70,
+          "minimumSignalScore": 5,
+          "executionDelayCandles": 1
+        },
+        "result": {
+          "topWinningTradePnLsUsdt": [
+            0.0783103332063123,
+            0.06552657752949138,
+            0.0562179441200439
+          ],
+          "top3TradesProfitSharePercent": 61.21102938886207,
+          "realizedPnlWithoutTop3Usdt": -0.9212762542088071,
+          "top3ProfitConcentrationWarning": true,
+          "closedTrades": 17,
+          "realizedPnlUsdt": -0.7212213993529595,
+          "profitFactor": 0.31184415623665174,
+          "winRatePercent": 41.17647058823529,
+          "expectancyUsdt": -0.04242478819723291,
+          "finalEquityUsdt": 99.27877860064704,
+          "netReturnUsdt": -0.7212213993529559,
+          "netReturnPercent": -0.7212213993529559,
+          "maxDrawdownPercent": 0.8076759261492011,
+          "maxDrawdownUsdt": 0.8083798842493053,
+          "recoveryFactor": -0.8921812793779643,
+          "cashUsdt": 99.27877860064704,
+          "peakConcurrentPositions": 1,
+          "peakExposureRate": 0.10071904044235594,
+          "peakAltExposureRate": 0.10024927854041893,
+          "feesUsdt": 0.3395817636869796,
+          "openPositions": 0
+        }
+      },
+      {
+        "name": "fixed-1pct-2pct",
+        "parameters": {
+          "pairCooldown": {
+            "hours": 6,
+            "minLosses": 3
+          },
+          "btcRegimeFilter": true,
+          "stopLossRate": 0.01,
+          "takeProfitRate": 0.02,
+          "maxBuyRsi": 70,
+          "minimumSignalScore": 5,
+          "executionDelayCandles": 1
+        },
+        "result": {
+          "topWinningTradePnLsUsdt": [
+            0.16960764107469847,
+            0.16959620815060097,
+            0.1695956646425199
+          ],
+          "top3TradesProfitSharePercent": 60.00996785883762,
+          "realizedPnlWithoutTop3Usdt": -0.6991032356758532,
+          "top3ProfitConcentrationWarning": true,
+          "closedTrades": 13,
+          "realizedPnlUsdt": -0.1903037218080338,
+          "profitFactor": 0.8166916998181616,
+          "winRatePercent": 38.46153846153847,
+          "expectancyUsdt": -0.014638747831387215,
+          "finalEquityUsdt": 99.77291676953637,
+          "netReturnUsdt": -0.22708323046363432,
+          "netReturnPercent": -0.22708323046363166,
+          "maxDrawdownPercent": 0.4857919959857865,
+          "maxDrawdownUsdt": 0.486899221854614,
+          "recoveryFactor": -0.46638651341168175,
+          "cashUsdt": 89.80020858840837,
+          "peakConcurrentPositions": 2,
+          "peakExposureRate": 0.2001630138014083,
+          "peakAltExposureRate": 0.10010556846343704,
+          "feesUsdt": 0.2700204792967742,
+          "openPositions": 1
+        }
+      }
+    ]
+  },
+  "selected": {
+    "name": "atr-floor-1.5pct",
+    "parameters": {
+      "exitPolicy": {
+        "mode": "fixed",
+        "breakeven": false,
+        "atrPeriod": 14,
+        "stopMultiplier": 1.5,
+        "targetMultiplier": 3,
+        "minStopRate": 0.015,
+        "maxStopRate": 0.03,
+        "trailingMultiplier": 2,
+        "activationRate": 0.02,
+        "exitFeeRate": 0.001,
+        "exitSlippageRate": 0.001
+      },
+      "pairCooldown": {
+        "hours": 6,
+        "minLosses": 3
+      },
+      "btcRegimeFilter": true,
+      "stopLossRate": 0.01,
+      "takeProfitRate": 0.02,
+      "maxBuyRsi": 70,
+      "minimumSignalScore": 5,
+      "executionDelayCandles": 1
+    }
+  },
+  "results": [
+    {
+      "scenario": {
+        "name": "standard",
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001,
+        "assumedDepthUsdt": 1000,
+        "maxParticipationRate": 0.001
+      },
+      "result": {
+        "topWinningTradePnLsUsdt": [
+          0.18380265789061168,
+          0.1439224904895527,
+          0.13335170968068566
+        ],
+        "top3TradesProfitSharePercent": 35.49274280367074,
+        "realizedPnlWithoutTop3Usdt": -1.3416470917288204,
+        "top3ProfitConcentrationWarning": true,
+        "closedTrades": 22,
+        "realizedPnlUsdt": -0.8805702336679704,
+        "profitFactor": 0.5960026987889759,
+        "winRatePercent": 45.45454545454545,
+        "expectancyUsdt": -0.040025919712180474,
+        "finalEquityUsdt": 99.08496850054941,
+        "netReturnUsdt": -0.9150314994505919,
+        "netReturnPercent": -0.9150314994505915,
+        "maxDrawdownPercent": 1.4636100344731708,
+        "maxDrawdownUsdt": 1.4712239558984521,
+        "recoveryFactor": -0.6219525557492689,
+        "cashUsdt": 89.1095293151594,
+        "peakConcurrentPositions": 2,
+        "peakExposureRate": 0.2005055675792548,
+        "peakAltExposureRate": 0.1001733824018483,
+        "feesUsdt": 0.44946902958926105,
+        "openPositions": 1,
+        "blocks": [
+          {
+            "startUtc": "2026-09-20T00:00:00.000Z",
+            "endExclusiveUtc": "2026-09-30T00:00:00.000Z",
+            "startingEquityUsdt": 100,
+            "endingEquityUsdt": 99.41037101140103,
+            "netReturnUsdt": -0.5896289885989745,
+            "maxDrawdownUsdt": 1.1869298604818397,
+            "maxDrawdownPercent": 1.1807872262086574,
+            "recoveryFactor": -0.4967681817016651,
+            "topWinningTradePnLsUsdt": [
+              0.18380265789061168,
+              0.1439224904895527,
+              0.13335170968068566
+            ],
+            "top3TradesProfitSharePercent": 49.05303492735747,
+            "realizedPnlWithoutTop3Usdt": -0.9820325978102158,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 15,
+            "realizedPnlUsdt": -0.5209557397493658,
+            "profitFactor": 0.6434036439279608,
+            "winRatePercent": 46.666666666666664,
+            "expectancyUsdt": -0.034730382649957724,
+            "perSymbol": [
+              {
+                "symbol": "BTC/USDT",
+                "closedTrades": 6,
+                "realizedPnlUsdt": -0.47934642413071743,
+                "profitFactor": 0.33307976264950684,
+                "winRatePercent": 33.33333333333333,
+                "expectancyUsdt": -0.0798910706884529
+              },
+              {
+                "symbol": "DOGE/USDT",
+                "closedTrades": 1,
+                "realizedPnlUsdt": 0.1439224904895527,
+                "profitFactor": null,
+                "winRatePercent": 100,
+                "expectancyUsdt": 0.1439224904895527
+              },
+              {
+                "symbol": "ETH/USDT",
+                "closedTrades": 2,
+                "realizedPnlUsdt": -0.05980670546961814,
+                "profitFactor": 0.6671209165330746,
+                "winRatePercent": 50,
+                "expectancyUsdt": -0.02990335273480907
+              },
+              {
+                "symbol": "HYPE/USDT",
+                "closedTrades": 4,
+                "realizedPnlUsdt": -0.10620543275560612,
+                "profitFactor": 0.7043097704331723,
+                "winRatePercent": 50,
+                "expectancyUsdt": -0.02655135818890153
+              },
+              {
+                "symbol": "LIT/USDT",
+                "closedTrades": 1,
+                "realizedPnlUsdt": -0.20332232577358858,
+                "profitFactor": 0,
+                "winRatePercent": 0,
+                "expectancyUsdt": -0.20332232577358858
+              },
+              {
+                "symbol": "NEAR/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SOL/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SUI/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "XRP/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "ZEC/USDT",
+                "closedTrades": 1,
+                "realizedPnlUsdt": 0.18380265789061168,
+                "profitFactor": null,
+                "winRatePercent": 100,
+                "expectancyUsdt": 0.18380265789061168
+              }
+            ]
+          },
+          {
+            "startUtc": "2026-09-30T00:00:00.000Z",
+            "endExclusiveUtc": "2026-10-10T00:00:00.000Z",
+            "startingEquityUsdt": 99.41037101140103,
+            "endingEquityUsdt": 99.08496850054941,
+            "netReturnUsdt": -0.3254025108516174,
+            "maxDrawdownUsdt": 0.5497580521981007,
+            "maxDrawdownPercent": 0.5519728472991069,
+            "recoveryFactor": -0.5919013092224092,
+            "topWinningTradePnLsUsdt": [
+              0.1197073868262698,
+              0.11970540255720613,
+              0.1197050057968596
+            ],
+            "top3TradesProfitSharePercent": 100,
+            "realizedPnlWithoutTop3Usdt": -0.71873228909894,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 7,
+            "realizedPnlUsdt": -0.3596144939186045,
+            "profitFactor": 0.4996544619284521,
+            "winRatePercent": 42.857142857142854,
+            "expectancyUsdt": -0.05137349913122922,
+            "perSymbol": [
+              {
+                "symbol": "BTC/USDT",
+                "closedTrades": 7,
+                "realizedPnlUsdt": -0.3596144939186045,
+                "profitFactor": 0.4996544619284521,
+                "winRatePercent": 42.857142857142854,
+                "expectancyUsdt": -0.05137349913122922
+              },
+              {
+                "symbol": "DOGE/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "ETH/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "HYPE/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "LIT/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "NEAR/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SOL/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SUI/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "XRP/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "ZEC/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              }
+            ]
+          }
+        ]
+      },
+      "bothBlocksPositive": false
+    },
+    {
+      "scenario": {
+        "name": "stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "result": {
+        "topWinningTradePnLsUsdt": [
+          0.12187323069954338,
+          0.11105712645929035,
+          0.1004532782669122
+        ],
+        "top3TradesProfitSharePercent": 39.005288529227876,
+        "realizedPnlWithoutTop3Usdt": -2.3015566556802733,
+        "top3ProfitConcentrationWarning": true,
+        "closedTrades": 22,
+        "realizedPnlUsdt": -1.9681730202545273,
+        "profitFactor": 0.3027800782404166,
+        "winRatePercent": 40.909090909090914,
+        "expectancyUsdt": -0.08946241001156942,
+        "finalEquityUsdt": 97.96494239106276,
+        "netReturnUsdt": -2.0350576089372368,
+        "netReturnPercent": -2.0350576089372407,
+        "maxDrawdownPercent": 2.446791965535514,
+        "maxDrawdownUsdt": 2.456218581718204,
+        "recoveryFactor": -0.8285327796492966,
+        "cashUsdt": 88.01185783230277,
+        "peakConcurrentPositions": 2,
+        "peakExposureRate": 0.20030044467796954,
+        "peakAltExposureRate": 0.10013854368240378,
+        "feesUsdt": 0.8977014676961965,
+        "openPositions": 1,
+        "blocks": [
+          {
+            "startUtc": "2026-09-20T00:00:00.000Z",
+            "endExclusiveUtc": "2026-09-30T00:00:00.000Z",
+            "startingEquityUsdt": 100,
+            "endingEquityUsdt": 98.83024361821633,
+            "netReturnUsdt": -1.169756381783671,
+            "maxDrawdownUsdt": 1.5550206917646392,
+            "maxDrawdownPercent": 1.5490527443976942,
+            "recoveryFactor": -0.7522448980767131,
+            "topWinningTradePnLsUsdt": [
+              0.12187323069954338,
+              0.11105712645929035,
+              0.1004532782669122
+            ],
+            "top3TradesProfitSharePercent": 56.12201333725254,
+            "realizedPnlWithoutTop3Usdt": -1.5031400172094087,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 14,
+            "realizedPnlUsdt": -1.1697563817836627,
+            "profitFactor": 0.3367938523470956,
+            "winRatePercent": 42.857142857142854,
+            "expectancyUsdt": -0.08355402727026162,
+            "perSymbol": [
+              {
+                "symbol": "BTC/USDT",
+                "closedTrades": 7,
+                "realizedPnlUsdt": -0.8853088701098187,
+                "profitFactor": 0.16409214577306155,
+                "winRatePercent": 28.57142857142857,
+                "expectancyUsdt": -0.1264726957299741
+              },
+              {
+                "symbol": "DOGE/USDT",
+                "closedTrades": 2,
+                "realizedPnlUsdt": -0.1465893329200636,
+                "profitFactor": 0.43104464438136086,
+                "winRatePercent": 50,
+                "expectancyUsdt": -0.0732946664600318
+              },
+              {
+                "symbol": "ETH/USDT",
+                "closedTrades": 1,
+                "realizedPnlUsdt": 0.12187323069954338,
+                "profitFactor": null,
+                "winRatePercent": 100,
+                "expectancyUsdt": 0.12187323069954338
+              },
+              {
+                "symbol": "HYPE/USDT",
+                "closedTrades": 3,
+                "realizedPnlUsdt": -0.024399803661321856,
+                "profitFactor": 0.8847507350251487,
+                "winRatePercent": 66.66666666666666,
+                "expectancyUsdt": -0.008133267887107285
+              },
+              {
+                "symbol": "LIT/USDT",
+                "closedTrades": 1,
+                "realizedPnlUsdt": -0.23533160579200196,
+                "profitFactor": 0,
+                "winRatePercent": 0,
+                "expectancyUsdt": -0.23533160579200196
+              },
+              {
+                "symbol": "NEAR/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SOL/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SUI/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "XRP/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "ZEC/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              }
+            ]
+          },
+          {
+            "startUtc": "2026-09-30T00:00:00.000Z",
+            "endExclusiveUtc": "2026-10-10T00:00:00.000Z",
+            "startingEquityUsdt": 98.83024361821633,
+            "endingEquityUsdt": 97.96494239106276,
+            "netReturnUsdt": -0.8653012271535658,
+            "maxDrawdownUsdt": 0.9011978899535649,
+            "maxDrawdownPercent": 0.9118644829359266,
+            "recoveryFactor": -0.9601678352777228,
+            "topWinningTradePnLsUsdt": [
+              0.08689541388097305,
+              0.0868927096882471,
+              0.08689217459257532
+            ],
+            "top3TradesProfitSharePercent": 100,
+            "realizedPnlWithoutTop3Usdt": -1.05909693663266,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 8,
+            "realizedPnlUsdt": -0.7984166384708644,
+            "profitFactor": 0.24613450303294618,
+            "winRatePercent": 37.5,
+            "expectancyUsdt": -0.09980207980885805,
+            "perSymbol": [
+              {
+                "symbol": "BTC/USDT",
+                "closedTrades": 8,
+                "realizedPnlUsdt": -0.7984166384708644,
+                "profitFactor": 0.24613450303294618,
+                "winRatePercent": 37.5,
+                "expectancyUsdt": -0.09980207980885805
+              },
+              {
+                "symbol": "DOGE/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "ETH/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "HYPE/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "LIT/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "NEAR/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SOL/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SUI/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "XRP/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "ZEC/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              }
+            ]
+          }
+        ]
+      },
+      "bothBlocksPositive": false
+    },
+    {
+      "scenario": {
+        "name": "fixed-cost-stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "result": {
+        "topWinningTradePnLsUsdt": [
+          0.11613789167960287,
+          0.10953192885092955,
+          0.10557024400144313
+        ],
+        "top3TradesProfitSharePercent": 33.977125150676265,
+        "realizedPnlWithoutTop3Usdt": -1.9085360116784011,
+        "top3ProfitConcentrationWarning": false,
+        "closedTrades": 22,
+        "realizedPnlUsdt": -1.5772959471464256,
+        "profitFactor": 0.3819826899517797,
+        "winRatePercent": 45.45454545454545,
+        "expectancyUsdt": -0.07169527032483752,
+        "finalEquityUsdt": 98.3607911834121,
+        "netReturnUsdt": -1.639208816587896,
+        "netReturnPercent": -1.6392088165879004,
+        "maxDrawdownPercent": 2.0722693185535097,
+        "maxDrawdownUsdt": 2.0806734085343948,
+        "recoveryFactor": -0.7878260998887557,
+        "cashUsdt": 88.4027589438441,
+        "peakConcurrentPositions": 2,
+        "peakExposureRate": 0.2003223132993989,
+        "peakAltExposureRate": 0.10014866342001925,
+        "feesUsdt": 0.8985033797512461,
+        "openPositions": 1,
+        "blocks": [
+          {
+            "startUtc": "2026-09-20T00:00:00.000Z",
+            "endExclusiveUtc": "2026-09-30T00:00:00.000Z",
+            "startingEquityUsdt": 100,
+            "endingEquityUsdt": 98.9933070844255,
+            "netReturnUsdt": -1.0066929155745044,
+            "maxDrawdownUsdt": 1.4891932735169888,
+            "maxDrawdownPercent": 1.483178242893619,
+            "recoveryFactor": -0.6759988333797828,
+            "topWinningTradePnLsUsdt": [
+              0.11613789167960287,
+              0.10953192885092955,
+              0.10557024400144313
+            ],
+            "top3TradesProfitSharePercent": 54.56643187365232,
+            "realizedPnlWithoutTop3Usdt": -1.24186929650276,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 13,
+            "realizedPnlUsdt": -0.9106292319707845,
+            "profitFactor": 0.3999817505345764,
+            "winRatePercent": 46.15384615384615,
+            "expectancyUsdt": -0.07004840245929111,
+            "perSymbol": [
+              {
+                "symbol": "BTC/USDT",
+                "closedTrades": 6,
+                "realizedPnlUsdt": -0.6436773162336762,
+                "profitFactor": 0.22223281519214028,
+                "winRatePercent": 33.33333333333333,
+                "expectancyUsdt": -0.1072795527056127
+              },
+              {
+                "symbol": "DOGE/USDT",
+                "closedTrades": 2,
+                "realizedPnlUsdt": -0.13661270910458806,
+                "profitFactor": 0.4594960064160887,
+                "winRatePercent": 50,
+                "expectancyUsdt": -0.06830635455229403
+              },
+              {
+                "symbol": "ETH/USDT",
+                "closedTrades": 1,
+                "realizedPnlUsdt": 0.10953192885092955,
+                "profitFactor": null,
+                "winRatePercent": 100,
+                "expectancyUsdt": 0.10953192885092955
+              },
+              {
+                "symbol": "HYPE/USDT",
+                "closedTrades": 3,
+                "realizedPnlUsdt": -0.009440810064658106,
+                "profitFactor": 0.9543683936097027,
+                "winRatePercent": 66.66666666666666,
+                "expectancyUsdt": -0.0031469366882193686
+              },
+              {
+                "symbol": "LIT/USDT",
+                "closedTrades": 1,
+                "realizedPnlUsdt": -0.23043032541879166,
+                "profitFactor": 0,
+                "winRatePercent": 0,
+                "expectancyUsdt": -0.23043032541879166
+              },
+              {
+                "symbol": "NEAR/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SOL/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SUI/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "XRP/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "ZEC/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              }
+            ]
+          },
+          {
+            "startUtc": "2026-09-30T00:00:00.000Z",
+            "endExclusiveUtc": "2026-10-10T00:00:00.000Z",
+            "startingEquityUsdt": 98.9933070844255,
+            "endingEquityUsdt": 98.3607911834121,
+            "netReturnUsdt": -0.6325159010133916,
+            "maxDrawdownUsdt": 0.864861522941581,
+            "maxDrawdownPercent": 0.8719264095684095,
+            "recoveryFactor": -0.7313493365528255,
+            "topWinningTradePnLsUsdt": [
+              0.09196531221975941,
+              0.09196273918367003,
+              0.09196219667872783
+            ],
+            "top3TradesProfitSharePercent": 75.00046422682973,
+            "realizedPnlWithoutTop3Usdt": -0.9425569632577984,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 9,
+            "realizedPnlUsdt": -0.6666667151756411,
+            "profitFactor": 0.3555775257776166,
+            "winRatePercent": 44.44444444444444,
+            "expectancyUsdt": -0.07407407946396012,
+            "perSymbol": [
+              {
+                "symbol": "BTC/USDT",
+                "closedTrades": 9,
+                "realizedPnlUsdt": -0.6666667151756411,
+                "profitFactor": 0.3555775257776166,
+                "winRatePercent": 44.44444444444444,
+                "expectancyUsdt": -0.07407407946396012
+              },
+              {
+                "symbol": "DOGE/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "ETH/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "HYPE/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "LIT/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "NEAR/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SOL/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "SUI/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "XRP/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              },
+              {
+                "symbol": "ZEC/USDT",
+                "closedTrades": 0,
+                "realizedPnlUsdt": 0,
+                "profitFactor": null,
+                "winRatePercent": null,
+                "expectancyUsdt": null
+              }
+            ]
+          }
+        ]
+      },
+      "bothBlocksPositive": false
+    }
+  ],
+  "methodology": [
+    "Calibrate on D1-D10 using only the standard scenario. Rank by net marked P&L, then lower drawdown in USDT, then manifest order.",
+    "Start a fresh wallet on D11. Carry equity, positions and cooldowns from D20 into D21 with frozen parameters.",
+    "Block return uses marked equity. Count each closed trade and its realized P&L in the block containing its exit.",
+    "Historical simulation uses assumed costs and liquidity. Both holdout blocks positive is a descriptive screen."
+  ]
+}

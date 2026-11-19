@@ -9,10 +9,7 @@ export function validateDemoStrategy(candles: Candle[], options: WalkForwardOpti
   if ((options.stepCandles ?? options.testCandles) < options.testCandles) throw new Error("Test windows must not overlap");
   if (options.base.qualityFilters === false) throw new Error("Demo validation requires the production quality filters");
   if (options.base.executionProfile !== "demo-proxy") throw new Error("Demo validation requires demo-proxy execution profile");
-  for (let i = 0; i < candles.length; i++) {
-    const c = candles[i]!;
-    if (![c.timestamp, c.open, c.high, c.low, c.close, c.volume].every(Number.isFinite) || !Number.isSafeInteger(c.timestamp) || c.timestamp < 0 || c.open <= 0 || c.close <= 0 || c.low <= 0 || c.volume < 0 || c.high < Math.max(c.open, c.close) || c.low > Math.min(c.open, c.close) || (i > 0 && c.timestamp - candles[i - 1]!.timestamp !== 900_000)) throw new Error("Candles must be valid, ordered and contiguous 15-minute data");
-  }
+  assertValidHistoricalCandles(candles);
   const result = runWalkForward(candles, options);
   return {
     status: "simulation_only" as const,
@@ -25,4 +22,11 @@ export function validateDemoStrategy(candles: Candle[], options: WalkForwardOpti
       "This report cannot establish production readiness or profitability.",
     ],
   };
+}
+
+export function assertValidHistoricalCandles(candles: Candle[]): void {
+  for (let i = 0; i < candles.length; i++) {
+    const c = candles[i]!;
+    if (![c.timestamp, c.open, c.high, c.low, c.close, c.volume].every(Number.isFinite) || !Number.isSafeInteger(c.timestamp) || c.timestamp < 0 || c.open <= 0 || c.close <= 0 || c.low <= 0 || c.volume < 0 || c.high < Math.max(c.open, c.close) || c.low > Math.min(c.open, c.close) || (i > 0 && c.timestamp - candles[i - 1]!.timestamp !== 900_000)) throw new Error("Candles must be valid, ordered and contiguous 15-minute data");
+  }
 }

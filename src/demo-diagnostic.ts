@@ -130,7 +130,7 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
         parentOrderEvidence: evidence.buys.map(order => ({ order, evidence: evidence.orders.find(item => item.id === order.id)! })), checkedBills: coverage.billCount,
         ...(Object.values(accounting.positions).some(position => position.quantity > 0) ? {
           ledgerCarry: { from, balances: originBalances, pnlOffset, fills: collectedFills }
-        } : { ledgerCarry: undefined }) }, realizedPnl: totalPnl });
+        } : { ledgerCarry: undefined }) }, realizedPnl: totalPnl, closedTrades: accounting.closedTrades });
     if (saved === false) return unavailable("checkpoint_changed_retry");
   }
   return { status: "confirmed" as const, realizedPnlUsdt: totalPnl, confirmedThrough: after.endedAt, positions: accounting.positions, checkedOrders: evidence.orders.length, checkedFills: collectedFills.length, checkedBills: coverage.billCount };

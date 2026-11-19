@@ -1,6 +1,8 @@
+import type { StrategyId } from "./strategy-id.js";
 import { MAX_CONCURRENT_POSITIONS } from "./trading-limits.js";
 
 export type ManagedPosition = {
+  strategyId?: StrategyId;
   symbol: string;
   notionalUsdt: number;
   openedAt: number;

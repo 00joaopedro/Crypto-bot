@@ -37,3 +37,34 @@ describe("Demo ledger", () => {
     expect(calculateDemoLedger([{ ...buy, fees: [{ currency: "USDT", cost: 1e308 }, { currency: "USDT", cost: 1e308 }] }], true)).toMatchObject({ status: "unavailable" });
   });
 });
+
+it("assigns partial fills and fees to one completed trade per buy order", () => {
+  const partial = calculateDemoLedger([buy, sell], true);
+  expect(partial).toMatchObject({ status: "confirmed", closedTrades: [] });
+  const completed = calculateDemoLedger([buy, sell, {
+    ...sell, id: "3", orderId: "sell2", timestamp: 3, costUsdt: 45, fees: [{ currency: "USDT", cost: 0.45 }],
+  }], true);
+  expect(completed.status).toBe("confirmed");
+  if (completed.status !== "confirmed") return;
+  expect(completed.closedTrades).toHaveLength(1);
+  expect(completed.closedTrades[0]).toMatchObject({ buyOrderId: "buy1", openedAt: 1, closedAt: 3 });
+  expect(completed.closedTrades[0]!.netPnlUsdt).toBeCloseTo(2.95);
+  expect(completed.positions["BTC/USDT"]?.quantity).toBe(0);
+});
+
+it("handles multiple buy fills and a sell crossing FIFO positions exactly once", () => {
+  const result = calculateDemoLedger([
+    { ...buy, amount: 0.1, costUsdt: 10, fees: [{ currency: "USDT", cost: 0 }] },
+    { ...buy, id: "1b", timestamp: 2, amount: 0.2, costUsdt: 20, fees: [{ currency: "USDT", cost: 0 }] },
+    { ...buy, id: "1c", orderId: "buy2", timestamp: 3, amount: 0.7, costUsdt: 70, fees: [{ currency: "USDT", cost: 0 }] },
+    { ...sell, timestamp: 4, amount: 0.5, costUsdt: 60, fees: [{ currency: "USDT", cost: 0 }] },
+    { ...sell, id: "3", timestamp: 5, amount: 0.5, costUsdt: 50, fees: [{ currency: "USDT", cost: 0 }] },
+  ], true);
+  expect(result.status).toBe("confirmed");
+  if (result.status !== "confirmed") return;
+  expect(result.closedTrades).toHaveLength(2);
+  expect(result.closedTrades.map(({ buyOrderId, openedAt, closedAt }) => [buyOrderId, openedAt, closedAt]))
+    .toEqual([["buy1", 1, 4], ["buy2", 3, 5]]);
+  expect(result.closedTrades[0]!.netPnlUsdt).toBeCloseTo(6);
+  expect(result.closedTrades[1]!.netPnlUsdt).toBeCloseTo(4);
+});

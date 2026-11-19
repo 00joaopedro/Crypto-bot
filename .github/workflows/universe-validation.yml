@@ -1,0 +1,47 @@
+name: Universe validation (public OKX data)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'examples/universe-validation.study.json'
+      - 'src/universe-*.ts'
+      - '.github/workflows/universe-validation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: universe-study-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - run: npm run --silent strategy:universe-benchmark > universe-scan-benchmark.json
+      - uses: actions/cache@v4
+        with:
+          path: .universe-data
+          key: universe-v1-${{ hashFiles('examples/universe-validation.study.json') }}
+      - name: Collect confirmed public candles and quote volumes
+        run: npm run strategy:universe -- --collect examples/universe-validation.study.json .universe-data
+      - name: Compare frozen universe sizes and cost scenarios
+        run: npm run strategy:universe -- examples/universe-validation.study.json .universe-data
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: okx-universe-validation
+          path: |
+            .universe-data/
+            universe-scan-benchmark.json
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn

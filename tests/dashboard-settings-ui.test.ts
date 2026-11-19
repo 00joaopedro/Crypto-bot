@@ -23,4 +23,9 @@ it("loads every saved field and preserves edits during automatic dashboard rende
   expect(element("order-size").value).toBe("25");
   expect(element("paper-order-size").value).toBe("10");
   expect(element("max-positions").value).toBe("3");
+  runInContext('state.lastSignalScan={candleTimestamp:900000,pairs:Array.from({length:100},(_,i)=>"C"+i+"/USDT"),statistics:{analyzedCandidates:100,targetCandidates:200,pendingCandidates:100}};render()', sandbox);
+  expect(element("scan-pairs").textContent).toContain("100 de 200 avaliados; 100 pendentes");
+  expect(element("scan-pairs").textContent).toContain("(+88 pares)");
+  expect(element("scan-pairs").textContent).not.toContain("C99/USDT");
+
 });
