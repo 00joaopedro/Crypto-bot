@@ -10,8 +10,10 @@
       "targetCandidates": 15,
       "passes": 1,
       "candleRequests": 14,
+      "anchorCandleRequests": 1,
+      "totalCandleRequests": 15,
       "maximumConcurrentRequests": 2,
-      "localWallMs": 5.44,
+      "localWallMs": 5.33,
       "minimumLoopDelaySpanMs": 0
     },
     {
@@ -20,8 +22,10 @@
       "targetCandidates": 30,
       "passes": 2,
       "candleRequests": 29,
+      "anchorCandleRequests": 2,
+      "totalCandleRequests": 31,
       "maximumConcurrentRequests": 2,
-      "localWallMs": 4.79,
+      "localWallMs": 5.15,
       "minimumLoopDelaySpanMs": 60000
     },
     {
@@ -30,8 +34,10 @@
       "targetCandidates": 50,
       "passes": 3,
       "candleRequests": 49,
+      "anchorCandleRequests": 3,
+      "totalCandleRequests": 52,
       "maximumConcurrentRequests": 2,
-      "localWallMs": 7.13,
+      "localWallMs": 5.46,
       "minimumLoopDelaySpanMs": 120000
     },
     {
@@ -40,8 +46,10 @@
       "targetCandidates": 100,
       "passes": 5,
       "candleRequests": 99,
+      "anchorCandleRequests": 5,
+      "totalCandleRequests": 104,
       "maximumConcurrentRequests": 2,
-      "localWallMs": 10.69,
+      "localWallMs": 9.63,
       "minimumLoopDelaySpanMs": 240000
     },
     {
@@ -50,8 +58,10 @@
       "targetCandidates": 200,
       "passes": 10,
       "candleRequests": 199,
+      "anchorCandleRequests": 10,
+      "totalCandleRequests": 209,
       "maximumConcurrentRequests": 2,
-      "localWallMs": 27.57,
+      "localWallMs": 27.24,
       "minimumLoopDelaySpanMs": 540000
     },
     {
@@ -60,8 +70,10 @@
       "targetCandidates": 500,
       "passes": 25,
       "candleRequests": 499,
+      "anchorCandleRequests": 25,
+      "totalCandleRequests": 524,
       "maximumConcurrentRequests": 2,
-      "localWallMs": 127.74,
+      "localWallMs": 126.52,
       "minimumLoopDelaySpanMs": 1440000
     }
   ],

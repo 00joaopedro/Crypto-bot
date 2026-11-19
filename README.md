@@ -274,6 +274,17 @@ exploratório, incluindo o aquecimento. Os dez primeiros dias selecionam
 uma variante. Os vinte dias seguintes avaliam essa variante em dois blocos
 contínuos de dez dias. [Resultados e reprodução](docs/okx-2026-10-10-holdout.md).
 
+### Comparação do tamanho do universo
+
+`strategy:universe` compara 15, 30, 50, 100 e todos os pares de um conjunto
+histórico validado, usando volume efetivo em USDT das últimas 24 horas, sem
+ordenar o passado pelo volume atual. A seleção do tamanho usa D1–D10 e os
+parâmetros ficam congelados nos dois blocos seguintes. Não envia ordens nem
+altera variáveis da Railway. O [método, limites e reprodução](docs/universe-validation.md)
+documenta o viés de cobertura da fonte, os custos assumidos e a diferença entre
+capacidade do scanner e rentabilidade. `strategy:universe-benchmark` mede o
+agendamento com dados sintéticos, sem acesso à corretora.
+
 ### Compartilhamento do histórico de diagnóstico
 
 O painel oferece JSON e TXT com o mesmo documento JSON em UTF-8. O download

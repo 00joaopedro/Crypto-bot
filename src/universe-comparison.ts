@@ -109,6 +109,7 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
       "Daily ranking uses actual quote volume from the last 96 completed candles. Historical spread/depth are unavailable; costs and depth are assumptions shared by every size.",
       "Size 0 means all validated assets in this source pool, not every market ever listed on OKX. More data does not prove edge or statistical certainty.",
       "D1-D10 selects size only; strategy parameters stay fixed. D11-D30 carries cash/positions through two 10-day blocks; the pool bias prevents treating this as an unbiased prospective test.",
+      "Entry score ties use symbol order rather than the live ranking's quality/momentum tie-breakers.",
       "Portfolio replay is an idealized next-open execution. It does not reproduce scanner scheduling, universe-switch hysteresis, daily/consecutive-loss guards, account reconciliation, real fills or order-rate limits.",
       "Capital, fees, slippage, spread, trade ceilings and exposure limits are held fixed across universe sizes. No order is sent.",
     ],

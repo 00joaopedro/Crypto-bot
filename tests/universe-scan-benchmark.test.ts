@@ -5,6 +5,7 @@ it("measures bounded production scanner scheduling without network or orders", a
   expect(benchmark.rows.map(r => r.size)).toEqual([15, 30, 50, 100, 200, 0]);
   for (const row of benchmark.rows) {
     expect(row.candleRequests).toBe(row.targetCandidates - 1);
+    expect(row.totalCandleRequests).toBe(row.candleRequests + row.passes);
     expect(row.maximumConcurrentRequests).toBeLessThanOrEqual(2);
     expect(row.passes).toBe(Math.ceil(row.candleRequests / 20));
   }

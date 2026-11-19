@@ -1,0 +1,1721 @@
+{
+  "status": "exploratory_simulation_only",
+  "studySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+  "study": {
+    "endExclusiveUtc": "2026-08-31T00:00:00Z",
+    "days": 30,
+    "warmupCandles": 672,
+    "candleLimit": 100,
+    "sizes": [
+      15,
+      30,
+      50,
+      100,
+      0
+    ],
+    "fixedSymbols": [
+      "BTC/USDT"
+    ],
+    "minDailyQuoteVolumeUsdt": 1000000,
+    "initialBalanceUsdt": 100,
+    "tradeSizeUsdt": 10,
+    "portfolio": {
+      "maxConcurrentPositions": 10,
+      "maxExposureRate": 0.25,
+      "maxAltExposureRate": 0.1
+    },
+    "parameters": {
+      "exitPolicy": {
+        "mode": "fixed",
+        "breakeven": false,
+        "atrPeriod": 14,
+        "stopMultiplier": 1.5,
+        "targetMultiplier": 3,
+        "minStopRate": 0.005,
+        "maxStopRate": 0.03,
+        "trailingMultiplier": 2,
+        "activationRate": 0.02,
+        "exitFeeRate": 0.001,
+        "exitSlippageRate": 0.001
+      },
+      "pairCooldown": {
+        "hours": 6,
+        "minLosses": 3
+      },
+      "btcRegimeFilter": true,
+      "stopLossRate": 0.01,
+      "takeProfitRate": 0.02,
+      "maxBuyRsi": 70,
+      "minimumSignalScore": 5,
+      "executionDelayCandles": 1
+    },
+    "scenarios": [
+      {
+        "name": "standard",
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001,
+        "assumedDepthUsdt": 1000,
+        "maxParticipationRate": 0.001
+      },
+      {
+        "name": "stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      {
+        "name": "fixed-cost-stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      }
+    ],
+    "collection": {
+      "maximumSymbols": 120,
+      "preferredSymbols": [
+        "BTC/USDT",
+        "ETH/USDT",
+        "SOL/USDT",
+        "XRP/USDT",
+        "ADA/USDT",
+        "DOGE/USDT",
+        "SUI/USDT",
+        "NEAR/USDT",
+        "AVAX/USDT",
+        "LINK/USDT",
+        "DOT/USDT",
+        "ATOM/USDT",
+        "UNI/USDT",
+        "AAVE/USDT",
+        "LTC/USDT",
+        "WLD/USDT",
+        "ZEC/USDT",
+        "HYPE/USDT",
+        "LIT/USDT",
+        "TRX/USDT"
+      ]
+    }
+  },
+  "coverage": {
+    "validatedAssets": 120,
+    "requestedSizesCoveredByPool": true,
+    "minimumLiquidCandidates": 23,
+    "maximumLiquidCandidates": 65
+  },
+  "source": {
+    "capturedAtUtc": "2026-11-19T03:33:24.083Z",
+    "collected": 120,
+    "skipped": 5,
+    "maximumSymbols": 120,
+    "selection": "Predeclared preferred crypto symbols, then alphabetical current Spot/USDT instruments; stop at collection cap. No current tickers or future trade P&L used to select source pool."
+  },
+  "calibration": [
+    {
+      "size": 15,
+      "result": {
+        "topWinningTradePnLsUsdt": [
+          0.11438886011362005,
+          0.01990657471672956
+        ],
+        "top3TradesProfitSharePercent": 100,
+        "realizedPnlWithoutTop3Usdt": -1.1598885267473837,
+        "top3ProfitConcentrationWarning": true,
+        "closedTrades": 16,
+        "realizedPnlUsdt": -1.0255930919170342,
+        "profitFactor": 0.11578305305506165,
+        "winRatePercent": 12.5,
+        "expectancyUsdt": -0.06409956824481464,
+        "finalEquityUsdt": 98.97440690808297,
+        "netReturnUsdt": -1.025593091917031,
+        "netReturnPercent": -1.025593091917032,
+        "maxDrawdownPercent": 1.143613314687493,
+        "maxDrawdownUsdt": 1.1449786235227464,
+        "recoveryFactor": -0.8957312135327009,
+        "cashUsdt": 98.97440690808297,
+        "peakConcurrentPositions": 2,
+        "peakExposureRate": 0.20010217230023178,
+        "peakAltExposureRate": 0.10005296886712776,
+        "feesUsdt": 0.31927428009969533,
+        "openPositions": 0,
+        "rejected": {
+          "regime": 266,
+          "altExposure": 574,
+          "totalExposure": 30,
+          "cooldown": 5,
+          "liquidity": 2
+        }
+      }
+    },
+    {
+      "size": 30,
+      "result": {
+        "topWinningTradePnLsUsdt": [
+          0.11438886011362005,
+          0.01990657471672956
+        ],
+        "top3TradesProfitSharePercent": 100,
+        "realizedPnlWithoutTop3Usdt": -1.1598885267473837,
+        "top3ProfitConcentrationWarning": true,
+        "closedTrades": 16,
+        "realizedPnlUsdt": -1.0255930919170342,
+        "profitFactor": 0.11578305305506165,
+        "winRatePercent": 12.5,
+        "expectancyUsdt": -0.06409956824481464,
+        "finalEquityUsdt": 98.97440690808297,
+        "netReturnUsdt": -1.025593091917031,
+        "netReturnPercent": -1.025593091917032,
+        "maxDrawdownPercent": 1.143613314687493,
+        "maxDrawdownUsdt": 1.1449786235227464,
+        "recoveryFactor": -0.8957312135327009,
+        "cashUsdt": 98.97440690808297,
+        "peakConcurrentPositions": 2,
+        "peakExposureRate": 0.20010217230023178,
+        "peakAltExposureRate": 0.10005296886712776,
+        "feesUsdt": 0.31927428009969533,
+        "openPositions": 0,
+        "rejected": {
+          "totalExposure": 43,
+          "altExposure": 1158,
+          "regime": 578,
+          "liquidity": 14,
+          "cooldown": 5
+        }
+      }
+    },
+    {
+      "size": 50,
+      "result": {
+        "topWinningTradePnLsUsdt": [
+          0.11438886011362005,
+          0.01990657471672956
+        ],
+        "top3TradesProfitSharePercent": 100,
+        "realizedPnlWithoutTop3Usdt": -1.1598885267473837,
+        "top3ProfitConcentrationWarning": true,
+        "closedTrades": 16,
+        "realizedPnlUsdt": -1.0255930919170342,
+        "profitFactor": 0.11578305305506165,
+        "winRatePercent": 12.5,
+        "expectancyUsdt": -0.06409956824481464,
+        "finalEquityUsdt": 98.97440690808297,
+        "netReturnUsdt": -1.025593091917031,
+        "netReturnPercent": -1.025593091917032,
+        "maxDrawdownPercent": 1.143613314687493,
+        "maxDrawdownUsdt": 1.1449786235227464,
+        "recoveryFactor": -0.8957312135327009,
+        "cashUsdt": 98.97440690808297,
+        "peakConcurrentPositions": 2,
+        "peakExposureRate": 0.20010217230023178,
+        "peakAltExposureRate": 0.10005296886712776,
+        "feesUsdt": 0.31927428009969533,
+        "openPositions": 0,
+        "rejected": {
+          "totalExposure": 43,
+          "altExposure": 1213,
+          "regime": 631,
+          "liquidity": 24,
+          "cooldown": 5
+        }
+      }
+    },
+    {
+      "size": 100,
+      "result": {
+        "topWinningTradePnLsUsdt": [
+          0.11438886011362005,
+          0.01990657471672956
+        ],
+        "top3TradesProfitSharePercent": 100,
+        "realizedPnlWithoutTop3Usdt": -1.1598885267473837,
+        "top3ProfitConcentrationWarning": true,
+        "closedTrades": 16,
+        "realizedPnlUsdt": -1.0255930919170342,
+        "profitFactor": 0.11578305305506165,
+        "winRatePercent": 12.5,
+        "expectancyUsdt": -0.06409956824481464,
+        "finalEquityUsdt": 98.97440690808297,
+        "netReturnUsdt": -1.025593091917031,
+        "netReturnPercent": -1.025593091917032,
+        "maxDrawdownPercent": 1.143613314687493,
+        "maxDrawdownUsdt": 1.1449786235227464,
+        "recoveryFactor": -0.8957312135327009,
+        "cashUsdt": 98.97440690808297,
+        "peakConcurrentPositions": 2,
+        "peakExposureRate": 0.20010217230023178,
+        "peakAltExposureRate": 0.10005296886712776,
+        "feesUsdt": 0.31927428009969533,
+        "openPositions": 0,
+        "rejected": {
+          "totalExposure": 43,
+          "altExposure": 1213,
+          "regime": 631,
+          "liquidity": 24,
+          "cooldown": 5
+        }
+      }
+    },
+    {
+      "size": 0,
+      "result": {
+        "topWinningTradePnLsUsdt": [
+          0.11438886011362005,
+          0.01990657471672956
+        ],
+        "top3TradesProfitSharePercent": 100,
+        "realizedPnlWithoutTop3Usdt": -1.1598885267473837,
+        "top3ProfitConcentrationWarning": true,
+        "closedTrades": 16,
+        "realizedPnlUsdt": -1.0255930919170342,
+        "profitFactor": 0.11578305305506165,
+        "winRatePercent": 12.5,
+        "expectancyUsdt": -0.06409956824481464,
+        "finalEquityUsdt": 98.97440690808297,
+        "netReturnUsdt": -1.025593091917031,
+        "netReturnPercent": -1.025593091917032,
+        "maxDrawdownPercent": 1.143613314687493,
+        "maxDrawdownUsdt": 1.1449786235227464,
+        "recoveryFactor": -0.8957312135327009,
+        "cashUsdt": 98.97440690808297,
+        "peakConcurrentPositions": 2,
+        "peakExposureRate": 0.20010217230023178,
+        "peakAltExposureRate": 0.10005296886712776,
+        "feesUsdt": 0.31927428009969533,
+        "openPositions": 0,
+        "rejected": {
+          "totalExposure": 43,
+          "altExposure": 1213,
+          "regime": 631,
+          "liquidity": 24,
+          "cooldown": 5
+        }
+      }
+    }
+  ],
+  "selectedSizeFromCalibration": 15,
+  "results": [
+    {
+      "size": 15,
+      "scenarios": [
+        {
+          "scenario": {
+            "name": "standard",
+            "feeRate": 0.001,
+            "slippageRate": 0.0005,
+            "spreadRate": 0.001,
+            "assumedDepthUsdt": 1000,
+            "maxParticipationRate": 0.001
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.18578027036478106,
+              0.15757052138033395,
+              0.15307178351679868
+            ],
+            "top3TradesProfitSharePercent": 37.01088147607193,
+            "realizedPnlWithoutTop3Usdt": -1.6687217530583602,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 41,
+            "realizedPnlUsdt": -1.1722991777964467,
+            "profitFactor": 0.5336151026115357,
+            "winRatePercent": 41.46341463414634,
+            "expectancyUsdt": -0.028592662873084065,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.84032723583753,
+                "netReturnUsdt": -0.15967276416246534,
+                "maxDrawdownUsdt": 0.42855705154711643,
+                "maxDrawdownPercent": 0.4282390641366067,
+                "recoveryFactor": -0.372582281836309,
+                "topWinningTradePnLsUsdt": [
+                  0.15307178351679868,
+                  0.12565101920422997,
+                  0.11372399088907115
+                ],
+                "top3TradesProfitSharePercent": 56.42869575494186,
+                "realizedPnlWithoutTop3Usdt": -0.4971542621089311,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -0.10470746849883128,
+                "profitFactor": 0.8691453138635535,
+                "winRatePercent": 50,
+                "expectancyUsdt": -0.005817081583268404
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.84032723583753,
+                "endingEquityUsdt": 98.8277008222036,
+                "netReturnUsdt": -1.0126264136339387,
+                "maxDrawdownUsdt": 1.4475334277995842,
+                "maxDrawdownPercent": 1.4437604692780703,
+                "recoveryFactor": -0.699553042566517,
+                "topWinningTradePnLsUsdt": [
+                  0.18578027036478106,
+                  0.15757052138033395,
+                  0.09330361040693635
+                ],
+                "top3TradesProfitSharePercent": 67.61298918558929,
+                "realizedPnlWithoutTop3Usdt": -1.5042461114496668,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 23,
+                "realizedPnlUsdt": -1.0675917092976155,
+                "profitFactor": 0.3769184547964275,
+                "winRatePercent": 34.78260869565217,
+                "expectancyUsdt": -0.04641703083902676
+              }
+            ],
+            "finalEquityUsdt": 98.8277008222036,
+            "netReturnUsdt": -1.172299177796404,
+            "netReturnPercent": -1.1722991777963987,
+            "maxDrawdownPercent": 1.4437604692780703,
+            "maxDrawdownUsdt": 1.4475334277995842,
+            "recoveryFactor": -0.809859831408821,
+            "cashUsdt": 98.8277008222036,
+            "peakConcurrentPositions": 2,
+            "peakExposureRate": 0.20056212837734724,
+            "peakAltExposureRate": 0.10027195075732341,
+            "feesUsdt": 0.8195954048027783,
+            "openPositions": 0,
+            "rejected": {
+              "altExposure": 1684,
+              "regime": 430,
+              "totalExposure": 89,
+              "cooldown": 2
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.0015,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.12467476850832247,
+              0.12018586217567645,
+              0.09282331918680005
+            ],
+            "top3TradesProfitSharePercent": 65.2127971508026,
+            "realizedPnlWithoutTop3Usdt": -2.3507616885127978,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 33,
+            "realizedPnlUsdt": -2.0130777386419987,
+            "profitFactor": 0.20459887637914526,
+            "winRatePercent": 30.303030303030305,
+            "expectancyUsdt": -0.061002355716424206,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.23260896296165,
+                "netReturnUsdt": -0.767391037038351,
+                "maxDrawdownUsdt": 0.7751819311101258,
+                "maxDrawdownPercent": 0.7751215422118446,
+                "recoveryFactor": -0.9899495927870537,
+                "topWinningTradePnLsUsdt": [
+                  0.12018586217567645,
+                  0.09282331918680005,
+                  0.023068856203023576
+                ],
+                "top3TradesProfitSharePercent": 88.30614425247087,
+                "realizedPnlWithoutTop3Usdt": -1.0034690746038337,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 15,
+                "realizedPnlUsdt": -0.7673910370383337,
+                "profitFactor": 0.2583669758098151,
+                "winRatePercent": 40,
+                "expectancyUsdt": -0.051159402469222244
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.23260896296165,
+                "endingEquityUsdt": 97.98692226135795,
+                "netReturnUsdt": -1.2456867016037023,
+                "maxDrawdownUsdt": 1.3426888175836638,
+                "maxDrawdownPercent": 1.351750805222191,
+                "recoveryFactor": -0.9277553259477286,
+                "topWinningTradePnLsUsdt": [
+                  0.12467476850832247,
+                  0.060557130385470496,
+                  0.0364449855944971
+                ],
+                "top3TradesProfitSharePercent": 88.50150700103416,
+                "realizedPnlWithoutTop3Usdt": -1.4673635860919552,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -1.245686701603665,
+                "profitFactor": 0.16741343702832012,
+                "winRatePercent": 22.22222222222222,
+                "expectancyUsdt": -0.06920481675575917
+              }
+            ],
+            "finalEquityUsdt": 97.98692226135795,
+            "netReturnUsdt": -2.0130777386420533,
+            "netReturnPercent": -2.013077738642055,
+            "maxDrawdownPercent": 2.0207112012446427,
+            "maxDrawdownUsdt": 2.020868632713828,
+            "recoveryFactor": -0.9961447795538731,
+            "cashUsdt": 97.98692226135795,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10201999743598583,
+            "peakAltExposureRate": 0.10007393282041459,
+            "feesUsdt": 1.3185670494626438,
+            "openPositions": 0,
+            "rejected": {
+              "altExposure": 1780,
+              "regime": 430,
+              "liquidity": 3,
+              "cooldown": 10
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "fixed-cost-stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.1297687840282662,
+              0.12526951948060946,
+              0.09789496684135732
+            ],
+            "top3TradesProfitSharePercent": 62.27958351624851,
+            "realizedPnlWithoutTop3Usdt": -2.745232818386355,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 38,
+            "realizedPnlUsdt": -2.3922995480361218,
+            "profitFactor": 0.19151518342695442,
+            "winRatePercent": 31.57894736842105,
+            "expectancyUsdt": -0.06295525126410846,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.19352885577787,
+                "netReturnUsdt": -0.8064711442221295,
+                "maxDrawdownUsdt": 0.8282791561130836,
+                "maxDrawdownPercent": 0.8281729854060265,
+                "recoveryFactor": -0.9736706981818861,
+                "topWinningTradePnLsUsdt": [
+                  0.12526951948060946,
+                  0.09789496684135732,
+                  0.028105717401820208
+                ],
+                "top3TradesProfitSharePercent": 86.39276619229157,
+                "realizedPnlWithoutTop3Usdt": -1.0577413479459026,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 16,
+                "realizedPnlUsdt": -0.8064711442221155,
+                "profitFactor": 0.26505213726208426,
+                "winRatePercent": 37.5,
+                "expectancyUsdt": -0.05040444651388222
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.19352885577787,
+                "endingEquityUsdt": 97.6077004519639,
+                "netReturnUsdt": -1.5858284038139772,
+                "maxDrawdownUsdt": 1.6929312437496407,
+                "maxDrawdownPercent": 1.7048544554452403,
+                "recoveryFactor": -0.9367352688828381,
+                "topWinningTradePnLsUsdt": [
+                  0.1297687840282662,
+                  0.06561431411255007,
+                  0.041488525823112694
+                ],
+                "top3TradesProfitSharePercent": 85.87114690907188,
+                "realizedPnlWithoutTop3Usdt": -1.8227000277779348,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 22,
+                "realizedPnlUsdt": -1.5858284038140058,
+                "profitFactor": 0.14817064869278546,
+                "winRatePercent": 27.27272727272727,
+                "expectancyUsdt": -0.07208310926427298
+              }
+            ],
+            "finalEquityUsdt": 97.6077004519639,
+            "netReturnUsdt": -2.3922995480361067,
+            "netReturnPercent": -2.392299548036103,
+            "maxDrawdownPercent": 2.404811125195458,
+            "maxDrawdownUsdt": 2.4051194188756426,
+            "recoveryFactor": -0.9946697570445259,
+            "cashUsdt": 97.6077004519639,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10241370064247685,
+            "peakAltExposureRate": 0.10006392788530584,
+            "feesUsdt": 1.518200765793773,
+            "openPositions": 0,
+            "rejected": {
+              "altExposure": 1780,
+              "regime": 430,
+              "liquidity": 3,
+              "cooldown": 7
+            }
+          }
+        }
+      ]
+    },
+    {
+      "size": 30,
+      "scenarios": [
+        {
+          "scenario": {
+            "name": "standard",
+            "feeRate": 0.001,
+            "slippageRate": 0.0005,
+            "spreadRate": 0.001,
+            "assumedDepthUsdt": 1000,
+            "maxParticipationRate": 0.001
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.42092723828055334,
+              0.4059672296192213,
+              0.3144185067720846
+            ],
+            "top3TradesProfitSharePercent": 33.471000298202355,
+            "realizedPnlWithoutTop3Usdt": -1.7455632456370593,
+            "top3ProfitConcentrationWarning": false,
+            "closedTrades": 57,
+            "realizedPnlUsdt": -0.6042502709652,
+            "profitFactor": 0.8494682995520817,
+            "winRatePercent": 43.859649122807014,
+            "expectancyUsdt": -0.010600881946757896,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.84868907125217,
+                "netReturnUsdt": -0.15131092874783292,
+                "maxDrawdownUsdt": 0.420195216132484,
+                "maxDrawdownPercent": 0.41988343316635574,
+                "recoveryFactor": -0.3600967429865405,
+                "topWinningTradePnLsUsdt": [
+                  0.15307178351679868,
+                  0.12565101920422997,
+                  0.11372399088907115
+                ],
+                "top3TradesProfitSharePercent": 56.42869575494186,
+                "realizedPnlWithoutTop3Usdt": -0.4887924266943028,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -0.09634563308420296,
+                "profitFactor": 0.8783237322999995,
+                "winRatePercent": 50,
+                "expectancyUsdt": -0.005352535171344609
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.84868907125217,
+                "endingEquityUsdt": 99.39574972903482,
+                "netReturnUsdt": -0.45293934221734844,
+                "maxDrawdownUsdt": 2.5354597396711114,
+                "maxDrawdownPercent": 2.487761788756954,
+                "recoveryFactor": -0.17864189879666625,
+                "topWinningTradePnLsUsdt": [
+                  0.42092723828055334,
+                  0.4059672296192213,
+                  0.3144185067720846
+                ],
+                "top3TradesProfitSharePercent": 42.04687516267615,
+                "realizedPnlWithoutTop3Usdt": -1.6492176125528566,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 39,
+                "realizedPnlUsdt": -0.5079046378809973,
+                "profitFactor": 0.8423775928107256,
+                "winRatePercent": 41.02564102564102,
+                "expectancyUsdt": -0.013023195843102494
+              }
+            ],
+            "finalEquityUsdt": 99.39574972903482,
+            "netReturnUsdt": -0.6042502709651814,
+            "netReturnPercent": -0.6042502709651787,
+            "maxDrawdownPercent": 2.487761788756954,
+            "maxDrawdownUsdt": 2.5354597396711114,
+            "recoveryFactor": -0.23831980508732592,
+            "cashUsdt": 99.39574972903482,
+            "peakConcurrentPositions": 2,
+            "peakExposureRate": 0.20006203397659236,
+            "peakAltExposureRate": 0.10011706670311728,
+            "feesUsdt": 1.1404566847037538,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 896,
+              "altExposure": 2841,
+              "totalExposure": 501,
+              "liquidity": 20,
+              "cooldown": 6
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.0015,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.12467476850832247,
+              0.12018586217567645,
+              0.09282331918680005
+            ],
+            "top3TradesProfitSharePercent": 65.2127971508026,
+            "realizedPnlWithoutTop3Usdt": -2.3507616885127978,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 33,
+            "realizedPnlUsdt": -2.0130777386419987,
+            "profitFactor": 0.20459887637914526,
+            "winRatePercent": 30.303030303030305,
+            "expectancyUsdt": -0.061002355716424206,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.23260896296165,
+                "netReturnUsdt": -0.767391037038351,
+                "maxDrawdownUsdt": 0.7751819311101258,
+                "maxDrawdownPercent": 0.7751215422118446,
+                "recoveryFactor": -0.9899495927870537,
+                "topWinningTradePnLsUsdt": [
+                  0.12018586217567645,
+                  0.09282331918680005,
+                  0.023068856203023576
+                ],
+                "top3TradesProfitSharePercent": 88.30614425247087,
+                "realizedPnlWithoutTop3Usdt": -1.0034690746038337,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 15,
+                "realizedPnlUsdt": -0.7673910370383337,
+                "profitFactor": 0.2583669758098151,
+                "winRatePercent": 40,
+                "expectancyUsdt": -0.051159402469222244
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.23260896296165,
+                "endingEquityUsdt": 97.98692226135795,
+                "netReturnUsdt": -1.2456867016037023,
+                "maxDrawdownUsdt": 1.3426888175836638,
+                "maxDrawdownPercent": 1.351750805222191,
+                "recoveryFactor": -0.9277553259477286,
+                "topWinningTradePnLsUsdt": [
+                  0.12467476850832247,
+                  0.060557130385470496,
+                  0.0364449855944971
+                ],
+                "top3TradesProfitSharePercent": 88.50150700103416,
+                "realizedPnlWithoutTop3Usdt": -1.4673635860919552,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -1.245686701603665,
+                "profitFactor": 0.16741343702832012,
+                "winRatePercent": 22.22222222222222,
+                "expectancyUsdt": -0.06920481675575917
+              }
+            ],
+            "finalEquityUsdt": 97.98692226135795,
+            "netReturnUsdt": -2.0130777386420533,
+            "netReturnPercent": -2.013077738642055,
+            "maxDrawdownPercent": 2.0207112012446427,
+            "maxDrawdownUsdt": 2.020868632713828,
+            "recoveryFactor": -0.9961447795538731,
+            "cashUsdt": 97.98692226135795,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10201999743598583,
+            "peakAltExposureRate": 0.10007393282041459,
+            "feesUsdt": 1.3185670494626438,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 900,
+              "liquidity": 173,
+              "altExposure": 3267,
+              "cooldown": 10
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "fixed-cost-stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.1297687840282662,
+              0.12526951948060946,
+              0.09789496684135732
+            ],
+            "top3TradesProfitSharePercent": 62.27958351624851,
+            "realizedPnlWithoutTop3Usdt": -2.745232818386355,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 38,
+            "realizedPnlUsdt": -2.3922995480361218,
+            "profitFactor": 0.19151518342695442,
+            "winRatePercent": 31.57894736842105,
+            "expectancyUsdt": -0.06295525126410846,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.19352885577787,
+                "netReturnUsdt": -0.8064711442221295,
+                "maxDrawdownUsdt": 0.8282791561130836,
+                "maxDrawdownPercent": 0.8281729854060265,
+                "recoveryFactor": -0.9736706981818861,
+                "topWinningTradePnLsUsdt": [
+                  0.12526951948060946,
+                  0.09789496684135732,
+                  0.028105717401820208
+                ],
+                "top3TradesProfitSharePercent": 86.39276619229157,
+                "realizedPnlWithoutTop3Usdt": -1.0577413479459026,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 16,
+                "realizedPnlUsdt": -0.8064711442221155,
+                "profitFactor": 0.26505213726208426,
+                "winRatePercent": 37.5,
+                "expectancyUsdt": -0.05040444651388222
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.19352885577787,
+                "endingEquityUsdt": 97.6077004519639,
+                "netReturnUsdt": -1.5858284038139772,
+                "maxDrawdownUsdt": 1.6929312437496407,
+                "maxDrawdownPercent": 1.7048544554452403,
+                "recoveryFactor": -0.9367352688828381,
+                "topWinningTradePnLsUsdt": [
+                  0.1297687840282662,
+                  0.06561431411255007,
+                  0.041488525823112694
+                ],
+                "top3TradesProfitSharePercent": 85.87114690907188,
+                "realizedPnlWithoutTop3Usdt": -1.8227000277779348,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 22,
+                "realizedPnlUsdt": -1.5858284038140058,
+                "profitFactor": 0.14817064869278546,
+                "winRatePercent": 27.27272727272727,
+                "expectancyUsdt": -0.07208310926427298
+              }
+            ],
+            "finalEquityUsdt": 97.6077004519639,
+            "netReturnUsdt": -2.3922995480361067,
+            "netReturnPercent": -2.392299548036103,
+            "maxDrawdownPercent": 2.404811125195458,
+            "maxDrawdownUsdt": 2.4051194188756426,
+            "recoveryFactor": -0.9946697570445259,
+            "cashUsdt": 97.6077004519639,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10241370064247685,
+            "peakAltExposureRate": 0.10006392788530584,
+            "feesUsdt": 1.518200765793773,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 900,
+              "liquidity": 173,
+              "altExposure": 3267,
+              "cooldown": 7
+            }
+          }
+        }
+      ]
+    },
+    {
+      "size": 50,
+      "scenarios": [
+        {
+          "scenario": {
+            "name": "standard",
+            "feeRate": 0.001,
+            "slippageRate": 0.0005,
+            "spreadRate": 0.001,
+            "assumedDepthUsdt": 1000,
+            "maxParticipationRate": 0.001
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.41719424085535883,
+              0.3361758541148627,
+              0.30526310744942164
+            ],
+            "top3TradesProfitSharePercent": 33.137328184627904,
+            "realizedPnlWithoutTop3Usdt": -1.6508178288627202,
+            "top3ProfitConcentrationWarning": false,
+            "closedTrades": 56,
+            "realizedPnlUsdt": -0.592184626443077,
+            "profitFactor": 0.8436215902081078,
+            "winRatePercent": 42.857142857142854,
+            "expectancyUsdt": -0.010574725472197804,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.84868907125217,
+                "netReturnUsdt": -0.15131092874783292,
+                "maxDrawdownUsdt": 0.420195216132484,
+                "maxDrawdownPercent": 0.41988343316635574,
+                "recoveryFactor": -0.3600967429865405,
+                "topWinningTradePnLsUsdt": [
+                  0.15307178351679868,
+                  0.12565101920422997,
+                  0.11372399088907115
+                ],
+                "top3TradesProfitSharePercent": 56.42869575494186,
+                "realizedPnlWithoutTop3Usdt": -0.4887924266943028,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -0.09634563308420296,
+                "profitFactor": 0.8783237322999995,
+                "winRatePercent": 50,
+                "expectancyUsdt": -0.005352535171344609
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.84868907125217,
+                "endingEquityUsdt": 99.40781537355691,
+                "netReturnUsdt": -0.44087369769525253,
+                "maxDrawdownUsdt": 1.9529752144056687,
+                "maxDrawdownPercent": 1.9270204666565107,
+                "recoveryFactor": -0.22574464562747645,
+                "topWinningTradePnLsUsdt": [
+                  0.41719424085535883,
+                  0.3361758541148627,
+                  0.30526310744942164
+                ],
+                "top3TradesProfitSharePercent": 42.3586956628836,
+                "realizedPnlWithoutTop3Usdt": -1.554472195778518,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 38,
+                "realizedPnlUsdt": -0.4958389933588747,
+                "profitFactor": 0.8344471757507045,
+                "winRatePercent": 39.473684210526315,
+                "expectancyUsdt": -0.01304839456207565
+              }
+            ],
+            "finalEquityUsdt": 99.40781537355691,
+            "netReturnUsdt": -0.5921846264430854,
+            "netReturnPercent": -0.5921846264430819,
+            "maxDrawdownPercent": 1.9270204666565107,
+            "maxDrawdownUsdt": 1.9529752144056687,
+            "recoveryFactor": -0.30322178288540114,
+            "cashUsdt": 99.40781537355691,
+            "peakConcurrentPositions": 2,
+            "peakExposureRate": 0.20006203397659236,
+            "peakAltExposureRate": 0.10003566082945826,
+            "feesUsdt": 1.1204486303079242,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 1008,
+              "altExposure": 3469,
+              "totalExposure": 834,
+              "liquidity": 65,
+              "cooldown": 6
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.0015,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.12467476850832247,
+              0.12018586217567645,
+              0.09282331918680005
+            ],
+            "top3TradesProfitSharePercent": 65.2127971508026,
+            "realizedPnlWithoutTop3Usdt": -2.3507616885127978,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 33,
+            "realizedPnlUsdt": -2.0130777386419987,
+            "profitFactor": 0.20459887637914526,
+            "winRatePercent": 30.303030303030305,
+            "expectancyUsdt": -0.061002355716424206,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.23260896296165,
+                "netReturnUsdt": -0.767391037038351,
+                "maxDrawdownUsdt": 0.7751819311101258,
+                "maxDrawdownPercent": 0.7751215422118446,
+                "recoveryFactor": -0.9899495927870537,
+                "topWinningTradePnLsUsdt": [
+                  0.12018586217567645,
+                  0.09282331918680005,
+                  0.023068856203023576
+                ],
+                "top3TradesProfitSharePercent": 88.30614425247087,
+                "realizedPnlWithoutTop3Usdt": -1.0034690746038337,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 15,
+                "realizedPnlUsdt": -0.7673910370383337,
+                "profitFactor": 0.2583669758098151,
+                "winRatePercent": 40,
+                "expectancyUsdt": -0.051159402469222244
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.23260896296165,
+                "endingEquityUsdt": 97.98692226135795,
+                "netReturnUsdt": -1.2456867016037023,
+                "maxDrawdownUsdt": 1.3426888175836638,
+                "maxDrawdownPercent": 1.351750805222191,
+                "recoveryFactor": -0.9277553259477286,
+                "topWinningTradePnLsUsdt": [
+                  0.12467476850832247,
+                  0.060557130385470496,
+                  0.0364449855944971
+                ],
+                "top3TradesProfitSharePercent": 88.50150700103416,
+                "realizedPnlWithoutTop3Usdt": -1.4673635860919552,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -1.245686701603665,
+                "profitFactor": 0.16741343702832012,
+                "winRatePercent": 22.22222222222222,
+                "expectancyUsdt": -0.06920481675575917
+              }
+            ],
+            "finalEquityUsdt": 97.98692226135795,
+            "netReturnUsdt": -2.0130777386420533,
+            "netReturnPercent": -2.013077738642055,
+            "maxDrawdownPercent": 2.0207112012446427,
+            "maxDrawdownUsdt": 2.020868632713828,
+            "recoveryFactor": -0.9961447795538731,
+            "cashUsdt": 97.98692226135795,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10201999743598583,
+            "peakAltExposureRate": 0.10007393282041459,
+            "feesUsdt": 1.3185670494626438,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 1010,
+              "liquidity": 446,
+              "altExposure": 3990,
+              "cooldown": 10
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "fixed-cost-stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.1297687840282662,
+              0.12526951948060946,
+              0.09789496684135732
+            ],
+            "top3TradesProfitSharePercent": 62.27958351624851,
+            "realizedPnlWithoutTop3Usdt": -2.745232818386355,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 38,
+            "realizedPnlUsdt": -2.3922995480361218,
+            "profitFactor": 0.19151518342695442,
+            "winRatePercent": 31.57894736842105,
+            "expectancyUsdt": -0.06295525126410846,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.19352885577787,
+                "netReturnUsdt": -0.8064711442221295,
+                "maxDrawdownUsdt": 0.8282791561130836,
+                "maxDrawdownPercent": 0.8281729854060265,
+                "recoveryFactor": -0.9736706981818861,
+                "topWinningTradePnLsUsdt": [
+                  0.12526951948060946,
+                  0.09789496684135732,
+                  0.028105717401820208
+                ],
+                "top3TradesProfitSharePercent": 86.39276619229157,
+                "realizedPnlWithoutTop3Usdt": -1.0577413479459026,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 16,
+                "realizedPnlUsdt": -0.8064711442221155,
+                "profitFactor": 0.26505213726208426,
+                "winRatePercent": 37.5,
+                "expectancyUsdt": -0.05040444651388222
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.19352885577787,
+                "endingEquityUsdt": 97.6077004519639,
+                "netReturnUsdt": -1.5858284038139772,
+                "maxDrawdownUsdt": 1.6929312437496407,
+                "maxDrawdownPercent": 1.7048544554452403,
+                "recoveryFactor": -0.9367352688828381,
+                "topWinningTradePnLsUsdt": [
+                  0.1297687840282662,
+                  0.06561431411255007,
+                  0.041488525823112694
+                ],
+                "top3TradesProfitSharePercent": 85.87114690907188,
+                "realizedPnlWithoutTop3Usdt": -1.8227000277779348,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 22,
+                "realizedPnlUsdt": -1.5858284038140058,
+                "profitFactor": 0.14817064869278546,
+                "winRatePercent": 27.27272727272727,
+                "expectancyUsdt": -0.07208310926427298
+              }
+            ],
+            "finalEquityUsdt": 97.6077004519639,
+            "netReturnUsdt": -2.3922995480361067,
+            "netReturnPercent": -2.392299548036103,
+            "maxDrawdownPercent": 2.404811125195458,
+            "maxDrawdownUsdt": 2.4051194188756426,
+            "recoveryFactor": -0.9946697570445259,
+            "cashUsdt": 97.6077004519639,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10241370064247685,
+            "peakAltExposureRate": 0.10006392788530584,
+            "feesUsdt": 1.518200765793773,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 1010,
+              "liquidity": 446,
+              "altExposure": 3990,
+              "cooldown": 7
+            }
+          }
+        }
+      ]
+    },
+    {
+      "size": 100,
+      "scenarios": [
+        {
+          "scenario": {
+            "name": "standard",
+            "feeRate": 0.001,
+            "slippageRate": 0.0005,
+            "spreadRate": 0.001,
+            "assumedDepthUsdt": 1000,
+            "maxParticipationRate": 0.001
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.41719424085535883,
+              0.3361758541148627,
+              0.30526310744942164
+            ],
+            "top3TradesProfitSharePercent": 33.137328184627904,
+            "realizedPnlWithoutTop3Usdt": -1.6508178288627202,
+            "top3ProfitConcentrationWarning": false,
+            "closedTrades": 56,
+            "realizedPnlUsdt": -0.592184626443077,
+            "profitFactor": 0.8436215902081078,
+            "winRatePercent": 42.857142857142854,
+            "expectancyUsdt": -0.010574725472197804,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.84868907125217,
+                "netReturnUsdt": -0.15131092874783292,
+                "maxDrawdownUsdt": 0.420195216132484,
+                "maxDrawdownPercent": 0.41988343316635574,
+                "recoveryFactor": -0.3600967429865405,
+                "topWinningTradePnLsUsdt": [
+                  0.15307178351679868,
+                  0.12565101920422997,
+                  0.11372399088907115
+                ],
+                "top3TradesProfitSharePercent": 56.42869575494186,
+                "realizedPnlWithoutTop3Usdt": -0.4887924266943028,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -0.09634563308420296,
+                "profitFactor": 0.8783237322999995,
+                "winRatePercent": 50,
+                "expectancyUsdt": -0.005352535171344609
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.84868907125217,
+                "endingEquityUsdt": 99.40781537355691,
+                "netReturnUsdt": -0.44087369769525253,
+                "maxDrawdownUsdt": 1.9529752144056687,
+                "maxDrawdownPercent": 1.9270204666565107,
+                "recoveryFactor": -0.22574464562747645,
+                "topWinningTradePnLsUsdt": [
+                  0.41719424085535883,
+                  0.3361758541148627,
+                  0.30526310744942164
+                ],
+                "top3TradesProfitSharePercent": 42.3586956628836,
+                "realizedPnlWithoutTop3Usdt": -1.554472195778518,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 38,
+                "realizedPnlUsdt": -0.4958389933588747,
+                "profitFactor": 0.8344471757507045,
+                "winRatePercent": 39.473684210526315,
+                "expectancyUsdt": -0.01304839456207565
+              }
+            ],
+            "finalEquityUsdt": 99.40781537355691,
+            "netReturnUsdt": -0.5921846264430854,
+            "netReturnPercent": -0.5921846264430819,
+            "maxDrawdownPercent": 1.9270204666565107,
+            "maxDrawdownUsdt": 1.9529752144056687,
+            "recoveryFactor": -0.30322178288540114,
+            "cashUsdt": 99.40781537355691,
+            "peakConcurrentPositions": 2,
+            "peakExposureRate": 0.20006203397659236,
+            "peakAltExposureRate": 0.10003566082945826,
+            "feesUsdt": 1.1204486303079242,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 1012,
+              "altExposure": 3469,
+              "totalExposure": 871,
+              "liquidity": 71,
+              "cooldown": 6
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.0015,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.12467476850832247,
+              0.12018586217567645,
+              0.09282331918680005
+            ],
+            "top3TradesProfitSharePercent": 65.2127971508026,
+            "realizedPnlWithoutTop3Usdt": -2.3507616885127978,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 33,
+            "realizedPnlUsdt": -2.0130777386419987,
+            "profitFactor": 0.20459887637914526,
+            "winRatePercent": 30.303030303030305,
+            "expectancyUsdt": -0.061002355716424206,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.23260896296165,
+                "netReturnUsdt": -0.767391037038351,
+                "maxDrawdownUsdt": 0.7751819311101258,
+                "maxDrawdownPercent": 0.7751215422118446,
+                "recoveryFactor": -0.9899495927870537,
+                "topWinningTradePnLsUsdt": [
+                  0.12018586217567645,
+                  0.09282331918680005,
+                  0.023068856203023576
+                ],
+                "top3TradesProfitSharePercent": 88.30614425247087,
+                "realizedPnlWithoutTop3Usdt": -1.0034690746038337,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 15,
+                "realizedPnlUsdt": -0.7673910370383337,
+                "profitFactor": 0.2583669758098151,
+                "winRatePercent": 40,
+                "expectancyUsdt": -0.051159402469222244
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.23260896296165,
+                "endingEquityUsdt": 97.98692226135795,
+                "netReturnUsdt": -1.2456867016037023,
+                "maxDrawdownUsdt": 1.3426888175836638,
+                "maxDrawdownPercent": 1.351750805222191,
+                "recoveryFactor": -0.9277553259477286,
+                "topWinningTradePnLsUsdt": [
+                  0.12467476850832247,
+                  0.060557130385470496,
+                  0.0364449855944971
+                ],
+                "top3TradesProfitSharePercent": 88.50150700103416,
+                "realizedPnlWithoutTop3Usdt": -1.4673635860919552,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -1.245686701603665,
+                "profitFactor": 0.16741343702832012,
+                "winRatePercent": 22.22222222222222,
+                "expectancyUsdt": -0.06920481675575917
+              }
+            ],
+            "finalEquityUsdt": 97.98692226135795,
+            "netReturnUsdt": -2.0130777386420533,
+            "netReturnPercent": -2.013077738642055,
+            "maxDrawdownPercent": 2.0207112012446427,
+            "maxDrawdownUsdt": 2.020868632713828,
+            "recoveryFactor": -0.9961447795538731,
+            "cashUsdt": 97.98692226135795,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10201999743598583,
+            "peakAltExposureRate": 0.10007393282041459,
+            "feesUsdt": 1.3185670494626438,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 1014,
+              "liquidity": 472,
+              "altExposure": 4007,
+              "cooldown": 10
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "fixed-cost-stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.1297687840282662,
+              0.12526951948060946,
+              0.09789496684135732
+            ],
+            "top3TradesProfitSharePercent": 62.27958351624851,
+            "realizedPnlWithoutTop3Usdt": -2.745232818386355,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 38,
+            "realizedPnlUsdt": -2.3922995480361218,
+            "profitFactor": 0.19151518342695442,
+            "winRatePercent": 31.57894736842105,
+            "expectancyUsdt": -0.06295525126410846,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.19352885577787,
+                "netReturnUsdt": -0.8064711442221295,
+                "maxDrawdownUsdt": 0.8282791561130836,
+                "maxDrawdownPercent": 0.8281729854060265,
+                "recoveryFactor": -0.9736706981818861,
+                "topWinningTradePnLsUsdt": [
+                  0.12526951948060946,
+                  0.09789496684135732,
+                  0.028105717401820208
+                ],
+                "top3TradesProfitSharePercent": 86.39276619229157,
+                "realizedPnlWithoutTop3Usdt": -1.0577413479459026,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 16,
+                "realizedPnlUsdt": -0.8064711442221155,
+                "profitFactor": 0.26505213726208426,
+                "winRatePercent": 37.5,
+                "expectancyUsdt": -0.05040444651388222
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.19352885577787,
+                "endingEquityUsdt": 97.6077004519639,
+                "netReturnUsdt": -1.5858284038139772,
+                "maxDrawdownUsdt": 1.6929312437496407,
+                "maxDrawdownPercent": 1.7048544554452403,
+                "recoveryFactor": -0.9367352688828381,
+                "topWinningTradePnLsUsdt": [
+                  0.1297687840282662,
+                  0.06561431411255007,
+                  0.041488525823112694
+                ],
+                "top3TradesProfitSharePercent": 85.87114690907188,
+                "realizedPnlWithoutTop3Usdt": -1.8227000277779348,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 22,
+                "realizedPnlUsdt": -1.5858284038140058,
+                "profitFactor": 0.14817064869278546,
+                "winRatePercent": 27.27272727272727,
+                "expectancyUsdt": -0.07208310926427298
+              }
+            ],
+            "finalEquityUsdt": 97.6077004519639,
+            "netReturnUsdt": -2.3922995480361067,
+            "netReturnPercent": -2.392299548036103,
+            "maxDrawdownPercent": 2.404811125195458,
+            "maxDrawdownUsdt": 2.4051194188756426,
+            "recoveryFactor": -0.9946697570445259,
+            "cashUsdt": 97.6077004519639,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10241370064247685,
+            "peakAltExposureRate": 0.10006392788530584,
+            "feesUsdt": 1.518200765793773,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 1014,
+              "liquidity": 472,
+              "altExposure": 4007,
+              "cooldown": 7
+            }
+          }
+        }
+      ]
+    },
+    {
+      "size": 0,
+      "scenarios": [
+        {
+          "scenario": {
+            "name": "standard",
+            "feeRate": 0.001,
+            "slippageRate": 0.0005,
+            "spreadRate": 0.001,
+            "assumedDepthUsdt": 1000,
+            "maxParticipationRate": 0.001
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.41719424085535883,
+              0.3361758541148627,
+              0.30526310744942164
+            ],
+            "top3TradesProfitSharePercent": 33.137328184627904,
+            "realizedPnlWithoutTop3Usdt": -1.6508178288627202,
+            "top3ProfitConcentrationWarning": false,
+            "closedTrades": 56,
+            "realizedPnlUsdt": -0.592184626443077,
+            "profitFactor": 0.8436215902081078,
+            "winRatePercent": 42.857142857142854,
+            "expectancyUsdt": -0.010574725472197804,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.84868907125217,
+                "netReturnUsdt": -0.15131092874783292,
+                "maxDrawdownUsdt": 0.420195216132484,
+                "maxDrawdownPercent": 0.41988343316635574,
+                "recoveryFactor": -0.3600967429865405,
+                "topWinningTradePnLsUsdt": [
+                  0.15307178351679868,
+                  0.12565101920422997,
+                  0.11372399088907115
+                ],
+                "top3TradesProfitSharePercent": 56.42869575494186,
+                "realizedPnlWithoutTop3Usdt": -0.4887924266943028,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -0.09634563308420296,
+                "profitFactor": 0.8783237322999995,
+                "winRatePercent": 50,
+                "expectancyUsdt": -0.005352535171344609
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.84868907125217,
+                "endingEquityUsdt": 99.40781537355691,
+                "netReturnUsdt": -0.44087369769525253,
+                "maxDrawdownUsdt": 1.9529752144056687,
+                "maxDrawdownPercent": 1.9270204666565107,
+                "recoveryFactor": -0.22574464562747645,
+                "topWinningTradePnLsUsdt": [
+                  0.41719424085535883,
+                  0.3361758541148627,
+                  0.30526310744942164
+                ],
+                "top3TradesProfitSharePercent": 42.3586956628836,
+                "realizedPnlWithoutTop3Usdt": -1.554472195778518,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 38,
+                "realizedPnlUsdt": -0.4958389933588747,
+                "profitFactor": 0.8344471757507045,
+                "winRatePercent": 39.473684210526315,
+                "expectancyUsdt": -0.01304839456207565
+              }
+            ],
+            "finalEquityUsdt": 99.40781537355691,
+            "netReturnUsdt": -0.5921846264430854,
+            "netReturnPercent": -0.5921846264430819,
+            "maxDrawdownPercent": 1.9270204666565107,
+            "maxDrawdownUsdt": 1.9529752144056687,
+            "recoveryFactor": -0.30322178288540114,
+            "cashUsdt": 99.40781537355691,
+            "peakConcurrentPositions": 2,
+            "peakExposureRate": 0.20006203397659236,
+            "peakAltExposureRate": 0.10003566082945826,
+            "feesUsdt": 1.1204486303079242,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 1012,
+              "altExposure": 3469,
+              "totalExposure": 871,
+              "liquidity": 71,
+              "cooldown": 6
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.0015,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.12467476850832247,
+              0.12018586217567645,
+              0.09282331918680005
+            ],
+            "top3TradesProfitSharePercent": 65.2127971508026,
+            "realizedPnlWithoutTop3Usdt": -2.3507616885127978,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 33,
+            "realizedPnlUsdt": -2.0130777386419987,
+            "profitFactor": 0.20459887637914526,
+            "winRatePercent": 30.303030303030305,
+            "expectancyUsdt": -0.061002355716424206,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.23260896296165,
+                "netReturnUsdt": -0.767391037038351,
+                "maxDrawdownUsdt": 0.7751819311101258,
+                "maxDrawdownPercent": 0.7751215422118446,
+                "recoveryFactor": -0.9899495927870537,
+                "topWinningTradePnLsUsdt": [
+                  0.12018586217567645,
+                  0.09282331918680005,
+                  0.023068856203023576
+                ],
+                "top3TradesProfitSharePercent": 88.30614425247087,
+                "realizedPnlWithoutTop3Usdt": -1.0034690746038337,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 15,
+                "realizedPnlUsdt": -0.7673910370383337,
+                "profitFactor": 0.2583669758098151,
+                "winRatePercent": 40,
+                "expectancyUsdt": -0.051159402469222244
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.23260896296165,
+                "endingEquityUsdt": 97.98692226135795,
+                "netReturnUsdt": -1.2456867016037023,
+                "maxDrawdownUsdt": 1.3426888175836638,
+                "maxDrawdownPercent": 1.351750805222191,
+                "recoveryFactor": -0.9277553259477286,
+                "topWinningTradePnLsUsdt": [
+                  0.12467476850832247,
+                  0.060557130385470496,
+                  0.0364449855944971
+                ],
+                "top3TradesProfitSharePercent": 88.50150700103416,
+                "realizedPnlWithoutTop3Usdt": -1.4673635860919552,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 18,
+                "realizedPnlUsdt": -1.245686701603665,
+                "profitFactor": 0.16741343702832012,
+                "winRatePercent": 22.22222222222222,
+                "expectancyUsdt": -0.06920481675575917
+              }
+            ],
+            "finalEquityUsdt": 97.98692226135795,
+            "netReturnUsdt": -2.0130777386420533,
+            "netReturnPercent": -2.013077738642055,
+            "maxDrawdownPercent": 2.0207112012446427,
+            "maxDrawdownUsdt": 2.020868632713828,
+            "recoveryFactor": -0.9961447795538731,
+            "cashUsdt": 97.98692226135795,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10201999743598583,
+            "peakAltExposureRate": 0.10007393282041459,
+            "feesUsdt": 1.3185670494626438,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 1014,
+              "liquidity": 472,
+              "altExposure": 4007,
+              "cooldown": 10
+            }
+          }
+        },
+        {
+          "scenario": {
+            "name": "fixed-cost-stress",
+            "feeRate": 0.002,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "assumedDepthUsdt": 500,
+            "maxParticipationRate": 0.0005
+          },
+          "bothBlocksPositive": false,
+          "result": {
+            "topWinningTradePnLsUsdt": [
+              0.1297687840282662,
+              0.12526951948060946,
+              0.09789496684135732
+            ],
+            "top3TradesProfitSharePercent": 62.27958351624851,
+            "realizedPnlWithoutTop3Usdt": -2.745232818386355,
+            "top3ProfitConcentrationWarning": true,
+            "closedTrades": 38,
+            "realizedPnlUsdt": -2.3922995480361218,
+            "profitFactor": 0.19151518342695442,
+            "winRatePercent": 31.57894736842105,
+            "expectancyUsdt": -0.06295525126410846,
+            "blocks": [
+              {
+                "startUtc": "2026-08-11T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-21T00:00:00.000Z",
+                "startingEquityUsdt": 100,
+                "endingEquityUsdt": 99.19352885577787,
+                "netReturnUsdt": -0.8064711442221295,
+                "maxDrawdownUsdt": 0.8282791561130836,
+                "maxDrawdownPercent": 0.8281729854060265,
+                "recoveryFactor": -0.9736706981818861,
+                "topWinningTradePnLsUsdt": [
+                  0.12526951948060946,
+                  0.09789496684135732,
+                  0.028105717401820208
+                ],
+                "top3TradesProfitSharePercent": 86.39276619229157,
+                "realizedPnlWithoutTop3Usdt": -1.0577413479459026,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 16,
+                "realizedPnlUsdt": -0.8064711442221155,
+                "profitFactor": 0.26505213726208426,
+                "winRatePercent": 37.5,
+                "expectancyUsdt": -0.05040444651388222
+              },
+              {
+                "startUtc": "2026-08-21T00:00:00.000Z",
+                "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+                "startingEquityUsdt": 99.19352885577787,
+                "endingEquityUsdt": 97.6077004519639,
+                "netReturnUsdt": -1.5858284038139772,
+                "maxDrawdownUsdt": 1.6929312437496407,
+                "maxDrawdownPercent": 1.7048544554452403,
+                "recoveryFactor": -0.9367352688828381,
+                "topWinningTradePnLsUsdt": [
+                  0.1297687840282662,
+                  0.06561431411255007,
+                  0.041488525823112694
+                ],
+                "top3TradesProfitSharePercent": 85.87114690907188,
+                "realizedPnlWithoutTop3Usdt": -1.8227000277779348,
+                "top3ProfitConcentrationWarning": true,
+                "closedTrades": 22,
+                "realizedPnlUsdt": -1.5858284038140058,
+                "profitFactor": 0.14817064869278546,
+                "winRatePercent": 27.27272727272727,
+                "expectancyUsdt": -0.07208310926427298
+              }
+            ],
+            "finalEquityUsdt": 97.6077004519639,
+            "netReturnUsdt": -2.3922995480361067,
+            "netReturnPercent": -2.392299548036103,
+            "maxDrawdownPercent": 2.404811125195458,
+            "maxDrawdownUsdt": 2.4051194188756426,
+            "recoveryFactor": -0.9946697570445259,
+            "cashUsdt": 97.6077004519639,
+            "peakConcurrentPositions": 1,
+            "peakExposureRate": 0.10241370064247685,
+            "peakAltExposureRate": 0.10006392788530584,
+            "feesUsdt": 1.518200765793773,
+            "openPositions": 0,
+            "rejected": {
+              "regime": 1014,
+              "liquidity": 472,
+              "altExposure": 4007,
+              "cooldown": 7
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "durationMs": 6536,
+  "recommendation": "No automatic configuration change or real-money approval; compare frozen holdout results and validate Demo execution coverage.",
+  "limitations": [
+    "Source pool is frozen from currently available OKX instruments, with a bounded predeclared collection cap. Delisted markets and historical instrument rules are unavailable: survivorship/coverage bias remains.",
+    "Daily ranking uses actual quote volume from the last 96 completed candles. Historical spread/depth are unavailable; costs and depth are assumptions shared by every size.",
+    "Size 0 means all validated assets in this source pool, not every market ever listed on OKX. More data does not prove edge or statistical certainty.",
+    "D1-D10 selects size only; strategy parameters stay fixed. D11-D30 carries cash/positions through two 10-day blocks; the pool bias prevents treating this as an unbiased prospective test.",
+    "Portfolio replay is an idealized next-open execution. It does not reproduce scanner scheduling, universe-switch hysteresis, daily/consecutive-loss guards, account reconciliation, real fills or order-rate limits.",
+    "Capital, fees, slippage, spread, trade ceilings and exposure limits are held fixed across universe sizes. No order is sent."
+  ]
+}

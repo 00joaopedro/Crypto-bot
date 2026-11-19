@@ -34,7 +34,7 @@ export async function benchmarkUniverseScanner() {
       } while (bot.getLastSignalScan()!.statistics!.pendingCandidates > 0);
       const scan = bot.getLastSignalScan()!;
       rows.push({ size, poolSize: pool.length, targetCandidates: scan.statistics!.targetCandidates,
-        passes, candleRequests: calls, maximumConcurrentRequests: peak,
+        passes, candleRequests: calls, anchorCandleRequests: passes, totalCandleRequests: calls + passes, maximumConcurrentRequests: peak,
         localWallMs: Math.round((performance.now() - started) * 100) / 100,
         minimumLoopDelaySpanMs: (passes - 1) * 60000 });
     }

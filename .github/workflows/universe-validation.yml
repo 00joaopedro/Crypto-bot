@@ -42,5 +42,6 @@ jobs:
           path: |
             .universe-data/
             universe-scan-benchmark.json
+          include-hidden-files: true
           retention-days: 30
           if-no-files-found: warn

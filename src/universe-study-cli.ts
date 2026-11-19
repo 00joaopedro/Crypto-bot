@@ -33,12 +33,12 @@ else {
   await writeFile(join(directory, "report.json"), JSON.stringify(report, null, 2) + "\n");
   const metricSummary = (r: typeof report.results[number]["scenarios"][number]["result"]) => {
     const { perSymbol, ...summary } = r;
-    return { ...summary, rejected: perSymbol.reduce<Record<string, number>>((all, asset) => {
+    return { ...summary, ...(r.blocks ? { blocks: r.blocks.map(({ perSymbol: _assets, ...block }) => block) } : {}), rejected: perSymbol.reduce<Record<string, number>>((all, asset) => {
       for (const [reason, n] of Object.entries(asset.rejected)) all[reason] = (all[reason] ?? 0) + n;
       return all;
     }, {}) };
   };
-  const summary = { status: report.status, studySha256, study: report.study, coverage: report.coverage,
+  const summary = { status: report.status, studySha256, study: report.study, coverage: report.coverage, assets: report.assets,
     source: { capturedAtUtc: existing.capturedAtUtc, collected: existing.assets.length, skipped: existing.skipped.length, maximumSymbols: study.collection.maximumSymbols, selection: existing.selection },
     calibration: report.calibration.map(c => ({ size: c.size, result: metricSummary(c.result) })),
     selectedSizeFromCalibration: report.selectedSizeFromCalibration,
