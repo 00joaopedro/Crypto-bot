@@ -1,3 +1,4 @@
+import { ProtectionAlertJournal } from "./protection-alerts.js";
 import { effectiveExecutionSnapshot, executionFidelityReport, TradingTermsCache, type EffectiveExecutionSnapshot, type TradingTerms } from "./execution-fidelity.js";
 import { TREND_STRATEGY_ID } from "./strategy-id.js";
 import { describeAutoResume, autoResumeAt, inspectAutoResumeMarket, inspectAutoResumePaperRisk } from "./auto-resume.js";
@@ -94,6 +95,7 @@ async function main(): Promise<void> {
     return { ...executionFidelityReport(snapshot, terms), configurationPersistence: journalStatus };
   };
   const exitPolicy = config.EXIT_MANAGEMENT_ENABLED ? exitPolicySchema.parse({ mode: config.EXIT_MODE, breakeven: config.EXIT_BREAKEVEN_ENABLED, atrPeriod: config.ATR_PERIOD, stopMultiplier: config.ATR_STOP_MULTIPLIER, targetMultiplier: config.ATR_TAKE_PROFIT_MULTIPLIER, minStopRate: config.ATR_MIN_STOP_RATE, maxStopRate: config.ATR_MAX_STOP_RATE, trailingMultiplier: config.EXIT_TRAILING_ATR_MULTIPLIER, activationRate: config.EXIT_ACTIVATION_RATE, exitFeeRate: config.EXIT_FEE_RATE, exitSlippageRate: config.EXIT_SLIPPAGE_RATE }) : undefined;
+  const protectionAlerts = new ProtectionAlertJournal(async event => { await persistence?.recordOperationalEvent(event); });
   let lastAccountingCheck = 0;
   let activeCycle: Promise<void> | undefined;
   let reconfigurationRequested = false;
@@ -639,10 +641,9 @@ async function main(): Promise<void> {
                 protectionReason = reason;
                 if (!awaitingReadback || coverage.status !== "safe" || safety.status !== "safe") await persistence.setPaused(true, "system:demo_exit_supervision", reason);
                 const position = coverage.status === "blocked" && "positionEvidence" in coverage ? coverage.positionEvidence : undefined;
-                await persistence.recordOperationalEvent({
-                  eventType: "DEMO_PROTECTION_BLOCKED", severity: "WARN",
-                  ...(position && typeof position === "object" && "symbol" in position && typeof position.symbol === "string" ? { symbol: position.symbol } : {}), details: { reason, ...(position ? { position } : {}) },
-                });
+                await protectionAlerts.observe({ reason, ...(position ? { position } : {}) });
+              } else {
+                await protectionAlerts.observe();
               }
               if (Date.now() - lastAccountingCheck >= 15 * 60_000) {
                 lastAccountingCheck = Date.now();

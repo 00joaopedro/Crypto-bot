@@ -149,3 +149,42 @@ it("recognizes only sub-step dust after a linked, verified recovery sell", async
   fills.mockResolvedValue({ status: "collected", from: f.from, to: now + 100, fills: [buy, first, fill("4", "sell", 0.48, now + 20, 0)] });
   expect(await f.executor.inspectExitProtection(journal, f.from)).toMatchObject({ reason: "partial_exit_without_live_coverage" });
 });
+
+it("recognizes the NEAR base-fee sub-step residual after a native terminal protection, without erasing the ledger", async () => {
+ const f=setup();await f.executor.initialize();
+ const j={...journal,symbol:"NEAR/USDT"};
+ f.exchange.market.mockReturnValue({symbol:j.symbol,spot:true,active:true,quote:"USDT",base:"NEAR",precision:{amount:1e-8},limits:{cost:{min:1},amount:{min:1}}});
+ const evidence={status:"collected" as const,buys:[],sells:[{id:"3",clientOrderId:null,symbol:j.symbol,side:"sell" as const}],
+ protections:[{algoClientId:"AP1",symbol:j.symbol,side:"sell" as const,spawnedOrderIds:["3"]}],protectionStates:{AP1:"effective"},
+ orders:[{id:"1",symbol:j.symbol,side:"buy" as const,filled:2.92654375,terminal:true,ownershipConfirmed:false},
+ {id:"3",symbol:j.symbol,side:"sell" as const,filled:2.91483757,terminal:true,ownershipConfirmed:false}]};
+ vi.spyOn(f.executor,"collectOrderEvidence").mockResolvedValue(evidence);
+ const now=Date.now()-2000;
+ const fills=[{id:"f1",orderId:"1",symbol:j.symbol,side:"buy" as const,timestamp:now,amount:2.92654375,costUsdt:10,fees:[{currency:"NEAR",cost:.011706175}]},
+ {id:"f3",orderId:"3",symbol:j.symbol,side:"sell" as const,timestamp:now+10,amount:2.91483757,costUsdt:9.9,fees:[{currency:"USDT",cost:.01}]}];
+ const history=vi.spyOn(f.executor,"collectFillHistory").mockResolvedValue({status:"collected",from:f.from,to:now+100,fills});
+ expect(await f.executor.inspectExitProtection(j,f.from)).toEqual({status:"closed"});
+ const identity={uid:"1",mainUid:"1"};
+ const store={demoOrderJournal:async()=>[{status:"PLACED",symbol:j.symbol,client_order_id:j.clientOrderId,attached_algo_client_id:j.attachedAlgoClientId,result:{orderId:j.orderId},created_at:new Date(f.from)}],
+ getDemoBaselineCandidate:async()=>({observedAt:new Date(f.from-1000),evidence:{accountIdentity:identity},balances:{},status:"UNVERIFIED"}),getDemoAccountingCheckpoint:async()=>null};
+ expect(await auditDemoProtections(store,{inspectAccountIdentity:async()=>({status:"confirmed" as const,identity}),inspectExitProtection:f.executor.inspectExitProtection.bind(f.executor)})).toEqual({status:"safe"});
+ const {calculateDemoLedger}=await import("../src/demo-ledger.js");const ledger=calculateDemoLedger(fills,true);
+ expect(ledger.status).toBe("confirmed");if(ledger.status==="confirmed")expect(ledger.positions[j.symbol]!.quantity).toBeGreaterThan(0);
+ history.mockResolvedValueOnce({status:"collected",from:f.from,to:now+100,fills:[fills[0]!]});
+ expect(await f.executor.inspectExitProtection(j,f.from)).toMatchObject({reason:"exit_fills_incomplete"});
+ history.mockResolvedValueOnce({status:"collected",from:f.from,to:now+100,fills:[{...fills[0]!,fees:[]},fills[1]!]});
+ expect(await f.executor.inspectExitProtection(j,f.from)).toMatchObject({reason:"invalid_or_incomplete_fill"});
+ evidence.orders[1]!.terminal=false;
+ expect(await f.executor.inspectExitProtection(j,f.from)).toMatchObject({reason:"partial_sell_or_child_pending"});
+ evidence.orders[1]!.terminal=true;
+ evidence.protectionStates.AP1="canceled";
+ expect(await f.executor.inspectExitProtection(j,f.from)).toMatchObject({reason:"partial_exit_without_live_coverage"});
+ evidence.protectionStates.AP1="effective";
+ evidence.orders[1]!.filled=2.91483756;
+ history.mockResolvedValue({status:"collected",from:f.from,to:now+100,fills:[fills[0]!,{...fills[1]!,amount:2.91483756}]});
+ expect(await f.executor.inspectExitProtection(j,f.from)).toMatchObject({reason:"partial_exit_without_live_coverage"});
+ evidence.orders[1]!.filled=2;
+ history.mockResolvedValue({status:"collected",from:f.from,to:now+100,fills:[fills[0]!,{...fills[1]!,amount:2}]});
+ expect(await f.executor.inspectExitProtection(j,f.from)).toMatchObject({reason:"partial_exit_without_live_coverage"});
+ expect(f.exchange.privatePostTradeAmendAlgos).not.toHaveBeenCalled();
+});

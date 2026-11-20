@@ -589,7 +589,7 @@ export class OkxDemoExecutor {
     const state = evidence.protectionStates[journal.attachedAlgoClientId!];
     if (!position || position.quantity <= 0) return state === "live" ? blocked("live_protection_without_position") : { status: "closed" as const };
     const recovery = evidence.protections.find(item => item.algoClientId === journal.attachedAlgoClientId)?.recoverySellOrderId;
-    if (recovery && state === "effective") {
+    if ((recovery || evidence.sells.length > 0) && state === "effective") {
       const market = this.resolveActiveSpotMarket(journal.symbol);
       const step = market.precision.amount;
       const minimum = market.limits.amount?.min;
