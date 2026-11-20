@@ -614,3 +614,10 @@ npm run strategy:diagnose -- --portfolio dados/.universe-data/report.json
 ```
 
 O relatório não altera parâmetros. Consulte o [diagnóstico e suas limitações](docs/strategy-loss-diagnosis.md).
+
+### Passagem para validação independente
+
+`npm run strategy:independent-readiness -- docs/limited-experiments.json`
+verifica a matriz de desenvolvimento antes de consumir outro período histórico.
+Consulte [o protocolo e o resultado bloqueado](docs/independent-validation.md).
+O comando não aprova dinheiro real nem aplica configurações.

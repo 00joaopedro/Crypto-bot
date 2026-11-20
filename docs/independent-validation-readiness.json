@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "inputHash": "478d6651416d80732c9d567e41b4210305d416f13f54fedf9800806cbda4f32e",
+  "status": "blocked_no_eligible_candidate",
+  "candidates": [
+    {
+      "variant": "reference",
+      "size": 10,
+      "reasons": [
+        "standard:nonpositive_net_return",
+        "standard:no_positive_closed_trade_edge",
+        "stress:nonpositive_net_return",
+        "stress:no_positive_closed_trade_edge",
+        "fixed-cost-stress:nonpositive_net_return",
+        "fixed-cost-stress:no_positive_closed_trade_edge"
+      ],
+      "passesDevelopmentScreen": false
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "reasons": [
+        "standard:nonpositive_net_return",
+        "standard:no_positive_closed_trade_edge",
+        "stress:nonpositive_net_return",
+        "stress:no_positive_closed_trade_edge",
+        "fixed-cost-stress:nonpositive_net_return",
+        "fixed-cost-stress:no_positive_closed_trade_edge"
+      ],
+      "passesDevelopmentScreen": false
+    },
+    {
+      "variant": "delay-two-candles",
+      "size": 10,
+      "reasons": [
+        "standard:nonpositive_net_return",
+        "standard:no_positive_closed_trade_edge",
+        "stress:nonpositive_net_return",
+        "stress:no_positive_closed_trade_edge",
+        "fixed-cost-stress:nonpositive_net_return",
+        "fixed-cost-stress:no_positive_closed_trade_edge"
+      ],
+      "passesDevelopmentScreen": false
+    },
+    {
+      "variant": "delay-two-candles",
+      "size": 30,
+      "reasons": [
+        "standard:nonpositive_net_return",
+        "standard:no_positive_closed_trade_edge",
+        "stress:nonpositive_net_return",
+        "stress:no_positive_closed_trade_edge",
+        "fixed-cost-stress:nonpositive_net_return",
+        "fixed-cost-stress:no_positive_closed_trade_edge"
+      ],
+      "passesDevelopmentScreen": false
+    },
+    {
+      "variant": "managed-atr-trailing",
+      "size": 10,
+      "reasons": [
+        "standard:nonpositive_net_return",
+        "standard:no_positive_closed_trade_edge",
+        "stress:nonpositive_net_return",
+        "stress:small_sample",
+        "stress:no_positive_closed_trade_edge",
+        "fixed-cost-stress:nonpositive_net_return",
+        "fixed-cost-stress:no_positive_closed_trade_edge"
+      ],
+      "passesDevelopmentScreen": false
+    },
+    {
+      "variant": "managed-atr-trailing",
+      "size": 30,
+      "reasons": [
+        "standard:nonpositive_net_return",
+        "standard:no_positive_closed_trade_edge",
+        "stress:nonpositive_net_return",
+        "stress:no_positive_closed_trade_edge",
+        "fixed-cost-stress:nonpositive_net_return",
+        "fixed-cost-stress:no_positive_closed_trade_edge"
+      ],
+      "passesDevelopmentScreen": false
+    }
+  ],
+  "holdoutExecuted": false,
+  "realMoneyApproved": false,
+  "limitations": [
+    "Development screen uses known, simulated data and project-specific cost scenarios. Thirty closes are a descriptive floor, not statistical proof.",
+    "Passing requires a separately recorded code/configuration/dataset freeze, predeclared independent dates including warmup and holdout criteria before any new data is examined.",
+    "No winner is selected. Do not re-use a failed holdout to tune parameters and call it independent again.",
+    "This screen does not diagnose zero Demo fills, prove engine equivalence, or approve production trading."
+  ]
+}
