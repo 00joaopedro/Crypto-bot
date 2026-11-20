@@ -621,3 +621,9 @@ O relatório não altera parâmetros. Consulte o [diagnóstico e suas limitaçõ
 verifica a matriz de desenvolvimento antes de consumir outro período histórico.
 Consulte [o protocolo e o resultado bloqueado](docs/independent-validation.md).
 O comando não aprova dinheiro real nem aplica configurações.
+
+### Segunda hipótese de entrada (offline)
+
+`npm run strategy:complementary -- examples/universe-validation.study.json DIRETORIO_CONGELADO`
+compara a tendência com reversão à média isolada, mantendo risco e saídas comuns.
+Veja [resultados e limitações](docs/complementary-study.md); não ativa execução Demo.

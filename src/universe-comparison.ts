@@ -1,3 +1,4 @@
+import { meanReversionEntry } from "./mean-reversion-study.js";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { REGIME_CANDLE_MS } from "./btc-regime.js";
@@ -66,7 +67,7 @@ export function historicalUniverseRanks(datasets: UniverseDataset[], start: numb
   return { ranks, eligibleCounts };
 }
 
-export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown) {
+export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown, entryModel: "trend" | "mean_reversion" = "trend") {
   const study = universeStudySchema.parse(rawStudy);
   const datasets = [...rawDatasets].sort((a, b) => a.symbol.localeCompare(b.symbol, "en"));
   validateUniverseDatasets(datasets, study);
@@ -77,6 +78,7 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
   const scores = new Map(datasets.map(d => [d.symbol, d.candles.map((_, index) => {
     if (index < start) return undefined;
     const candles = d.candles.slice(Math.max(0, index + 1 - study.candleLimit), index + 1);
+    if (entryModel === "mean_reversion") return meanReversionEntry(candles) && assessMarketQuality(candles).score >= 3 ? 8 : undefined;
     const signal = evaluateStrategy(candles, { minimumScore: study.parameters.minimumSignalScore, maxBuyRsi: study.parameters.maxBuyRsi ?? 70 });
     return signal.action === "BUY" && assessMarketQuality(candles).score >= 3 ? signal.score : undefined;
   })]));
@@ -98,7 +100,7 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
     }),
   }));
   return {
-    status: "exploratory_simulation_only", study,
+    status: "exploratory_simulation_only", entryModel, study,
     assets: datasets.map(d => ({ symbol: d.symbol, sha256: datasetHash(d), constraints: d.constraints, candleCount: d.candles.length })),
     coverage: { validatedAssets: datasets.length, requestedSizesCoveredByPool: study.sizes.every(n => n <= datasets.length), minimumLiquidCandidates: Math.min(...membership.eligibleCounts), maximumLiquidCandidates: Math.max(...membership.eligibleCounts) },
     calibration, selectedSizeFromCalibration: selected.size, results,
