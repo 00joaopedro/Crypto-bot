@@ -22,7 +22,8 @@
     "strategy:diagnose": "node dist/strategy-diagnostic-cli.js",
     "strategy:experiments": "node dist/limited-experiments-cli.js",
     "strategy:independent-readiness": "node dist/independent-validation-cli.js",
-    "strategy:complementary": "node dist/complementary-study-cli.js"
+    "strategy:complementary": "node dist/complementary-study-cli.js",
+    "pilot:review": "node dist/pilot-review-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

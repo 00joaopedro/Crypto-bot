@@ -627,3 +627,10 @@ O comando não aprova dinheiro real nem aplica configurações.
 `npm run strategy:complementary -- examples/universe-validation.study.json DIRETORIO_CONGELADO`
 compara a tendência com reversão à média isolada, mantendo risco e saídas comuns.
 Veja [resultados e limitações](docs/complementary-study.md); não ativa execução Demo.
+
+### Revisão de evidências antes de eventual piloto
+
+`npm run pilot:review -- docs/limited-experiments.json [evidencia-demo.json]`
+produz a avaliação offline de custos/fills, configuração observada e viabilidade
+do lote. Sem dados, registra impedimentos; nunca habilita dinheiro real.
+Veja [o protocolo e a decisão atual](docs/pilot-review.md).

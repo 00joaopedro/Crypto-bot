@@ -1,0 +1,119 @@
+{
+  "status": "pilot_not_authorized",
+  "realMoneyApproved": false,
+  "blockers": [
+    "development_candidates_failed",
+    "demo_execution_not_validated",
+    "configuration_freeze_evidence_missing",
+    "matched_execution_evidence_missing",
+    "intended_capital_and_instrument_rules_missing"
+  ],
+  "development": {
+    "schemaVersion": 1,
+    "inputHash": "478d6651416d80732c9d567e41b4210305d416f13f54fedf9800806cbda4f32e",
+    "status": "blocked_no_eligible_candidate",
+    "candidates": [
+      {
+        "variant": "reference",
+        "size": 10,
+        "reasons": [
+          "standard:nonpositive_net_return",
+          "standard:no_positive_closed_trade_edge",
+          "stress:nonpositive_net_return",
+          "stress:no_positive_closed_trade_edge",
+          "fixed-cost-stress:nonpositive_net_return",
+          "fixed-cost-stress:no_positive_closed_trade_edge"
+        ],
+        "passesDevelopmentScreen": false
+      },
+      {
+        "variant": "reference",
+        "size": 30,
+        "reasons": [
+          "standard:nonpositive_net_return",
+          "standard:no_positive_closed_trade_edge",
+          "stress:nonpositive_net_return",
+          "stress:no_positive_closed_trade_edge",
+          "fixed-cost-stress:nonpositive_net_return",
+          "fixed-cost-stress:no_positive_closed_trade_edge"
+        ],
+        "passesDevelopmentScreen": false
+      },
+      {
+        "variant": "delay-two-candles",
+        "size": 10,
+        "reasons": [
+          "standard:nonpositive_net_return",
+          "standard:no_positive_closed_trade_edge",
+          "stress:nonpositive_net_return",
+          "stress:no_positive_closed_trade_edge",
+          "fixed-cost-stress:nonpositive_net_return",
+          "fixed-cost-stress:no_positive_closed_trade_edge"
+        ],
+        "passesDevelopmentScreen": false
+      },
+      {
+        "variant": "delay-two-candles",
+        "size": 30,
+        "reasons": [
+          "standard:nonpositive_net_return",
+          "standard:no_positive_closed_trade_edge",
+          "stress:nonpositive_net_return",
+          "stress:no_positive_closed_trade_edge",
+          "fixed-cost-stress:nonpositive_net_return",
+          "fixed-cost-stress:no_positive_closed_trade_edge"
+        ],
+        "passesDevelopmentScreen": false
+      },
+      {
+        "variant": "managed-atr-trailing",
+        "size": 10,
+        "reasons": [
+          "standard:nonpositive_net_return",
+          "standard:no_positive_closed_trade_edge",
+          "stress:nonpositive_net_return",
+          "stress:small_sample",
+          "stress:no_positive_closed_trade_edge",
+          "fixed-cost-stress:nonpositive_net_return",
+          "fixed-cost-stress:no_positive_closed_trade_edge"
+        ],
+        "passesDevelopmentScreen": false
+      },
+      {
+        "variant": "managed-atr-trailing",
+        "size": 30,
+        "reasons": [
+          "standard:nonpositive_net_return",
+          "standard:no_positive_closed_trade_edge",
+          "stress:nonpositive_net_return",
+          "stress:no_positive_closed_trade_edge",
+          "fixed-cost-stress:nonpositive_net_return",
+          "fixed-cost-stress:no_positive_closed_trade_edge"
+        ],
+        "passesDevelopmentScreen": false
+      }
+    ],
+    "holdoutExecuted": false,
+    "realMoneyApproved": false,
+    "limitations": [
+      "Development screen uses known, simulated data and project-specific cost scenarios. Thirty closes are a descriptive floor, not statistical proof.",
+      "Passing requires a separately recorded code/configuration/dataset freeze, predeclared independent dates including warmup and holdout criteria before any new data is examined.",
+      "No winner is selected. Do not re-use a failed holdout to tune parameters and call it independent again.",
+      "This screen does not diagnose zero Demo fills, prove engine equivalence, or approve production trading."
+    ]
+  },
+  "demo": null,
+  "configurationObservation": {
+    "samples": 0,
+    "identities": 0,
+    "status": "unconfirmed_or_changed"
+  },
+  "comparison": [],
+  "capital": null,
+  "limitations": [
+    "Snapshot samples do not prove a continuous freeze or worker uptime; inspect the complete configuration/deployment journal over the window.",
+    "Matched rows must be independently reconciled to the same symbol/order/fill and timestamp. This helper cannot establish their provenance or convert non-USDT fees.",
+    "No independent edge evidence or human pilot decision is synthesized. Real-money trading is never enabled, even if descriptive checks look favorable.",
+    "Simulation, Demo account balance and a small real bankroll are different capital bases. A BRL bankroll requires a current, explicit conversion to spendable USDT; no exchange rate is assumed."
+  ]
+}
