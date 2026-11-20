@@ -1,0 +1,168 @@
+{
+  "status": "exploratory_experiments_only",
+  "protocol": "Each alternative changes one factor. Delay is not a pullback strategy. Reused data is not independent validation.",
+  "results": [
+    {
+      "variant": "reference",
+      "size": 10,
+      "scenario": "standard",
+      "closedTrades": 41,
+      "netReturnUsdt": -1.1498713414594732,
+      "profitFactor": 0.5162097903854423,
+      "maxDrawdownUsdt": 1.3501959195024824
+    },
+    {
+      "variant": "reference",
+      "size": 10,
+      "scenario": "stress",
+      "closedTrades": 33,
+      "netReturnUsdt": -2.0130777386420533,
+      "profitFactor": 0.20459887637914526,
+      "maxDrawdownUsdt": 2.020868632713828
+    },
+    {
+      "variant": "reference",
+      "size": 10,
+      "scenario": "fixed-cost-stress",
+      "closedTrades": 38,
+      "netReturnUsdt": -2.3922995480361067,
+      "profitFactor": 0.19151518342695442,
+      "maxDrawdownUsdt": 2.4051194188756426
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "scenario": "standard",
+      "closedTrades": 57,
+      "netReturnUsdt": -0.6042502709651814,
+      "profitFactor": 0.8494682995520817,
+      "maxDrawdownUsdt": 2.5354597396711114
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "scenario": "stress",
+      "closedTrades": 33,
+      "netReturnUsdt": -2.0130777386420533,
+      "profitFactor": 0.20459887637914526,
+      "maxDrawdownUsdt": 2.020868632713828
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "scenario": "fixed-cost-stress",
+      "closedTrades": 38,
+      "netReturnUsdt": -2.3922995480361067,
+      "profitFactor": 0.19151518342695442,
+      "maxDrawdownUsdt": 2.4051194188756426
+    },
+    {
+      "variant": "delay-two-candles",
+      "size": 10,
+      "scenario": "standard",
+      "closedTrades": 41,
+      "netReturnUsdt": -1.0685692663225268,
+      "profitFactor": 0.5777997239021443,
+      "maxDrawdownUsdt": 1.3351803464457532
+    },
+    {
+      "variant": "delay-two-candles",
+      "size": 10,
+      "scenario": "stress",
+      "closedTrades": 34,
+      "netReturnUsdt": -1.8855894148695,
+      "profitFactor": 0.27307756094407903,
+      "maxDrawdownUsdt": 1.8937232208595418
+    },
+    {
+      "variant": "delay-two-candles",
+      "size": 10,
+      "scenario": "fixed-cost-stress",
+      "closedTrades": 37,
+      "netReturnUsdt": -2.04179449738794,
+      "profitFactor": 0.27322151616950097,
+      "maxDrawdownUsdt": 2.0549574521049294
+    },
+    {
+      "variant": "delay-two-candles",
+      "size": 30,
+      "scenario": "standard",
+      "closedTrades": 41,
+      "netReturnUsdt": -1.0440500567857214,
+      "profitFactor": 0.5834520534113673,
+      "maxDrawdownUsdt": 1.239831205289903
+    },
+    {
+      "variant": "delay-two-candles",
+      "size": 30,
+      "scenario": "stress",
+      "closedTrades": 34,
+      "netReturnUsdt": -1.8855894148695,
+      "profitFactor": 0.27307756094407903,
+      "maxDrawdownUsdt": 1.8937232208595418
+    },
+    {
+      "variant": "delay-two-candles",
+      "size": 30,
+      "scenario": "fixed-cost-stress",
+      "closedTrades": 37,
+      "netReturnUsdt": -2.04179449738794,
+      "profitFactor": 0.27322151616950097,
+      "maxDrawdownUsdt": 2.0549574521049294
+    },
+    {
+      "variant": "managed-atr-trailing",
+      "size": 10,
+      "scenario": "standard",
+      "closedTrades": 33,
+      "netReturnUsdt": -0.6952654187020642,
+      "profitFactor": 0.7244461449006491,
+      "maxDrawdownUsdt": 1.6083610494999334
+    },
+    {
+      "variant": "managed-atr-trailing",
+      "size": 10,
+      "scenario": "stress",
+      "closedTrades": 26,
+      "netReturnUsdt": -1.076582333931242,
+      "profitFactor": 0.5591592439596985,
+      "maxDrawdownUsdt": 1.4083807002162843
+    },
+    {
+      "variant": "managed-atr-trailing",
+      "size": 10,
+      "scenario": "fixed-cost-stress",
+      "closedTrades": 30,
+      "netReturnUsdt": -1.1627915310403978,
+      "profitFactor": 0.5620054502064359,
+      "maxDrawdownUsdt": 1.9084256681235559
+    },
+    {
+      "variant": "managed-atr-trailing",
+      "size": 30,
+      "scenario": "standard",
+      "closedTrades": 51,
+      "netReturnUsdt": -0.3059630883957709,
+      "profitFactor": 0.9309937283369136,
+      "maxDrawdownUsdt": 3.2557141395771794
+    },
+    {
+      "variant": "managed-atr-trailing",
+      "size": 30,
+      "scenario": "stress",
+      "closedTrades": 44,
+      "netReturnUsdt": -0.8895349985603502,
+      "profitFactor": 0.7967090864609073,
+      "maxDrawdownUsdt": 3.0494251021897867
+    },
+    {
+      "variant": "managed-atr-trailing",
+      "size": 30,
+      "scenario": "fixed-cost-stress",
+      "closedTrades": 41,
+      "netReturnUsdt": -0.8109695690966134,
+      "profitFactor": 0.8049163832945229,
+      "maxDrawdownUsdt": 3.1664557268909164
+    }
+  ]
+}
