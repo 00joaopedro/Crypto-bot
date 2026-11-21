@@ -64,6 +64,21 @@ describe('attributed Demo risk', () => {
     expect(s.persistence.observeDemoRisk).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a proven pre-submission skip from deadlocking the first order, but still requires balance/bill proof', async () => {
+    const s = setup();
+    const skipped = { status: 'SKIPPED', client_order_id: 'CB1', symbol: 'BTC/USDT',
+      attached_algo_client_id: null, result: { reason: 'demo_spread_exceeded' }, created_at: new Date() };
+    const persistence = { ...s.persistence, demoOrderJournal: async () => [skipped] };
+    const options = { ...s.options, inspectAccounting: () => inspectDemoAccounting(persistence, s.executor) };
+    expect(await inspectDemoEquityRisk(persistence, s.executor, .03, .1, options)).toEqual({ status: 'safe' });
+    s.executor.collectAccountCoverage.mockResolvedValueOnce({ status: 'unavailable', reason: 'unattributed_account_bill' } as never);
+    expect(await inspectDemoEquityRisk(persistence, s.executor, .03, .1, options))
+      .toMatchObject({ reason: 'demo_bot_risk_attribution_unconfirmed', attributionReason: 'unattributed_account_bill' });
+    expect(s.persistence.observeDemoRisk).toHaveBeenCalledTimes(1);
+    const failed = { ...persistence, demoOrderJournal: async () => [{ ...skipped, status: 'FAILED' }] };
+    expect(await inspectDemoAccounting(failed, s.executor)).toMatchObject({ status: 'unavailable' });
+  });
+
   it('blocks unattributed bills and missing accounting instead of falling back to the wallet', async () => {
     const s = setup();
     s.executor.collectAccountCoverage.mockResolvedValueOnce({ status: 'unavailable', reason: 'unattributed_account_bill' } as never);

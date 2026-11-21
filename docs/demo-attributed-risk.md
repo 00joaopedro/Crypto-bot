@@ -28,6 +28,11 @@ ordens externas sem atribuição comprovada bloqueiam a entrada como
 observação persistida. Esta mudança não implementa ajuste automático de
 capital após transferências: essas situações precisam ser conciliadas.
 
+Um journal sem compras executadas pode avançar um checkpoint após recusas
+confirmadas ou skips anteriores ao envio, somente com cobertura de bills e
+saldos estáveis comprovados. Um skip por spread não pode impedir para sempre
+a primeira ordem seguinte. Falhas incertas e ordens pendentes continuam bloqueadas.
+
 Os limites percentuais existentes permanecem iguais. Uma perda própria de
 151 USDT contra a referência diária de 5.000 bloqueia pelo limite de 3%,
 mesmo que BTC externos tenham valorizado. Uma queda de preço apenas dos BTC
