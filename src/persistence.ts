@@ -8,7 +8,7 @@ import { DEFAULT_DEMO_ORDERS_PER_INTERVAL, MAX_DEMO_ORDERS_PER_INTERVAL } from "
 import type { PauseControl } from "./auto-resume.js";
 import { demoExitStateSchema, type DemoExitState } from "./demo-exit-state.js";
 import type { ExitPolicy } from "./exit-policy.js";
-import { advanceDemoRisk, type DemoRiskState } from "./demo-risk.js";
+import { advanceDemoRisk, type DemoRiskState, type DemoRiskBasis } from "./demo-risk.js";
 import { createHash, randomUUID } from "node:crypto";
 
 import { Pool, type PoolClient } from "pg";
@@ -695,13 +695,13 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows[0] ?? null;
   }
 
-  async observeDemoRisk(accountId: string, equity: number, observedAt: number): Promise<DemoRiskState> {
+  async observeDemoRisk(accountId: string, equity: number, observedAt: number, basis?: DemoRiskBasis): Promise<DemoRiskState> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`demo-risk:${accountId}`]);
       const result = await client.query<{ state: DemoRiskState }>("SELECT state FROM demo_risk_state WHERE account_id = $1 FOR UPDATE", [accountId]);
-      const state = advanceDemoRisk(result.rows[0]?.state ?? null, equity, observedAt);
+      const state = advanceDemoRisk(result.rows[0]?.state ?? null, equity, observedAt, basis);
       await client.query("INSERT INTO demo_risk_state (account_id, state) VALUES ($1, $2::jsonb) ON CONFLICT (account_id) DO UPDATE SET state = EXCLUDED.state, updated_at = NOW()", [accountId, JSON.stringify(state)]);
       await client.query("COMMIT");
       return state;

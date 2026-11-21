@@ -60,3 +60,34 @@ it('admits Demo independently of an existing Paper position and applies the Demo
   expect(executeApprovedBuy).toHaveBeenCalledOnce();
   vi.restoreAllMocks();
 });
+
+
+it('persists and logs the numerical risk evidence before blocking entries without repeated pause alerts', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  const riskEvidence = { scope: 'bot' as const, observedAt: Date.now(), equityUsdt: 4849,
+    dayStartEquityUsdt: 5000, peakEquityUsdt: 5000, dailyLossRate: .0302, drawdownRate: .0302,
+    maxDailyLoss: .03, maxDrawdown: .1 };
+  const recordOperationalEvent = vi.fn(async () => undefined);
+  const setPaused = vi.fn(async () => undefined);
+  const executeApprovedBuy = vi.fn();
+  const market = { fetchClosedCandles: vi.fn() } as unknown as PublicMarketData;
+  const bot = new TradingBot(market, {
+    symbol: 'BTC/USDT', candleLimit: 85, minimumConfidence: .8, aiFailureMode: 'quantitative',
+    paperTrader: new PaperTrader({ initialBalanceUsdt: 1000, tradeSizeUsdt: 10, feeRate: .001,
+      slippageRate: .0005, stopLossRate: .01, takeProfitRate: .02 }),
+    persistence: { isPaused: async () => false, setPaused, recordOperationalEvent } as unknown as BotPersistence,
+    demoExecutor: { executeApprovedBuy } as unknown as OkxDemoExecutor,
+    verifyDemoExecutionSafety: async () => ({ status: 'blocked', reason: 'demo_daily_loss_limit', riskEvidence }),
+  });
+  try {
+    await bot.runCycle();
+    await bot.runCycle();
+    expect(executeApprovedBuy).not.toHaveBeenCalled();
+    expect(market.fetchClosedCandles).not.toHaveBeenCalled();
+    expect(setPaused).toHaveBeenCalledOnce();
+    expect(recordOperationalEvent).toHaveBeenCalledWith(expect.objectContaining({ eventType: 'DEMO_ENTRY_DECISION',
+      details: expect.objectContaining({ reason: 'demo_daily_loss_limit', riskEvidence }) }));
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('"dailyLossRate":0.0302'));
+  } finally { vi.restoreAllMocks(); }
+});

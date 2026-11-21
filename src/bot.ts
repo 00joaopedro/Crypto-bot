@@ -1,7 +1,7 @@
 import { symbolEntryBlock, type MarketEligibilityPolicy, type MarketScreen } from "./market-eligibility.js";
 import type { FilledDemoBuy } from "./demo-exit-supervisor.js";
 import type { PairCooldown } from "./pair-cooldown.js";
-import type { DemoAdmission } from "./demo-entry.js";
+import type { DemoAdmission, DemoEquityRiskResult } from "./demo-entry.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import type { PublicMarketData, MarketDataProvider } from "./market-data.js";
@@ -46,7 +46,7 @@ type BotOptions = {
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
   inspectEntryMarket?: (symbol: string) => Promise<DemoEntryMarketCheck>;
   verifyFilledDemoBuy?: (buy: FilledDemoBuy) => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
-  verifyDemoExecutionSafety?: () => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
+  verifyDemoExecutionSafety?: () => Promise<DemoEquityRiskResult>;
   inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<DemoAdmission>;
   inspectDemoPositions?: () => Promise<{ status: "safe"; positions: Array<{ symbol: string }> } | { status: "blocked"; reason: string }>;
   ai?: GeminiRiskFilter;
@@ -157,8 +157,8 @@ export class TradingBot {
       if (safety.status !== "safe") {
         this.demoExecutionBlocked = true;
         await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason);
-        await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "WARN", { symbol: this.options.symbol, approved: false, reason: safety.reason });
-        console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
+        await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "WARN", { symbol: this.options.symbol, approved: false, ...safety });
+        console.error(JSON.stringify({ event: "demo_execution_blocked", ...safety }));
         return;
       }
     }
@@ -431,7 +431,8 @@ export class TradingBot {
         approved = false;
         this.demoExecutionBlocked = true;
         await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason);
-        console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
+        await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "WARN", { approved: false, ...safety });
+        console.error(JSON.stringify({ event: "demo_execution_blocked", ...safety }));
       }
     }
 
@@ -533,6 +534,8 @@ export class TradingBot {
           symbol: executionSymbol, candleTimestamp: currentCandle.timestamp,
           approved: admission.allowed, stage: "portfolio_admission", reason: admission.reason ?? "demo_preflight_passed",
           ...(admission.exposure ? { exposure: admission.exposure } : {}),
+          ...(admission.riskEvidence ? { riskEvidence: admission.riskEvidence } : {}),
+          ...(admission.attributionReason ? { attributionReason: admission.attributionReason } : {}),
         });
       }
     }

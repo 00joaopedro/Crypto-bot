@@ -143,9 +143,16 @@ async function main(): Promise<void> {
       if (!reason && executor) {
         const safety = await inspectDemoResume(persistence, executor, {
           maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
+          ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
+          inspectAccounting: () => inspectDemoAccounting(persistence!, executor),
           maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
         });
-        if (safety.status === "blocked") reason = safety.reason;
+        if (safety.status === "blocked") {
+          reason = safety.reason;
+          if (lastAutoCheck?.revision !== control.revision || lastAutoCheck.reason !== reason) await persistence.recordOperationalEvent({
+            eventType: "DEMO_RISK_RESUME_BLOCKED", severity: "WARN", details: { ...safety },
+          });
+        }
       }
       reason ??= await inspectAutoResumePaperRisk(persistence, market, {
         fee: config.PAPER_FEE_RATE, maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
@@ -381,10 +388,14 @@ async function main(): Promise<void> {
         ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: async () => {
           const safety = await inspectDemoExecutionSafety(persistence, demoExecutor);
           if (safety.status !== "safe") return safety;
-          return inspectDemoEquityRisk(persistence, demoExecutor, config.RISK_MAX_DAILY_LOSS_PERCENT, config.RISK_MAX_DRAWDOWN_PERCENT);
+          return inspectDemoEquityRisk(persistence, demoExecutor, config.RISK_MAX_DAILY_LOSS_PERCENT, config.RISK_MAX_DRAWDOWN_PERCENT, {
+            ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
+            inspectAccounting: () => inspectDemoAccounting(persistence, demoExecutor),
+          });
         } } : {}),
         ...(demoExecutor && persistence ? { inspectDemoPositions: () => inspectDemoExecutionState(persistence, demoExecutor) } : {}),
         ...(demoExecutor && persistence ? { inspectDemoEntry: (symbol: string, stopLossRate: number) => inspectDemoEntry(persistence, demoExecutor, {
+          inspectAccounting: () => inspectDemoAccounting(persistence, demoExecutor),
           symbol, stopLossRate, size: settings.orderSizeUsdt, riskSizing: Boolean(riskSizing), cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
           ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
           maxPositions: settings.maxConcurrentPositions, maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
@@ -585,6 +596,8 @@ async function main(): Promise<void> {
           const currentExecutor = okxDemo;
           await reconcilePendingDemoOrders(persistence, currentExecutor);
           const resume = await inspectDemoResume(persistence, currentExecutor, {
+            ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
+            inspectAccounting: () => inspectDemoAccounting(persistence, currentExecutor),
             maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
             maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
           });
@@ -595,6 +608,7 @@ async function main(): Promise<void> {
           }
           if (reconfiguring || currentBot !== bot || currentExecutor !== okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
           if (safety.status !== "safe") {
+            await persistence.recordOperationalEvent({ eventType: "DEMO_RISK_RESUME_BLOCKED", severity: "WARN", details: { ...safety } });
             await persistence.setPaused(true, "system:demo_execution_safety", safety.reason);
             return safety;
           }

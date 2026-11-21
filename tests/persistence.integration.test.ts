@@ -128,13 +128,26 @@ integration("PostgresPersistence", () => {
       const restored = await persistence.observeDemoRisk(key, 90, now + 1);
       expect(restored.peakEquity).toBe(100);
       expect(restored.dayStartEquity).toBe(100);
+      const basis = { budgetUsdt: 5000, baselineAt: baselineAt.getTime() };
+      await persistence.observeDemoRisk(`${key}:bot-equity-v1`, 4999.91, now, basis);
+      const reopened = new PostgresPersistence(databaseUrl!);
+      try {
+        const botRisk = await reopened.observeDemoRisk(`${key}:bot-equity-v1`, 4849, now + 1, basis);
+        expect(botRisk).toMatchObject({ dayStartEquity: 5000, peakEquity: 5000, equity: 4849, basis });
+        await expect(reopened.observeDemoRisk(`${key}:bot-equity-v1`, 6000, now + 2, { ...basis, budgetUsdt: 6000 })).rejects.toThrow(/basis changed/);
+        // The failed basis change rolls back, and the legacy account state is untouched.
+        const retained = await reopened.observeDemoRisk(`${key}:bot-equity-v1`, 4849, now + 3, basis);
+        expect(retained.dayStartEquity).toBe(5000);
+        const legacy = await reopened.observeDemoRisk(key, 90, now + 3);
+        expect(legacy.peakEquity).toBe(100);
+      } finally { await reopened.close(); }
       const input = { baselineAt, observedAt: now + 1000, balances: { USDT: 90 }, evidence: { test: true }, realizedPnl: -10 };
       await persistence.saveDemoAccountingCheckpoint(input);
       await persistence.saveDemoAccountingCheckpoint({ ...input, observedAt: now + 2000 });
       expect((await persistence.getDemoAccountingCheckpoint(baselineAt))?.realizedPnlOffset).toBe(-10);
       expect((await db.query("SELECT 1 FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt])).rowCount).toBe(2);
     } finally {
-      await db.query("DELETE FROM demo_risk_state WHERE account_id = $1", [key]);
+      await db.query("DELETE FROM demo_risk_state WHERE account_id = ANY($1::text[])", [[key, `${key}:bot-equity-v1`]]);
       await db.query("DELETE FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt]);
       await db.end(); await persistence.close();
     }
