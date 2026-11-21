@@ -32,8 +32,8 @@ else {
   const report = { ...compareUniverseSizes(datasets, study), source: existing };
   await writeFile(join(directory, "report.json"), JSON.stringify(report, null, 2) + "\n");
   const metricSummary = (r: typeof report.results[number]["scenarios"][number]["result"]) => {
-    const { perSymbol, ...summary } = r;
-    return { ...summary, ...(r.blocks ? { blocks: r.blocks.map(({ perSymbol: _assets, ...block }) => block) } : {}), rejected: perSymbol.reduce<Record<string, number>>((all, asset) => {
+    const { perSymbol, closedTradeLedger: _ledger, diagnostics, ...summary } = r;
+    return { ...summary, diagnostics: { status: diagnostics.status, summary: diagnostics.summary }, ...(r.blocks ? { blocks: r.blocks.map(({ perSymbol: _assets, ...block }) => block) } : {}), rejected: perSymbol.reduce<Record<string, number>>((all, asset) => {
       for (const [reason, n] of Object.entries(asset.rejected)) all[reason] = (all[reason] ?? 0) + n;
       return all;
     }, {}) };

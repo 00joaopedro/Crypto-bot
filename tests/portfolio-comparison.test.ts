@@ -16,6 +16,24 @@ const setup = (lastLow = 100) => [
 ];
 
 describe("portfolio comparison", () => {
+  it("adds reconciled diagnostics with entry context computed before the execution candle", () => {
+    const candles = Array.from({ length: 105 }, (_, i) => {
+      const close = 100 + Math.sin(i / 3) * .3;
+      return { timestamp: i * 900000, open: close, high: close + 1, low: close - 2, close, volume: 1000 };
+    });
+    const instruments = [{ symbol: "BTC/USDT", constraints, candles }];
+    const scores = new Map([["BTC/USDT", Array.from({ length: 105 }, (_, i) => i === 99 ? 8 : undefined)]]);
+    const first = runPortfolioScenario(instruments, scores, 98, parameters, scenario, limits, 100, 10, undefined, undefined, 100);
+    expect(first.closedTrades).toBeGreaterThan(0);
+    expect(first.diagnostics.summary.closedTrades).toBe(first.closedTrades);
+    expect(first.diagnostics.summary.realizedPnlUsdt).toBeCloseTo(first.realizedPnlUsdt, 12);
+    expect(first.closedTradeLedger[0]?.entryContext).toMatchObject({ decisionTimestamp: 99 * 900000, score: 8 });
+    expect(first.closedTradeLedger[0]?.entryContext?.rsi14).toBeTypeOf("number");
+    const changedFuture = candles.map((c, i) => i < 100 ? c : { ...c, open: c.open * 2, high: c.high * 2, low: c.low * 2, close: c.close * 2 });
+    const second = runPortfolioScenario([{ ...instruments[0]!, candles: changedFuture }], scores, 98, parameters, scenario, limits, 100, 10, undefined, undefined, 100);
+    expect(second.closedTradeLedger[0]?.entryContext).toEqual(first.closedTradeLedger[0]?.entryContext);
+  });
+
   it("ranks one entry when the shared wallet cannot pay for both", () => {
     const result = runPortfolioScenario(setup(), new Map([["BTC/USDT", [, 5]], ["ETH/USDT", [, 7]]]),
       1, parameters, scenario, limits, 15, 10);

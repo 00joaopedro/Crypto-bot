@@ -28,6 +28,7 @@ type DashboardOptions = {
   persistence: PostgresPersistence;
   supportedSymbols: string[];
   onSettingsChanged: () => void | Promise<void>;
+  getExecutionFidelity?: () => Promise<unknown>;
   getLastSignalScan?: () => { pairs: string[]; candleTimestamp: number; cooldowns?: Array<{ symbol: string; until: number }> } | null;
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
   inspectDemoAccounting?: () => Promise<unknown>;
@@ -105,6 +106,9 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
       if (!isAuthenticated(request, options.sessionSecret)) {
         return json(response, 401, { error: "Não autenticado." });
       }
+      if (request.method === "GET" && url.pathname === "/api/execution-fidelity") {
+        return json(response, 200, options.getExecutionFidelity ? await options.getExecutionFidelity() : { status: "unavailable", reason: "runtime_not_initialized" });
+      }
       if (request.method === "GET" && url.pathname === "/api/demo-reconciliation") {
         return json(response, 200, await accounting());
       }
@@ -142,7 +146,10 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);
         const limit = Number(url.searchParams.get("limit") ?? 500);
-        const content = await options.persistence.getDiagnosticLogs(hours, limit);
+        const exported = await options.persistence.getDiagnosticLogs(hours, limit);
+        const content = options.getExecutionFidelity
+          ? JSON.stringify({ ...JSON.parse(exported), executionFidelity: await options.getExecutionFidelity() }, null, 2)
+          : exported;
         // Validate the complete document before starting the attachment response.
         const parsed = JSON.parse(content) as { records?: unknown };
         if (!parsed || !Array.isArray(parsed.records)) throw new Error("Invalid diagnostic export");

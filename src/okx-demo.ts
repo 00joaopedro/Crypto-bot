@@ -1,3 +1,4 @@
+import type { TradingTerms } from "./execution-fidelity.js";
 import type { StrategyId } from "./strategy-id.js";
 import type { VerifiedDemoPosition } from "./demo-execution-safety.js";
 import { demoBotExposure, demoTradingExposure } from "./demo-exposure.js";
@@ -88,6 +89,7 @@ export type DemoBuyResult =
       side?: string | null;
       fees?: Array<{ currency: string | null; cost: number | null }>;
       feesPresentOnTerminalResponse?: boolean;
+      quotedTakerFeeRate?: number;
     }
   | {
       status: "SKIPPED";
@@ -551,6 +553,7 @@ export class OkxDemoExecutor {
       confirmed,
       side: order.side ?? "buy",
       fees: normalizedOrderFees(order),
+      quotedTakerFeeRate: fee,
       feesPresentOnTerminalResponse: confirmed && normalizedOrderFees(order).length > 0,
       ...(confirmed ? {} : { reconciliationError: `Final OKX order status was ${order.status ?? "unknown"}` }),
     };
@@ -586,7 +589,7 @@ export class OkxDemoExecutor {
     const state = evidence.protectionStates[journal.attachedAlgoClientId!];
     if (!position || position.quantity <= 0) return state === "live" ? blocked("live_protection_without_position") : { status: "closed" as const };
     const recovery = evidence.protections.find(item => item.algoClientId === journal.attachedAlgoClientId)?.recoverySellOrderId;
-    if (recovery && state === "effective") {
+    if ((recovery || evidence.sells.length > 0) && state === "effective") {
       const market = this.resolveActiveSpotMarket(journal.symbol);
       const step = market.precision.amount;
       const minimum = market.limits.amount?.min;
@@ -702,6 +705,20 @@ export class OkxDemoExecutor {
     } catch {
       return 0;
     }
+  }
+
+  /** Read-only account quote; never falls back to Paper/default fees. */
+  async inspectTradingTerms(symbol: string): Promise<TradingTerms> {
+    if (!this.initialized) return { status: "unavailable", reason: "not_initialized" };
+    try {
+      const market = this.resolveActiveSpotMarket(symbol);
+      const info = market.info as { minSz?: string; lotSz?: string };
+      const minimumQuantity = Number(info?.minSz), quantityStep = Number(info?.lotSz);
+      if (market.quote !== "USDT" || !Number.isFinite(minimumQuantity) || minimumQuantity <= 0 || !Number.isFinite(quantityStep) || quantityStep <= 0) return { status: "unavailable", reason: "instrument_unconfirmed" };
+      const fee = await this.exchange.fetchTradingFee(symbol);
+      if (typeof fee.taker !== "number" || !Number.isFinite(fee.taker) || fee.taker < 0 || fee.taker >= 1) return { status: "unavailable", reason: "fee_unconfirmed" };
+      return { status: "confirmed", symbol, observedAtUtc: new Date().toISOString(), takerFeeRate: fee.taker, minimumQuantity, quantityStep };
+    } catch { return { status: "unavailable", reason: "query_failed" }; }
   }
 
   async executeApprovedSell(request: DemoSellRequest): Promise<DemoBuyResult> {

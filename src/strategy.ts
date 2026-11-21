@@ -2,6 +2,7 @@ import { emaSeries, rsiSeries } from "./indicators.js";
 import type { Candle, QuantSignal } from "./types.js";
 
 export const DEFAULT_MINIMUM_SIGNAL_SCORE = 5;
+export const DEFAULT_MAX_BUY_RSI = 70;
 
 export type StrategyOptions = { minimumScore?: number; qualityFilters?: boolean; maxBuyRsi?: number };
 
@@ -65,7 +66,7 @@ export function evaluateStrategy(
   const higherTrend = higherTimeframeTrend(candles);
   const lateralMarket = Math.abs(currentEma9 - currentEma21) / candle.close < Math.max(volatilityPercent / 100, 0.001) * 0.35;
   const weakVolume = volumeRatio < 0.9;
-  const stretchedBuyRsi = currentRsi > (options.maxBuyRsi ?? 70);
+  const stretchedBuyRsi = currentRsi > (options.maxBuyRsi ?? DEFAULT_MAX_BUY_RSI);
   const stretchedSellRsi = currentRsi < 30;
   const buyQuality = higherTrend === 1 && !lateralMarket && !weakVolume && !stretchedBuyRsi;
   const sellQuality = higherTrend === -1 && !lateralMarket && !weakVolume && !stretchedSellRsi;

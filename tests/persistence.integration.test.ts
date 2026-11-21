@@ -128,13 +128,26 @@ integration("PostgresPersistence", () => {
       const restored = await persistence.observeDemoRisk(key, 90, now + 1);
       expect(restored.peakEquity).toBe(100);
       expect(restored.dayStartEquity).toBe(100);
+      const basis = { budgetUsdt: 5000, baselineAt: baselineAt.getTime() };
+      await persistence.observeDemoRisk(`${key}:bot-equity-v1`, 4999.91, now, basis);
+      const reopened = new PostgresPersistence(databaseUrl!);
+      try {
+        const botRisk = await reopened.observeDemoRisk(`${key}:bot-equity-v1`, 4849, now + 1, basis);
+        expect(botRisk).toMatchObject({ dayStartEquity: 5000, peakEquity: 5000, equity: 4849, basis });
+        await expect(reopened.observeDemoRisk(`${key}:bot-equity-v1`, 6000, now + 2, { ...basis, budgetUsdt: 6000 })).rejects.toThrow(/basis changed/);
+        // The failed basis change rolls back, and the legacy account state is untouched.
+        const retained = await reopened.observeDemoRisk(`${key}:bot-equity-v1`, 4849, now + 3, basis);
+        expect(retained.dayStartEquity).toBe(5000);
+        const legacy = await reopened.observeDemoRisk(key, 90, now + 3);
+        expect(legacy.peakEquity).toBe(100);
+      } finally { await reopened.close(); }
       const input = { baselineAt, observedAt: now + 1000, balances: { USDT: 90 }, evidence: { test: true }, realizedPnl: -10 };
       await persistence.saveDemoAccountingCheckpoint(input);
       await persistence.saveDemoAccountingCheckpoint({ ...input, observedAt: now + 2000 });
       expect((await persistence.getDemoAccountingCheckpoint(baselineAt))?.realizedPnlOffset).toBe(-10);
       expect((await db.query("SELECT 1 FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt])).rowCount).toBe(2);
     } finally {
-      await db.query("DELETE FROM demo_risk_state WHERE account_id = $1", [key]);
+      await db.query("DELETE FROM demo_risk_state WHERE account_id = ANY($1::text[])", [[key, `${key}:bot-equity-v1`]]);
       await db.query("DELETE FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt]);
       await db.end(); await persistence.close();
     }
@@ -654,6 +667,33 @@ integration("pair cooldown history", () => {
       await db.end();
       await persistence.close();
       await restarted.close();
+    }
+  });
+});
+
+integration("configuration provenance", () => {
+  it("retains the opening configuration hash across Paper recovery and persisted closure", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const symbol = `FIDELITY${Date.now()}/USDT`;
+    try {
+      await persistence.initialize();
+      const configuration = { initialBalanceUsdt: 100, tradeSizeUsdt: 10, feeRate: .001, slippageRate: 0, stopLossRate: .01, takeProfitRate: .02 };
+      const candle: Candle = { timestamp: Date.now(), open: 100, high: 100, low: 100, close: 100, volume: 1 };
+      const trader = new PaperTrader({ ...configuration, configurationHash: "a".repeat(64) });
+      const opened = trader.processCandle(candle, true);
+      await persistence.recordCycle({ symbol, candle, replayed: false, paperResult: opened, paperState: trader.exportState() });
+      const state = await persistence.loadRecoveryState(symbol);
+      expect(state?.paperState.position?.configurationHash).toBe("a".repeat(64));
+      const restored = new PaperTrader({ ...configuration, configurationHash: "b".repeat(64) }, state!.paperState);
+      const next = { ...candle, timestamp: candle.timestamp + 900000, low: 90 };
+      await persistence.recordCycle({ symbol, candle: next, replayed: false, paperResult: restored.processCandle(next, false), paperState: restored.exportState() });
+      const rows = await db.query("SELECT trade->>'configurationHash' AS hash FROM paper_trades WHERE symbol = $1", [symbol]);
+      expect(rows.rows).toHaveLength(2);
+      expect(rows.rows.every(row => row.hash === "a".repeat(64))).toBe(true);
+    } finally {
+      for (const table of ["paper_trades", "portfolio_snapshots", "paper_trader_state"]) await db.query(`DELETE FROM ${table} WHERE symbol = $1`, [symbol]);
+      await db.end(); await persistence.close();
     }
   });
 });

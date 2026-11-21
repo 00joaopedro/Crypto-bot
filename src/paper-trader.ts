@@ -6,6 +6,7 @@ import type { Candle } from "./types.js";
 
 export type PaperTraderOptions = {
   strategyId?: StrategyId;
+  configurationHash?: string;
   initialBalanceUsdt: number;
   tradeSizeUsdt: number;
   riskSizing?: PositionSizingLimits;
@@ -21,6 +22,7 @@ export type DynamicExitRates = { stopLossRate: number; takeProfitRate: number; t
 
 export type PaperPosition = {
   strategyId?: StrategyId;
+  configurationHash?: string;
   entryTimestamp: number;
   entryPrice: number;
   quantity: number;
@@ -51,6 +53,7 @@ export type PaperTraderState = {
 
 export type PaperTradeOpened = {
   strategyId?: StrategyId;
+  configurationHash?: string;
   type: "OPENED";
   timestamp: number;
   entryPrice: number;
@@ -63,6 +66,7 @@ export type PaperTradeOpened = {
 
 export type PaperTradeClosed = {
   strategyId?: StrategyId;
+  configurationHash?: string;
   type: "CLOSED";
   entryTimestamp: number;
   exitTimestamp: number;
@@ -237,6 +241,7 @@ export class PaperTrader {
     assertRate(takeProfitRate, "takeProfitRate");
     const position: PaperPosition = {
       ...(this.options.strategyId ? { strategyId: this.options.strategyId } : {}),
+      ...(this.options.configurationHash ? { configurationHash: this.options.configurationHash } : {}),
       entryTimestamp: candle.timestamp,
       entryPrice,
       quantity,
@@ -258,6 +263,7 @@ export class PaperTrader {
     return {
       type: "OPENED",
       ...(position.strategyId ? { strategyId: position.strategyId } : {}),
+      ...(position.configurationHash ? { configurationHash: position.configurationHash } : {}),
       timestamp: candle.timestamp,
       entryPrice,
       quantity,
@@ -315,6 +321,7 @@ export class PaperTrader {
     return {
       type: "CLOSED",
       ...(position.strategyId ? { strategyId: position.strategyId } : {}),
+      ...(position.configurationHash ? { configurationHash: position.configurationHash } : {}),
       entryTimestamp: position.entryTimestamp,
       exitTimestamp: candle.timestamp,
       entryPrice: position.entryPrice,

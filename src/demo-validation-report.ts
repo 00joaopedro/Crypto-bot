@@ -84,6 +84,12 @@ export function summarizeDemoValidation(startUtc: string, inputs: unknown[]) {
       rejectionReasons: countBy(decisions.filter(row => row.details?.approved === false), row => stringValue(row.details?.reason)),
       sharedMarketChecks: { count: marketChecks.length, spreadsPercent: spreadSummary(marketChecks) },
       executionSpreadRejections: { count: executionSpreadRejections.length, spreadsPercent: spreadSummary(executionSpreadRejections) } },
+    executionAssessment: {
+      status: confirmed.length ? "fills_observed" : "no_confirmed_fills",
+      operationalValidationPassed: confirmed.length > 0 && confirmed.every(([identity]) => proven.has(identity)) && issues.length === 0 && Object.values(coverage).every(item => item.uncoveredMinutes === 0) && capturedThrough >= end,
+      blockersObserved: countBy(decisions.filter(row => row.details?.approved === false), row => stringValue(row.details?.reason)),
+      conclusion: confirmed.length ? "Inspect coverage, protections and errors before accepting the operational test." : "No confirmed fills: order execution and protections were not validated. This does not prove absence of exchange trades or identify a single root cause.",
+    },
     orders: { observed: orders.size, byStatus: countBy(orders.values(), row => row.status),
       confirmedFills: confirmed.length, confirmedFillsWithVerifiedEntryProtection: confirmed.filter(([identity]) => proven.has(identity)).length,
       verifiedEntryProtectionEvents: protection.filter(row => row.details?.verified === true).length,

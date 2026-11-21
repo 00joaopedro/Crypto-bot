@@ -64,3 +64,11 @@ it("keeps an explicitly linked recovery sell blocked until the fill ledger confi
   expect(await inspectDemoExecutionState(persistence(), exchange)).toMatchObject({ reason: "demo_recovery_sell_not_reconciled" });
   expect(await inspectDemoExecutionState(persistence(), exchange)).toEqual({ status: "safe", positions: [] });
 });
+
+it("requires the net fill ledger for native effective exits instead of treating base fees as an unprotected gross remainder",async()=>{
+ const closed={...evidence,protectionStates:{AP1:"effective"},orders:[evidence.orders[0]!,{...evidence.orders[1]!,filled:.999}]};
+ const inspectExitProtection=vi.fn().mockResolvedValueOnce({status:"blocked",reason:"exit_fills_incomplete"}).mockResolvedValueOnce({status:"closed"});
+ const executor={collectOrderEvidence:async()=>closed,inspectExitProtection};
+ expect(await inspectDemoExecutionState(persistence(),executor)).toMatchObject({status:"blocked",reason:"demo_exit_not_reconciled"});
+ expect(await inspectDemoExecutionState(persistence(),executor)).toEqual({status:"safe",positions:[]});
+});

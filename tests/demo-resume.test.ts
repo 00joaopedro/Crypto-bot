@@ -31,7 +31,7 @@ describe("safe Demo resume", () => {
     expect(observeDemoRisk).not.toHaveBeenCalled();
     const getAccountSnapshot = async () => ({ ...snapshot, equityUsdt: 96, quoteFree: 96 });
     expect(await inspectDemoResume(persistence, { ...executor, getAccountSnapshot }, limits))
-      .toEqual({ status: "blocked", reason: "demo_daily_loss_limit" });
+      .toMatchObject({ status: "blocked", reason: "demo_daily_loss_limit", riskEvidence: { scope: "account", equityUsdt: 96, dayStartEquityUsdt: 100, dailyLossRate: .04, maxDailyLoss: .03 } });
     expect(observeDemoRisk).toHaveBeenCalledWith("123:123", 96, expect.any(Number));
   });
 });

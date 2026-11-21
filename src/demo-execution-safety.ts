@@ -62,7 +62,7 @@ export async function inspectDemoExecutionState(
         sold += child.filled;
       }
       if (sold > parent.filled * (1 + 1e-8)) return blocked("demo_oversold_position");
-      if (protection.recoverySellOrderId) {
+      if (protection.recoverySellOrderId || (evidence.protectionStates[buy.attachedAlgoClientId] === "effective" && protection.spawnedOrderIds.length > 0 && executor.inspectExitProtection)) {
         const row = placed.find(item => item.client_order_id === buy.clientOrderId)!;
         const recovery = await executor.inspectExitProtection?.(buy, new Date(row.created_at).getTime(), checkpoint ? {
           parents: (checkpoint.evidence.parentOrderEvidence ?? []) as CachedDemoParent[],
@@ -70,7 +70,7 @@ export async function inspectDemoExecutionState(
             checkpoint.evidence.reconciledFills ?? []) as DemoFill[],
           from: checkpoint.observedAt.getTime(),
         } : undefined);
-        if (recovery?.status !== "closed") return blocked("demo_recovery_sell_not_reconciled");
+        if (recovery?.status !== "closed") return blocked(protection.recoverySellOrderId ? "demo_recovery_sell_not_reconciled" : "demo_exit_not_reconciled");
         continue;
       }
       const remaining = parent.filled - sold;

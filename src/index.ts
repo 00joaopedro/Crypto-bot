@@ -1,3 +1,5 @@
+import { ProtectionAlertJournal } from "./protection-alerts.js";
+import { effectiveExecutionSnapshot, executionFidelityReport, TradingTermsCache, type EffectiveExecutionSnapshot, type TradingTerms } from "./execution-fidelity.js";
 import { TREND_STRATEGY_ID } from "./strategy-id.js";
 import { describeAutoResume, autoResumeAt, inspectAutoResumeMarket, inspectAutoResumePaperRisk } from "./auto-resume.js";
 import { exitPolicySchema } from "./exit-policy.js";
@@ -66,7 +68,34 @@ async function main(): Promise<void> {
   let okxDemo: OkxDemoExecutor | undefined;
   let bot: TradingBot;
   let reconfiguring = false;
+  let appliedExecution: EffectiveExecutionSnapshot | undefined;
+  let configurationPersistence: "recorded" | "unavailable" | "disabled" = "disabled";
+  const feeQuotes = new TradingTermsCache();
+  const captureAppliedExecution = async (settings: DashboardSettings, recovery: Awaited<ReturnType<PostgresPersistence["loadRecoveryState"]>>) => {
+    appliedExecution = effectiveExecutionSnapshot(config, settings, exitPolicy, recovery ?? undefined, {
+      ...(process.env.RAILWAY_GIT_COMMIT_SHA ? { commitSha: process.env.RAILWAY_GIT_COMMIT_SHA } : {}),
+      ...(process.env.RAILWAY_DEPLOYMENT_ID ? { deploymentId: process.env.RAILWAY_DEPLOYMENT_ID } : {}),
+    });
+    console.log(JSON.stringify({ event: "execution_config_applied", snapshot: appliedExecution }));
+    configurationPersistence = persistence ? "unavailable" : "disabled";
+    if (persistence) {
+      try { await persistence.recordOperationalEvent({ eventType: "EXECUTION_CONFIG_APPLIED", severity: "INFO", symbol: settings.symbol, details: appliedExecution }); configurationPersistence = "recorded"; }
+      catch { console.error(JSON.stringify({ event: "execution_config_journal_unavailable" })); }
+    }
+  };
+  const inspectExecutionFidelity = async () => {
+    const snapshot = appliedExecution;
+    if (!snapshot) return { status: "unavailable", reason: "runtime_not_initialized" };
+    const executor = okxDemo;
+    const journalStatus = configurationPersistence;
+    let terms: TradingTerms = { status: "unavailable", reason: "demo_disabled" };
+    if (executor) {
+      terms = await feeQuotes.read(executor, snapshot.settings.symbol);
+    }
+    return { ...executionFidelityReport(snapshot, terms), configurationPersistence: journalStatus };
+  };
   const exitPolicy = config.EXIT_MANAGEMENT_ENABLED ? exitPolicySchema.parse({ mode: config.EXIT_MODE, breakeven: config.EXIT_BREAKEVEN_ENABLED, atrPeriod: config.ATR_PERIOD, stopMultiplier: config.ATR_STOP_MULTIPLIER, targetMultiplier: config.ATR_TAKE_PROFIT_MULTIPLIER, minStopRate: config.ATR_MIN_STOP_RATE, maxStopRate: config.ATR_MAX_STOP_RATE, trailingMultiplier: config.EXIT_TRAILING_ATR_MULTIPLIER, activationRate: config.EXIT_ACTIVATION_RATE, exitFeeRate: config.EXIT_FEE_RATE, exitSlippageRate: config.EXIT_SLIPPAGE_RATE }) : undefined;
+  const protectionAlerts = new ProtectionAlertJournal(async event => { await persistence?.recordOperationalEvent(event); });
   let lastAccountingCheck = 0;
   let activeCycle: Promise<void> | undefined;
   let reconfigurationRequested = false;
@@ -114,9 +143,16 @@ async function main(): Promise<void> {
       if (!reason && executor) {
         const safety = await inspectDemoResume(persistence, executor, {
           maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
+          ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
+          inspectAccounting: () => inspectDemoAccounting(persistence!, executor),
           maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
         });
-        if (safety.status === "blocked") reason = safety.reason;
+        if (safety.status === "blocked") {
+          reason = safety.reason;
+          if (lastAutoCheck?.revision !== control.revision || lastAutoCheck.reason !== reason) await persistence.recordOperationalEvent({
+            eventType: "DEMO_RISK_RESUME_BLOCKED", severity: "WARN", details: { ...safety },
+          });
+        }
       }
       reason ??= await inspectAutoResumePaperRisk(persistence, market, {
         fee: config.PAPER_FEE_RATE, maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
@@ -314,9 +350,11 @@ async function main(): Promise<void> {
           ...(state.paperState.position.strategyId ? { strategyId: state.paperState.position.strategyId } : {}),
         }]);
       }
+      const configurationHash = effectiveExecutionSnapshot(config, settings, exitPolicy, state ?? undefined).configurationHash;
       const paperTrader = new PaperTrader(
         {
           strategyId: TREND_STRATEGY_ID,
+          configurationHash,
           initialBalanceUsdt: config.PAPER_INITIAL_BALANCE_USDT,
           tradeSizeUsdt:
             settings.paperTradeSizeUsdt ?? config.PAPER_TRADE_SIZE_USDT,
@@ -334,6 +372,7 @@ async function main(): Promise<void> {
         ? new ExecutionQueue(demoExecutor)
         : undefined;
       return new TradingBot(market, {
+        configurationHash,
         symbol: settings.symbol,
         candleLimit: config.CANDLE_LIMIT,
         btcRegimeFilter: config.BTC_REGIME_FILTER_ENABLED,
@@ -349,10 +388,14 @@ async function main(): Promise<void> {
         ...(demoExecutor && persistence ? { verifyDemoExecutionSafety: async () => {
           const safety = await inspectDemoExecutionSafety(persistence, demoExecutor);
           if (safety.status !== "safe") return safety;
-          return inspectDemoEquityRisk(persistence, demoExecutor, config.RISK_MAX_DAILY_LOSS_PERCENT, config.RISK_MAX_DRAWDOWN_PERCENT);
+          return inspectDemoEquityRisk(persistence, demoExecutor, config.RISK_MAX_DAILY_LOSS_PERCENT, config.RISK_MAX_DRAWDOWN_PERCENT, {
+            ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
+            inspectAccounting: () => inspectDemoAccounting(persistence, demoExecutor),
+          });
         } } : {}),
         ...(demoExecutor && persistence ? { inspectDemoPositions: () => inspectDemoExecutionState(persistence, demoExecutor) } : {}),
         ...(demoExecutor && persistence ? { inspectDemoEntry: (symbol: string, stopLossRate: number) => inspectDemoEntry(persistence, demoExecutor, {
+          inspectAccounting: () => inspectDemoAccounting(persistence, demoExecutor),
           symbol, stopLossRate, size: settings.orderSizeUsdt, riskSizing: Boolean(riskSizing), cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
           ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
           maxPositions: settings.maxConcurrentPositions, maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
@@ -406,6 +449,7 @@ async function main(): Promise<void> {
     };
 
     bot = createBot(tradingSettings, recoveryState, okxDemo);
+    await captureAppliedExecution(tradingSettings, recoveryState);
 
     console.log(
       JSON.stringify({
@@ -494,6 +538,7 @@ async function main(): Promise<void> {
           recoveryState = nextRecoveryState;
           okxDemo = nextOkxDemo;
           bot = createBot(nextSettings, nextRecoveryState, nextOkxDemo);
+          await captureAppliedExecution(nextSettings, nextRecoveryState);
           await previousOkxDemo?.close();
 
           console.log(
@@ -528,6 +573,7 @@ async function main(): Promise<void> {
       };
 
       dashboardServer = await startDashboard({
+        getExecutionFidelity: inspectExecutionFidelity,
         port: config.PORT,
         password: config.DASHBOARD_PASSWORD,
         sessionSecret: config.DASHBOARD_SESSION_SECRET,
@@ -550,6 +596,8 @@ async function main(): Promise<void> {
           const currentExecutor = okxDemo;
           await reconcilePendingDemoOrders(persistence, currentExecutor);
           const resume = await inspectDemoResume(persistence, currentExecutor, {
+            ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
+            inspectAccounting: () => inspectDemoAccounting(persistence, currentExecutor),
             maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
             maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
           });
@@ -560,6 +608,7 @@ async function main(): Promise<void> {
           }
           if (reconfiguring || currentBot !== bot || currentExecutor !== okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
           if (safety.status !== "safe") {
+            await persistence.recordOperationalEvent({ eventType: "DEMO_RISK_RESUME_BLOCKED", severity: "WARN", details: { ...safety } });
             await persistence.setPaused(true, "system:demo_execution_safety", safety.reason);
             return safety;
           }
@@ -606,10 +655,9 @@ async function main(): Promise<void> {
                 protectionReason = reason;
                 if (!awaitingReadback || coverage.status !== "safe" || safety.status !== "safe") await persistence.setPaused(true, "system:demo_exit_supervision", reason);
                 const position = coverage.status === "blocked" && "positionEvidence" in coverage ? coverage.positionEvidence : undefined;
-                await persistence.recordOperationalEvent({
-                  eventType: "DEMO_PROTECTION_BLOCKED", severity: "WARN",
-                  ...(position && typeof position === "object" && "symbol" in position && typeof position.symbol === "string" ? { symbol: position.symbol } : {}), details: { reason, ...(position ? { position } : {}) },
-                });
+                await protectionAlerts.observe({ reason, ...(position ? { position } : {}) });
+              } else {
+                await protectionAlerts.observe();
               }
               if (Date.now() - lastAccountingCheck >= 15 * 60_000) {
                 lastAccountingCheck = Date.now();

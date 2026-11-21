@@ -48,3 +48,10 @@ it("reports disabled, scheduled, blocked and manual states by the current pause 
   expect(describeAutoResume({ ...control, revision: "43" }, enabled, check)).not.toHaveProperty("reason");
   expect(describeAutoResume({ ...control, updatedBy: "dashboard" }, enabled, check)).toEqual({ enabled: true, eligibleAt: null });
 });
+
+it("only schedules a new safety check for reconciliable exit pauses, never a manual pause",()=>{
+ const p={...control,updatedBy:"system:demo_exit_supervision",pauseReason:"partial_exit_without_live_coverage"};
+ expect(autoResumeAt(p,120,true)).toBe(control.updatedAt!.getTime());
+ expect(autoResumeAt({...p,updatedBy:"dashboard"},120,true)).toBeNull();
+ expect(autoResumeAt(p,120,false)).toBeNull();
+});

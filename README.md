@@ -589,3 +589,48 @@ No modo `--compare`, compare o filtro desativado com alternativas que acrescenta
 Use também 4, 8 e 24 horas para comparar custo, resultados líquidos e entradas
 bloqueadas. Cada janela do backtest começa com histórico de operações vazio.
 A redução de consultas e o impacto na estratégia dependem dos dados em uso.
+
+### Auditoria da configuração aplicada
+
+O diagnóstico JSON inclui configuração efetiva, hash e condições de execução
+consultadas na OKX. Compare com um estudo sem enviar ordens:
+
+```sh
+npm run build
+npm run execution:fidelity -- diagnostico.json examples/universe-validation.study.json
+```
+
+Consulte [diferenças e limites da auditoria](docs/execution-fidelity.md).
+Nenhuma variável nova é necessária. Evidência ausente permanece desconhecida.
+
+### Diagnóstico das perdas da estratégia
+
+Para separar resultado antes das taxas, custos, saídas, pares, tamanhos e
+contexto de entrada, use o diagnóstico offline:
+
+```sh
+npm run strategy:diagnose -- --paper diagnostico.json
+npm run strategy:diagnose -- --portfolio dados/.universe-data/report.json
+```
+
+O relatório não altera parâmetros. Consulte o [diagnóstico e suas limitações](docs/strategy-loss-diagnosis.md).
+
+### Passagem para validação independente
+
+`npm run strategy:independent-readiness -- docs/limited-experiments.json`
+verifica a matriz de desenvolvimento antes de consumir outro período histórico.
+Consulte [o protocolo e o resultado bloqueado](docs/independent-validation.md).
+O comando não aprova dinheiro real nem aplica configurações.
+
+### Segunda hipótese de entrada (offline)
+
+`npm run strategy:complementary -- examples/universe-validation.study.json DIRETORIO_CONGELADO`
+compara a tendência com reversão à média isolada, mantendo risco e saídas comuns.
+Veja [resultados e limitações](docs/complementary-study.md); não ativa execução Demo.
+
+### Revisão de evidências antes de eventual piloto
+
+`npm run pilot:review -- docs/limited-experiments.json [evidencia-demo.json]`
+produz a avaliação offline de custos/fills, configuração observada e viabilidade
+do lote. Sem dados, registra impedimentos; nunca habilita dinheiro real.
+Veja [o protocolo e a decisão atual](docs/pilot-review.md).

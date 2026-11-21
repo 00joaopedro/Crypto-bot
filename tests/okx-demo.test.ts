@@ -625,3 +625,15 @@ it("reports an exchange cancellation with a partial fill as pending", async () =
   });
   expect(reserve).toHaveBeenCalledTimes(1);
 });
+
+
+it("reads account terms without sending orders or substituting Paper fees", async () => {
+  const exchange = exchangeMock({ market: vi.fn(() => ({ symbol: "BTC/USDT", base: "BTC", quote: "USDT", spot: true, active: true, info: { minSz: "0.0001", lotSz: "0.00001" } })) });
+  const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+  expect(await executor.inspectTradingTerms("BTC/USDT")).toEqual({ status: "unavailable", reason: "not_initialized" });
+  await executor.initialize();
+  expect(await executor.inspectTradingTerms("BTC/USDT")).toMatchObject({ status: "confirmed", symbol: "BTC/USDT", takerFeeRate: .001, minimumQuantity: .0001, quantityStep: .00001 });
+  vi.mocked(exchange.fetchTradingFee).mockRejectedValueOnce(new Error("sensitive"));
+  expect(await executor.inspectTradingTerms("BTC/USDT")).toEqual({ status: "unavailable", reason: "query_failed" });
+  expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+});

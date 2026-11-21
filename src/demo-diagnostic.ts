@@ -36,7 +36,7 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   if (rows.some((row) => !Number.isSafeInteger(new Date(row.created_at).getTime()))) return unavailable("invalid_journal_date");
   const periodRows = rows.filter((row) => new Date(row.created_at).getTime() >= (originAt ?? baseline.observedAt.getTime()));
   const placed = periodRows.filter((row) => row.status === "PLACED");
-  if (!carried && !placed.length && (checkpoint || persistence.saveDemoAccountingCheckpoint) && periodRows.every(row => row.status === "REJECTED_CONFIRMED")) {
+  if (!carried && !placed.length && (checkpoint || persistence.saveDemoAccountingCheckpoint) && periodRows.every(row => ["REJECTED_CONFIRMED", "SKIPPED"].includes(row.status))) {
     const before = await executor.collectAccountBalances();
     if (before.status !== "collected") return unavailable(before.reason);
     const after = await executor.collectAccountBalances();
