@@ -1,0 +1,8 @@
+{
+  "protocol": "hybrid-public-collection-v1",
+  "planSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "endExclusiveUtc": "2026-11-22T23:00:00Z",
+  "days": 30,
+  "marketData": "OKX_public_spot",
+  "minimumNotionalPolicy": "unknown_not_enforced_research_limitation"
+}

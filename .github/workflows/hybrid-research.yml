@@ -1,0 +1,52 @@
+name: Hybrid research (frozen public OKX data)
+
+on:
+  pull_request:
+    paths:
+      - 'src/hybrid-*.ts'
+      - 'src/okx-history.ts'
+      - 'examples/hybrid-*.json'
+      - '.github/workflows/hybrid-research.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hybrid-research-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/cache@v4
+        with:
+          path: .hybrid-data
+          key: hybrid-v1-${{ hashFiles('examples/hybrid-research.plan.json', 'examples/hybrid-collection.study.json') }}
+      - name: Collect frozen closed candles without private credentials
+        run: |
+          if [ ! -f .hybrid-data/source.json ]; then
+            rm -rf .hybrid-data
+            npm run strategy:hybrid-collect -- examples/hybrid-research.plan.json examples/hybrid-collection.study.json .hybrid-data
+          fi
+      - name: Verify frozen data identity and full coverage
+        run: npm run strategy:hybrid-collect -- --verify examples/hybrid-research.plan.json examples/hybrid-collection.study.json .hybrid-data
+      - name: Compare baseline, A, B and shared hybrid
+        run: npm run --silent strategy:hybrid-research -- examples/hybrid-research.plan.json examples/pullback-reference.study.json .hybrid-data/normalized-data.json .hybrid-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: okx-hybrid-research
+          path: |
+            .hybrid-data/
+            .hybrid-results/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error

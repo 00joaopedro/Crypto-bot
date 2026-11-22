@@ -7,3 +7,6 @@ coverage/
 *.log
 
 .account-terms/
+
+.hybrid-data/
+.hybrid-results/

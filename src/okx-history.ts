@@ -3,7 +3,7 @@ import { REGIME_CANDLE_MS } from "./btc-regime.js";
 
 export const OKX_HISTORY_ENDPOINT = "/api/v5/market/history-candles";
 
-type FetchPage = (request: { instId: string; bar: "15m"; after: string; limit: string }) => Promise<unknown>;
+type FetchPage = (request: { instId: string; bar: "15m" | "1H"; after: string; limit: string }) => Promise<unknown>;
 
 function numberFromOkx(value: unknown): number {
   return typeof value === "string" && value.trim() ? Number(value) : NaN;
@@ -16,16 +16,18 @@ export async function collectOkxSpotHistory(
   start: number,
   end: number,
   now = Date.now(),
+  bar: "15m" | "1H" = "15m",
 ): Promise<Candle[]> {
+  const duration = bar === "1H" ? 3600000 : REGIME_CANDLE_MS;
   if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start >= end ||
-      start % REGIME_CANDLE_MS !== 0 || end % REGIME_CANDLE_MS !== 0 || end > now) {
-    throw new Error("Invalid OKX history window. Use completed, aligned 15-minute intervals.");
+      start % duration !== 0 || end % duration !== 0 || end > now) {
+    throw new Error("Invalid OKX history window. Use completed, aligned candle intervals.");
   }
   const candles = new Map<number, Candle>();
   let cursor = end;
 
   while (cursor > start) {
-    const payload = await fetchPage({ instId, bar: "15m", after: String(cursor), limit: "300" });
+    const payload = await fetchPage({ instId, bar, after: String(cursor), limit: "300" });
     if (!payload || typeof payload !== "object" || !("code" in payload) || payload.code !== "0" ||
         !("data" in payload) || !Array.isArray(payload.data)) {
       throw new Error("OKX returned an invalid history page");
@@ -35,7 +37,7 @@ export async function collectOkxSpotHistory(
     for (const row of payload.data) {
       if (!Array.isArray(row) || row.length < 9) throw new Error("OKX returned an invalid historical candle");
       const timestamp = numberFromOkx(row[0]);
-      if (!Number.isSafeInteger(timestamp) || timestamp < 0 || timestamp % REGIME_CANDLE_MS) {
+      if (!Number.isSafeInteger(timestamp) || timestamp < 0 || timestamp % duration) {
         throw new Error("OKX returned an invalid candle timestamp");
       }
       oldest = Math.min(oldest, timestamp);
@@ -61,7 +63,7 @@ export async function collectOkxSpotHistory(
   }
 
   const ordered: Candle[] = [];
-  for (let timestamp = start; timestamp < end; timestamp += REGIME_CANDLE_MS) {
+  for (let timestamp = start; timestamp < end; timestamp += duration) {
     const candle = candles.get(timestamp);
     if (!candle) throw new Error(`Missing confirmed OKX candle at ${new Date(timestamp).toISOString()}`);
     ordered.push(candle);
