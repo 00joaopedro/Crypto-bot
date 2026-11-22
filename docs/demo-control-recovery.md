@@ -27,3 +27,13 @@ A fila aguarda a conclusão das consultas já enviadas; cancelar a retomada não
 Atualize o painel para carregar o novo JavaScript e solicite **Retomar bot** uma vez. Aguarde a etapa indicada. A confirmação é o estado persistido Online, com conciliação atual; o aceite 202 sozinho não comprova retomada. Não é necessário iniciar outro ciclo para corrigir esse defeito. Um erro real de saldo ou histórico continua exigindo conciliação e será identificado com mais precisão. A confirmação na conta do usuário depende de aplicar este deploy; os testes não presumem saldo ou lucratividade da conta.
 
 Referência: https://app.okx.com/docs-v5/en/#trading-account-rest-api-get-balance
+
+## Complemento — precisão decimal de NEAR (deploy de 22/11, 09:49 em Belém)
+
+O diagnóstico novo identificou `position_balance_mismatch`: NEAR esperado `9.519999677465307e-9`, saldo informado `9.52e-9`. A diferença é `3.22534693e-16 NEAR`, mas o limite relativo ao saldo restante é apenas `9.52e-17`. A correção da omissão de zero não cobria essa situação: aqui os dois saldos são positivos e o ativo foi retornado.
+
+O ledger FIFO agora usa `Precise`, exportado pelo CCXT já instalado, para acumular taxas e somar/subtrair quantidades em decimal até o resultado final. A conferência do saldo USDT também soma custos e taxas em decimal. Isso elimina a perda de precisão ao subtrair uma venda de uma quantidade maior, deixando um resto muito pequeno. Valores públicos/persistidos continuam como números JSON; as estruturas decimais são somente internas. Custos rateados e indicadores de P&L continuam numéricos e não são apresentados como aritmética decimal arbitrária integral.
+
+A tolerância de comparação permanece em `1e-8` relativo. Nenhum piso absoluto novo foi usado, a poeira verdadeira não é zerada e uma venda acima da quantidade decimal possuída não é perdoada como erro de máquina. Ausência de um saldo positivo, diferença real, taxa ou origem desconhecida continuam bloqueando. Checkpoints existentes são reconstruídos a partir dos fills já guardados, sem migration, novo marco ou limpeza de histórico.
+
+Os testes incluem os dois números reportados, uma sequência de compra/taxa/venda que reproduz o cancelamento numérico, vendas parciais, várias escalas de quantidade, preservação de um resto real de `1e-16`, gasto exato de USDT, bloqueios negativos e o fluxo de checkpoint anterior → conciliação → risco → retomada. Os custos de saída da fixture são sintéticos; ela não presume reproduzir o P&L real da conta a partir de um export sem todos os fills.
