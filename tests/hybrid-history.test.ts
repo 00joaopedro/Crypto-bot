@@ -29,3 +29,11 @@ it('collects both timeframes and quote volumes, validates exact coverage/cross-t
  expect(()=>validateHybridCollection([shortened],study,plan)).toThrow(/Incomplete/);
  d.candles1h[300]!.high=110;expect(()=>validateHybridCollection([d],study,plan)).toThrow(/disagree/);
 });
+
+it('checks hourly OHLC against traded quarters, preserving a zero-volume carry candle without fabricating trades',()=>{
+ const w=hybridCollectionWindow(study,plan),candles15m=Array.from({length:3880},(_,i)=>({timestamp:w.start+i*900000,open:100,high:101,low:99,close:100,volume:100})),candles1h=Array.from({length:970},(_,i)=>({timestamp:w.start+i*3600000,open:100,high:101,low:99,close:100,volume:400}));
+ const index=300*4;candles15m[index]={timestamp:w.start+index*900000,open:102,high:102,low:102,close:102,volume:0};candles1h[300]!.volume=300;
+ const d={symbol:'BTC/USDT',candles15m,candles1h,constraints:{minimumNotionalUsdt:0,minimumQuantity:.00001,quantityStep:.00001}};
+ expect(()=>validateHybridCollection([d],study,plan)).not.toThrow();
+ candles15m[index]!.volume=1;candles1h[300]!.volume=301;expect(()=>validateHybridCollection([d],study,plan)).toThrow(/disagree/);
+});

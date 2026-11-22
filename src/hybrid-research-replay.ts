@@ -38,7 +38,9 @@ export function validateHybridInputs(instruments:HybridInstrument[],rawPlan:unkn
   for(const h of d.candles1h){
    const quarters=[0,1,2,3].map(k=>slots.get(h.timestamp+k*interval));
    if(quarters.some(c=>!c))continue;
-   const q=quarters as Candle[],aggregate={open:q[0]!.open,high:Math.max(...q.map(c=>c.high)),low:Math.min(...q.map(c=>c.low)),close:q[3]!.close,volume:q.reduce((s,c)=>s+c.volume,0)};
+   const q=quarters as Candle[],traded=q.filter(c=>c.volume>0),prices=traded.length?traded:q;
+   // Empty sub-bars carry the previous close; they are not trades setting the hourly open/high/low.
+   const aggregate={open:prices[0]!.open,high:Math.max(...prices.map(c=>c.high)),low:Math.min(...prices.map(c=>c.low)),close:prices.at(-1)!.close,volume:q.reduce((s,c)=>s+c.volume,0)};
    if((['open','high','low','close','volume'] as const).some(key=>Math.abs(h[key]-aggregate[key])>(key==='volume'?1e-6:1e-7)*Math.max(1,Math.abs(h[key]),Math.abs(aggregate[key]))))throw new Error('Hourly and 15m candles disagree');
   }
  }
