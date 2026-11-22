@@ -9,8 +9,36 @@ import type { DemoFill } from "./demo-ledger.js";
 import { sameDemoAccount } from "./okx-demo-identity.js";
 import { accountForDemoEvidence } from "./demo-accounting-evidence.js";
 
+type AccountingStore = Parameters<typeof inspectDemoAccountingOnce>[0];
+type AccountingExecutor = Parameters<typeof inspectDemoAccountingOnce>[1];
+type AccountingResult = Awaited<ReturnType<typeof inspectDemoAccountingOnce>>;
+const inFlight = new WeakMap<AccountingStore, WeakMap<AccountingExecutor, Promise<AccountingResult>>>();
+
+/** Dashboard, risk, supervision and resume share only an ongoing inspection.
+ * No completed result cache: each later inspection obtains fresh exchange evidence.
+ */
+export function inspectDemoAccounting(persistence: AccountingStore, executor: AccountingExecutor): Promise<AccountingResult> {
+  let clients = inFlight.get(persistence);
+  if (!clients) { clients = new WeakMap(); inFlight.set(persistence, clients); }
+  const existing = clients.get(executor);
+  if (existing) return existing;
+  const inspect = async (): Promise<AccountingResult> => {
+    const first = await inspectDemoAccountingOnce(persistence, executor);
+    if (first.status !== 'unavailable' || first.reason !== 'checkpoint_changed_retry') return first;
+    // Another writer may have advanced the checkpoint or journal. Read it all
+    // again, including account, balances, bills, ownership and fees. Never just
+    // overwrite the predecessor or substitute the last confirmed P&L.
+    console.log(JSON.stringify({ event: 'demo_accounting_checkpoint_retry', attempt: 1 }));
+    return inspectDemoAccountingOnce(persistence, executor);
+  };
+  let request: Promise<AccountingResult>;
+  request = inspect().finally(() => { if (clients!.get(executor) === request) clients!.delete(executor); });
+  clients.set(executor, request);
+  return request;
+}
+
 /** On-demand read-only inspection; confirms P&L only with a stable bounded balance window. */
-export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint" | "saveDemoAccountingCheckpoint">>, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity" | "collectAccountCoverage" | "collectAccountBalances">) {
+async function inspectDemoAccountingOnce(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint" | "saveDemoAccountingCheckpoint">>, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity" | "collectAccountCoverage" | "collectAccountBalances">) {
   const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
   const rows = await persistence.demoOrderJournal();
   if (!rows.length && !persistence.saveDemoAccountingCheckpoint) return unavailable("journal_empty");

@@ -11,7 +11,7 @@ export type PauseControl = {
 };
 
 const recheckableDemoReasons = new Set([
-  "demo_order_not_confirmed", "demo_bot_risk_attribution_unconfirmed", "demo_balance_unconfirmed", "demo_equity_risk_unconfirmed", "demo_account_identity_unconfirmed",
+  "demo_accounting_checkpoint_busy", "demo_order_not_confirmed", "demo_bot_risk_attribution_unconfirmed", "demo_balance_unconfirmed", "demo_equity_risk_unconfirmed", "demo_account_identity_unconfirmed",
   "demo_trading_permission_unconfirmed", "demo_resume_check_failed", "pending_demo_order",
   "unresolved_demo_failure", "demo_position_without_live_protection", "demo_safety_check_failed",
   "protection_audit_failed", "protection_account_unconfirmed", "exit_supervision_failed",

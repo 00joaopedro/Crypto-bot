@@ -1,3 +1,4 @@
+import { inspectDemoAccounting } from '../src/demo-diagnostic.js';
 import { TREND_STRATEGY_ID } from "../src/strategy-id.js";
 import type { Order } from "ccxt";
 import { reconcilePendingDemoOrders } from "../src/demo-pending-reconciliation.js";
@@ -116,6 +117,44 @@ integration("PostgresPersistence", () => {
       await db.end();await persistence.close();
     }
   });
+  it('shares twenty account inspections and fully retries a checkpoint won by another database client', async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const other = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const now = Date.now(); const baselineAt = new Date(now - 120_000);
+    const identity = { uid: 'checkpoint-test', mainUid: 'checkpoint-test' };
+    const baseline = { observedAt: baselineAt, balances: { USDT: 5000 }, status: 'UNVERIFIED',
+      evidence: { startedAt: now-121_000, accountIdentity: identity } };
+    let competed = false; let inspections = 0;
+    const store = { demoOrderJournal: async () => { inspections++; return []; }, getDemoBaselineCandidate: async () => baseline,
+      getDemoAccountingCheckpoint: persistence.getDemoAccountingCheckpoint.bind(persistence),
+      saveDemoAccountingCheckpoint: async (input: Parameters<PostgresPersistence['saveDemoAccountingCheckpoint']>[0]) => {
+        if (!competed) {
+          competed = true;
+          expect(await other.saveDemoAccountingCheckpoint(input)).toBe(true);
+        }
+        return persistence.saveDemoAccountingCheckpoint(input);
+      } };
+    const executor = { inspectAccountIdentity: async () => ({ status: 'confirmed' as const, identity }),
+      collectOrderEvidence: async () => { throw new Error('no orders expected'); },
+      collectFillHistory: async () => { throw new Error('no fills expected'); },
+      collectAccountCoverage: async () => ({ status: 'covered' as const, billCount: 0 }),
+      collectAccountBalances: async () => ({ status: 'collected' as const, startedAt: Date.now()-1,
+        endedAt: Date.now(), balances: { USDT: 5000 } }),
+    };
+    try {
+      await persistence.initialize();
+      const results = await Promise.all(Array.from({ length: 20 }, () => inspectDemoAccounting(store,executor)));
+      expect(results.every(r => r.status === 'confirmed' && r.realizedPnlUsdt === 0)).toBe(true);
+      expect(inspections).toBe(2); // first loses its lease; one complete fresh inspection wins
+      expect((await db.query('SELECT 1 FROM demo_accounting_checkpoints WHERE baseline_at=$1',[baselineAt])).rowCount).toBe(2);
+      expect((await persistence.getDemoAccountingCheckpoint(baselineAt))?.realizedPnlOffset).toBe(0);
+    } finally {
+      await db.query('DELETE FROM demo_accounting_checkpoints WHERE baseline_at=$1',[baselineAt]);
+      await persistence.close(); await other.close(); await db.end();
+    }
+  });
+
   it("restores Demo equity risk and appends safe checkpoints without replacing older evidence", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const db = new Pool({ connectionString: databaseUrl });

@@ -88,3 +88,38 @@ Se qualquer evidência faltar, o bloqueio permanece: iniciar um novo ciclo não
 resolve ordens incertas. Somente depois da recuperação inicia-se a janela final
 de 48h com versão e configuração congeladas. O histórico anterior é preservado;
 a janela interrompida não é uma validação contínua de 48h ou prova de lucro.
+
+## Concorrência de conferências contábeis
+
+O log do deployment b9886cbe confirma a recuperação HYPE às 21:29:17 de
+21/11 em Belém e o replay SOL/ZEC. Os bloqueios seguintes, às 21:33:56,
+21:35:27 e 21:38:26, têm `attributionReason: checkpoint_changed_retry`.
+Essa resposta significa que a gravação da observação perdeu a condição de
+atualidade do checkpoint/journal; não comprova transferência ou saldo inválido.
+Painel, supervisão, admissão e retomada disparavam conferências independentes
+que podiam invalidar mutuamente o predecessor durante as consultas à OKX.
+
+`inspectDemoAccounting` agora compartilha a promessa em andamento por instância
+de persistência e executor. Não mantém cache de sucesso concluído: consultas
+posteriores voltam a buscar dados atuais. Falhas também liberam a requisição,
+e contextos/contas de outro executor não reutilizam resultados.
+
+Uma disputa residual, inclusive entre processos, permite somente uma nova
+conferência completa, relendo checkpoint, journal, conta, fills, taxas, saldos
+e bills. O compare-and-swap transacional continua obrigatório. Não se regrava
+o resultado antigo contra um predecessor novo e não se usa o último P&L
+confirmado como substituto da prova atual. Movimentações não atribuídas e
+demais falhas não ganham exceção; uma nova falha na segunda conferência também
+mantém o bloqueio.
+
+Se as duas tentativas perderem a atualização, o risco retorna
+`demo_accounting_checkpoint_busy`, reavaliável com AUTO_RESUME já habilitado,
+com mensagem específica no painel. A observação financeira não é avançada
+nesse caso. Uma pausa manual continua manual. Novo ciclo não resolve a disputa.
+
+Regressões incluem vinte consumidores simultâneos compartilhando uma consulta,
+nova inspeção após conclusão/erro, contexto separado, tentativa limitada,
+mudança de conta e movimentação externa. O teste PostgreSQL usa dois clientes
+para fazer uma gravação concorrente vencer e confirma que uma conferência
+completa nova — compartilhada pelos vinte consumidores — preserva o histórico
+e consegue gravar o checkpoint seguinte.

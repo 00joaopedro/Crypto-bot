@@ -92,7 +92,7 @@ export async function inspectDemoEquityRisk(
     // Transfers or unowned fills are rejected by reconciliation, never booked as a loss.
     const accounting = budget !== undefined ? await options.inspectAccounting?.() : undefined;
     if (budget !== undefined && !accounting) return { status: 'blocked', reason: 'demo_bot_risk_attribution_unconfirmed', attributionReason: 'risk_accounting_unavailable' };
-    if (accounting?.status === 'unavailable') return { status: 'blocked', reason: 'demo_bot_risk_attribution_unconfirmed', attributionReason: accounting.reason };
+    if (accounting?.status === 'unavailable') return { status: 'blocked', reason: accounting.reason === 'checkpoint_changed_retry' ? 'demo_accounting_checkpoint_busy' : 'demo_bot_risk_attribution_unconfirmed', attributionReason: accounting.reason };
     if (budget !== undefined) {
       const currentBaseline = await persistence.getDemoBaselineCandidate();
       if (!currentBaseline || currentBaseline.observedAt.getTime() !== baseline.observedAt.getTime() ||
