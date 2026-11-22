@@ -1,3 +1,4 @@
+import { reversionTargetEconomics, type ReversionSetup } from "./confirmed-mean-reversion.js";
 import { netActivationPrice, type ResearchTrailing } from "./research-trailing.js";
 import { tradeProfitConcentration } from "./backtest-performance.js";
 import { createHash } from "node:crypto";
@@ -21,7 +22,7 @@ type Scenario = ComparisonOptions["scenarios"][number];
 export type PortfolioInstrument = { symbol: string; candles: Candle[]; constraints: ComparisonOptions["constraints"]; quoteVolumesUsdt?: number[] };
 type Instrument = PortfolioInstrument;
 type Dataset = { candles: Candle[]; btcCandles?: Candle[]; options: ComparisonOptions };
-type Rejection = "cash" | "positions" | "totalExposure" | "altExposure" | "liquidity" | "minimum" | "regime" | "cooldown";
+type Rejection = "cash" | "positions" | "totalExposure" | "altExposure" | "liquidity" | "minimum" | "regime" | "cooldown" | "targetCosts";
 
 export const portfolioLimitsSchema = z.object({
   maxConcurrentPositions: z.number().int().min(1).max(50),
@@ -172,11 +173,13 @@ export function runPortfolioScenario(
   split?: number,
   signalCandleLimit?: number,
   researchTrailing?: ResearchTrailing,
+  reversionPlans?: ReadonlyMap<string, ReadonlyArray<ReversionSetup | undefined>>,
 ) {
   if (split !== undefined && (!Number.isInteger(split) || split <= start || split >= instruments[0]!.candles.length)) {
     throw new Error("Portfolio split must be inside the replay window");
   }
 
+  if(reversionPlans&&(researchTrailing||parameters.exitPolicy?.mode!=="fixed"||parameters.exitPolicy.breakeven||parameters.executionDelayCandles!==1))throw new Error("Reversion target requires isolated fixed-exit research");
   const researchExitDiagnostics = { opened: 0, fixedTargetBelowNetActivation: 0, activatedPositions: 0, stopUpdates: 0, closedBeforeActivation: 0, closedAfterActivation: 0, takeProfitBeforeActivation: 0 };
   const entryContexts = new Map<string, EntryDiagnosticContext>();
   const closedTradeLedger: DiagnosticTrade[] = [];
@@ -235,6 +238,11 @@ export function runPortfolioScenario(
     for (const { asset } of candidates) {
       const candle = asset.candles[index]!;
       const previous = asset.candles[index - 1]!;
+      if (reversionPlans) {
+        const setup=reversionPlans.get(asset.symbol)?.[entryIndex];
+        if(!setup||setup.decisionTimestamp!==asset.candles[entryIndex]!.timestamp)throw new Error("Missing or mismatched frozen reversion target");
+        if(setup.targetPrice/(candle.open*(1+asset.costs.spreadRate/2))-1>=1||!reversionTargetEconomics(candle.open,setup.targetPrice,asset.costs).allowed){reject(asset,"targetCosts");continue;}
+      }
       if (regimeBlocked(entryIndex) || (delay > 1 && regimeBlocked(index - 1))) { reject(asset, "regime"); continue; }
       if (asset.cooldownUntil !== undefined && timestamp < asset.cooldownUntil) { reject(asset, "cooldown"); continue; }
       if (tradeSize > Math.min(scenario.assumedDepthUsdt, (asset.quoteVolumesUsdt?.[index - 1] ?? previous.volume * previous.close) * scenario.maxParticipationRate)) {
@@ -275,6 +283,12 @@ export function runPortfolioScenario(
         ...initialExitRates(entryHistory, scenario.symbolCosts ? entryHistory.at(-1)!.close : candle.open, parameters.exitPolicy, parameters),
         ...(scenario.symbolCosts ? { referencePrice: candle.open * (1 + asset.costs.spreadRate / 2) } : {}),
       } : undefined;
+      if (approved && reversionPlans) {
+        const setup=reversionPlans.get(asset.symbol)![entryIndex]!;
+        if(!rates?.referencePrice)throw new Error("Frozen reversion target requires cost-aware entry reference");
+        rates.takeProfitRate=setup.targetPrice/rates.referencePrice-1;
+        if(rates.takeProfitRate<=0)throw new Error("Reversion target is not above entry");
+      }
       // PaperTrader simulates the instrument's fill. Only the shared wallet above admits entries.
       if (approved) asset.trader.restoreState({ ...asset.trader.exportState(), cashUsdt: tradeSize * 2 });
       const positionBefore = researchTrailing ? asset.trader.exportState().position : null;
