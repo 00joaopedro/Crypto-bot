@@ -1,3 +1,4 @@
+import { DemoSymbolAccess } from './demo-symbol-access.js';
 import { ProtectionAlertJournal } from "./protection-alerts.js";
 import { effectiveExecutionSnapshot, executionFidelityReport, TradingTermsCache, type EffectiveExecutionSnapshot, type TradingTerms } from "./execution-fidelity.js";
 import { TREND_STRATEGY_ID } from "./strategy-id.js";
@@ -66,6 +67,12 @@ async function main(): Promise<void> {
   let runId: string | undefined;
   let dashboardServer: Server | undefined;
   let okxDemo: OkxDemoExecutor | undefined;
+  const accessGates = new WeakMap<OkxDemoExecutor, DemoSymbolAccess>();
+  const accessFor = (executor: OkxDemoExecutor) => {
+    let gate = accessGates.get(executor);
+    if (!gate) { gate = new DemoSymbolAccess(persistence!, executor); accessGates.set(executor, gate); }
+    return gate;
+  };
   let bot: TradingBot;
   let reconfiguring = false;
   let appliedExecution: EffectiveExecutionSnapshot | undefined;
@@ -97,6 +104,8 @@ async function main(): Promise<void> {
   const exitPolicy = config.EXIT_MANAGEMENT_ENABLED ? exitPolicySchema.parse({ mode: config.EXIT_MODE, breakeven: config.EXIT_BREAKEVEN_ENABLED, atrPeriod: config.ATR_PERIOD, stopMultiplier: config.ATR_STOP_MULTIPLIER, targetMultiplier: config.ATR_TAKE_PROFIT_MULTIPLIER, minStopRate: config.ATR_MIN_STOP_RATE, maxStopRate: config.ATR_MAX_STOP_RATE, trailingMultiplier: config.EXIT_TRAILING_ATR_MULTIPLIER, activationRate: config.EXIT_ACTIVATION_RATE, exitFeeRate: config.EXIT_FEE_RATE, exitSlippageRate: config.EXIT_SLIPPAGE_RATE }) : undefined;
   const protectionAlerts = new ProtectionAlertJournal(async event => { await persistence?.recordOperationalEvent(event); });
   let lastAccountingCheck = 0;
+  let lastSupervision: { checkedAt: string; entriesBlocked: boolean; reason: string | null } | null = null;
+  let lastSupervisionEvent = 0;
   let activeCycle: Promise<void> | undefined;
   let reconfigurationRequested = false;
   let reconfigurationPromise: Promise<void> | undefined;
@@ -154,6 +163,8 @@ async function main(): Promise<void> {
           });
         }
       }
+      // Reconcile old Paper gaps before evaluating its risk. This path cannot buy/sell on OKX.
+      if (!reason) await currentBot.reconcilePaperOnly(control.revision);
       reason ??= await inspectAutoResumePaperRisk(persistence, market, {
         fee: config.PAPER_FEE_RATE, maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
         maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT, candleLimit: config.CANDLE_LIMIT, now,
@@ -187,8 +198,9 @@ async function main(): Promise<void> {
       if (stopping) return;
       tradingSettings =
         await persistence.ensureDashboardSettings(tradingSettings);
+      tradeManager.setMaxConcurrentPositions(tradingSettings.maxConcurrentPositions);
       recoveryState = await persistence.loadRecoveryState(tradingSettings.symbol);
-      if (riskSizing) tradeManager.restorePositions(await persistence.loadOpenPaperPositions());
+      tradeManager.restorePositions(await persistence.loadOpenPaperPositions());
       runId = await persistence.startRun({
         environment: config.ENVIRONMENT,
         executionProvider: config.EXECUTION_PROVIDER,
@@ -381,7 +393,13 @@ async function main(): Promise<void> {
         minimumSignalScore: config.MIN_SIGNAL_SCORE,
         paperTrader,
         ...(queuedExecutor ? { demoExecutor: queuedExecutor } : {}),
-        ...(demoExecutor ? { inspectEntryMarket: (symbol: string) => demoExecutor.inspectEntryMarket(symbol) } : {}),
+        ...(demoExecutor && persistence ? {
+          eligibleDemoSymbols: () => accessFor(demoExecutor).symbols(),
+          inspectEntryMarket: async (symbol: string) => {
+            const access = await accessFor(demoExecutor).check(symbol);
+            return access.status === 'safe' ? demoExecutor.inspectEntryMarket(symbol) : access;
+          },
+        } : demoExecutor ? { inspectEntryMarket: (symbol: string) => demoExecutor.inspectEntryMarket(symbol) } : {}),
         ...(demoExecutor && persistence ? { verifyFilledDemoBuy: (buy: FilledDemoBuy) =>
           auditDemoProtections(persistence, demoExecutor, buy),
         } : {}),
@@ -394,14 +412,17 @@ async function main(): Promise<void> {
           });
         } } : {}),
         ...(demoExecutor && persistence ? { inspectDemoPositions: () => inspectDemoExecutionState(persistence, demoExecutor) } : {}),
-        ...(demoExecutor && persistence ? { inspectDemoEntry: (symbol: string, stopLossRate: number) => inspectDemoEntry(persistence, demoExecutor, {
+        ...(demoExecutor && persistence ? { inspectDemoEntry: async (symbol: string, stopLossRate: number) => {
+          const access = await accessFor(demoExecutor).check(symbol);
+          if (access.status !== 'safe') return { allowed: false, reason: access.reason };
+          return inspectDemoEntry(persistence, demoExecutor, {
           inspectAccounting: () => inspectDemoAccounting(persistence, demoExecutor),
           symbol, stopLossRate, size: settings.orderSizeUsdt, riskSizing: Boolean(riskSizing), cooldownMinutes: config.ENTRY_COOLDOWN_MINUTES,
           ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
           maxPositions: settings.maxConcurrentPositions, maxExposure: config.RISK_MAX_EXPOSURE_PERCENT,
           riskPerTrade: config.RISK_PER_TRADE_PERCENT,
           maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT, maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
-        }) } : {}),
+        }); } } : {}),
         ...(ai ? { ai } : {}),
         ...(persistence ? { persistence } : {}),
         ...(state
@@ -574,6 +595,7 @@ async function main(): Promise<void> {
 
       dashboardServer = await startDashboard({
         getExecutionFidelity: inspectExecutionFidelity,
+        getDemoSupervision: () => lastSupervision,
         port: config.PORT,
         password: config.DASHBOARD_PASSWORD,
         sessionSecret: config.DASHBOARD_SESSION_SECRET,
@@ -658,6 +680,13 @@ async function main(): Promise<void> {
                 await protectionAlerts.observe({ reason, ...(position ? { position } : {}) });
               } else {
                 await protectionAlerts.observe();
+              }
+              lastSupervision = { checkedAt: new Date().toISOString(), entriesBlocked: !exitsReady, reason: protectionReason ?? null };
+              if (Date.now() - lastSupervisionEvent >= 5 * 60_000) {
+                await persistence.recordOperationalEvent({ eventType: 'DEMO_SUPERVISION_CHECK', severity: 'INFO', details: {
+                  ...lastSupervision, exits, protections: coverage, execution: safety,
+                } });
+                lastSupervisionEvent = Date.now();
               }
               if (Date.now() - lastAccountingCheck >= 15 * 60_000) {
                 lastAccountingCheck = Date.now();

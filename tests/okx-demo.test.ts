@@ -637,3 +637,20 @@ it("reads account terms without sending orders or substituting Paper fees", asyn
   expect(await executor.inspectTradingTerms("BTC/USDT")).toEqual({ status: "unavailable", reason: "query_failed" });
   expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
 });
+
+
+it('reads account-specific Spot availability without placing orders or trusting the public market alone', async () => {
+  const market = { id: 'BTC-USDT', symbol: 'BTC/USDT', base: 'BTC', quote: 'USDT', spot: true, active: true, limits: { cost: { min: 1 }, amount: { min: .01 } } };
+  const privateGetAccountInstruments = vi.fn(async () => ({ code: '0', data: [{ instType: 'SPOT', instId: 'BTC-USDT', state: 'live', tradeQuoteCcyList: ['USDT'] }] }));
+  const createMarketBuyOrderWithCost = vi.fn();
+  const exchange = exchangeMock({ markets: { 'BTC/USDT': market }, market: () => market, privateGetAccountInstruments, createMarketBuyOrderWithCost });
+  const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+  await executor.initialize();
+  expect(await executor.availableAccountSymbols()).toEqual(['BTC/USDT']);
+  expect(privateGetAccountInstruments).toHaveBeenCalledWith({ instType: 'SPOT' });
+  privateGetAccountInstruments.mockResolvedValueOnce({ code: '0', data: [] });
+  expect(await executor.availableAccountSymbols()).toEqual([]);
+  privateGetAccountInstruments.mockRejectedValueOnce(new Error('timeout'));
+  await expect(executor.availableAccountSymbols()).rejects.toThrow();
+  expect(createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+});

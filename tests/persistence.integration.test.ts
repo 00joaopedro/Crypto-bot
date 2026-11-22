@@ -177,6 +177,37 @@ integration("PostgresPersistence", () => {
       await verification.end(); await persistence.close();
     }
   });
+  it('atomically resolves the exact regional rejection and restores its account-specific restriction after restart', async () => {
+    const store = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const at = Date.now(); const id = `HYPE${at}`; const failed = `FAILED:HYPE/USDT:${at}`; const account = `test:${at}`;
+    const error = (client: string) => 'okx '+JSON.stringify({ code: '1', data: [{ clOrdId: client, ordId: '', sCode: '51155', sMsg: "You can't trade this pair or borrow this crypto due to local compliance restrictions. " }] });
+    try {
+      await store.initialize();
+      await db.query("INSERT INTO demo_orders (client_order_id,symbol,candle_timestamp,status,result) VALUES ($1,'HYPE/USDT',$2,'PENDING','{}'),($3,'HYPE/USDT',$2,'FAILED',$4::jsonb)", [id,at,failed,JSON.stringify({ error: error('wrong') })]);
+      expect(await store.confirmMissingPermissionRejectedOrder(id,account)).toBe(false);
+      await db.query("UPDATE demo_orders SET result=$2::jsonb WHERE client_order_id=$1",[failed,JSON.stringify({ error: error(id) })]);
+      expect(await store.confirmMissingPermissionRejectedOrder(id)).toBe(false);
+      expect(await store.confirmMissingPermissionRejectedOrder(id,account)).toBe(true);
+      const restarted = new PostgresPersistence(databaseUrl!);
+      try {
+        expect(await restarted.demoSymbolRestrictions(account)).toMatchObject([{ symbol: 'HYPE/USDT', client_order_id: id }]);
+        expect(await restarted.demoSymbolRestrictions('another-account')).toEqual([]);
+        await restarted.releaseDemoSymbolRestriction(account,'HYPE/USDT',id);
+        expect(await restarted.demoSymbolRestrictions(account)).toHaveLength(1);
+        expect(await restarted.confirmMissingPermissionRejectedOrder(id,account)).toBe(false);
+      } finally { await restarted.close(); }
+      const rows = (await db.query("SELECT status,result FROM demo_orders WHERE client_order_id=ANY($1::text[])",[[id,failed]])).rows;
+      expect(rows).toHaveLength(2); expect(rows.every(r => r.status==='REJECTED_CONFIRMED' && r.result.reconciliation.code==='51155')).toBe(true);
+      expect(rows.some(r => r.result.error===error(id))).toBe(true);
+    } finally {
+      await db.query("DELETE FROM demo_symbol_restrictions WHERE account_id=$1",[account]);
+      await db.query("DELETE FROM audit_events WHERE event_type='DEMO_REJECTION_RECONCILED' AND details->>'clientOrderId'=$1",[id]);
+      await db.query("DELETE FROM demo_orders WHERE client_order_id=ANY($1::text[])",[[id,failed]]);
+      await store.close(); await db.end();
+    }
+  });
+
   it("replaces only an idle identity-less baseline while retaining its audit row", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const verification = new Pool({ connectionString: databaseUrl });

@@ -13,7 +13,7 @@ describe("pending Demo order reconciliation", () => {
     const executor = { reconcileOrder: vi.fn(async () => null), inspectAccountIdentity: async () => ({ status: "confirmed" as const, identity }) };
     await reconcilePendingDemoOrders(persistence, executor);
     expect(executor.reconcileOrder).toHaveBeenCalledWith("ETH/USDT", "CB1");
-    expect(confirmMissingPermissionRejectedOrder).toHaveBeenCalledWith("CB1");
+    expect(confirmMissingPermissionRejectedOrder).toHaveBeenCalledWith("CB1", "123:123");
   });
   it("does not resolve when the lookup fails or the account is different", async () => {
     const confirmMissingPermissionRejectedOrder = vi.fn(async () => true);
@@ -28,4 +28,16 @@ describe("pending Demo order reconciliation", () => {
     expect(wrongAccountLookup).not.toHaveBeenCalled();
     log.mockRestore();
   });
+});
+
+
+it('reconciles an order actually found instead of inferring a rejection or submitting it again', async () => {
+  const confirmMissingPermissionRejectedOrder = vi.fn();
+  const reconcileDemoOrder = vi.fn();
+  const order = { id: 'exchange-id', clientOrderId: 'CB1', symbol: 'ETH/USDT', side: 'buy' };
+  const store = { pendingDemoOrders, getDemoBaselineCandidate, confirmMissingPermissionRejectedOrder, reconcileDemoOrder };
+  const executor = { inspectAccountIdentity: async () => ({ status: 'confirmed' as const, identity }), reconcileOrder: async () => order as never };
+  await reconcilePendingDemoOrders(store, executor);
+  expect(reconcileDemoOrder).toHaveBeenCalledWith('CB1', order);
+  expect(confirmMissingPermissionRejectedOrder).not.toHaveBeenCalled();
 });

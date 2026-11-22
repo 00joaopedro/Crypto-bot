@@ -28,6 +28,7 @@ type DashboardOptions = {
   persistence: PostgresPersistence;
   supportedSymbols: string[];
   onSettingsChanged: () => void | Promise<void>;
+  getDemoSupervision?: () => unknown;
   getExecutionFidelity?: () => Promise<unknown>;
   getLastSignalScan?: () => { pairs: string[]; candleTimestamp: number; cooldowns?: Array<{ symbol: string; until: number }> } | null;
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
@@ -141,7 +142,7 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
           }
         }
         const decisionLogs = await options.persistence.latestDemoDecision();
-        return json(response, 200, { ...data, ...(options.getAutoResumeStatus ? { autoResume: await options.getAutoResumeStatus() } : {}), latestDemoDecision: decisionLogs, lastDemoReconciliation: await options.persistence.latestDemoReconciliation(), okxDemo, demoAccounting: await accounting(), demoPositions: positions, paperDefaultTradeSize: options.paperDefaultTradeSize, supportedSymbols: options.supportedSymbols, lastSignalScan: options.getLastSignalScan?.() ?? null });
+        return json(response, 200, { ...data, ...(options.getAutoResumeStatus ? { autoResume: await options.getAutoResumeStatus() } : {}), latestDemoDecision: decisionLogs, demoSupervision: options.getDemoSupervision?.() ?? null, lastDemoReconciliation: await options.persistence.latestDemoReconciliation(), okxDemo, demoAccounting: await accounting(), demoPositions: positions, paperDefaultTradeSize: options.paperDefaultTradeSize, supportedSymbols: options.supportedSymbols, lastSignalScan: options.getLastSignalScan?.() ?? null });
       }
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);

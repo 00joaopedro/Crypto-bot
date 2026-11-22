@@ -20,7 +20,7 @@ export async function reconcilePendingDemoOrders(
         await persistence.reconcileDemoOrder(pending.client_order_id, order);
         continue;
       }
-      const resolved = await persistence.confirmMissingPermissionRejectedOrder(pending.client_order_id);
+      const resolved = await persistence.confirmMissingPermissionRejectedOrder(pending.client_order_id, `${account.identity.mainUid}:${account.identity.uid}`);
       if (resolved) console.log(JSON.stringify({ event: "demo_permission_rejection_reconciled", symbol: pending.symbol }));
     } catch {
       // No raw exchange errors or client identifiers in logs. Retry next cycle;

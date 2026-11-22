@@ -70,7 +70,7 @@ export type DemoSellRequest = { symbol?: string; candleTimestamp: number; quanti
 
 type DemoEntryBookBlock = { status: "blocked"; reason: "demo_book_unavailable" | "demo_spread_exceeded"; spreadPercent?: number };
 type DemoEntryBook = DemoEntryBookBlock | { status: "safe"; book: OrderBook; referencePrice: number; spreadPercent: number };
-export type DemoEntryMarketCheck = DemoEntryBookBlock | { status: "safe"; spreadPercent?: number };
+export type DemoEntryMarketCheck = DemoEntryBookBlock | { status: 'blocked'; reason: 'demo_symbol_not_available_for_account' | 'demo_account_instruments_unconfirmed'; spreadPercent?: number } | { status: "safe"; spreadPercent?: number };
 
 export type DemoBuyResult =
   | {
@@ -364,6 +364,23 @@ export class OkxDemoExecutor {
     } catch {
       return { status: "unavailable", reason: "permission_request_failed" };
     }
+  }
+
+  async availableAccountSymbols(): Promise<string[]> {
+    if (!this.initialized || !this.sandboxConfigured) throw new Error('demo_not_initialized');
+    const client = this.exchange as unknown as { privateGetAccountInstruments?: (params: Record<string,string>) => Promise<unknown> };
+    if (typeof client.privateGetAccountInstruments !== 'function') throw new Error('account_instruments_endpoint_unavailable');
+    const raw = await client.privateGetAccountInstruments({ instType: 'SPOT' }) as { code?: unknown; data?: unknown };
+    if (raw?.code !== '0' || !Array.isArray(raw.data)) throw new Error('account_instruments_unconfirmed');
+    const ids = new Set<string>();
+    for (const row of raw.data) {
+      if (!row || row.instType !== 'SPOT' || typeof row.instId !== 'string' || !row.instId || ids.has(row.instId) ||
+          (row.tradeQuoteCcyList !== undefined && (!Array.isArray(row.tradeQuoteCcyList) || row.tradeQuoteCcyList.some((v: unknown) => typeof v !== 'string')))) throw new Error('account_instruments_invalid');
+      if (row.state === undefined || row.state === 'live') {
+        if (row.tradeQuoteCcyList === undefined || row.tradeQuoteCcyList.includes('USDT')) ids.add(row.instId);
+      }
+    }
+    return this.listSpotSymbols().filter(symbol => ids.has(this.resolveActiveSpotMarket(symbol).id ?? ''));
   }
 
   /** Read-only check for the shared Paper/Demo candidate, before either entry. */

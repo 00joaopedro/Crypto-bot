@@ -21,7 +21,7 @@ import type {
 } from "./paper-trader.js";
 import { classifyDemoOrder, normalizedOrderFees, type DemoBuyResult } from "./okx-demo.js";
 import { readDemoAccountIdentity } from "./okx-demo-identity.js";
-import { isExplicitDemoPermissionRejection } from "./demo-rejection.js";
+import { explicitDemoRejection } from "./demo-rejection.js";
 import type { AiDecision, Candle, QuantSignal } from "./types.js";
 import { buildStatisticalReport, type StatisticalTrade } from "./analytics.js";
 
@@ -512,6 +512,13 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows;
   }
 
+  async demoSymbolRestrictions(accountId: string): Promise<Array<{ symbol: string; rejected_at: Date; client_order_id: string }>> {
+    return (await this.pool.query("SELECT symbol,rejected_at,client_order_id FROM demo_symbol_restrictions WHERE account_id=$1 AND released_at IS NULL", [accountId])).rows;
+  }
+  async releaseDemoSymbolRestriction(accountId: string, symbol: string, clientOrderId: string): Promise<void> {
+    await this.pool.query("UPDATE demo_symbol_restrictions SET released_at=NOW() WHERE account_id=$1 AND symbol=$2 AND client_order_id=$3 AND rejected_at <= NOW()-INTERVAL '6 hours'", [accountId,symbol,clientOrderId]);
+  }
+
   async pendingDemoOrders(): Promise<Array<{ client_order_id: string; symbol: string }>> {
     const result = await this.pool.query<{ client_order_id: string; symbol: string }>(
       `SELECT client_order_id, symbol FROM demo_orders WHERE status = 'PENDING' ORDER BY created_at LIMIT 100`,
@@ -521,7 +528,7 @@ export class PostgresPersistence implements BotPersistence {
 
   /** Caller must have confirmed the account identity and received OrderNotFound
    * from OKX for this exact client ID. Keep both original rows for audit. */
-  async confirmMissingPermissionRejectedOrder(clientOrderId: string): Promise<boolean> {
+  async confirmMissingPermissionRejectedOrder(clientOrderId: string, accountId?: string): Promise<boolean> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
@@ -531,9 +538,14 @@ export class PostgresPersistence implements BotPersistence {
       if (!row) { await client.query("ROLLBACK"); return false; }
       const failureId = `FAILED:${row.symbol}:${row.candle_timestamp}`;
       const failure = await client.query<{ result: unknown }>("SELECT result FROM demo_orders WHERE client_order_id = $1 AND symbol = $2 AND candle_timestamp = $3 AND status = 'FAILED' FOR UPDATE", [failureId, row.symbol, row.candle_timestamp]);
-      if (failure.rows.length !== 1 || !isExplicitDemoPermissionRejection(failure.rows[0]!.result)) { await client.query("ROLLBACK"); return false; }
-      await client.query("UPDATE demo_orders SET status = 'REJECTED_CONFIRMED', result = result || $2::jsonb, updated_at = NOW() WHERE client_order_id IN ($1, $3)", [clientOrderId, JSON.stringify({ reconciliation: { method: "okx_50123_and_order_not_found", confirmedAt: new Date().toISOString() } }), failureId]);
-      await client.query("INSERT INTO audit_events (event_type, actor, details) VALUES ('DEMO_REJECTION_RECONCILED', 'system', $1::jsonb)", [JSON.stringify({ clientOrderId, failureId, symbol: row.symbol, method: "okx_50123_and_order_not_found" })]);
+      const rejection = failure.rows.length === 1 ? explicitDemoRejection(failure.rows[0]!.result, clientOrderId) : null;
+      if (!rejection || (rejection.code === '51155' && !accountId)) { await client.query("ROLLBACK"); return false; }
+      if (rejection.code === '51155') await client.query(`INSERT INTO demo_symbol_restrictions (account_id,symbol,code,client_order_id)
+        VALUES ($1,$2,$3,$4) ON CONFLICT (account_id,symbol) DO UPDATE SET code=EXCLUDED.code,
+        client_order_id=EXCLUDED.client_order_id,rejected_at=NOW(),released_at=NULL`, [accountId,row.symbol,rejection.code,clientOrderId]);
+      await client.query("UPDATE demo_orders SET status = 'REJECTED_CONFIRMED', result = result || $2::jsonb, updated_at = NOW() WHERE client_order_id IN ($1, $3)", [clientOrderId, JSON.stringify({ reconciliation: { method: rejection.method, code: rejection.code, clientOrderId, confirmedAt: new Date().toISOString() } }), failureId]);
+      await client.query("INSERT INTO audit_events (event_type, actor, details) VALUES ('DEMO_REJECTION_RECONCILED', 'system', $1::jsonb)", [JSON.stringify({ clientOrderId, failureId, symbol: row.symbol, method: rejection.method, code: rejection.code })]);
+      await client.query("INSERT INTO operational_events (event_type,severity,symbol,details) VALUES ('DEMO_REJECTION_RECONCILED','INFO',$1,$2::jsonb)", [row.symbol,JSON.stringify({ clientOrderId, code: rejection.code, method: rejection.method })]);
       await client.query("COMMIT");
       return true;
     } catch (error) { await client.query("ROLLBACK"); throw error; }
