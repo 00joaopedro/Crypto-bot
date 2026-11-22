@@ -1,0 +1,25 @@
+import { readFile,writeFile,mkdir } from "node:fs/promises";
+import { join,resolve } from "node:path";
+import { assessPortfolioReadiness,assessReferenceBudgets } from "./portfolio-readiness.js";
+import { datasetHash,type UniverseDataset } from "./universe-comparison.js";
+import { semanticHash } from "./cost-experiments.js";
+const [planPath,pullbackPath,exitPath,reversionPath,financialPath,dataDir,outDir,...extra]=process.argv.slice(2);
+if(!planPath||!pullbackPath||!exitPath||!reversionPath||!financialPath||!dataDir||!outDir||extra.length)throw new Error("Usage: strategy:portfolio-readiness -- <plan.json> <pullback.json> <exit.json> <reversion.json> <financial.json> <frozen-data-dir> <new-output-dir>");
+const inputPaths=[planPath,pullbackPath,exitPath,reversionPath,financialPath];
+if(resolve(dataDir)===resolve(outDir)||inputPaths.some(p=>resolve(p)===resolve(join(outDir,"summary.json"))))throw new Error("Output must not replace frozen inputs");
+const json=async(p:string)=>JSON.parse(await readFile(p,"utf8"));
+const report=assessPortfolioReadiness(await Promise.all([pullbackPath,exitPath,reversionPath].map(json)),await json(financialPath),await json(planPath));
+const source=await json(join(dataDir,"source.json"));
+if(!source.complete||source.studySha256!==report.sourceStudySha256||!Array.isArray(source.assets))throw new Error("Frozen source identity mismatch");
+const datasets:UniverseDataset[]=await Promise.all(source.assets.map(async(e:{symbol:string;filename:string;sha256:string})=>{
+ if(!/^[A-Z0-9._-]+-USDT\.json$/.test(e.filename)||e.filename!==e.symbol.replace('/','-')+'.json')throw new Error("Invalid frozen source filename");
+ const d=await json(join(dataDir,e.filename));if(d.symbol!==e.symbol||datasetHash(d)!==e.sha256)throw new Error("Frozen dataset hash mismatch");return d;
+}));
+const identities=datasets.map(d=>({symbol:d.symbol,sha256:datasetHash(d)}));
+const sorted=(rows:typeof identities)=>[...rows].sort((a,b)=>a.symbol.localeCompare(b.symbol,"en"));
+if(semanticHash(sorted(identities))!==semanticHash(sorted(report.datasetHashes)))throw new Error("Frozen budget datasets differ from development evidence");
+const budget=assessReferenceBudgets(datasets,report.reference,report.protocol.capitalScenariosUsdt);
+const {reference,...summary}=report;
+const output={...summary,budget};
+await mkdir(outDir,{recursive:true});await writeFile(join(outDir,"summary.json"),JSON.stringify(output,null,2)+'\n');
+console.log(JSON.stringify(output,null,2));

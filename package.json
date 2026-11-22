@@ -29,7 +29,8 @@
     "strategy:economics": "node dist/economic-diagnosis-cli.js",
     "strategy:pullback": "node dist/pullback-experiments-cli.js",
     "strategy:volatility-exits": "node dist/volatility-exit-experiments-cli.js",
-    "strategy:confirmed-reversion": "node dist/confirmed-reversion-experiments-cli.js"
+    "strategy:confirmed-reversion": "node dist/confirmed-reversion-experiments-cli.js",
+    "strategy:portfolio-readiness": "node dist/portfolio-readiness-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
