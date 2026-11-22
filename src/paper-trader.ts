@@ -1,3 +1,4 @@
+import { advanceResearchTrailing, researchTrailingSchema, type ResearchTrailing } from "./research-trailing.js";
 import { Precise } from 'ccxt';
 import type { StrategyId } from "./strategy-id.js";
 import { positionSize, positionSizingSchema, type PositionSizingLimits } from "./position-sizing.js";
@@ -19,6 +20,7 @@ export type PaperTraderOptions = {
   takeProfitRate: number;
   /** Offline execution constraints; omitted by the operational bot. */
   exitPolicy?: ExitPolicy;
+  researchTrailing?: ResearchTrailing;
   executionConstraints?: { minimumNotionalUsdt: number; minimumQuantity: number; quantityStep: number };
 };
 export type DynamicExitRates = { stopLossRate: number; takeProfitRate: number; trailingStopRate?: number; referencePrice?: number };
@@ -37,6 +39,8 @@ export type PaperPosition = {
   trailingStopPrice?: number;
   trailingStopRate?: number;
   exitPolicy?: ExitPolicy;
+  researchTrailing?: ResearchTrailing;
+  researchTrailingActivated?: boolean;
   highWatermark?: number;
   entryAtOpen?: boolean;
 };
@@ -145,6 +149,10 @@ export class PaperTrader {
     this.peakEquityUsdt = options.initialBalanceUsdt;
     if (options.riskSizing) positionSizingSchema.parse(options.riskSizing);
     if (options.exitPolicy) exitPolicySchema.parse(options.exitPolicy);
+    if (options.researchTrailing) {
+      researchTrailingSchema.parse(options.researchTrailing);
+      if (options.exitPolicy?.mode !== "trailing_atr" || options.exitPolicy.breakeven) throw new Error("Research trailing requires explicit managed trailing without breakeven");
+    }
     if (restoredState) this.restoreState(restoredState);
   }
 
@@ -221,7 +229,14 @@ export class PaperTrader {
   advanceManagedExit(candles: Candle[]): void {
     const position = this.position;
     if (!position?.exitPolicy || (!position.entryAtOpen && candles.at(-1)?.timestamp === position.entryTimestamp)) return;
-    const next = advanceExitStop({ stop: position.stopLossPrice, highWatermark: position.highWatermark ?? position.entryPrice, entryPrice: position.entryPrice, quantity: position.quantity, costUsdt: position.entryNotional + (position.entryFeeCurrency === "base" ? 0 : position.entryFee), candles, policy: { ...position.exitPolicy, exitFeeRate: this.options.feeRate, exitSlippageRate: this.options.slippageRate } });
+    const costUsdt = position.entryNotional + (position.entryFeeCurrency === "base" ? 0 : position.entryFee);
+    const next = position.researchTrailing ? advanceResearchTrailing({
+      stop: position.stopLossPrice, highWatermark: position.highWatermark ?? position.entryPrice,
+      costUsdt, quantity: position.quantity, activated: position.researchTrailingActivated === true,
+      candles, atrPeriod: position.exitPolicy.atrPeriod, feeRate: this.options.feeRate,
+      slippageRate: this.options.slippageRate, research: position.researchTrailing,
+    }) : advanceExitStop({ stop: position.stopLossPrice, highWatermark: position.highWatermark ?? position.entryPrice, entryPrice: position.entryPrice, quantity: position.quantity, costUsdt, candles, policy: { ...position.exitPolicy, exitFeeRate: this.options.feeRate, exitSlippageRate: this.options.slippageRate } });
+    if ("activated" in next) position.researchTrailingActivated = next.activated === true;
     position.stopLossPrice = next.stop;
     position.highWatermark = next.highWatermark;
   }
@@ -267,6 +282,7 @@ export class PaperTrader {
       stopLossPrice: exitReference * (1 - stopLossRate),
       takeProfitPrice: exitReference * (1 + takeProfitRate),
       ...(this.options.exitPolicy ? { exitPolicy: { ...this.options.exitPolicy }, highWatermark: entryPrice, entryAtOpen } : {}),
+      ...(this.options.researchTrailing ? { researchTrailing: { ...this.options.researchTrailing }, researchTrailingActivated: false } : {}),
       ...(!this.options.exitPolicy && exitRates?.trailingStopRate ? {
         trailingStopPrice: entryPrice * (1 - exitRates.trailingStopRate),
         trailingStopRate: exitRates.trailingStopRate,
@@ -298,7 +314,7 @@ export class PaperTrader {
 
 
     const stopTouched = candle.low <= position.stopLossPrice;
-    const takeProfitTouched = position.exitPolicy?.mode !== "trailing_atr" && candle.high >= position.takeProfitPrice;
+    const takeProfitTouched = (position.exitPolicy?.mode !== "trailing_atr" || position.researchTrailing?.retainFixedTarget === true) && candle.high >= position.takeProfitPrice;
     const trailingTouched = position.trailingStopPrice !== undefined && candle.low <= position.trailingStopPrice;
     if (!stopTouched && !takeProfitTouched && !trailingTouched && !signalContrary) {
       if (position.trailingStopPrice !== undefined) {
@@ -447,6 +463,10 @@ function assertPaperTraderState(state: PaperTraderState): void {
   if (state.position) {
     if (state.position.entryFeeCurrency !== undefined && state.position.entryFeeCurrency !== "base") throw new Error("Invalid restored entry fee currency");
     if (state.position.exitPolicy) exitPolicySchema.parse(state.position.exitPolicy);
+    if (state.position.researchTrailing) {
+      researchTrailingSchema.parse(state.position.researchTrailing);
+      if (state.position.exitPolicy?.mode !== "trailing_atr" || state.position.exitPolicy.breakeven || typeof state.position.researchTrailingActivated !== "boolean") throw new Error("Invalid restored research trailing state");
+    }
     if (state.position.entryAtOpen !== undefined && typeof state.position.entryAtOpen !== "boolean") throw new Error("Invalid entry reference type");
     if (state.position.highWatermark !== undefined && (!Number.isFinite(state.position.highWatermark) || state.position.highWatermark <= 0)) throw new Error("Invalid exit high watermark");
     const positionFields = [

@@ -1,3 +1,4 @@
+import { researchTrailingSchema } from "./research-trailing.js";
 import { averageTrueRange } from "./indicators.js";
 import { createPullbackGate, pullbackRuleSchema, type PullbackRule } from "./research-pullback.js";
 import { meanReversionEntry } from "./mean-reversion-study.js";
@@ -70,8 +71,16 @@ export function historicalUniverseRanks(datasets: UniverseDataset[], start: numb
   return { ranks, eligibleCounts };
 }
 
-export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown, entryModel: "trend" | "mean_reversion" = "trend", rawEntryScreen?: ResearchEntryScreen, rawPullbackRule?: PullbackRule) {
+export const volatilityExitResearchSchema = z.object({
+  minimumAtrRate: z.number().finite().positive().lt(1).optional(),
+  trailing: researchTrailingSchema.optional(),
+}).strict();
+export type VolatilityExitResearch = z.infer<typeof volatilityExitResearchSchema>;
+
+export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown, entryModel: "trend" | "mean_reversion" = "trend", rawEntryScreen?: ResearchEntryScreen, rawPullbackRule?: PullbackRule, rawExitResearch?: VolatilityExitResearch) {
   const study = universeStudySchema.parse(rawStudy);
+  const exitResearch = rawExitResearch === undefined ? undefined : volatilityExitResearchSchema.parse(rawExitResearch);
+  if (exitResearch && (entryModel !== "trend" || rawEntryScreen || rawPullbackRule)) throw new Error("Volatility/exit research must be isolated from other entry hypotheses");
   const pullbackRule = rawPullbackRule === undefined ? undefined : pullbackRuleSchema.parse(rawPullbackRule);
   if (pullbackRule && (entryModel !== "trend" || rawEntryScreen)) throw new Error("Pullback requires an isolated trend experiment");
   const entryScreen = rawEntryScreen === undefined ? undefined : researchEntryScreenSchema.parse(rawEntryScreen);
@@ -91,7 +100,8 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
       if (entryModel === "mean_reversion") return meanReversionEntry(candles) && assessMarketQuality(candles).score >= 3 ? 8 : undefined;
       const signal = evaluateStrategy(candles, { minimumScore: study.parameters.minimumSignalScore, maxBuyRsi: study.parameters.maxBuyRsi ?? 70 });
       const gateAllowed = gate ? gate({ candle: candles.at(-1)!, ema21: signal.ema21, atr: averageTrueRange(candles), rsi: signal.rsi14, bullish: signal.ema9 > signal.ema21 }) : true;
-      if (!gateAllowed || signal.action !== "BUY" || assessMarketQuality(candles).score < 3) return undefined;
+      const atrAllowed = !exitResearch?.minimumAtrRate || averageTrueRange(candles,14) / candles.at(-1)!.close >= exitResearch.minimumAtrRate;
+      if (!atrAllowed || !gateAllowed || signal.action !== "BUY" || assessMarketQuality(candles).score < 3) return undefined;
       if (entryScreen) {
         entryScreenDiagnostics.evaluatedQualityBuySignals++;
         if (!screenResearchEntry(candles, study.parameters, scenarioCosts(study.scenarios[0]!, d.symbol), entryScreen).allowed) {
@@ -108,7 +118,7 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
     return rank !== undefined && (size === 0 || rank < size || study.fixedSymbols.includes(d.symbol)) ? score : undefined;
   })]));
   const run = (series: UniverseDataset[], masked: ReturnType<typeof mask>, from: number, scenario: UniverseStudy["scenarios"][number], boundary?: number) =>
-    runPortfolioScenario(series, masked, from, study.parameters, scenario, study.portfolio, study.initialBalanceUsdt, study.tradeSizeUsdt, btc, boundary, study.candleLimit);
+    runPortfolioScenario(series, masked, from, study.parameters, scenario, study.portfolio, study.initialBalanceUsdt, study.tradeSizeUsdt, btc, boundary, study.candleLimit, exitResearch?.trailing);
   const prefixes = datasets.map(d => ({ ...d, candles: d.candles.slice(0, holdout), quoteVolumesUsdt: d.quoteVolumesUsdt.slice(0, holdout) }));
   const calibration = study.sizes.map(size => ({ size, result: run(prefixes, mask(size), start, study.scenarios[0]!) }));
   const selected = [...calibration].sort((a, b) => b.result.netReturnUsdt - a.result.netReturnUsdt || a.result.maxDrawdownUsdt - b.result.maxDrawdownUsdt)[0]!;
@@ -121,6 +131,7 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
   }));
   return {
     status: "exploratory_simulation_only", entryModel, study,
+    ...(exitResearch ? { volatilityExitResearch: exitResearch } : {}),
     ...(pullbackRule ? { researchPullbackRule: pullbackRule } : {}),
     ...(entryScreen ? { researchEntryScreen: entryScreen, entryScreenDiagnostics } : {}),
     assets: datasets.map(d => ({ symbol: d.symbol, sha256: datasetHash(d), constraints: d.constraints, candleCount: d.candles.length })),

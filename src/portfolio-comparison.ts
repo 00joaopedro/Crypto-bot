@@ -1,3 +1,4 @@
+import { netActivationPrice, type ResearchTrailing } from "./research-trailing.js";
 import { tradeProfitConcentration } from "./backtest-performance.js";
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
@@ -170,11 +171,13 @@ export function runPortfolioScenario(
   btc?: Candle[],
   split?: number,
   signalCandleLimit?: number,
+  researchTrailing?: ResearchTrailing,
 ) {
   if (split !== undefined && (!Number.isInteger(split) || split <= start || split >= instruments[0]!.candles.length)) {
     throw new Error("Portfolio split must be inside the replay window");
   }
 
+  const researchExitDiagnostics = { opened: 0, fixedTargetBelowNetActivation: 0, activatedPositions: 0, stopUpdates: 0, closedBeforeActivation: 0, closedAfterActivation: 0, takeProfitBeforeActivation: 0 };
   const entryContexts = new Map<string, EntryDiagnosticContext>();
   const closedTradeLedger: DiagnosticTrade[] = [];
   const assets = instruments.map(instrument => {
@@ -185,6 +188,7 @@ export function runPortfolioScenario(
     trader: new PaperTrader({
       stopLossRate: parameters.stopLossRate, takeProfitRate: parameters.takeProfitRate,
       ...(parameters.exitPolicy ? { exitPolicy: parameters.exitPolicy } : {}),
+      ...(researchTrailing ? { researchTrailing } : {}),
       strategyId: TREND_STRATEGY_ID, initialBalanceUsdt: initialBalance,
       tradeSizeUsdt: tradeSize, feeRate: costs.feeRate, entryFeeCurrency: costs.entryFeeCurrency, slippageRate, executionConstraints: instrument.constraints,
     }),
@@ -273,10 +277,16 @@ export function runPortfolioScenario(
       } : undefined;
       // PaperTrader simulates the instrument's fill. Only the shared wallet above admits entries.
       if (approved) asset.trader.restoreState({ ...asset.trader.exportState(), cashUsdt: tradeSize * 2 });
+      const positionBefore = researchTrailing ? asset.trader.exportState().position : null;
       const { events } = asset.trader.processCandle(candle, approved, rates, false, candle.open);
       if (approved && events[0]?.type !== "OPENED") throw new Error(`Accepted portfolio entry did not open: ${asset.symbol}`);
       for (const event of events) {
         if (event.type === "OPENED") {
+          if (researchTrailing) {
+            researchExitDiagnostics.opened++;
+            const costUsdt = event.notionalUsdt + (event.entryFeeCurrency === "base" ? 0 : event.feeUsdt);
+            if (event.takeProfitPrice < netActivationPrice(costUsdt,event.quantity,asset.costs.feeRate,asset.slippageRate,researchTrailing.netActivationRate)) researchExitDiagnostics.fixedTargetBelowNetActivation++;
+          }
           cash -= event.notionalUsdt + (event.entryFeeCurrency === "base" ? 0 : event.feeUsdt);
           const history = asset.candles.slice(signalCandleLimit ? Math.max(0, entryIndex + 1 - signalCandleLimit) : 0, entryIndex + 1);
           const signal = history.length >= 50 ? evaluateStrategy(history, { minimumScore: parameters.minimumSignalScore, maxBuyRsi: parameters.maxBuyRsi ?? 70 }) : undefined;
@@ -287,6 +297,10 @@ export function runPortfolioScenario(
             btcState: btc ? btcRegimeBlock(btc, asset.candles[entryIndex]!.timestamp, entryIndex) ?? "allowed" : "unknown",
           });
         } else {
+          if (researchTrailing) {
+            if (positionBefore?.researchTrailingActivated) researchExitDiagnostics.closedAfterActivation++;
+            else { researchExitDiagnostics.closedBeforeActivation++; if (event.reason === "TAKE_PROFIT") researchExitDiagnostics.takeProfitBeforeActivation++; }
+          }
           cash += event.grossProceedsUsdt - event.grossProceedsUsdt * asset.costs.feeRate;
           asset.trades.push(event);
           closedTradeLedger.push(paperDiagnosticTrade(asset.symbol, event, entryContexts.get(asset.symbol)));
@@ -298,7 +312,13 @@ export function runPortfolioScenario(
           }
         }
       }
+      const beforeAdvance = researchTrailing ? asset.trader.exportState().position : null;
       if (prior) asset.trader.advanceManagedExit([...prior, candle]);
+      if (researchTrailing && beforeAdvance) {
+        const after = asset.trader.exportState().position!;
+        if (!beforeAdvance.researchTrailingActivated && after.researchTrailingActivated) researchExitDiagnostics.activatedPositions++;
+        if (after.stopLossPrice > beforeAdvance.stopLossPrice) researchExitDiagnostics.stopUpdates++;
+      }
       marketValue += (asset.trader.exportState().position?.quantity ?? 0) * candle.close * (1 - asset.costs.feeRate);
     }
     equity = cash + marketValue;
@@ -349,6 +369,7 @@ export function runPortfolioScenario(
   return {
     ...tradeMetrics(trades),
     closedTradeLedger,
+    ...(researchTrailing ? { researchExitDiagnostics } : {}),
     diagnostics: diagnoseClosedTrades(closedTradeLedger),
     ...(blocks ? { blocks } : {}),
     finalEquityUsdt: equity, netReturnUsdt: equity - initialBalance, netReturnPercent: (equity / initialBalance - 1) * 100,
