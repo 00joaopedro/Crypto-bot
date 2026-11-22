@@ -619,6 +619,13 @@ spread/slippage sem evidência são hipóteses explícitas; não há aprovação
 automática nem alteração dos parâmetros ativos.
 Consulte [resultados e limitações](docs/financial-reference.md).
 
+### Experimentos com custos corrigidos
+
+`npm run strategy:cost-experiments -- examples/cost-experiments.plan.json DIRETORIO_CONGELADO DIRETORIO_DA_REFERENCIA NOVO_DIRETORIO`
+compara cinco variantes previamente definidas, com a mesma referência financeira.
+Confere hashes e reprodução da baseline; não aplica parâmetros ao bot.
+Veja [o protocolo e todos os resultados, inclusive negativos](docs/cost-aware-experiments.md).
+
 ### Diagnóstico das perdas da estratégia
 
 Para separar resultado antes das taxas, custos, saídas, pares, tamanhos e

@@ -3,7 +3,8 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { REGIME_CANDLE_MS } from "./btc-regime.js";
 import { runPortfolioScenario, portfolioLimitsSchema, type PortfolioInstrument } from "./portfolio-comparison.js";
-import { comparisonSchema, adverseCosts } from "./strategy-comparison.js";
+import { comparisonSchema, adverseCosts, scenarioCosts } from "./strategy-comparison.js";
+import { researchEntryScreenSchema, screenResearchEntry, type ResearchEntryScreen } from "./research-entry-screen.js";
 import { assertValidHistoricalCandles } from "./strategy-validation.js";
 import { evaluateStrategy } from "./strategy.js";
 import { assessMarketQuality } from "./signal-ranking.js";
@@ -67,8 +68,11 @@ export function historicalUniverseRanks(datasets: UniverseDataset[], start: numb
   return { ranks, eligibleCounts };
 }
 
-export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown, entryModel: "trend" | "mean_reversion" = "trend") {
+export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown, entryModel: "trend" | "mean_reversion" = "trend", rawEntryScreen?: ResearchEntryScreen) {
   const study = universeStudySchema.parse(rawStudy);
+  const entryScreen = rawEntryScreen === undefined ? undefined : researchEntryScreenSchema.parse(rawEntryScreen);
+  if (entryScreen && (entryModel !== "trend" || !study.parameters.exitPolicy || study.parameters.exitPolicy.mode !== "fixed" || study.parameters.exitPolicy.breakeven)) throw new Error("Research screen only supports fixed ATR trend experiments");
+  const entryScreenDiagnostics = { evaluatedQualityBuySignals: 0, rejectedQualityBuySignals: 0, costScenario: study.scenarios[0]!.name };
   const datasets = [...rawDatasets].sort((a, b) => a.symbol.localeCompare(b.symbol, "en"));
   validateUniverseDatasets(datasets, study);
   const startedAt = performance.now();
@@ -80,7 +84,15 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
     const candles = d.candles.slice(Math.max(0, index + 1 - study.candleLimit), index + 1);
     if (entryModel === "mean_reversion") return meanReversionEntry(candles) && assessMarketQuality(candles).score >= 3 ? 8 : undefined;
     const signal = evaluateStrategy(candles, { minimumScore: study.parameters.minimumSignalScore, maxBuyRsi: study.parameters.maxBuyRsi ?? 70 });
-    return signal.action === "BUY" && assessMarketQuality(candles).score >= 3 ? signal.score : undefined;
+    if (signal.action !== "BUY" || assessMarketQuality(candles).score < 3) return undefined;
+    if (entryScreen) {
+      entryScreenDiagnostics.evaluatedQualityBuySignals++;
+      if (!screenResearchEntry(candles, study.parameters, scenarioCosts(study.scenarios[0]!, d.symbol), entryScreen).allowed) {
+        entryScreenDiagnostics.rejectedQualityBuySignals++;
+        return undefined;
+      }
+    }
+    return signal.score;
   })]));
   const btc = datasets.find(d => d.symbol === "BTC/USDT")?.candles;
   const mask = (size: number) => new Map(datasets.map(d => [d.symbol, scores.get(d.symbol)!.map((score, index) => {
@@ -101,6 +113,7 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
   }));
   return {
     status: "exploratory_simulation_only", entryModel, study,
+    ...(entryScreen ? { researchEntryScreen: entryScreen, entryScreenDiagnostics } : {}),
     assets: datasets.map(d => ({ symbol: d.symbol, sha256: datasetHash(d), constraints: d.constraints, candleCount: d.candles.length })),
     coverage: { validatedAssets: datasets.length, requestedSizesCoveredByPool: study.sizes.every(n => n <= datasets.length), minimumLiquidCandidates: Math.min(...membership.eligibleCounts), maximumLiquidCandidates: Math.max(...membership.eligibleCounts) },
     calibration, selectedSizeFromCalibration: selected.size, results,

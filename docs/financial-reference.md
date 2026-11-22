@@ -97,3 +97,6 @@ uma configuração justificável segue para dados novos; ajustar até obter lucr
 nestes mesmos candles não valida a estratégia. A próxima janela Demo de 48h
 pode ocorrer depois das três execuções e da implantação confirmada, com versão e
 parâmetros congelados. Serve para execução e reconciliação; não aprova uso real.
+
+A segunda execução foi concluída em [experimentos com custos corrigidos](cost-aware-experiments.md).
+As cinco variantes continuaram negativas; nenhuma foi promovida.
