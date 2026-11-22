@@ -32,19 +32,41 @@ const snapshotSchema = z.object({
 export type EffectiveExecutionSnapshot = z.infer<typeof snapshotSchema>;
 export const tradingTermsSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("confirmed"), symbol: z.string().max(40), observedAtUtc: z.iso.datetime(), takerFeeRate: z.number().finite().min(0).lt(1), minimumQuantity: z.number().finite().positive(), quantityStep: z.number().finite().positive() }).strict(),
-  z.object({ status: z.literal("unavailable"), reason: z.enum(["demo_disabled", "query_failed", "fee_unconfirmed", "instrument_unconfirmed", "not_initialized"]) }).strict(),
+  z.object({ status: z.literal("unavailable"), reason: z.enum(["demo_disabled", "query_failed", "fee_unconfirmed", "instrument_unconfirmed", "not_initialized", "query_pending"]) }).strict(),
 ]);
 export type TradingTerms = z.infer<typeof tradingTermsSchema>;
 export class TradingTermsCache {
-  private readonly entries = new WeakMap<object, { symbol: string; expires: number; request: Promise<TradingTerms> }>();
+  private readonly entries = new WeakMap<object, Map<string, { expires: number; request: Promise<TradingTerms> }>>();
   constructor(private readonly now: () => number = Date.now) {}
   read(client: { inspectTradingTerms(symbol: string): Promise<TradingTerms> }, symbol: string): Promise<TradingTerms> {
-    const cached = this.entries.get(client);
-    if (cached && cached.symbol === symbol && this.now() < cached.expires) return cached.request;
-    const request = Promise.resolve().then(() => client.inspectTradingTerms(symbol))
-      .then(value => tradingTermsSchema.parse(value)).catch((): TradingTerms => ({ status: "unavailable", reason: "query_failed" }));
-    this.entries.set(client, { symbol, expires: this.now() + 60000, request });
-    return request;
+    let entries = this.entries.get(client);
+    if (!entries) { entries = new Map(); this.entries.set(client, entries); }
+    const cached = entries.get(symbol);
+    if (cached && this.now() < cached.expires) return cached.request;
+    if (entries.size >= 100 && !entries.has(symbol)) {
+      const oldest = [...entries].find(([,v]) => v.expires !== Infinity);
+      if (oldest) entries.delete(oldest[0]);
+      else return Promise.resolve({ status: "unavailable", reason: "query_pending" });
+    }
+    const item = { expires: Infinity, request: Promise.resolve({ status: "unavailable", reason: "query_pending" } as TradingTerms) };
+    item.request = Promise.resolve().then(() => client.inspectTradingTerms(symbol))
+      .then(value => { const terms = tradingTermsSchema.parse(value); if (terms.status === "confirmed" && terms.symbol !== symbol) throw new Error("Quote symbol mismatch"); return terms; })
+      .catch((): TradingTerms => ({ status: "unavailable", reason: "query_failed" }))
+      .finally(() => { item.expires = this.now() + 60000; });
+    entries.set(symbol, item);
+    return item.request;
+  }
+  /** On-demand export only: at most 20 pairs, two read-only requests and a 5s response budget. */
+  async readBatch(client: { inspectTradingTerms(symbol: string): Promise<TradingTerms> }, symbols: string[], budgetMs = 5000) {
+    const unique = [...new Set(symbols)].filter(s => /^[A-Z0-9._-]+\/USDT$/.test(s));
+    const selected = unique.slice(0, 20), results = new Map<string, TradingTerms>();
+    let cursor = 0, stopped = false;
+    const worker = async () => { while (!stopped && cursor < selected.length) { const symbol = selected[cursor++]!; results.set(symbol, await this.read(client, symbol)); } };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([Promise.all([worker(), worker()]), new Promise<void>(resolve => { timer = setTimeout(() => { stopped = true; resolve(); }, budgetMs); })]);
+    if (timer) clearTimeout(timer); stopped = true;
+    return { quotes: selected.map(symbol => ({ symbol, terms: results.get(symbol) ?? { status: "unavailable" as const, reason: "query_pending" as const } })),
+      coverage: { requested: selected.length, completed: results.size, pending: selected.length - results.size, truncated: unique.length - selected.length } };
   }
 }
 

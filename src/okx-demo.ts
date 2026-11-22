@@ -69,7 +69,7 @@ export type DemoBuyRequest = {
 export type DemoSellRequest = { symbol?: string; candleTimestamp: number; quantity: number };
 
 type DemoEntryBookBlock = { status: "blocked"; reason: "demo_book_unavailable" | "demo_spread_exceeded"; spreadPercent?: number };
-type DemoEntryBook = DemoEntryBookBlock | { status: "safe"; book: OrderBook; referencePrice: number; spreadPercent: number };
+type DemoEntryBook = DemoEntryBookBlock | { status: "safe"; book: OrderBook; referencePrice: number; spreadPercent: number; receivedAtUtc: string };
 export type DemoEntryMarketCheck = DemoEntryBookBlock | { status: 'blocked'; reason: 'demo_symbol_not_available_for_account' | 'demo_account_instruments_unconfirmed'; spreadPercent?: number } | { status: "safe"; spreadPercent?: number };
 
 export type DemoBuyResult =
@@ -90,6 +90,7 @@ export type DemoBuyResult =
       fees?: Array<{ currency: string | null; cost: number | null }>;
       feesPresentOnTerminalResponse?: boolean;
       quotedTakerFeeRate?: number;
+      entryExecutionEvidence?: { venue: "okx-demo"; reference: "best_ask"; bestBid: number; bestAsk: number; spreadRate: number; receivedAtUtc: string; bookTimestamp: number | null };
     }
   | {
       status: "SKIPPED";
@@ -404,7 +405,7 @@ export class OkxDemoExecutor {
       if (spreadPercent > (this.options.maxSpreadPercent ?? 0.15)) {
         return { status: "blocked", reason: "demo_spread_exceeded", spreadPercent };
       }
-      return { status: "safe", book, referencePrice, spreadPercent };
+      return { status: "safe", book, referencePrice, spreadPercent, receivedAtUtc: new Date().toISOString() };
     } catch {
       return unavailable;
     }
@@ -571,6 +572,9 @@ export class OkxDemoExecutor {
       side: order.side ?? "buy",
       fees: normalizedOrderFees(order),
       quotedTakerFeeRate: fee,
+      entryExecutionEvidence: { venue: "okx-demo", reference: "best_ask", bestBid: book.bids[0]![0]!, bestAsk: referencePrice,
+        spreadRate: entryBook.spreadPercent / 100, receivedAtUtc: entryBook.receivedAtUtc,
+        bookTimestamp: typeof book.timestamp === "number" && Number.isSafeInteger(book.timestamp) ? book.timestamp : null },
       feesPresentOnTerminalResponse: confirmed && normalizedOrderFees(order).length > 0,
       ...(confirmed ? {} : { reconciliationError: `Final OKX order status was ${order.status ?? "unknown"}` }),
     };

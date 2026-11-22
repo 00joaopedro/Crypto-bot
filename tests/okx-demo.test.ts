@@ -61,6 +61,15 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("records the exact pre-submit Demo quote without additional book reads",async()=>{
+    const exchange=exchangeMock();const executor=new OkxDemoExecutor(credentials,enabledOptions,exchange);
+    executor.setIntentJournal(async()=>true);await executor.initialize();
+    const result=await executor.executeApprovedBuy({candleTimestamp:1790197200000});
+    expect(result).toMatchObject({entryExecutionEvidence:{venue:'okx-demo',reference:'best_ask',bestBid:99.99,bestAsk:100,spreadRate:expect.any(Number),receivedAtUtc:expect.any(String)}});
+    expect(exchange.fetchOrderBook).toHaveBeenCalledTimes(1);
+    await executor.close();
+  });
+
   it.each([
     { minimum: 0.01, reserved: true, expected: "PLACED" },
     { minimum: 0.06, reserved: true, expected: "SKIPPED" },

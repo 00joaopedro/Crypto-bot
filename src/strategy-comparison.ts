@@ -21,10 +21,12 @@ const parameters = z.object({
   minimumSignalScore: z.number().int().min(1).max(8),
   executionDelayCandles: z.number().int().min(0).max(96),
 }).strict();
+export const symbolCostSchema = z.object({ feeRate: rate, slippageRate: rate, spreadRate: rate, entryFeeCurrency: z.enum(["base", "quote"]) }).strict();
 const scenario = z.object({
   name: z.string().min(1).max(80), feeRate: rate, slippageRate: rate,
   spreadRate: rate, assumedDepthUsdt: z.number().finite().nonnegative(),
   maxParticipationRate: positive.max(1),
+  symbolCosts: z.record(z.string().regex(/^[A-Z0-9._-]+\/USDT$/), symbolCostSchema).optional(),
 }).strict();
 export const comparisonSchema = z.object({
   symbol: z.string().min(1).max(40),
@@ -44,10 +46,31 @@ export function comparisonSlippage(scenario: { slippageRate: number; spreadRate:
   return effective;
 }
 
+/** Explicit maps require complete symbol coverage: no accidental global fallback. */
+export function scenarioCosts(scenario: ComparisonOptions["scenarios"][number], symbol: string) {
+  const explicit = scenario.symbolCosts?.[symbol];
+  if (scenario.symbolCosts && !explicit) throw new Error(`Missing execution costs for ${symbol}`);
+  return explicit ? symbolCostSchema.parse(explicit) : { feeRate: scenario.feeRate, slippageRate: scenario.slippageRate, spreadRate: scenario.spreadRate, entryFeeCurrency: "quote" as const };
+}
+export function adverseCosts(first: ComparisonOptions["scenarios"][number], other: ComparisonOptions["scenarios"][number]): boolean {
+  const common = other.feeRate >= first.feeRate && other.slippageRate >= first.slippageRate && other.spreadRate >= first.spreadRate && other.assumedDepthUsdt <= first.assumedDepthUsdt && other.maxParticipationRate <= first.maxParticipationRate;
+  if (!common || Boolean(first.symbolCosts) !== Boolean(other.symbolCosts)) return false;
+  let worse = other.feeRate > first.feeRate || other.slippageRate > first.slippageRate || other.spreadRate > first.spreadRate || other.assumedDepthUsdt < first.assumedDepthUsdt || other.maxParticipationRate < first.maxParticipationRate;
+  if (first.symbolCosts) {
+    if (Object.keys(first.symbolCosts).sort().join('|') !== Object.keys(other.symbolCosts!).sort().join('|')) return false;
+    for (const [symbol, cost] of Object.entries(first.symbolCosts)) {
+      const next = other.symbolCosts![symbol]!;
+      if (next.feeRate < cost.feeRate || next.slippageRate < cost.slippageRate || next.spreadRate < cost.spreadRate || next.entryFeeCurrency !== cost.entryFeeCurrency) return false;
+      worse ||= next.feeRate > cost.feeRate || next.slippageRate > cost.slippageRate || next.spreadRate > cost.spreadRate;
+    }
+  }
+  return worse;
+}
+
 export function assertComparisonCandidatesAndScenarios(options: ComparisonOptions): void {
   if (new Set(options.scenarios.map(s => s.name)).size !== options.scenarios.length || new Set(["baseline", ...options.alternatives.map(a => a.name)]).size !== options.alternatives.length + 1) throw new Error("Names must be unique; baseline is reserved");
   const standard = options.scenarios[0]!;
-  if (!options.scenarios.slice(1).some(s => s.feeRate >= standard.feeRate && s.slippageRate >= standard.slippageRate && s.spreadRate >= standard.spreadRate && s.assumedDepthUsdt <= standard.assumedDepthUsdt && s.maxParticipationRate <= standard.maxParticipationRate && (s.feeRate > standard.feeRate || s.slippageRate > standard.slippageRate || s.spreadRate > standard.spreadRate || s.assumedDepthUsdt < standard.assumedDepthUsdt || s.maxParticipationRate < standard.maxParticipationRate))) throw new Error("Include a strictly adverse cost/liquidity scenario after the standard scenario");
+  if (!options.scenarios.slice(1).some(s => adverseCosts(standard, s))) throw new Error("Include a strictly adverse cost/liquidity scenario after the standard scenario");
 }
 
 /** Fixed, predeclared alternatives. No selection or configuration is applied to the bot. */
@@ -73,14 +96,15 @@ export function compareDemoStrategies(candles: Candle[], rawOptions: ComparisonO
   const results = options.scenarios.map(s => ({
     scenario: s,
     variants: variants.map(v => {
-      const effectiveSlippage = comparisonSlippage(s);
+      const costs = scenarioCosts(s, options.symbol);
+      const effectiveSlippage = comparisonSlippage(costs);
       const { exitPolicy, riskSizing, btcRegimeFilter, maxBuyRsi, pairCooldown, ...fixedParameters } = v.parameters;
-      const candidate = { ...fixedParameters, ...(pairCooldown ? { pairCooldown } : {}), ...(maxBuyRsi !== undefined ? { maxBuyRsi } : {}), ...(btcRegimeFilter !== undefined ? { btcRegimeFilter } : {}), ...(riskSizing ? { riskSizing } : {}), ...(exitPolicy ? { exitPolicy: { ...exitPolicy, exitFeeRate: s.feeRate, exitSlippageRate: effectiveSlippage } } : {}) };
+      const candidate = { ...fixedParameters, ...(pairCooldown ? { pairCooldown } : {}), ...(maxBuyRsi !== undefined ? { maxBuyRsi } : {}), ...(btcRegimeFilter !== undefined ? { btcRegimeFilter } : {}), ...(riskSizing ? { riskSizing } : {}), ...(exitPolicy ? { exitPolicy: { ...exitPolicy, exitFeeRate: costs.feeRate, exitSlippageRate: effectiveSlippage } } : {}) };
       const report = validateDemoStrategy(candles, {
         trainCandles: options.trainCandles, testCandles: options.testCandles,
         candidates: [candidate],
         base: { symbol: options.symbol, initialBalanceUsdt: options.initialBalanceUsdt, tradeSizeUsdt: options.tradeSizeUsdt,
-          feeRate: s.feeRate, slippageRate: effectiveSlippage,
+          feeRate: costs.feeRate, entryFeeCurrency: costs.entryFeeCurrency, ...(s.symbolCosts ? { entryQuoteSpreadRate: costs.spreadRate } : {}), slippageRate: effectiveSlippage,
           ...candidate, ...(btcCandles ? { btcCandles } : {}), qualityFilters: true, executionProfile: "demo-proxy",
           executionConstraints: options.constraints,
           liquidity: { assumedDepthUsdt: s.assumedDepthUsdt, maxParticipationRate: s.maxParticipationRate } },

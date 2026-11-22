@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { REGIME_CANDLE_MS } from "./btc-regime.js";
 import { runPortfolioScenario, portfolioLimitsSchema, type PortfolioInstrument } from "./portfolio-comparison.js";
-import { comparisonSchema } from "./strategy-comparison.js";
+import { comparisonSchema, adverseCosts } from "./strategy-comparison.js";
 import { assertValidHistoricalCandles } from "./strategy-validation.js";
 import { evaluateStrategy } from "./strategy.js";
 import { assessMarketQuality } from "./signal-ranking.js";
@@ -24,7 +24,7 @@ export const universeStudySchema = z.object({
 }).strict().superRefine((study, ctx) => {
   if (new Set(study.sizes).size !== study.sizes.length || new Set(study.scenarios.map(s => s.name)).size !== study.scenarios.length) ctx.addIssue({ code: "custom", message: "Unique universe sizes and scenario names required" });
   const first = study.scenarios[0]!;
-  if (!study.scenarios.slice(1).some(s => s.feeRate >= first.feeRate && s.slippageRate >= first.slippageRate && s.spreadRate >= first.spreadRate && (s.feeRate > first.feeRate || s.slippageRate > first.slippageRate || s.spreadRate > first.spreadRate))) ctx.addIssue({ code: "custom", message: "An adverse cost scenario is required" });
+  if (!study.scenarios.slice(1).some(s => adverseCosts(first, s))) ctx.addIssue({ code: "custom", message: "An adverse cost scenario is required" });
   if (study.warmupCandles < study.candleLimit - 1) ctx.addIssue({ code: "custom", message: "Warmup must cover the runtime candle window" });
   if (study.parameters.riskSizing) ctx.addIssue({ code: "custom", message: "Universe study uses identical fixed trade ceilings" });
   if (study.parameters.executionDelayCandles < 1) ctx.addIssue({ code: "custom", message: "At least one execution delay candle is required" });

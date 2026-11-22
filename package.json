@@ -19,6 +19,7 @@
     "strategy:universe": "node dist/universe-study-cli.js",
     "strategy:universe-benchmark": "node dist/universe-scan-benchmark-cli.js",
     "execution:fidelity": "node dist/execution-fidelity-cli.js",
+    "execution:calibrate": "node dist/execution-calibration-cli.js",
     "strategy:diagnose": "node dist/strategy-diagnostic-cli.js",
     "strategy:experiments": "node dist/limited-experiments-cli.js",
     "strategy:independent-readiness": "node dist/independent-validation-cli.js",

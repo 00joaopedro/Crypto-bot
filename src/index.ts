@@ -98,10 +98,12 @@ async function main(): Promise<void> {
     const executor = okxDemo;
     const journalStatus = configurationPersistence;
     let terms: TradingTerms = { status: "unavailable", reason: "demo_disabled" };
+    let quoted: Awaited<ReturnType<TradingTermsCache["readBatch"]>> | undefined;
     if (executor) {
-      terms = await feeQuotes.read(executor, snapshot.settings.symbol);
+      quoted = await feeQuotes.readBatch(executor, [snapshot.settings.symbol, ...(bot.getLastSignalScan()?.pairs ?? []), ...config.SIGNAL_SCAN_SYMBOLS.split(',').map(s => s.trim())]);
+      terms = quoted.quotes.find(q => q.symbol === snapshot.settings.symbol)?.terms ?? terms;
     }
-    return { ...executionFidelityReport(snapshot, terms), configurationPersistence: journalStatus };
+    return { ...executionFidelityReport(snapshot, terms), ...(quoted ? { tradingTermsBySymbol: quoted.quotes, feeQuoteCoverage: quoted.coverage } : {}), configurationPersistence: journalStatus };
   };
   const exitPolicy = config.EXIT_MANAGEMENT_ENABLED ? exitPolicySchema.parse({ mode: config.EXIT_MODE, breakeven: config.EXIT_BREAKEVEN_ENABLED, atrPeriod: config.ATR_PERIOD, stopMultiplier: config.ATR_STOP_MULTIPLIER, targetMultiplier: config.ATR_TAKE_PROFIT_MULTIPLIER, minStopRate: config.ATR_MIN_STOP_RATE, maxStopRate: config.ATR_MAX_STOP_RATE, trailingMultiplier: config.EXIT_TRAILING_ATR_MULTIPLIER, activationRate: config.EXIT_ACTIVATION_RATE, exitFeeRate: config.EXIT_FEE_RATE, exitSlippageRate: config.EXIT_SLIPPAGE_RATE }) : undefined;
   const protectionAlerts = new ProtectionAlertJournal(async event => { await persistence?.recordOperationalEvent(event); });

@@ -603,6 +603,22 @@ npm run execution:fidelity -- diagnostico.json examples/universe-validation.stud
 Consulte [diferenças e limites da auditoria](docs/execution-fidelity.md).
 Nenhuma variável nova é necessária. Evidência ausente permanece desconhecida.
 
+### Referência financeira por par
+
+Com dados históricos já congelados e diagnósticos exportados, execute sem
+consultar a corretora ou modificar o bot:
+
+```sh
+npm run execution:calibrate -- examples/execution-costs.plan.json examples/universe-validation.study.json .universe-data .financial-reference diagnostico.json
+```
+
+O diretório histórico precisa conter o manifesto `source.json` do estudo
+original. Hashes divergentes são rejeitados. O comando gera perfil de custos,
+estudo reconstruído, relatório e resumo em outro diretório. Taxas ausentes e
+spread/slippage sem evidência são hipóteses explícitas; não há aprovação
+automática nem alteração dos parâmetros ativos.
+Consulte [resultados e limitações](docs/financial-reference.md).
+
 ### Diagnóstico das perdas da estratégia
 
 Para separar resultado antes das taxas, custos, saídas, pares, tamanhos e

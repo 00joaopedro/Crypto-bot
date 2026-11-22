@@ -58,8 +58,11 @@ senhas, destinatários e IDs de recuperação não fazem parte da projeção.
 Após implantar, use **Baixar JSON** nos logs: o documento recebe
 `executionFidelity` sem substituir registros. A rota autenticada
 `GET /api/execution-fidelity` também fornece a evidência. Consulta taxa taker,
-quantidade mínima e incremento do par principal em modo somente de leitura,
-com cache de 60 segundos por executor/par. Falhas ficam desconhecidas, sem
+quantidade mínima e incremento de até 20 pares (principal, última varredura e
+pares configurados) em modo somente de leitura. O lote tem concorrência 2,
+orçamento de resposta de 5 segundos e cache de 60 segundos por executor/par.
+Consultas já iniciadas podem concluir depois; o lote não agenda novos pares
+após o prazo. Cobertura, pares pendentes e truncados ficam explícitos. Falhas ficam desconhecidas, sem
 assumir taxas Paper. O polling normal do painel não passa a consultar taxas.
 
 ```sh
@@ -85,3 +88,9 @@ a uma configuração. Separar operações sem atribuição e posições herdadas
 comparar com capital e risco equivalentes. Ainda falta confirmar as condições
 da implantação e medir o efeito das diferenças de saída. Esta auditoria não
 valida lucratividade nem substitui teste operacional Demo.
+
+## Referência financeira offline
+
+A continuação desta auditoria está em [referência financeira](financial-reference.md).
+Ela usa custos por par e uma hipótese explícita de taxa em moeda base, sem alterar
+a política do bot ativo nem declarar equivalência completa com a corretora.

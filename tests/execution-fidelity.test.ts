@@ -1,3 +1,4 @@
+import type { TradingTerms } from '../src/execution-fidelity.js';
 import { readFileSync } from "node:fs";
 import { expect, it, vi } from "vitest";
 import { parseConfig } from "../src/config.js";
@@ -80,4 +81,22 @@ it("identifies legacy trailing and RSI/ATR differences instead of equating disab
   expect(report.findings).toContainEqual(expect.objectContaining({ id: "max_buy_rsi", observed: 70, expected: 63 }));
   const managed = effectiveExecutionSnapshot(parseConfig({ EXIT_MANAGEMENT_ENABLED: "true" }), settings, exitPolicySchema.parse({ mode: "fixed" }));
   expect(executionFidelityReport(managed, unknownFee).findings.some(f => f.id === "legacy_trailing_mismatch")).toBe(false);
+});
+
+it('exports pair-scoped fee quotes without cross-pair cache eviction or unbounded waiting', async()=>{
+  const cache=new TradingTermsCache();
+  let releases:Array<()=>void>=[];
+  const client={inspectTradingTerms:vi.fn((symbol:string)=>new Promise<TradingTerms>(resolve=>{releases.push(()=>resolve({status:'confirmed',symbol,observedAtUtc:new Date().toISOString(),takerFeeRate:.004,minimumQuantity:.001,quantityStep:.001}));}))};
+  const stalled=await cache.readBatch(client,Array.from({length:30},(_,i)=>`C${i}/USDT`),5);
+  expect(stalled.coverage).toEqual({requested:20,completed:0,pending:20,truncated:10});
+  expect(client.inspectTradingTerms).toHaveBeenCalledTimes(2);
+  releases.forEach(release=>release());await new Promise(resolve=>setTimeout(resolve,1));
+  expect(client.inspectTradingTerms).toHaveBeenCalledTimes(2);
+  const two=await cache.readBatch(client,['C0/USDT','C1/USDT','C0/USDT']);
+  expect(two.coverage.completed).toBe(2);expect(two.quotes.map(q=>q.symbol)).toEqual(['C0/USDT','C1/USDT']);
+  expect(client.inspectTradingTerms).toHaveBeenCalledTimes(2);
+});
+it('rejects a fee response for the wrong pair instead of propagating it into calibration',async()=>{
+  const cache=new TradingTermsCache();const client={inspectTradingTerms:async()=>({status:'confirmed' as const,symbol:'ETH/USDT',observedAtUtc:new Date().toISOString(),takerFeeRate:.004,minimumQuantity:.01,quantityStep:.001})};
+  expect(await cache.read(client,'BTC/USDT')).toEqual({status:'unavailable',reason:'query_failed'});
 });

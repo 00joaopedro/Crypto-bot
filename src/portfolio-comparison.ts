@@ -8,7 +8,7 @@ import { initialExitRates } from "./exit-policy.js";
 import { pairCooldownUntil } from "./pair-cooldown.js";
 import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
 import { evaluateStrategy } from "./strategy.js";
-import { assertComparisonCandidatesAndScenarios, compareDemoStrategies, comparisonSchema, comparisonSlippage, type ComparisonOptions } from "./strategy-comparison.js";
+import { assertComparisonCandidatesAndScenarios, compareDemoStrategies, comparisonSchema, comparisonSlippage, scenarioCosts, type ComparisonOptions } from "./strategy-comparison.js";
 import { TREND_STRATEGY_ID } from "./strategy-id.js";
 import { diagnoseClosedTrades, paperDiagnosticTrade, type DiagnosticTrade, type EntryDiagnosticContext } from "./strategy-diagnostics.js";
 import { assertValidHistoricalCandles } from "./strategy-validation.js";
@@ -174,23 +174,25 @@ export function runPortfolioScenario(
   if (split !== undefined && (!Number.isInteger(split) || split <= start || split >= instruments[0]!.candles.length)) {
     throw new Error("Portfolio split must be inside the replay window");
   }
-  const slippageRate = comparisonSlippage(scenario);
-  const feeRate = scenario.feeRate;
+
   const entryContexts = new Map<string, EntryDiagnosticContext>();
   const closedTradeLedger: DiagnosticTrade[] = [];
-  const assets = instruments.map(instrument => ({
-    ...instrument,
+  const assets = instruments.map(instrument => {
+    const costs = scenarioCosts(scenario, instrument.symbol);
+    const slippageRate = comparisonSlippage(costs);
+    return {
+    ...instrument, costs, slippageRate,
     trader: new PaperTrader({
       stopLossRate: parameters.stopLossRate, takeProfitRate: parameters.takeProfitRate,
       ...(parameters.exitPolicy ? { exitPolicy: parameters.exitPolicy } : {}),
       strategyId: TREND_STRATEGY_ID, initialBalanceUsdt: initialBalance,
-      tradeSizeUsdt: tradeSize, feeRate, slippageRate, executionConstraints: instrument.constraints,
+      tradeSizeUsdt: tradeSize, feeRate: costs.feeRate, entryFeeCurrency: costs.entryFeeCurrency, slippageRate, executionConstraints: instrument.constraints,
     }),
     alt: instrument.symbol !== "BTC/USDT",
     trades: [] as PaperTradeClosed[],
     rejected: {} as Partial<Record<Rejection, number>>,
     cooldownUntil: undefined as number | undefined,
-  }));
+  }; });
   let cash = initialBalance;
   let equity = cash;
   let peak = cash;
@@ -234,11 +236,15 @@ export function runPortfolioScenario(
       if (tradeSize > Math.min(scenario.assumedDepthUsdt, (asset.quoteVolumesUsdt?.[index - 1] ?? previous.volume * previous.close) * scenario.maxParticipationRate)) {
         reject(asset, "liquidity"); continue;
       }
-      const { quantity, notional } = quantizeQuantityDown(tradeSize, candle.open * (1 + slippageRate), asset.constraints.quantityStep);
+      const { quantity, notional } = quantizeQuantityDown(tradeSize, candle.open * (1 + asset.slippageRate), asset.constraints.quantityStep);
       if (quantity <= 0 || quantity < asset.constraints.minimumQuantity || notional < asset.constraints.minimumNotionalUsdt) {
         reject(asset, "minimum"); continue;
       }
-      const cost = notional + notional * feeRate;
+      if (asset.costs.entryFeeCurrency === "base") {
+        const sellable = quantizeQuantityDown(quantity * (1 - asset.costs.feeRate) * candle.open * (1 + asset.slippageRate), candle.open * (1 + asset.slippageRate), asset.constraints.quantityStep);
+        if (sellable.quantity < asset.constraints.minimumQuantity || sellable.notional < asset.constraints.minimumNotionalUsdt) { reject(asset, "minimum"); continue; }
+      }
+      const cost = notional + (asset.costs.entryFeeCurrency === "base" ? 0 : notional * asset.costs.feeRate);
       if (cost > available) { reject(asset, "cash"); continue; }
       if (count >= limits.maxConcurrentPositions) { reject(asset, "positions"); continue; }
       if (exposure + notional > equity * limits.maxExposureRate) { reject(asset, "totalExposure"); continue; }
@@ -259,15 +265,19 @@ export function runPortfolioScenario(
       const candle = asset.candles[index]!;
       const approved = entries.has(asset.symbol);
       if (!approved && !occupied.has(asset.symbol)) continue;
-      const prior = parameters.exitPolicy ? asset.candles.slice(0, index) : undefined;
-      const rates = approved && prior && parameters.exitPolicy ? initialExitRates(prior, candle.open, parameters.exitPolicy, parameters) : undefined;
+      const prior = parameters.exitPolicy ? asset.candles.slice(scenario.symbolCosts && signalCandleLimit ? Math.max(0, index - signalCandleLimit) : 0, index) : undefined;
+      const entryHistory = scenario.symbolCosts && approved ? asset.candles.slice(signalCandleLimit ? Math.max(0, entryIndex + 1 - signalCandleLimit) : 0, entryIndex + 1) : prior;
+      const rates = approved && entryHistory && parameters.exitPolicy ? {
+        ...initialExitRates(entryHistory, scenario.symbolCosts ? entryHistory.at(-1)!.close : candle.open, parameters.exitPolicy, parameters),
+        ...(scenario.symbolCosts ? { referencePrice: candle.open * (1 + asset.costs.spreadRate / 2) } : {}),
+      } : undefined;
       // PaperTrader simulates the instrument's fill. Only the shared wallet above admits entries.
       if (approved) asset.trader.restoreState({ ...asset.trader.exportState(), cashUsdt: tradeSize * 2 });
       const { events } = asset.trader.processCandle(candle, approved, rates, false, candle.open);
       if (approved && events[0]?.type !== "OPENED") throw new Error(`Accepted portfolio entry did not open: ${asset.symbol}`);
       for (const event of events) {
         if (event.type === "OPENED") {
-          cash -= event.notionalUsdt + event.feeUsdt;
+          cash -= event.notionalUsdt + (event.entryFeeCurrency === "base" ? 0 : event.feeUsdt);
           const history = asset.candles.slice(signalCandleLimit ? Math.max(0, entryIndex + 1 - signalCandleLimit) : 0, entryIndex + 1);
           const signal = history.length >= 50 ? evaluateStrategy(history, { minimumScore: parameters.minimumSignalScore, maxBuyRsi: parameters.maxBuyRsi ?? 70 }) : undefined;
           entryContexts.set(asset.symbol, {
@@ -277,7 +287,7 @@ export function runPortfolioScenario(
             btcState: btc ? btcRegimeBlock(btc, asset.candles[entryIndex]!.timestamp, entryIndex) ?? "allowed" : "unknown",
           });
         } else {
-          cash += event.grossProceedsUsdt - event.grossProceedsUsdt * feeRate;
+          cash += event.grossProceedsUsdt - event.grossProceedsUsdt * asset.costs.feeRate;
           asset.trades.push(event);
           closedTradeLedger.push(paperDiagnosticTrade(asset.symbol, event, entryContexts.get(asset.symbol)));
           entryContexts.delete(asset.symbol);
@@ -289,7 +299,7 @@ export function runPortfolioScenario(
         }
       }
       if (prior) asset.trader.advanceManagedExit([...prior, candle]);
-      marketValue += (asset.trader.exportState().position?.quantity ?? 0) * candle.close * (1 - feeRate);
+      marketValue += (asset.trader.exportState().position?.quantity ?? 0) * candle.close * (1 - asset.costs.feeRate);
     }
     equity = cash + marketValue;
     if (split !== undefined) marks.push(equity);
@@ -303,6 +313,7 @@ export function runPortfolioScenario(
     const open = state.position;
     return {
       symbol: asset.symbol,
+      ...(scenario.symbolCosts ? { executionCosts: asset.costs } : {}),
       ...tradeMetrics(asset.trades),
       rejected: asset.rejected,
       feesUsdt: state.totalFeesUsdt,
