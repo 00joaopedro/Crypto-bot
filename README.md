@@ -626,6 +626,13 @@ compara cinco variantes previamente definidas, com a mesma referência financeir
 Confere hashes e reprodução da baseline; não aplica parâmetros ao bot.
 Veja [o protocolo e todos os resultados, inclusive negativos](docs/cost-aware-experiments.md).
 
+### Diagnóstico econômico e excursão após entrada
+
+`npm run strategy:economics -- examples/execution-costs.plan.json examples/universe-validation.study.json DIRETORIO_CONGELADO docs/financial-reference-current.json NOVO_DIRETORIO diagnostico.json [...]`
+reproduz a referência e separa custos, excursões durante a posição e janelas
+posteriores à saída. Consulte [os resultados e limites](docs/economic-diagnosis.md).
+É descritivo: não altera entradas, saídas, risco ou variáveis.
+
 ### Diagnóstico das perdas da estratégia
 
 Para separar resultado antes das taxas, custos, saídas, pares, tamanhos e

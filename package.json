@@ -25,7 +25,8 @@
     "strategy:independent-readiness": "node dist/independent-validation-cli.js",
     "strategy:complementary": "node dist/complementary-study-cli.js",
     "pilot:review": "node dist/pilot-review-cli.js",
-    "strategy:cost-experiments": "node dist/cost-experiments-cli.js"
+    "strategy:cost-experiments": "node dist/cost-experiments-cli.js",
+    "strategy:economics": "node dist/economic-diagnosis-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
