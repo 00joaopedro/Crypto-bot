@@ -5,7 +5,7 @@ import type { OkxDemoExecutor } from "./okx-demo.js";
 import type { JournaledDemoBuy } from "./demo-ownership.js";
 import { verifyDemoOwnership } from "./demo-ownership.js";
 import { reconcileDemoExecutions } from "./demo-reconciliation.js";
-import type { DemoFill } from "./demo-ledger.js";
+import type { DemoFill, DemoBalanceEvidence } from "./demo-ledger.js";
 import { sameDemoAccount } from "./okx-demo-identity.js";
 import { accountForDemoEvidence } from "./demo-accounting-evidence.js";
 
@@ -39,7 +39,7 @@ export function inspectDemoAccounting(persistence: AccountingStore, executor: Ac
 
 /** On-demand read-only inspection; confirms P&L only with a stable bounded balance window. */
 async function inspectDemoAccountingOnce(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint" | "saveDemoAccountingCheckpoint">>, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity" | "collectAccountCoverage" | "collectAccountBalances">) {
-  const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
+  const unavailable = (reason: string): { status: "unavailable"; reason: string; balanceEvidence?: DemoBalanceEvidence } => ({ status: "unavailable", reason });
   const rows = await persistence.demoOrderJournal();
   if (!rows.length && !persistence.saveDemoAccountingCheckpoint) return unavailable("journal_empty");
   if (rows.some((row) => row.status === "PENDING")) return unavailable("pending_order");
@@ -150,7 +150,7 @@ async function inspectDemoAccountingOnce(persistence: Pick<PostgresPersistence, 
     buys: evidence.buys.map(withExecution), protections: evidence.protections,
     sells: evidence.sells.map(withExecution), fills: collectedFills,
   });
-  if (accounting.status !== "confirmed") return unavailable(accounting.reason);
+  if (accounting.status !== "confirmed") return { ...unavailable(accounting.reason), ...(accounting.balanceEvidence ? { balanceEvidence: accounting.balanceEvidence } : {}) };
   const totalPnl = pnlOffset + accounting.realizedPnlUsdt;
   if (originalBaseline) {
     const saved = await persistence.saveDemoAccountingCheckpoint?.({ baselineAt: originalBaseline.observedAt, previousObservedAt: baseline.observedAt.getTime(), observedAt: after.endedAt,

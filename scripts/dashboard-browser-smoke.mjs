@@ -1,13 +1,13 @@
 const { chromium } = await import(process.env.DASHBOARD_BROWSER_MODULE);
 const { startDashboard, stopDashboard } = await import('../dist/dashboard.js');
-let paused=true,release;
+let paused=true,release,resumeMode='pending';
 const gate=new Promise(resolve=>release=resolve);
 const slowDiagnostics=()=>new Promise(()=>{});
 const persistence={
  getDashboardData:async()=>({paused,settings:{symbol:'BTC/USDT',orderSizeUsdt:10,maxTrades:10,maxConcurrentPositions:10,intervalMinutes:15},metrics:{},health:{},orders:[],trades:[],snapshots:[]}),
  latestDemoDecision:async()=>null,latestDemoReconciliation:async()=>null,readControlState:async()=>({paused,pauseReason:null}),setPaused:async(value)=>{paused=value;return true}
 };
-const server=await startDashboard({port:0,host:'127.0.0.1',password:'test-only-password',sessionSecret:'test-only-secret'.repeat(4),persistence,supportedSymbols:['BTC/USDT'],onSettingsChanged(){},inspectDemoAccounting:slowDiagnostics,inspectDemoPositions:slowDiagnostics,onResume:async(signal)=>{await gate;if(signal?.aborted)return{status:'blocked',reason:'resume_cancelled'};paused=false;return{status:'resumed'}}});
+const server=await startDashboard({port:0,host:'127.0.0.1',password:'test-only-password',sessionSecret:'test-only-secret'.repeat(4),persistence,supportedSymbols:['BTC/USDT'],onSettingsChanged(){},inspectDemoAccounting:slowDiagnostics,inspectDemoPositions:slowDiagnostics,onResume:async(signal,progress)=>{progress?.('checking_accounting');await gate;if(signal?.aborted)return{status:'blocked',reason:'resume_cancelled'};if(resumeMode==='blocked')return{status:'blocked',reason:'demo_bot_risk_attribution_unconfirmed',attributionReason:'position_balance_missing',balanceEvidence:{asset:'SOL',expected:.5,actual:null,source:'bot_position'}};paused=false;return{status:'resumed'}}});
 let browser;
 try { browser=await chromium.launch({executablePath:process.env.DASHBOARD_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];page.on('pageerror',error=>errors.push(String(error)));
@@ -21,6 +21,14 @@ try { browser=await chromium.launch({executablePath:process.env.DASHBOARD_BROWSE
  console.log(JSON.stringify({check:'resume acknowledges while safety check pending',milliseconds:Date.now()-resumeStart,paused}));
  await page.locator('#keep-paused').click();await page.waitForFunction(()=>!document.getElementById('toggle-bot').disabled);release();await page.waitForTimeout(100);
  if(!paused)throw new Error('late resume overrode pause');
+ resumeMode='blocked';await page.locator('#toggle-bot').click();await page.locator('#control-message').filter({hasText:'SOL: esperado 0.5; lido não informado'}).waitFor();
+ if(!paused)throw new Error('safety blocker was ignored');
+ await page.locator('#keep-paused').click();await page.locator('#control-message').filter({hasText:'Pausa mantida por você'}).waitFor();
+ if((await page.locator('#control-message').textContent()).includes('SOL: esperado'))throw new Error('old blocker survived a confirmed manual pause');
+ resumeMode='safe';await page.locator('#toggle-bot').click();await page.waitForFunction(()=>document.getElementById('connection').textContent.includes('Online'));
+ if(paused)throw new Error('confirmed safe resume did not run');
+ console.log(JSON.stringify({check:'blocked resume details, manual pause and safe retry',passed:true}));
+
  await page.route('**/api/dashboard?*',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'diagnostic unavailable'})}));
  await page.evaluate(()=>load());
  if(!await page.locator('#dashboard').isVisible()||await page.locator('#login').isVisible())throw new Error('data failure ended session');

@@ -42,6 +42,20 @@ describe("accounting from Demo evidence", () => {
     expect(accountForDemoEvidence({ ...evidence, positionBalances: { BTC: 0.5 } })).toMatchObject({ reason: "quote_balance_missing" });
     expect(accountForDemoEvidence({ ...evidence, baseline: { ...evidence.baseline, balances: { BTC: 0 } } })).toMatchObject({ reason: "quote_balance_missing" });
   });
+  it("accepts an omitted base only after confirmed fills reconstruct an exactly flat position", () => {
+    const closed = { ...evidence, sells: [{ ...sell, filled: 1 }], fills: [fills[0]!, { ...fills[1]!, amount: 1, costUsdt: 120, fees: [{ currency: 'USDT', cost: 1.2 }] }], positionBalances: { USDT: 117.8 } };
+    expect(accountForDemoEvidence(closed)).toMatchObject({ status: 'confirmed', closedTrades: [{ buyOrderId: 'b', netPnlUsdt: expect.closeTo(17.8) }], positions: { 'BTC/USDT': { quantity: 0, costUsdt: 0 } } });
+    expect(accountForDemoEvidence({ ...closed, baseline: { ...closed.baseline, balances: { BTC: 1, USDT: 100 } } }))
+      .toMatchObject({ reason: 'position_balance_missing', balanceEvidence: { asset: 'BTC', expected: 1, actual: null, source: 'bot_position' } });
+    expect(accountForDemoEvidence({ ...closed, positionBalances: { USDT: 117.8, BTC: NaN } })).toMatchObject({ reason: 'position_balance_missing' });
+    expect(accountForDemoEvidence({ ...closed, fills: [fills[0]!] })).toMatchObject({ reason: 'order_fill_total_mismatch' });
+    expect(accountForDemoEvidence({ ...closed, positionBalances: {} })).toMatchObject({ reason: 'quote_balance_missing' });
+  });
+  it("permits omitted legacy zero balances but never forgives positive inventory or dust", () => {
+    expect(accountForDemoEvidence({ ...evidence, baseline: { ...evidence.baseline, balances: { ...evidence.baseline.balances, SOL: 0 } } })).toMatchObject({ status: 'confirmed' });
+    expect(accountForDemoEvidence({ ...evidence, positionBalances: { USDT: 58.4 } })).toMatchObject({ reason: 'position_balance_missing', balanceEvidence: { asset: 'BTC', expected: .5, actual: null } });
+    expect(accountForDemoEvidence({ ...evidence, baseline: { ...evidence.baseline, balances: { ...evidence.baseline.balances, SOL: 1e-12 } } })).toMatchObject({ reason: 'position_balance_missing', balanceEvidence: { asset: 'SOL', expected: 1e-12, actual: null, source: 'baseline' } });
+  });
   it("rejects unowned orders, missing executions and unknown fees", () => {
     expect(accountForDemoEvidence({ ...evidence, protections: [] }).status).toBe("unavailable");
     expect(accountForDemoEvidence({ ...evidence, buys: [buy, { ...buy, id: "other" }] })).toMatchObject({ reason: "unattributed_buy" });

@@ -1,3 +1,5 @@
+import type { DemoEquityRiskResult } from './demo-entry.js';
+import type { DemoBalanceEvidence } from './demo-ledger.js';
 import { DemoSymbolAccess } from './demo-symbol-access.js';
 import { ProtectionAlertJournal } from "./protection-alerts.js";
 import { effectiveExecutionSnapshot, executionFidelityReport, TradingTermsCache, type EffectiveExecutionSnapshot, type TradingTerms } from "./execution-fidelity.js";
@@ -134,7 +136,7 @@ async function main(): Promise<void> {
     maxConcurrentPositions: config.MAX_CONCURRENT_POSITIONS,
   };
 
-  let lastAutoCheck: { revision: string; checkedAt: number; reason: string } | undefined;
+  let lastAutoCheck: { revision: string; checkedAt: number; reason: string; attributionReason?: string; balanceEvidence?: DemoBalanceEvidence } | undefined;
   const nextAutoResume = (control: Awaited<ReturnType<PostgresPersistence["readControlState"]>>) =>
     autoResumeAt(control, config.AUTO_RESUME_LOSS_COOLDOWN_MINUTES, Boolean(okxDemo));
 
@@ -148,6 +150,8 @@ async function main(): Promise<void> {
     const currentBot = bot;
     const executor = okxDemo;
     let reason = exitsReady ? undefined : protectionReason ?? "demo_protections_unconfirmed";
+    let attributionReason: string | undefined;
+    let balanceEvidence: DemoBalanceEvidence | undefined;
     try {
       if (!reason && executor) {
         const safety = await inspectDemoResume(persistence, executor, {
@@ -158,7 +162,9 @@ async function main(): Promise<void> {
         });
         if (safety.status === "blocked") {
           reason = safety.reason;
-          if (lastAutoCheck?.revision !== control.revision || lastAutoCheck.reason !== reason) await persistence.recordOperationalEvent({
+          attributionReason = safety.attributionReason;
+          balanceEvidence = safety.balanceEvidence;
+          if (lastAutoCheck?.revision !== control.revision || lastAutoCheck.reason !== reason || lastAutoCheck.attributionReason !== attributionReason || JSON.stringify(lastAutoCheck.balanceEvidence) !== JSON.stringify(balanceEvidence)) await persistence.recordOperationalEvent({
             eventType: "DEMO_RISK_RESUME_BLOCKED", severity: "WARN", details: { ...safety },
           });
         }
@@ -176,10 +182,10 @@ async function main(): Promise<void> {
     }
     if (stopping || reconfiguring || currentBot !== bot || executor !== okxDemo) return false;
     if (reason) {
-      if (lastAutoCheck?.revision !== control.revision || lastAutoCheck.reason !== reason) {
-        await persistence.recordOperationalEvent({ eventType: "AUTO_RESUME_BLOCKED", severity: "INFO", details: { reason, pauseReason: control.pauseReason } });
+      if (lastAutoCheck?.revision !== control.revision || lastAutoCheck.reason !== reason || lastAutoCheck.attributionReason !== attributionReason || JSON.stringify(lastAutoCheck.balanceEvidence) !== JSON.stringify(balanceEvidence)) {
+        await persistence.recordOperationalEvent({ eventType: "AUTO_RESUME_BLOCKED", severity: "INFO", details: { reason, pauseReason: control.pauseReason, ...(attributionReason ? { attributionReason } : {}), ...(balanceEvidence ? { balanceEvidence } : {}) } });
       }
-      lastAutoCheck = { revision: control.revision, checkedAt: Date.now(), reason };
+      lastAutoCheck = { revision: control.revision, checkedAt: Date.now(), reason, ...(attributionReason ? { attributionReason } : {}), ...(balanceEvidence ? { balanceEvidence } : {}) };
       return false;
     }
     if (!await persistence.setPaused(false, "system:auto_resume", undefined, control.revision)) return false;
@@ -610,26 +616,33 @@ async function main(): Promise<void> {
           cooldownMinutes: config.AUTO_RESUME_LOSS_COOLDOWN_MINUTES,
           demo: Boolean(okxDemo),
         }, lastAutoCheck),
-        ...(okxDemo ? { onResume: async (signal?: AbortSignal) => {
+        ...(okxDemo ? { onResume: async (signal?: AbortSignal, progress?: (phase: string) => void) => {
           if (reconfiguring || !okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
           const control = await persistence.readControlState();
           if (signal?.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
+          if (!control.paused) return { status: 'resumed' as const };
+          progress?.('waiting_cycle');
           await activeCycle;
           if (signal?.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
           if (reconfiguring || !okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
           const currentBot = bot;
           const currentExecutor = okxDemo;
+          progress?.('reconciling_orders');
           await reconcilePendingDemoOrders(persistence, currentExecutor);
+          if (signal?.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
+          progress?.('checking_accounting');
           const resume = await inspectDemoResume(persistence, currentExecutor, {
             ...(demoBotBudget ? { botBudgetUsdt: demoBotBudget.usdt } : {}),
             inspectAccounting: () => inspectDemoAccounting(persistence, currentExecutor),
             maxDailyLoss: config.RISK_MAX_DAILY_LOSS_PERCENT,
             maxDrawdown: config.RISK_MAX_DRAWDOWN_PERCENT,
           });
-          let safety = resume.status === "safe" ? await auditDemoProtections(persistence, currentExecutor) : resume;
+          if (signal?.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
+          progress?.('checking_protections');
+          let safety: DemoEquityRiskResult = resume.status === "safe" ? await auditDemoProtections(persistence, currentExecutor) : resume;
           if (safety.status === "safe" && config.OKX_DEMO_RECOVERY_SELL) {
             const accounting = await inspectDemoAccounting(persistence, currentExecutor);
-            if (accounting.status !== "confirmed") safety = { status: "blocked", reason: accounting.reason };
+            if (accounting.status !== "confirmed") safety = { status: "blocked", reason: "demo_bot_risk_attribution_unconfirmed", attributionReason: accounting.reason, ...(accounting.balanceEvidence ? { balanceEvidence: accounting.balanceEvidence } : {}) };
           }
           if (signal?.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
           if (reconfiguring || currentBot !== bot || currentExecutor !== okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
@@ -638,6 +651,7 @@ async function main(): Promise<void> {
             await persistence.setPaused(true, "system:demo_execution_safety", safety.reason);
             return safety;
           }
+          progress?.('applying_state');
           if (!await persistence.setPaused(false, 'dashboard', undefined, control.revision)) {
             return { status: 'blocked' as const, reason: 'control_changed_during_resume' };
           }

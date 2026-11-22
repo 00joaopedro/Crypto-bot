@@ -58,6 +58,46 @@ describe("dashboard authentication", () => {
     } finally { release(); }
   });
 
+  networkTest("reports resume phase and exact attribution, and a manual pause clears the previous blocker", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    let paused = true;
+    const persistence = { setPaused: async (value: boolean) => { paused = value; return true; }, readControlState: async () => ({ paused, pauseReason: null }) } as unknown as PostgresPersistence;
+    server = await startDashboard({ port: 0, host: '127.0.0.1', password: 'password', sessionSecret: 's'.repeat(32), persistence, supportedSymbols: [], onSettingsChanged() {},
+      onResume: async (_signal, progress) => { progress?.('checking_accounting'); await gate; return { status: 'blocked', reason: 'demo_bot_risk_attribution_unconfirmed', attributionReason: 'position_balance_missing', balanceEvidence: { asset: 'SOL', expected: .5, actual: null, source: 'bot_position' } }; } });
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const login = await fetch(`${base}/api/login`, { method: 'POST', body: JSON.stringify({ password: 'password' }) });
+    const headers = { cookie: login.headers.get('set-cookie')!.split(';')[0]!, origin: base };
+    try {
+      expect((await fetch(`${base}/api/control?async=1`, { method: 'POST', headers, body: JSON.stringify({ paused: false }) })).status).toBe(202);
+      const status = async () => (await fetch(`${base}/api/control-status`, { headers })).json();
+      expect(await status()).toMatchObject({ paused: true, job: { phase: 'checking_accounting', status: 'pending' } });
+      release();await vi.waitFor(async () => expect(await status()).toMatchObject({ paused: true, job: { status: 'blocked', attributionReason: 'position_balance_missing', balanceEvidence: { asset: 'SOL', expected: .5, actual: null } } }));
+      await fetch(`${base}/api/control?async=1`, { method: 'POST', headers, body: JSON.stringify({ paused: true }) });
+      expect(await status()).toMatchObject({ paused: true, job: null });
+    } finally { release(); }
+  });
+
+  networkTest("ends an overlong check safely and never reports its late result as a successful resume", async () => {
+    let release!: () => void, paused = true;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const setPaused = vi.fn(async (value: boolean) => { paused = value; return true; });
+    const persistence = { setPaused, readControlState: async () => ({ paused, pauseReason: null }) } as unknown as PostgresPersistence;
+    server = await startDashboard({ port: 0, host: '127.0.0.1', password: 'password', sessionSecret: 's'.repeat(32), persistence, supportedSymbols: [], onSettingsChanged() {}, resumeCheckTimeoutMs: 100,
+      onResume: async signal => { await gate; if (!signal?.aborted) { paused = false; return { status: 'resumed' }; } return { status: 'blocked', reason: 'resume_cancelled' }; } });
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const login = await fetch(`${base}/api/login`, { method: 'POST', body: JSON.stringify({ password: 'password' }) });
+    const headers = { cookie: login.headers.get('set-cookie')!.split(';')[0]!, origin: base };
+    try {
+      expect((await fetch(`${base}/api/control?async=1`, { method: 'POST', headers, body: JSON.stringify({ paused: false }) })).status).toBe(202);
+      const status = async () => (await fetch(`${base}/api/control-status`, { headers })).json();
+      await vi.waitFor(async () => expect(await status()).toMatchObject({ paused: true, job: { status: 'failed', phase: 'timeout', reason: 'resume_check_timeout' } }));
+      expect(setPaused).toHaveBeenCalledWith(true, 'dashboard');
+      release();await new Promise(resolve => setTimeout(resolve, 5));
+      expect(await status()).toMatchObject({ paused: true, job: { status: 'failed', reason: 'resume_check_timeout' } });
+    } finally { release(); }
+  });
+
   networkTest("exports complete UTF-8 JSON and TXT with matching byte length", async () => {
     const content = JSON.stringify({ generatedAt: "2026-11-02T17:48:40Z", scope: { hours: 24 }, records: [{ details: "Proteção e ação" }] }, null, 2);
     const persistence = { getDiagnosticLogs: vi.fn(async () => content) } as unknown as PostgresPersistence;

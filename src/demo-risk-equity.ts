@@ -1,6 +1,7 @@
+import type { DemoBalanceEvidence } from './demo-ledger.js';
 import type { OkxDemoAccountSnapshot } from './okx-demo.js';
 
-export type DemoRiskAccounting = { status: 'unavailable'; reason: string } | {
+export type DemoRiskAccounting = { status: 'unavailable'; reason: string; balanceEvidence?: DemoBalanceEvidence } | {
   status: 'confirmed'; realizedPnlUsdt: number; confirmedThrough: number;
   positions: Record<string, { quantity: number; costUsdt: number }>;
 };

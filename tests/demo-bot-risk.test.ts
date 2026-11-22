@@ -137,6 +137,14 @@ describe('attributed Demo risk', () => {
     expect(s.persistence.observeDemoRisk).not.toHaveBeenCalled();
   });
 
+  it('preserves the exact missing balance diagnostic without booking a loss or authorizing resume', async () => {
+    const s = setup();
+    const options = { ...s.options, inspectAccounting: async () => ({ status: 'unavailable' as const, reason: 'position_balance_missing', balanceEvidence: { asset: 'SOL', expected: .5, actual: null, source: 'bot_position' as const } }) };
+    expect(await inspectDemoResume(s.persistence, s.executor, { ...options, maxDailyLoss: .03, maxDrawdown: .1 }))
+      .toMatchObject({ status: 'blocked', reason: 'demo_bot_risk_attribution_unconfirmed', attributionReason: 'position_balance_missing', balanceEvidence: { asset: 'SOL', expected: .5, actual: null } });
+    expect(s.persistence.observeDemoRisk).not.toHaveBeenCalled();
+  });
+
   it('rejects a baseline replaced during reconciliation without writing risk', async () => {
     const s = setup();
     const initial = { ...s.baseline };

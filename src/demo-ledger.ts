@@ -19,8 +19,15 @@ export type ConfirmedDemoTrade = {
   netPnlUsdt: number;
 };
 
+export type DemoBalanceEvidence = {
+  asset: string;
+  expected: number;
+  actual: number | null;
+  source: 'bot_position' | 'baseline' | 'quote';
+};
+
 export type DemoLedgerResult =
-  | { status: "unavailable"; reason: string }
+  | { status: "unavailable"; reason: string; balanceEvidence?: DemoBalanceEvidence }
   | { status: "confirmed"; realizedPnlUsdt: number; closedTrades: ConfirmedDemoTrade[]; positions: Record<string, { quantity: number; costUsdt: number }> };
 
 type Buy = { orderId: string; openedAt: number; openLots: number; netPnlUsdt: number };

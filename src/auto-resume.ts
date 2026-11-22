@@ -1,3 +1,4 @@
+import type { DemoBalanceEvidence } from './demo-ledger.js';
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import type { PublicMarketData } from "./market-data.js";
 import type { PostgresPersistence } from "./persistence.js";
@@ -38,14 +39,14 @@ export function autoResumeAt(control: PauseControl, cooldownMinutes: number, dem
 export function describeAutoResume(
   control: PauseControl,
   options: { enabled: boolean; cooldownMinutes: number; demo: boolean },
-  lastCheck?: { revision: string; checkedAt: number; reason: string },
+  lastCheck?: { revision: string; checkedAt: number; reason: string; attributionReason?: string; balanceEvidence?: DemoBalanceEvidence },
 ) {
   const eligibleAt = options.enabled ? autoResumeAt(control, options.cooldownMinutes, options.demo) : null;
   const check = eligibleAt !== null && lastCheck?.revision === control.revision ? lastCheck : undefined;
   return {
     enabled: options.enabled,
     eligibleAt,
-    ...(check ? { checkedAt: check.checkedAt, reason: check.reason } : {}),
+    ...(check ? { checkedAt: check.checkedAt, reason: check.reason, ...(check.attributionReason ? { attributionReason: check.attributionReason } : {}), ...(check.balanceEvidence ? { balanceEvidence: check.balanceEvidence } : {}) } : {}),
   };
 }
 

@@ -1,3 +1,4 @@
+import type { DemoBalanceEvidence } from './demo-ledger.js';
 import { demoBotExposure, demoTradingExposure } from './demo-exposure.js';
 import { botRiskEquity, type DemoRiskOptions } from './demo-risk-equity.js';
 import { DemoRiskBasisChangedError, demoRiskBlock } from './demo-risk.js';
@@ -25,9 +26,9 @@ export type DemoRiskEvidence = {
   realizedPnlUsdt?: number; unrealizedPnlUsdt?: number;
 };
 export type DemoEquityRiskResult = { status: 'safe' } | {
-  status: 'blocked'; reason: string; riskEvidence?: DemoRiskEvidence; attributionReason?: string;
+  status: 'blocked'; reason: string; riskEvidence?: DemoRiskEvidence; attributionReason?: string; balanceEvidence?: DemoBalanceEvidence;
 };
-export type DemoAdmission = { riskEvidence?: DemoRiskEvidence; attributionReason?: string; allowed: boolean; reason?: string; entryRevision?: string; exposurePositions?: VerifiedDemoPosition[]; exposure?: DemoExposure };
+export type DemoAdmission = { riskEvidence?: DemoRiskEvidence; attributionReason?: string; balanceEvidence?: DemoBalanceEvidence; allowed: boolean; reason?: string; entryRevision?: string; exposurePositions?: VerifiedDemoPosition[]; exposure?: DemoExposure };
 
 /** Fresh admission using confirmed Demo balances and persisted account risk. */
 export async function inspectDemoEntry(
@@ -92,7 +93,7 @@ export async function inspectDemoEquityRisk(
     // Transfers or unowned fills are rejected by reconciliation, never booked as a loss.
     const accounting = budget !== undefined ? await options.inspectAccounting?.() : undefined;
     if (budget !== undefined && !accounting) return { status: 'blocked', reason: 'demo_bot_risk_attribution_unconfirmed', attributionReason: 'risk_accounting_unavailable' };
-    if (accounting?.status === 'unavailable') return { status: 'blocked', reason: accounting.reason === 'checkpoint_changed_retry' ? 'demo_accounting_checkpoint_busy' : 'demo_bot_risk_attribution_unconfirmed', attributionReason: accounting.reason };
+    if (accounting?.status === 'unavailable') return { status: 'blocked', reason: accounting.reason === 'checkpoint_changed_retry' ? 'demo_accounting_checkpoint_busy' : 'demo_bot_risk_attribution_unconfirmed', attributionReason: accounting.reason, ...(accounting.balanceEvidence ? { balanceEvidence: accounting.balanceEvidence } : {}) };
     if (budget !== undefined) {
       const currentBaseline = await persistence.getDemoBaselineCandidate();
       if (!currentBaseline || currentBaseline.observedAt.getTime() !== baseline.observedAt.getTime() ||

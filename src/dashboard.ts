@@ -1,3 +1,4 @@
+import type { DemoBalanceEvidence } from './demo-ledger.js';
 import { createSessionCookie, sessionExpires } from './dashboard-session.js';
 import { DashboardRead } from './dashboard-read-cache.js';
 import { MAX_CONCURRENT_POSITIONS, MAX_DEMO_ORDERS_PER_INTERVAL } from "./trading-limits.js";
@@ -40,7 +41,8 @@ type DashboardOptions = {
   demoBotBudgetUsdt?: number;
   paperDefaultTradeSize?: number;
   getAutoResumeStatus?: () => Promise<unknown>;
-  onResume?: (signal?: AbortSignal) => Promise<{ status: "resumed" } | { status: "blocked"; reason: string }>;
+  onResume?: (signal?: AbortSignal, progress?: (phase: string) => void) => Promise<{ status: "resumed" } | { status: "blocked"; reason: string; attributionReason?: string; balanceEvidence?: DemoBalanceEvidence }>;
+  resumeCheckTimeoutMs?: number;
 };
 
 const assets = new Map<string, { file: string; type: string }>([
@@ -64,7 +66,7 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
   const accounting = () => accountingRead.get();
   const demoPositions = () => positionsRead.get();
   let controlRevision = 0;
-  let controlJob: { id: number; status: 'pending' | 'completed' | 'blocked' | 'failed' | 'cancelled'; reason?: string } | null = null;
+  let controlJob: { id: number; status: 'pending' | 'completed' | 'blocked' | 'failed' | 'cancelled'; startedAt: number; phase: string; reason?: string; attributionReason?: string; balanceEvidence?: DemoBalanceEvidence } | null = null;
   let resumeController: AbortController | undefined;
   let resumeWork: Promise<void> | undefined;
   const server = createServer(async (request, response) => {
@@ -179,17 +181,25 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         if (url.searchParams.get('async') === '1') {
           if (paused) {
             resumeController?.abort();
-            if (controlJob?.status === 'pending') controlJob.status = 'cancelled';
+            if (controlJob?.status === 'pending') { controlJob.status = 'cancelled'; controlJob.phase = 'cancelled'; }
+            else controlJob = null;
             await options.persistence.setPaused(true, 'dashboard');
             return json(response, 200, { paused: true, status: 'completed' });
           }
           if (resumeWork) return json(response, 202, { paused: true, job: controlJob });
           const controller = new AbortController(); resumeController = controller;
-          const job: NonNullable<typeof controlJob> = { id: ++controlRevision, status: 'pending' };
+          const job: NonNullable<typeof controlJob> = { id: ++controlRevision, status: 'pending', startedAt: Date.now(), phase: 'queued' };
           controlJob = job;
+          const deadline = setTimeout(() => {
+            if (job.status !== 'pending') return;
+            controller.abort(); job.status = 'failed'; job.phase = 'timeout'; job.reason = 'resume_check_timeout';
+            // Fence a late commit as well as aborting the checks. A timeout never authorizes trading.
+            void options.persistence.setPaused(true, 'dashboard').catch(() => undefined);
+            console.warn(JSON.stringify({ event: 'dashboard_resume_timeout', jobId: job.id, elapsedMs: Date.now() - job.startedAt }));
+          }, options.resumeCheckTimeoutMs ?? 120_000);
           resumeWork = Promise.resolve().then(async () => {
             if (controller.signal.aborted) return;
-            const result = options.onResume ? await options.onResume(controller.signal) : await (async () => {
+            const result: Awaited<ReturnType<NonNullable<DashboardOptions['onResume']>>> = options.onResume ? await options.onResume(controller.signal, phase => { if (!controller.signal.aborted && job.status === 'pending') job.phase = phase; }) : await (async () => {
               const control = await options.persistence.readControlState();
               if (controller.signal.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
               const changed = await options.persistence.setPaused(false, 'dashboard', undefined, control.revision);
@@ -197,10 +207,14 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
                 { status: 'blocked' as const, reason: 'control_changed_during_resume' };
             })();
             if (controller.signal.aborted) return;
-            if (result.status === 'blocked') { job.status = 'blocked'; job.reason = result.reason; }
-            else job.status = 'completed';
+            if (result.status === 'blocked') {
+              job.status = 'blocked'; job.reason = result.reason;
+              if (result.attributionReason) job.attributionReason = result.attributionReason;
+              if (result.balanceEvidence) job.balanceEvidence = result.balanceEvidence;
+            } else job.status = 'completed';
+            job.phase = job.status;
           }).catch(() => { if (!controller.signal.aborted) { job.status = 'failed'; job.reason = 'resume_check_failed'; } })
-            .finally(() => { if (controller.signal.aborted) job.status = 'cancelled'; resumeWork = undefined; });
+            .finally(() => { clearTimeout(deadline); if (controller.signal.aborted && job.status === 'pending') { job.status = 'cancelled'; job.phase = 'cancelled'; } resumeWork = undefined; });
           return json(response, 202, { paused: true, job });
         }
         const result = await serializeControl(async () => {

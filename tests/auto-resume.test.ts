@@ -55,3 +55,11 @@ it("only schedules a new safety check for reconciliable exit pauses, never a man
  expect(autoResumeAt({...p,updatedBy:"dashboard"},120,true)).toBeNull();
  expect(autoResumeAt(p,120,false)).toBeNull();
 });
+
+it('exposes the attribution detail only for the current recheckable pause revision', () => {
+  const paused: PauseControl = { ...control, updatedBy: 'system:demo_execution_safety', pauseReason: 'demo_bot_risk_attribution_unconfirmed' };
+  const options = { enabled: true, cooldownMinutes: 120, demo: true };
+  const check = { revision: paused.revision, checkedAt: now, reason: paused.pauseReason!, attributionReason: 'position_balance_missing', balanceEvidence: { asset: 'SOL', expected: .5, actual: null, source: 'bot_position' as const } };
+  expect(describeAutoResume(paused, options, check)).toMatchObject({ attributionReason: check.attributionReason, balanceEvidence: check.balanceEvidence });
+  expect(describeAutoResume({ ...paused, revision: 'next' }, options, check)).not.toHaveProperty('balanceEvidence');
+});
