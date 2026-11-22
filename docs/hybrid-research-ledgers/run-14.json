@@ -1,0 +1,783 @@
+{
+  "variant": "hybrid",
+  "scenario": {
+    "name": "account-conditioned",
+    "feeRate": 0.004,
+    "slippageRate": 0.001,
+    "spreadRate": 0.0015,
+    "assumedDepthUsdt": 1000,
+    "maxParticipationRate": 0.001,
+    "symbolCosts": {
+      "BTC/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "ETH/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "SOL/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "XRP/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "DOGE/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "SUI/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "NEAR/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "AVAX/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "LINK/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "DOT/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "AAVE/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "LTC/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "UNI/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "ATOM/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "APT/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "ARB/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "OP/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "FIL/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "INJ/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      },
+      "TON/USDT": {
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "entryFeeCurrency": "base"
+      }
+    }
+  },
+  "result": {
+    "status": "offline_research_only",
+    "closedTrades": 19,
+    "realizedPnlUsdt": -1.4279343584715036,
+    "winRatePercent": 36.8421052631579,
+    "profitFactor": 0.25588374495190924,
+    "expectancyUsdt": -0.07515443991955283,
+    "topWinningTradePnLsUsdt": [
+      0.16231034958039103,
+      0.09296504845274178,
+      0.07534426133455518
+    ],
+    "top3TradesProfitSharePercent": 67.33153633619158,
+    "realizedPnlWithoutTop3Usdt": -1.7585540178391916,
+    "top3ProfitConcentrationWarning": true,
+    "netReturnUsdt": -1.4279343584715054,
+    "netReturnPercent": -8.399613873361796,
+    "finalEquityUsdt": 15.572065641528495,
+    "maxDrawdownUsdt": 1.4279343584715054,
+    "maxDrawdownPercent": 8.399613873361796,
+    "recoveryFactor": -1,
+    "feesUsdt": 1.5172977810440162,
+    "peakExposureRate": 0.6382487817410221,
+    "peakConcurrentPositions": 1,
+    "byMode": [
+      {
+        "strategy_mode": "BASELINE",
+        "closedTrades": 0,
+        "realizedPnlUsdt": 0,
+        "winRatePercent": null,
+        "profitFactor": null,
+        "expectancyUsdt": null,
+        "topWinningTradePnLsUsdt": [],
+        "top3TradesProfitSharePercent": null,
+        "realizedPnlWithoutTop3Usdt": 0,
+        "top3ProfitConcentrationWarning": false
+      },
+      {
+        "strategy_mode": "TREND_PULLBACK",
+        "closedTrades": 2,
+        "realizedPnlUsdt": -0.04382214055028655,
+        "winRatePercent": 50,
+        "profitFactor": 0.7874078922614017,
+        "expectancyUsdt": -0.021911070275143274,
+        "topWinningTradePnLsUsdt": [
+          0.16231034958039103
+        ],
+        "top3TradesProfitSharePercent": 100,
+        "realizedPnlWithoutTop3Usdt": -0.20613249013067758,
+        "top3ProfitConcentrationWarning": true
+      },
+      {
+        "strategy_mode": "MEAN_REVERSION",
+        "closedTrades": 17,
+        "realizedPnlUsdt": -1.384112217921217,
+        "winRatePercent": 35.294117647058826,
+        "profitFactor": 0.19191702147877607,
+        "expectancyUsdt": -0.0814183657600716,
+        "topWinningTradePnLsUsdt": [
+          0.09296504845274178,
+          0.07534426133455518,
+          0.07237961480228527
+        ],
+        "top3TradesProfitSharePercent": 73.21958587687631,
+        "realizedPnlWithoutTop3Usdt": -1.6248011425107993,
+        "top3ProfitConcentrationWarning": true
+      }
+    ],
+    "blocks": [
+      {
+        "name": "D1-D10",
+        "complete": true,
+        "candles": 960,
+        "netReturnUsdt": -0.4927044974526851,
+        "closedTrades": 5,
+        "realizedPnlUsdt": -0.4927044974526833,
+        "winRatePercent": 20,
+        "profitFactor": 0.12808644453558315,
+        "expectancyUsdt": -0.09854089949053665,
+        "topWinningTradePnLsUsdt": [
+          0.07237961480228527
+        ],
+        "top3TradesProfitSharePercent": 100,
+        "realizedPnlWithoutTop3Usdt": -0.5650841122549686,
+        "top3ProfitConcentrationWarning": true
+      },
+      {
+        "name": "D11-D20",
+        "complete": true,
+        "candles": 960,
+        "netReturnUsdt": -0.3189056919520894,
+        "closedTrades": 8,
+        "realizedPnlUsdt": -0.31890569195209295,
+        "winRatePercent": 50,
+        "profitFactor": 0.47716603786742295,
+        "expectancyUsdt": -0.03986321149401162,
+        "topWinningTradePnLsUsdt": [
+          0.16231034958039103,
+          0.07534426133455518,
+          0.037447459920720405
+        ],
+        "top3TradesProfitSharePercent": 94.52046599701781,
+        "realizedPnlWithoutTop3Usdt": -0.5940077627877596,
+        "top3ProfitConcentrationWarning": true
+      },
+      {
+        "name": "D21-D30",
+        "complete": true,
+        "candles": 960,
+        "netReturnUsdt": -0.6163241690667309,
+        "closedTrades": 6,
+        "realizedPnlUsdt": -0.6163241690667274,
+        "winRatePercent": 33.333333333333336,
+        "profitFactor": 0.17152566124242258,
+        "expectancyUsdt": -0.10272069484445456,
+        "topWinningTradePnLsUsdt": [
+          0.09296504845274178,
+          0.034637468237628255
+        ],
+        "top3TradesProfitSharePercent": 100,
+        "realizedPnlWithoutTop3Usdt": -0.7439266857570974,
+        "top3ProfitConcentrationWarning": true
+      }
+    ],
+    "entries": [
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1793141100000,
+        "entryTimestamp": 1793142000000,
+        "stopPrice": 7.847567116389,
+        "targetPrice": 8.05385,
+        "notionalUsdt": 9.999293768038577,
+        "estimatedInitialLossUsdt": 0.2160259699565774
+      },
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1793353500000,
+        "entryTimestamp": 1793354400000,
+        "stopPrice": 7.10625954038,
+        "targetPrice": 7.303050000000001,
+        "notionalUsdt": 9.9998306062655,
+        "estimatedInitialLossUsdt": 0.2160375678755262
+      },
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1793385900000,
+        "entryTimestamp": 1793386800000,
+        "stopPrice": 6.894457375806,
+        "targetPrice": 7.0977000000000015,
+        "notionalUsdt": 9.9997544732085,
+        "estimatedInitialLossUsdt": 0.21603592308761854
+      },
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1793637000000,
+        "entryTimestamp": 1793637900000,
+        "stopPrice": 6.962748727935001,
+        "targetPrice": 7.150399999999999,
+        "notionalUsdt": 9.999437419096125,
+        "estimatedInitialLossUsdt": 0.2160290734116579
+      },
+      {
+        "symbol": "UNI/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1793645100000,
+        "entryTimestamp": 1793646000000,
+        "stopPrice": 7.037968188251,
+        "targetPrice": 7.202399999999998,
+        "notionalUsdt": 9.999998253260516,
+        "estimatedInitialLossUsdt": 0.21604118974178732
+      },
+      {
+        "symbol": "UNI/USDT",
+        "strategy_mode": "TREND_PULLBACK",
+        "decisionTimestamp": 1793683800000,
+        "entryTimestamp": 1793684700000,
+        "stopPrice": 6.92422239584075,
+        "targetPrice": 7.2679203966966535,
+        "notionalUsdt": 9.999998390500368,
+        "estimatedInitialLossUsdt": 0.20613840202070577
+      },
+      {
+        "symbol": "AAVE/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1793920500000,
+        "entryTimestamp": 1793921400000,
+        "stopPrice": 126.41817981793,
+        "targetPrice": 129.69350000000003,
+        "notionalUsdt": 9.999959521569517,
+        "estimatedInitialLossUsdt": 0.21604035297757918
+      },
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "TREND_PULLBACK",
+        "decisionTimestamp": 1794182400000,
+        "entryTimestamp": 1794183300000,
+        "stopPrice": 8.03780459256775,
+        "targetPrice": 8.436777533037622,
+        "notionalUsdt": 9.9997115982764,
+        "estimatedInitialLossUsdt": 0.20613249013067758
+      },
+      {
+        "symbol": "FIL/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794210300000,
+        "entryTimestamp": 1794211200000,
+        "stopPrice": 0.7327959002364,
+        "targetPrice": 0.7546200000000001,
+        "notionalUsdt": 9.999999865277822,
+        "estimatedInitialLossUsdt": 0.21604122456800567
+      },
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794217500000,
+        "entryTimestamp": 1794218400000,
+        "stopPrice": 7.840639008201999,
+        "targetPrice": 8.026549999999999,
+        "notionalUsdt": 9.99998908323415,
+        "estimatedInitialLossUsdt": 0.21604099163140944
+      },
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794302100000,
+        "entryTimestamp": 1794303000000,
+        "stopPrice": 7.872310359914,
+        "targetPrice": 8.0625,
+        "notionalUsdt": 9.9997464592025,
+        "estimatedInitialLossUsdt": 0.21603574995205044
+      },
+      {
+        "symbol": "UNI/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794325500000,
+        "entryTimestamp": 1794326400000,
+        "stopPrice": 6.75985413103,
+        "targetPrice": 6.968,
+        "notionalUsdt": 9.999993160359702,
+        "estimatedInitialLossUsdt": 0.21604107971413278
+      },
+      {
+        "symbol": "NEAR/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794379500000,
+        "entryTimestamp": 1794380400000,
+        "stopPrice": 3.57292436501,
+        "targetPrice": 3.6645499999999993,
+        "notionalUsdt": 9.999999980779684,
+        "estimatedInitialLossUsdt": 0.21604122706332163
+      },
+      {
+        "symbol": "NEAR/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794753900000,
+        "entryTimestamp": 1794754800000,
+        "stopPrice": 3.092905440625,
+        "targetPrice": 3.17215,
+        "notionalUsdt": 9.999999996056383,
+        "estimatedInitialLossUsdt": 0.21604122739335985
+      },
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794810600000,
+        "entryTimestamp": 1794811500000,
+        "stopPrice": 6.618322778067,
+        "targetPrice": 6.82735,
+        "notionalUsdt": 9.9998302055652,
+        "estimatedInitialLossUsdt": 0.2160375592187478
+      },
+      {
+        "symbol": "OP/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794897900000,
+        "entryTimestamp": 1794898800000,
+        "stopPrice": 0.07698117925498,
+        "targetPrice": 0.07910750000000001,
+        "notionalUsdt": 9.999995434333904,
+        "estimatedInitialLossUsdt": 0.21604112884134885
+      },
+      {
+        "symbol": "NEAR/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794930300000,
+        "entryTimestamp": 1794931200000,
+        "stopPrice": 3.1404124681930004,
+        "targetPrice": 3.2459499999999992,
+        "notionalUsdt": 9.99999997468904,
+        "estimatedInitialLossUsdt": 0.216041226931738
+      },
+      {
+        "symbol": "FIL/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1795140000000,
+        "entryTimestamp": 1795140900000,
+        "stopPrice": 0.5545455738823001,
+        "targetPrice": 0.5686249999999999,
+        "notionalUsdt": 9.999999658416293,
+        "estimatedInitialLossUsdt": 0.21604122009894233
+      },
+      {
+        "symbol": "AVAX/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1795141800000,
+        "entryTimestamp": 1795142700000,
+        "stopPrice": 6.7974638611880005,
+        "targetPrice": 6.961899999999999,
+        "notionalUsdt": 9.999998143067934,
+        "estimatedInitialLossUsdt": 0.2160411873611725
+      }
+    ],
+    "closedTradeLedger": [
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1793142000000,
+        "exitTimestamp": 1793146500000,
+        "entryPrice": 7.942881696750001,
+        "exitPrice": 7.9390762852500005,
+        "quantity": 1.2538644,
+        "reason": "TIME_STOP",
+        "grossProceedsUsdt": 9.954525122959222,
+        "feesUsdt": 0.07981527556399119,
+        "netPnlUsdt": -0.08458674557119217,
+        "netPnlPercent": -0.8459271977943337,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 6,
+        "exitTimeProxy": 1793147400000
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1793354400000,
+        "exitTimestamp": 1793358900000,
+        "entryPrice": 7.192570385,
+        "exitPrice": 7.215345578999999,
+        "quantity": 1.3847388,
+        "reason": "TIME_STOP",
+        "grossProceedsUsdt": 9.991368978649765,
+        "feesUsdt": 0.07996479833966105,
+        "netPnlUsdt": -0.04842710353033297,
+        "netPnlPercent": -0.484279238690208,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 6,
+        "exitTimeProxy": 1793359800000
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1793386800000,
+        "exitTimestamp": 1793389500000,
+        "entryPrice": 6.9781957245,
+        "exitPrice": 7.085273701725002,
+        "quantity": 1.427268,
+        "reason": "TAKE_PROFIT",
+        "grossProceedsUsdt": 10.112584425713639,
+        "feesUsdt": 0.08044935559568855,
+        "netPnlUsdt": 0.07237961480228527,
+        "netPnlPercent": 0.7238139195937848,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 4,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1793637900000,
+        "exitTimestamp": 1793641500000,
+        "entryPrice": 7.04731652625,
+        "exitPrice": 6.950558695599568,
+        "quantity": 1.4132244,
+        "reason": "STOP_LOSS",
+        "grossProceedsUsdt": 9.822699142253482,
+        "feesUsdt": 0.07928854624539844,
+        "netPnlUsdt": -0.2160290734116579,
+        "netPnlPercent": -2.160412274785608,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 5,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1793646000000,
+        "exitTimestamp": 1793647800000,
+        "entryPrice": 7.12344958325,
+        "exitPrice": 7.025646465445419,
+        "quantity": 1.398198744,
+        "reason": "STOP_LOSS",
+        "grossProceedsUsdt": 9.823250063773825,
+        "feesUsdt": 0.07929299326813737,
+        "netPnlUsdt": -0.21604118974178554,
+        "netPnlPercent": -2.1604122747855974,
+        "symbol": "UNI/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 3,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1793684700000,
+        "exitTimestamp": 1793705400000,
+        "entryPrice": 7.00123599175,
+        "exitPrice": 7.172135647178572,
+        "quantity": 1.422605724,
+        "reason": "TRAILING_STOP",
+        "grossProceedsUsdt": 10.20312122498068,
+        "feesUsdt": 0.08081247846192419,
+        "netPnlUsdt": 0.16231034958039103,
+        "netPnlPercent": 1.6231037570424003,
+        "symbol": "UNI/USDT",
+        "strategy_mode": "TREND_PULLBACK",
+        "holdingCandles": 24,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1793921400000,
+        "exitTimestamp": 1793923200000,
+        "entryPrice": 127.9536232975,
+        "exitPrice": 129.46643910487504,
+        "quantity": 0.077840388,
+        "reason": "TAKE_PROFIT",
+        "grossProceedsUsdt": 10.077717852901845,
+        "feesUsdt": 0.08031070949788545,
+        "netPnlUsdt": 0.037447459920720405,
+        "netPnlPercent": 0.37447611502774303,
+        "symbol": "AAVE/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 3,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794183300000,
+        "exitTimestamp": 1794207600000,
+        "entryPrice": 8.12720383475,
+        "exitPrice": 8.023732406177313,
+        "quantity": 1.2254784,
+        "reason": "STOP_LOSS",
+        "grossProceedsUsdt": 9.832910751150324,
+        "feesUsdt": 0.0793304893977069,
+        "netPnlUsdt": -0.20613249013067758,
+        "netPnlPercent": -2.061384351986787,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "TREND_PULLBACK",
+        "holdingCandles": 28,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794211200000,
+        "exitTimestamp": 1794214800000,
+        "entryPrice": 0.7416962552999999,
+        "exitPrice": 0.753298849035,
+        "quantity": 13.428677568,
+        "reason": "TAKE_PROFIT",
+        "grossProceedsUsdt": 10.115807356036523,
+        "feesUsdt": 0.08046322888525739,
+        "netPnlUsdt": 0.07534426133455518,
+        "netPnlPercent": 0.753442623496095,
+        "symbol": "FIL/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 5,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794218400000,
+        "exitTimestamp": 1794222900000,
+        "entryPrice": 7.9358694414999995,
+        "exitPrice": 8.012497517587498,
+        "quantity": 1.2550596,
+        "reason": "TAKE_PROFIT",
+        "grossProceedsUsdt": 10.05616192942436,
+        "feesUsdt": 0.08022460405063403,
+        "netPnlUsdt": 0.015948198472512942,
+        "netPnlPercent": 0.15948215882806796,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 6,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794303000000,
+        "exitTimestamp": 1794307500000,
+        "entryPrice": 7.9679254655,
+        "exitPrice": 7.982001003000001,
+        "quantity": 1.24998,
+        "reason": "TIME_STOP",
+        "grossProceedsUsdt": 9.97734161372994,
+        "feesUsdt": 0.07990835229172977,
+        "netPnlUsdt": -0.06231421192747888,
+        "netPnlPercent": -0.6231579188703606,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 6,
+        "exitTimeProxy": 1794308400000
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794326400000,
+        "exitTimestamp": 1794327300000,
+        "entryPrice": 6.8419576225,
+        "exitPrice": 6.748019316410099,
+        "quantity": 1.455722724,
+        "reason": "STOP_LOSS",
+        "grossProceedsUsdt": 9.823245060889127,
+        "feesUsdt": 0.07929295288499533,
+        "netPnlUsdt": -0.21604107971413278,
+        "netPnlPercent": -2.160412274785613,
+        "symbol": "UNI/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 2,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794380400000,
+        "exitTimestamp": 1794384900000,
+        "entryPrice": 3.6163202075,
+        "exitPrice": 3.5996867955,
+        "quantity": 2.7541808826,
+        "reason": "TIME_STOP",
+        "grossProceedsUsdt": 9.914188555513755,
+        "feesUsdt": 0.07965675414517376,
+        "netPnlUsdt": -0.12546817948798328,
+        "netPnlPercent": -1.2546817972913709,
+        "symbol": "NEAR/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 6,
+        "exitTimeProxy": 1794385800000
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794754800000,
+        "exitTimestamp": 1794759300000,
+        "entryPrice": 3.13047109375,
+        "exitPrice": 3.1665963583875,
+        "quantity": 3.18162976044,
+        "reason": "TAKE_PROFIT",
+        "grossProceedsUsdt": 10.074937213146598,
+        "feesUsdt": 0.08029974883681193,
+        "netPnlUsdt": 0.034637468237628255,
+        "netPnlPercent": 0.34637468251287945,
+        "symbol": "NEAR/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 6,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794811500000,
+        "exitTimestamp": 1794814200000,
+        "entryPrice": 6.69870726525,
+        "exitPrice": 6.8153970169875,
+        "quantity": 1.4868288,
+        "reason": "TAKE_PROFIT",
+        "grossProceedsUsdt": 10.133328568291105,
+        "feesUsdt": 0.08053263509542521,
+        "netPnlUsdt": 0.09296504845274178,
+        "netPnlPercent": 0.9296662697433002,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 4,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794898800000,
+        "exitTimestamp": 1794902400000,
+        "entryPrice": 0.077916173335,
+        "exitPrice": 0.07684640445539935,
+        "quantity": 127.829628,
+        "reason": "STOP_LOSS",
+        "grossProceedsUsdt": 9.823247294671242,
+        "feesUsdt": 0.07929297091602058,
+        "netPnlUsdt": -0.21604112884134707,
+        "netPnlPercent": -2.1604122747855783,
+        "symbol": "OP/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 5,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794931200000,
+        "exitTimestamp": 1794933900000,
+        "entryPrice": 3.1785551297500003,
+        "exitPrice": 3.1349143910643114,
+        "quantity": 3.13349920584,
+        "reason": "STOP_LOSS",
+        "grossProceedsUsdt": 9.823251754776408,
+        "feesUsdt": 0.07929300691786179,
+        "netPnlUsdt": -0.216041226931738,
+        "netPnlPercent": -2.1604122747855907,
+        "symbol": "NEAR/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 4,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1795140900000,
+        "exitTimestamp": 1795140900000,
+        "entryPrice": 0.561280945225,
+        "exitPrice": 0.5535747032188256,
+        "quantity": 17.745123444,
+        "reason": "STOP_LOSS",
+        "grossProceedsUsdt": 9.823251444093724,
+        "feesUsdt": 0.07929300441004007,
+        "netPnlUsdt": -0.2160412200989441,
+        "netPnlPercent": -2.1604122747856045,
+        "symbol": "FIL/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 1,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1795142700000,
+        "exitTimestamp": 1795147200000,
+        "entryPrice": 6.880024151000001,
+        "exitPrice": 6.86895308925,
+        "quantity": 1.447669068,
+        "reason": "TIME_STOP",
+        "grossProceedsUsdt": 9.943970916850267,
+        "feesUsdt": 0.0797758762396728,
+        "netPnlUsdt": -0.09580310988506824,
+        "netPnlPercent": -0.9580312767505822,
+        "symbol": "AVAX/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 6,
+        "exitTimeProxy": 1795148100000
+      }
+    ],
+    "rejected": {
+      "target_costs": 18,
+      "liquidity": 5,
+      "exit_levels": 1
+    },
+    "openPosition": null,
+    "configurationPromoted": false,
+    "realMoneyApproved": false
+  }
+}
