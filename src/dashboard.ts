@@ -1,7 +1,9 @@
+import { createSessionCookie, sessionExpires } from './dashboard-session.js';
+import { DashboardRead } from './dashboard-read-cache.js';
 import { MAX_CONCURRENT_POSITIONS, MAX_DEMO_ORDERS_PER_INTERVAL } from "./trading-limits.js";
 import type { DemoExecutionState } from "./demo-execution-safety.js";
 import { demoBotExposure, demoTradingExposure } from "./demo-exposure.js";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 
@@ -38,7 +40,7 @@ type DashboardOptions = {
   demoBotBudgetUsdt?: number;
   paperDefaultTradeSize?: number;
   getAutoResumeStatus?: () => Promise<unknown>;
-  onResume?: () => Promise<{ status: "resumed" } | { status: "blocked"; reason: string }>;
+  onResume?: (signal?: AbortSignal) => Promise<{ status: "resumed" } | { status: "blocked"; reason: string }>;
 };
 
 const assets = new Map<string, { file: string; type: string }>([
@@ -49,31 +51,22 @@ const assets = new Map<string, { file: string; type: string }>([
 
 export async function startDashboard(options: DashboardOptions): Promise<Server> {
   let settingsApply: { revision: number; status: "idle" | "pending" | "applied" | "failed" } = { revision: 0, status: "idle" };
-  // A later pause must be persisted after an earlier asynchronous resume.
+  // Legacy synchronous clients retain request ordering; the UI uses cancellable jobs.
   let controlTail: Promise<void> = Promise.resolve();
   const serializeControl = <T>(action: () => Promise<T>): Promise<T> => {
     const current = controlTail.then(action);
     controlTail = current.then(() => undefined, () => undefined);
     return current;
   };
-  let accountingRequest: Promise<unknown> | undefined;
-  let accountingExpiresAt = 0;
-  const accounting = (): Promise<unknown> => {
-    if (!accountingRequest || Date.now() >= accountingExpiresAt) {
-      accountingExpiresAt = Date.now() + 60_000;
-      accountingRequest = Promise.resolve().then(() => options.inspectDemoAccounting?.() ?? { status: "unavailable", reason: "demo_disabled" }).catch(() => ({ status: "unavailable", reason: "diagnostic_failed" }));
-    }
-    return accountingRequest;
-  };
-  let positionsRequest: Promise<DemoExecutionState> | undefined;
-  let positionsExpiresAt = 0;
-  const demoPositions = (): Promise<DemoExecutionState> => {
-    if (!positionsRequest || Date.now() >= positionsExpiresAt) {
-      positionsExpiresAt = Date.now() + 60_000;
-      positionsRequest = Promise.resolve().then<DemoExecutionState>(() => options.inspectDemoPositions?.() ?? { status: "blocked", reason: "demo_disabled" }).catch(() => ({ status: "blocked", reason: "diagnostic_failed" }));
-    }
-    return positionsRequest;
-  };
+  const accountingRead = new DashboardRead<unknown>(async () => options.inspectDemoAccounting?.() ?? { status: 'unavailable', reason: 'demo_disabled' }, { status: 'unavailable', reason: 'diagnostic_refreshing' });
+  const positionsRead = new DashboardRead<DemoExecutionState>(async () => options.inspectDemoPositions?.() ?? { status: 'blocked', reason: 'demo_disabled' }, { status: 'blocked', reason: 'diagnostic_refreshing' });
+  const snapshotRead = new DashboardRead<OkxDemoAccountSnapshot | null>(async () => options.getOkxDemoSnapshot?.() ?? null, null, 30_000);
+  const accounting = () => accountingRead.get();
+  const demoPositions = () => positionsRead.get();
+  let controlRevision = 0;
+  let controlJob: { id: number; status: 'pending' | 'completed' | 'blocked' | 'failed' | 'cancelled'; reason?: string } | null = null;
+  let resumeController: AbortController | undefined;
+  let resumeWork: Promise<void> | undefined;
   const server = createServer(async (request, response) => {
     setSecurityHeaders(response);
     try {
@@ -89,6 +82,7 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         return json(response, 200, { status: "ok" });
       }
       if (request.method === "POST" && url.pathname === "/api/login") {
+        if (request.headers['sec-fetch-site'] === 'cross-site') return json(response, 403, { error: 'Origem inválida.' });
         const body = await readJson(request);
         if (!secureEqual(String(body.password ?? ""), options.password)) {
           // Apply a small per-request penalty without using the shared Railway
@@ -100,12 +94,18 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         return json(response, 200, { ok: true });
       }
       if (request.method === "POST" && url.pathname === "/api/logout") {
-        response.setHeader("set-cookie", "bot_session=; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age=0");
+        response.setHeader("set-cookie", "bot_session=; HttpOnly; SameSite=Lax; Secure; Path=/; Max-Age=0");
         return json(response, 200, { ok: true });
       }
 
-      if (!isAuthenticated(request, options.sessionSecret)) {
+      const expiresAt = sessionExpires(request.headers.cookie, options.sessionSecret);
+      if (expiresAt === null) {
         return json(response, 401, { error: "Não autenticado." });
+      }
+      if (request.method === 'GET' && url.pathname === '/api/session') return json(response, 200, { authenticated: true, expiresAt });
+      if (request.method === 'GET' && url.pathname === '/api/control-status') {
+        const control = await options.persistence.readControlState();
+        return json(response, 200, { paused: control.paused, pauseReason: control.pauseReason, job: controlJob });
       }
       if (request.method === "GET" && url.pathname === "/api/execution-fidelity") {
         return json(response, 200, options.getExecutionFidelity ? await options.getExecutionFidelity() : { status: "unavailable", reason: "runtime_not_initialized" });
@@ -124,7 +124,8 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         const paperSince = since ? Date.parse(since + "T00:00:00Z") : undefined;
         if (since && (!/^\d{4}-\d{2}-\d{2}$/.test(since) || !Number.isFinite(paperSince) ||
           new Date(paperSince!).toISOString().slice(0, 10) !== since)) return json(response, 400, { error: "Data Paper inválida." });
-        const [data, positions] = await Promise.all([options.persistence.getDashboardData(40, historySymbol, paperSince), demoPositions()]);
+        const fast = url.searchParams.get('fast') === '1';
+        const [data, positions] = await Promise.all([options.persistence.getDashboardData(40, historySymbol, paperSince), fast ? positionsRead.peek() : demoPositions()]);
         const budget = options.demoBotBudgetUsdt;
         let okxDemo: typeof data.okxDemo & {
           tradingExposure?: ReturnType<typeof demoTradingExposure>;
@@ -132,17 +133,19 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         } = data.okxDemo;
         if (options.getOkxDemoSnapshot) {
           try {
-            const snapshot = await options.getOkxDemoSnapshot();
-            const scoped = budget !== undefined && positions.status === "safe" ? demoBotExposure(snapshot, budget, positions.positions) : null;
-            okxDemo = { ...okxDemo, ...snapshot, tradingExposure: demoTradingExposure(snapshot), status: "ok",
-              ...(budget === undefined ? {} : { botExposure: { budgetUsdt: budget, tradingEquityUsdt: scoped?.tradingEquityUsdt ?? null, exposureUsdt: scoped?.exposureUsdt ?? null } }),
-            };
+            const snapshot = fast ? snapshotRead.peek() : await snapshotRead.get();
+            if (snapshot) {
+              const scoped = budget !== undefined && positions.status === "safe" ? demoBotExposure(snapshot, budget, positions.positions) : null;
+              okxDemo = { ...okxDemo, ...snapshot, tradingExposure: demoTradingExposure(snapshot), status: "ok",
+                ...(budget === undefined ? {} : { botExposure: { budgetUsdt: budget, tradingEquityUsdt: scoped?.tradingEquityUsdt ?? null, exposureUsdt: scoped?.exposureUsdt ?? null } }),
+              };
+            }
           } catch (error) {
-            okxDemo = { ...okxDemo, status: "unhealthy", lastError: error instanceof Error ? error.message : String(error) };
+              okxDemo = { ...okxDemo, status: "unhealthy", lastError: error instanceof Error ? error.message : String(error) };
           }
         }
         const decisionLogs = await options.persistence.latestDemoDecision();
-        return json(response, 200, { ...data, ...(options.getAutoResumeStatus ? { autoResume: await options.getAutoResumeStatus() } : {}), latestDemoDecision: decisionLogs, demoSupervision: options.getDemoSupervision?.() ?? null, lastDemoReconciliation: await options.persistence.latestDemoReconciliation(), okxDemo, demoAccounting: await accounting(), demoPositions: positions, paperDefaultTradeSize: options.paperDefaultTradeSize, supportedSymbols: options.supportedSymbols, lastSignalScan: options.getLastSignalScan?.() ?? null });
+        return json(response, 200, { ...data, ...(options.getAutoResumeStatus ? { autoResume: await options.getAutoResumeStatus() } : {}), latestDemoDecision: decisionLogs, demoSupervision: options.getDemoSupervision?.() ?? null, lastDemoReconciliation: await options.persistence.latestDemoReconciliation(), okxDemo, demoAccounting: fast ? accountingRead.peek() : await accounting(), diagnostics: { positions: positionsRead.status(), accounting: accountingRead.status(), snapshot: snapshotRead.status() }, demoPositions: positions, controlJob, paperDefaultTradeSize: options.paperDefaultTradeSize, supportedSymbols: options.supportedSymbols, lastSignalScan: options.getLastSignalScan?.() ?? null });
       }
       if (request.method === "GET" && url.pathname === "/api/logs") {
         const hours = Number(url.searchParams.get("hours") ?? 6);
@@ -173,6 +176,33 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         const body = await readJson(request);
         if (typeof body.paused !== "boolean") return json(response, 400, { error: "Ação inválida." });
         const paused = body.paused;
+        if (url.searchParams.get('async') === '1') {
+          if (paused) {
+            resumeController?.abort();
+            if (controlJob?.status === 'pending') controlJob.status = 'cancelled';
+            await options.persistence.setPaused(true, 'dashboard');
+            return json(response, 200, { paused: true, status: 'completed' });
+          }
+          if (resumeWork) return json(response, 202, { paused: true, job: controlJob });
+          const controller = new AbortController(); resumeController = controller;
+          const job: NonNullable<typeof controlJob> = { id: ++controlRevision, status: 'pending' };
+          controlJob = job;
+          resumeWork = Promise.resolve().then(async () => {
+            if (controller.signal.aborted) return;
+            const result = options.onResume ? await options.onResume(controller.signal) : await (async () => {
+              const control = await options.persistence.readControlState();
+              if (controller.signal.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
+              const changed = await options.persistence.setPaused(false, 'dashboard', undefined, control.revision);
+              return changed || !control.paused ? { status: 'resumed' as const } :
+                { status: 'blocked' as const, reason: 'control_changed_during_resume' };
+            })();
+            if (controller.signal.aborted) return;
+            if (result.status === 'blocked') { job.status = 'blocked'; job.reason = result.reason; }
+            else job.status = 'completed';
+          }).catch(() => { if (!controller.signal.aborted) { job.status = 'failed'; job.reason = 'resume_check_failed'; } })
+            .finally(() => { if (controller.signal.aborted) job.status = 'cancelled'; resumeWork = undefined; });
+          return json(response, 202, { paused: true, job });
+        }
         const result = await serializeControl(async () => {
           if (!paused && options.onResume) return options.onResume();
           await options.persistence.setPaused(paused, "dashboard");
@@ -227,22 +257,6 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
 export async function stopDashboard(server: Server | undefined): Promise<void> {
   if (!server) return;
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-}
-
-function createSessionCookie(secret: string): string {
-  const expires = Date.now() + 12 * 60 * 60_000;
-  const payload = String(expires);
-  const signature = createHmac("sha256", secret).update(payload).digest("hex");
-  return `bot_session=${payload}.${signature}; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age=43200`;
-}
-
-function isAuthenticated(request: IncomingMessage, secret: string): boolean {
-  const value = request.headers.cookie?.split(";").map((item) => item.trim()).find((item) => item.startsWith("bot_session="))?.slice(12);
-  if (!value) return false;
-  const [expires, signature] = value.split(".");
-  if (!expires || !signature || Number(expires) <= Date.now()) return false;
-  const expected = createHmac("sha256", secret).update(expires).digest("hex");
-  return secureEqual(signature, expected);
 }
 
 function secureEqual(left: string, right: string): boolean {

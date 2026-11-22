@@ -474,6 +474,12 @@ integration("PostgresPersistence", () => {
     await persistence.setPaused(true, "system:demo_execution_safety", "demo_balance_unconfirmed");
     await expect(persistence.setPaused(false, "system:auto_resume", undefined, timedPause.revision)).resolves.toBe(false);
     await expect(persistence.readControlState()).resolves.toMatchObject({ paused: true, updatedBy: "dashboard", pauseReason: null });
+    const manualPause = await persistence.readControlState();
+    await persistence.setPaused(true, "dashboard");
+    const newerManualPause = await persistence.readControlState();
+    expect(newerManualPause.revision).not.toBe(manualPause.revision);
+    await expect(persistence.setPaused(false, "dashboard", undefined, manualPause.revision)).resolves.toBe(false);
+    await expect(persistence.isPaused()).resolves.toBe(true);
     await persistence.setPaused(false, "dashboard");
     await persistence.recordCycle({ ...checkpoint, candle: { ...candle, timestamp: candle.timestamp + 2_700_000 },
       riskState: { consecutiveLosses: 3, stopLossCooldownUntil: candle.timestamp + 3_600_000 } });

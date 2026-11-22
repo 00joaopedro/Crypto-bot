@@ -610,9 +610,12 @@ async function main(): Promise<void> {
           cooldownMinutes: config.AUTO_RESUME_LOSS_COOLDOWN_MINUTES,
           demo: Boolean(okxDemo),
         }, lastAutoCheck),
-        ...(okxDemo ? { onResume: async () => {
+        ...(okxDemo ? { onResume: async (signal?: AbortSignal) => {
           if (reconfiguring || !okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
+          const control = await persistence.readControlState();
+          if (signal?.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
           await activeCycle;
+          if (signal?.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
           if (reconfiguring || !okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
           const currentBot = bot;
           const currentExecutor = okxDemo;
@@ -628,13 +631,16 @@ async function main(): Promise<void> {
             const accounting = await inspectDemoAccounting(persistence, currentExecutor);
             if (accounting.status !== "confirmed") safety = { status: "blocked", reason: accounting.reason };
           }
+          if (signal?.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' };
           if (reconfiguring || currentBot !== bot || currentExecutor !== okxDemo) return { status: "blocked" as const, reason: "bot_reconfiguring" };
           if (safety.status !== "safe") {
             await persistence.recordOperationalEvent({ eventType: "DEMO_RISK_RESUME_BLOCKED", severity: "WARN", details: { ...safety } });
             await persistence.setPaused(true, "system:demo_execution_safety", safety.reason);
             return safety;
           }
-          await persistence.setPaused(false, "dashboard");
+          if (!await persistence.setPaused(false, 'dashboard', undefined, control.revision)) {
+            return { status: 'blocked' as const, reason: 'control_changed_during_resume' };
+          }
           currentBot.clearDemoExecutionBlock();
           return { status: "resumed" as const };
         } } : {}),

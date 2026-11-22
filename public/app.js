@@ -3,29 +3,46 @@ const money=(n)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'USD'}
 const percent=(n)=>`${Number(n||0).toFixed(2)}%`;
 const login=$('login'),dashboard=$('dashboard');let historySymbol='';let paperSince=localStorage.getItem('paper-since')||'';$('paper-since').value=paperSince;let settingsDirty=false;let loadSequence=0;const metricModes={daily:'usdt',weekly:'usdt',monthly:'usdt',position:'usdt'};
 
-async function api(path,options={}){const response=await fetch(path,{...options,headers:{'content-type':'application/json',...(options.headers||{})}});const body=await response.json();if(!response.ok){const error=new Error(body.error||'Falha na operação');error.reason=body.reason;throw error}return body}
-async function load(){const sequence=++loadSequence;try{const query=new URLSearchParams();if(historySymbol)query.set('symbol',historySymbol);if(paperSince)query.set('paperSince',paperSince);const next=await api(`/api/dashboard?${query}`);if(sequence!==loadSequence)return;state=next;login.hidden=true;dashboard.hidden=false;render()}catch(error){if(error.message!=='Não autenticado.')$('login-error').textContent=error.message}}
-
-$('login-form').addEventListener('submit',async(event)=>{event.preventDefault();$('login-error').textContent='';try{await api('/api/login',{method:'POST',body:JSON.stringify({password:$('password').value})});$('password').value='';await load()}catch(error){$('login-error').textContent=error.message}});
+let authGeneration=0,controlPending=false,controlPoll=null,loadController=null,loginBusy=false,controlVersion=0;
+async function api(path,options={}){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),options.timeoutMs||15000);
+ const abort=()=>controller.abort();options.signal?.addEventListener('abort',abort,{once:true});if(options.signal?.aborted)abort();
+ try{const response=await fetch(path,{...options,signal:controller.signal,credentials:'same-origin',headers:{'content-type':'application/json',...(options.headers||{})}});let body;try{body=await response.json()}catch{throw new Error('Resposta indisponível. Tente novamente em instantes.')}if(!response.ok){const error=new Error(body.error||'Falha na operação');error.reason=body.reason;error.status=response.status;throw error}return body}
+ catch(error){if(error.name==='AbortError')throw new Error('A consulta demorou. Sua sessão não foi encerrada; tente novamente.');throw error}
+ finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort)}
+}
+function showAuthenticated(){login.hidden=true;dashboard.hidden=false;if(!state)$('dashboard-feedback').textContent='Carregando dados do painel…'}
+function showLogin(){++controlVersion;++authGeneration;++loadSequence;loadController?.abort();state=null;dashboard.hidden=true;login.hidden=false;controlPending=false;clearTimeout(controlPoll)}
+async function verifySession(){const generation=authGeneration;try{await api('/api/session');if(generation!==authGeneration)return false;showAuthenticated();return true}catch(error){if(generation===authGeneration){if(error.status===401)showLogin();else (dashboard.hidden?$('login-error'):$('dashboard-feedback')).textContent=error.message}return false}}
+async function load(){
+ const sequence=++loadSequence,generation=authGeneration;loadController?.abort();const controller=new AbortController();loadController=controller;
+ try{const query=new URLSearchParams({fast:'1'});if(historySymbol)query.set('symbol',historySymbol);if(paperSince)query.set('paperSince',paperSince);const next=await api(`/api/dashboard?${query}`,{signal:controller.signal});if(sequence!==loadSequence||generation!==authGeneration)return;state=next;controlPending=next.controlJob?.status==='pending';if(controlPending){clearTimeout(controlPoll);controlPoll=setTimeout(pollControl,1000)}showAuthenticated();render();const reads=Object.values(next.diagnostics||{});$('dashboard-feedback').textContent=reads.some(x=>x.failed)?'Algumas consultas à corretora falharam. Exibindo a última leitura disponível.':reads.some(x=>x.refreshing)?'Atualizando dados da corretora em segundo plano…':''}
+ catch(error){if(sequence!==loadSequence||generation!==authGeneration)return;if(error.status===401){if(await verifySession())$('dashboard-feedback').textContent='Sessão confirmada. Tentando atualizar os dados na próxima consulta.'}else $('dashboard-feedback').textContent=error.message}
+}
+async function submitLogin(event){
+ event.preventDefault();if(loginBusy)return;loginBusy=true;const button=$('login-submit');button.disabled=true;button.textContent='Entrando…';$('login-error').textContent='';++authGeneration;++loadSequence;loadController?.abort();
+ try{await api('/api/login',{method:'POST',body:JSON.stringify({password:$('password').value})});$('password').value='';if(await verifySession()){void load()}else if(!dashboard.hidden) return;else if(!$('login-error').textContent)$('login-error').textContent='Não foi possível confirmar a sessão. Verifique se cookies estão permitidos para este site.'}
+ catch(error){$('login-error').textContent=error.message}
+ finally{loginBusy=false;button.disabled=false;button.textContent='Entrar no painel'}
+}
+$('login-form').addEventListener('submit',submitLogin);
 $('logout').addEventListener('click',async()=>{await api('/api/logout',{method:'POST'});location.reload()});
 $('theme').addEventListener('click',()=>{const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;localStorage.setItem('theme',next);$('theme').textContent=next==='dark'?'☾':'☀';drawChart()});
-const controlReasons={demo_accounting_checkpoint_busy:'Outra conferência atualizou o checkpoint contábil. Aguardando nova verificação segura; não é necessário iniciar outro ciclo.',demo_order_not_confirmed:'Uma ordem Demo precisa ser reconciliada. A retomada depende de confirmação, não de novo ciclo.',consecutive_losses:'Limite de perdas consecutivas atingido.',paper_daily_loss_limit:'Limite de perda diária Paper atingido.',paper_drawdown_limit:'Limite de queda desde o pico Paper atingido.',paper_loss_cooldown_active:'O prazo após perdas consecutivas ainda está em andamento.',paper_resume_candles_unconfirmed:'Histórico Paper incompleto. A retomada depende dos candles que faltam.',btc_regime_data_unavailable:'Aguardando dados recentes do BTC.',btc_regime_downtrend:'O filtro de BTC indica tendência de queda.',btc_regime_shock:'O filtro de BTC detectou queda acentuada.',btc_regime_recovering:'O filtro de BTC aguarda confirmação da recuperação.',pending_demo_order:'Há uma ordem Demo pendente de confirmação.',unresolved_demo_failure:'Há uma falha Demo que precisa ser reconciliada.',paper_demo_entry_mismatch:'Há divergência entre Paper e Demo.',demo_baseline_missing:'Marco inicial da conta Demo indisponível.',demo_account_identity_unconfirmed:'Não foi possível confirmar a identidade da conta Demo.',demo_trading_permission_unconfirmed:'A permissão de negociação Demo não foi confirmada.',demo_resume_check_failed:'Não foi possível conferir a segurança Demo.',bot_reconfiguring:'A configuração ainda está sendo aplicada.',demo_balance_unconfirmed:'Não foi possível confirmar o patrimônio ou o saldo disponível na OKX Demo. Confira os saldos e os ativos sem preço no painel.',demo_bot_risk_attribution_unconfirmed:'Não foi possível conciliar o resultado e as posições do bot. Movimentações sem origem confirmada não são contabilizadas como perda.',demo_bot_risk_basis_changed:'O orçamento ou marco contábil do bot mudou. É necessária revisão antes de retomar.',demo_equity_risk_unconfirmed:'Não foi possível verificar o risco Demo.',demo_daily_loss_limit:'O limite de perda diária Demo foi atingido.',demo_drawdown_limit:'O limite de queda desde o pico Demo foi atingido.'};
+const controlReasons={resume_cancelled:'Retomada cancelada.',control_changed_during_resume:'O estado do bot mudou durante a conferência. Confira o estado atual antes de tentar novamente.',resume_check_failed:'A conferência de segurança falhou. O bot permanece pausado; tente novamente após verificar o diagnóstico.',demo_accounting_checkpoint_busy:'Outra conferência atualizou o checkpoint contábil. Aguardando nova verificação segura; não é necessário iniciar outro ciclo.',demo_order_not_confirmed:'Uma ordem Demo precisa ser reconciliada. A retomada depende de confirmação, não de novo ciclo.',consecutive_losses:'Limite de perdas consecutivas atingido.',paper_daily_loss_limit:'Limite de perda diária Paper atingido.',paper_drawdown_limit:'Limite de queda desde o pico Paper atingido.',paper_loss_cooldown_active:'O prazo após perdas consecutivas ainda está em andamento.',paper_resume_candles_unconfirmed:'Histórico Paper incompleto. A retomada depende dos candles que faltam.',btc_regime_data_unavailable:'Aguardando dados recentes do BTC.',btc_regime_downtrend:'O filtro de BTC indica tendência de queda.',btc_regime_shock:'O filtro de BTC detectou queda acentuada.',btc_regime_recovering:'O filtro de BTC aguarda confirmação da recuperação.',pending_demo_order:'Há uma ordem Demo pendente de confirmação.',unresolved_demo_failure:'Há uma falha Demo que precisa ser reconciliada.',paper_demo_entry_mismatch:'Há divergência entre Paper e Demo.',demo_baseline_missing:'Marco inicial da conta Demo indisponível.',demo_account_identity_unconfirmed:'Não foi possível confirmar a identidade da conta Demo.',demo_trading_permission_unconfirmed:'A permissão de negociação Demo não foi confirmada.',demo_resume_check_failed:'Não foi possível conferir a segurança Demo.',bot_reconfiguring:'A configuração ainda está sendo aplicada.',demo_balance_unconfirmed:'Não foi possível confirmar o patrimônio ou o saldo disponível na OKX Demo. Confira os saldos e os ativos sem preço no painel.',demo_bot_risk_attribution_unconfirmed:'Não foi possível conciliar o resultado e as posições do bot. Movimentações sem origem confirmada não são contabilizadas como perda.',demo_bot_risk_basis_changed:'O orçamento ou marco contábil do bot mudou. É necessária revisão antes de retomar.',demo_equity_risk_unconfirmed:'Não foi possível verificar o risco Demo.',demo_daily_loss_limit:'O limite de perda diária Demo foi atingido.',demo_drawdown_limit:'O limite de queda desde o pico Demo foi atingido.'};
 function controlReason(reason){return Object.hasOwn(controlReasons,reason)?controlReasons[reason]:'Pausa de segurança ('+reason+').'}
-$('toggle-bot').addEventListener('click',async()=>{
- const button=$('toggle-bot');button.disabled=true;
- try{
-  const result=await api('/api/control',{method:'POST',body:JSON.stringify({paused:!state.paused})});
-  ++loadSequence;state.paused=result.paused;state.pauseReason=null;state.autoResume=null;renderControl();await load();
- }catch(error){
-  await load();$('control-message').textContent=error.reason?controlReason(error.reason):error.message;
- }finally{button.disabled=false}
-});
-$('keep-paused').addEventListener('click',async()=>{
- const button=$('keep-paused');button.disabled=true;
- try{await api('/api/control',{method:'POST',body:JSON.stringify({paused:true})});await load()}
- catch(error){$('control-message').textContent=error.message}
- finally{button.disabled=false}
-});
+async function pollControl(){
+ const version=controlVersion,generation=authGeneration;clearTimeout(controlPoll);
+ try{const result=await api('/api/control-status');if(!state||version!==controlVersion||generation!==authGeneration)return;state.paused=result.paused;state.pauseReason=result.pauseReason;state.controlJob=result.job;controlPending=result.job?.status==='pending';renderControl();if(controlPending){controlPoll=setTimeout(pollControl,1000);return}if(result.job?.reason)$('control-message').textContent=controlReason(result.job.reason);else if(result.job?.status==='cancelled')$('control-message').textContent='Retomada cancelada. O bot permanece pausado.';void load()}
+ catch(error){if(version!==controlVersion||generation!==authGeneration)return;if(error.status===401){controlPending=false;await verifySession()}else{$('control-message').textContent='Não foi possível confirmar o comando. Verificando novamente…';controlPoll=setTimeout(pollControl,3000)}}
+}
+async function sendControl(paused){
+ if(!state)return;++controlVersion;clearTimeout(controlPoll);const button=$('toggle-bot');button.disabled=true;$('keep-paused').disabled=true;
+ try{const result=await api('/api/control?async=1',{method:'POST',body:JSON.stringify({paused})});++loadSequence;loadController?.abort();clearTimeout(controlPoll);controlPending=result.job?.status==='pending';state.paused=result.paused;state.pauseReason=null;state.autoResume=null;renderControl();if(result.job){void pollControl()}else{void load()}}
+ catch(error){$('control-message').textContent=error.reason?controlReason(error.reason):'Não foi possível confirmar o comando. Consultando o estado atual…';if(error.status===401)await verifySession();else void pollControl()}
+ finally{button.disabled=controlPending;$('keep-paused').disabled=false}
+}
+$('toggle-bot').addEventListener('click',()=>sendControl(!state?.paused));
+$('keep-paused').addEventListener('click',()=>sendControl(true));
 $('start-demo-cycle').addEventListener('click',async()=>{
  const button=$('start-demo-cycle');
  const expectedStart=state?.demoCycle?.cycleStartedAt??null;
@@ -91,12 +108,15 @@ function describeUnvaluedAsset(asset,attempts){
 }
 function renderControl(){
  const button=$('toggle-bot');
- button.textContent=state.paused?'Retomar bot':'Pausar bot';
+ button.textContent=controlPending?'Verificando…':state.paused?'Retomar bot':'Pausar bot';
+ button.disabled=controlPending;
  button.classList.toggle('resume',state.paused);
  $('connection').lastChild.textContent=state.paused?' Pausado':' Online';
  const resume=state.paused?state.autoResume:null;
- $('keep-paused').hidden=resume?.eligibleAt==null;
+ $('keep-paused').hidden=!controlPending&&resume?.eligibleAt==null;
+ if(controlPending){$('control-message').textContent='Verificando segurança para retomar. O bot só será liberado após confirmação.';return}
  const messages=[];
+ if(state.paused&&state.controlJob?.reason)messages.push(controlReason(state.controlJob.reason));
  if(state.paused&&state.pauseReason)messages.push(controlReason(state.pauseReason));
  if(resume?.enabled===false)messages.push('Retomada automática desativada no serviço.');
  else if(resume?.enabled&&resume.eligibleAt==null)messages.push('Esta pausa exige revisão manual.');
@@ -116,7 +136,7 @@ function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':
 function demoOrderLabel(order){if(order.status==='PLACED'&&order.result?.confirmed===true&&order.result?.orderStatus==='closed')return order.result.side==='sell'?'Venda executada':'Compra executada';if(order.status==='PENDING')return 'Aguardando confirmação';if(order.status==='REJECTED_CONFIRMED'&&order.result?.reconciliation?.code==='51155')return 'Rejeitada: restrição do par (51155)';if((order.status==='FAILED'||order.status==='REJECTED_CONFIRMED')&&typeof order.result?.error==='string'){try{const raw=order.result.error;const parsed=raw.startsWith('okx ')?JSON.parse(raw.slice(4)):null;if(parsed?.code==='50123'&&typeof parsed.msg==='string'&&parsed.msg.includes('does not have trading permission'))return 'Rejeitada: permissão de negociação OKX (50123)'}catch{}}return order.status}
 function renderDemoPositions(){const target=$('demo-positions');if(!target)return;const demo=state?.demoPositions;if(demo?.status!=='safe'){target.textContent='Posições Demo do bot: não confirmadas. Confira a reconciliação.';return}target.textContent=demo.positions?.length?'Posições Demo do bot desde o marco (quantidade bruta; taxas em moeda base não descontadas): '+demo.positions.map(p=>`${p.symbol} · ${Number(p.quantity).toFixed(8)}`).join(' | '):'Nenhuma posição Demo do bot identificada desde o marco; isso não confirma todo o saldo da conta.'}
 function renderPositions(){const open=(state?.portfoliosBySymbol||[]).filter(row=>Number(row.snapshot?.positionQuantity)>0);const target=$('positions');if(!target)return;target.innerHTML=open.length?open.map(row=>`<span>${escapeHtml(row.symbol)} · Paper · quantidade ${Number(row.snapshot.positionQuantity).toFixed(8)} · valor ${money(row.snapshot.positionMarketValueUsdt)} · não realizado ${money(row.snapshot.unrealizedPnlUsdt)}</span>`).join('<br>'):'Nenhuma posição Paper registrada.'}
-document.documentElement.dataset.theme=localStorage.getItem('theme')||'dark';$('theme').textContent=document.documentElement.dataset.theme==='dark'?'☾':'☀';addEventListener('resize',()=>state&&drawChart());load();setInterval(()=>{if(!dashboard.hidden){load().then(renderPositions)}} ,30000);setTimeout(renderPositions,1000);
+document.documentElement.dataset.theme=localStorage.getItem('theme')||'dark';$('theme').textContent=document.documentElement.dataset.theme==='dark'?'☾':'☀';addEventListener('resize',()=>state&&drawChart());void verifySession().then(ok=>{if(ok)void load()});setInterval(()=>{if(!document.hidden&&!dashboard.hidden)void load()},30000);document.addEventListener('visibilitychange',()=>{if(document.hidden){++loadSequence;loadController?.abort()}else if(!loginBusy)void verifySession().then(ok=>{if(ok){void load();if(controlPending)void pollControl()}})});setTimeout(renderPositions,1000);
 
 
 function renderDemoCycle(){

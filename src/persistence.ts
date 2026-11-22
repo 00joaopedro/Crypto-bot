@@ -283,9 +283,10 @@ export class PostgresPersistence implements BotPersistence {
 
   private async writePause(client: PoolClient, paused: boolean, actor: string, reason?: string, expectedRevision?: string): Promise<boolean> {
     const pauseReason = paused ? reason ?? (actor.startsWith("system:") ? actor.slice(7) : null) : null;
+    // Reaffirming a manual pause must fence an already-running resume, even if the value is unchanged.
     const updated = await client.query(
       `UPDATE bot_control SET paused = $1, updated_at = NOW(), updated_by = $2, pause_reason = $3
-       WHERE id = 1 AND (paused IS DISTINCT FROM $1 OR pause_reason IS DISTINCT FROM $3)
+       WHERE id = 1 AND (paused IS DISTINCT FROM $1 OR pause_reason IS DISTINCT FROM $3 OR ($1 AND $2 = 'dashboard'))
          AND ($4::text IS NULL OR xmin::text = $4)
          AND NOT ($1 AND paused AND $2 LIKE 'system:%' AND
            (updated_by IS NOT DISTINCT FROM 'dashboard' OR $2 IN ('system:demo_execution_safety', 'system:demo_exit_supervision', 'system:demo_position_uncertain')))`,

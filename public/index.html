@@ -15,16 +15,17 @@
       <h1>Crypto Bot</h1>
       <p class="muted">Acompanhe e controle suas operações no ambiente Demo.</p>
       <label>Senha do painel<input id="password" type="password" autocomplete="current-password" required></label>
-      <button class="primary" type="submit">Entrar no painel</button>
+      <button id="login-submit" class="primary" type="submit">Entrar no painel</button>
       <p id="login-error" class="error" role="alert"></p>
     </form>
   </section>
 
   <div id="dashboard" class="app" hidden>
+    <p id="dashboard-feedback" class="message" role="status" aria-live="polite"></p>
     <header class="topbar">
       <div><p class="eyebrow">OKX DEMO</p><h1>Crypto Bot</h1></div>
       <div class="top-actions">
-        <span id="connection" class="status"><i></i> Online</span>
+        <span id="connection" class="status"><i></i> Carregando</span>
         <button id="theme" class="icon-button" aria-label="Alternar tema">☾</button>
         <button id="logout" class="ghost">Sair</button>
       </div>
@@ -33,7 +34,7 @@
     <main>
       <section class="hero panel">
         <div><p class="eyebrow">CONTROLE OPERACIONAL</p><h2>Visão geral da estratégia</h2><p class="muted">Dados do PostgreSQL atualizados automaticamente.</p></div>
-        <button id="toggle-bot" class="danger">Pausar bot</button>
+        <button id="toggle-bot" class="danger" disabled>Pausar bot</button>
         <button id="keep-paused" type="button" hidden>Manter pausado</button>
         <p id="control-message" class="message" role="status"></p>
       </section>
