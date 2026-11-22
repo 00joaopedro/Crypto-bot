@@ -1,0 +1,22 @@
+{
+  "protocol": "pullback-development-v1",
+  "referenceStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+  "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+  "sizes": [
+    10,
+    30
+  ],
+  "variants": [
+    "reference",
+    "near-ema21",
+    "confirmed-pullback",
+    "confirmed-pullback-rsi58"
+  ],
+  "rules": {
+    "maximumExtensionAtr": 0.8,
+    "touchDistanceAtr": 0.25,
+    "expiryCandles": 4,
+    "maximumRsi": 58
+  },
+  "minimumClosedTradesPerRun": 30
+}

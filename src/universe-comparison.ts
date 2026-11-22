@@ -1,3 +1,5 @@
+import { averageTrueRange } from "./indicators.js";
+import { createPullbackGate, pullbackRuleSchema, type PullbackRule } from "./research-pullback.js";
 import { meanReversionEntry } from "./mean-reversion-study.js";
 import { createHash } from "node:crypto";
 import { z } from "zod";
@@ -68,8 +70,10 @@ export function historicalUniverseRanks(datasets: UniverseDataset[], start: numb
   return { ranks, eligibleCounts };
 }
 
-export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown, entryModel: "trend" | "mean_reversion" = "trend", rawEntryScreen?: ResearchEntryScreen) {
+export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown, entryModel: "trend" | "mean_reversion" = "trend", rawEntryScreen?: ResearchEntryScreen, rawPullbackRule?: PullbackRule) {
   const study = universeStudySchema.parse(rawStudy);
+  const pullbackRule = rawPullbackRule === undefined ? undefined : pullbackRuleSchema.parse(rawPullbackRule);
+  if (pullbackRule && (entryModel !== "trend" || rawEntryScreen)) throw new Error("Pullback requires an isolated trend experiment");
   const entryScreen = rawEntryScreen === undefined ? undefined : researchEntryScreenSchema.parse(rawEntryScreen);
   if (entryScreen && (entryModel !== "trend" || !study.parameters.exitPolicy || study.parameters.exitPolicy.mode !== "fixed" || study.parameters.exitPolicy.breakeven)) throw new Error("Research screen only supports fixed ATR trend experiments");
   const entryScreenDiagnostics = { evaluatedQualityBuySignals: 0, rejectedQualityBuySignals: 0, costScenario: study.scenarios[0]!.name };
@@ -79,21 +83,25 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
   const start = study.warmupCandles;
   const holdout = start + 960, split = holdout + 960;
   const membership = historicalUniverseRanks(datasets, start, study.minDailyQuoteVolumeUsdt);
-  const scores = new Map(datasets.map(d => [d.symbol, d.candles.map((_, index) => {
-    if (index < start) return undefined;
-    const candles = d.candles.slice(Math.max(0, index + 1 - study.candleLimit), index + 1);
-    if (entryModel === "mean_reversion") return meanReversionEntry(candles) && assessMarketQuality(candles).score >= 3 ? 8 : undefined;
-    const signal = evaluateStrategy(candles, { minimumScore: study.parameters.minimumSignalScore, maxBuyRsi: study.parameters.maxBuyRsi ?? 70 });
-    if (signal.action !== "BUY" || assessMarketQuality(candles).score < 3) return undefined;
-    if (entryScreen) {
-      entryScreenDiagnostics.evaluatedQualityBuySignals++;
-      if (!screenResearchEntry(candles, study.parameters, scenarioCosts(study.scenarios[0]!, d.symbol), entryScreen).allowed) {
-        entryScreenDiagnostics.rejectedQualityBuySignals++;
-        return undefined;
+  const scores = new Map(datasets.map(d => {
+    const gate = pullbackRule ? createPullbackGate(pullbackRule) : undefined;
+    return [d.symbol, d.candles.map((_, index) => {
+      if (index < start) return undefined;
+      const candles = d.candles.slice(Math.max(0, index + 1 - study.candleLimit), index + 1);
+      if (entryModel === "mean_reversion") return meanReversionEntry(candles) && assessMarketQuality(candles).score >= 3 ? 8 : undefined;
+      const signal = evaluateStrategy(candles, { minimumScore: study.parameters.minimumSignalScore, maxBuyRsi: study.parameters.maxBuyRsi ?? 70 });
+      const gateAllowed = gate ? gate({ candle: candles.at(-1)!, ema21: signal.ema21, atr: averageTrueRange(candles), rsi: signal.rsi14, bullish: signal.ema9 > signal.ema21 }) : true;
+      if (!gateAllowed || signal.action !== "BUY" || assessMarketQuality(candles).score < 3) return undefined;
+      if (entryScreen) {
+        entryScreenDiagnostics.evaluatedQualityBuySignals++;
+        if (!screenResearchEntry(candles, study.parameters, scenarioCosts(study.scenarios[0]!, d.symbol), entryScreen).allowed) {
+          entryScreenDiagnostics.rejectedQualityBuySignals++;
+          return undefined;
+        }
       }
-    }
-    return signal.score;
-  })]));
+      return signal.score;
+    })] as const;
+  }));
   const btc = datasets.find(d => d.symbol === "BTC/USDT")?.candles;
   const mask = (size: number) => new Map(datasets.map(d => [d.symbol, scores.get(d.symbol)!.map((score, index) => {
     const rank = membership.ranks.get(d.symbol)![index];
@@ -113,6 +121,7 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
   }));
   return {
     status: "exploratory_simulation_only", entryModel, study,
+    ...(pullbackRule ? { researchPullbackRule: pullbackRule } : {}),
     ...(entryScreen ? { researchEntryScreen: entryScreen, entryScreenDiagnostics } : {}),
     assets: datasets.map(d => ({ symbol: d.symbol, sha256: datasetHash(d), constraints: d.constraints, candleCount: d.candles.length })),
     coverage: { validatedAssets: datasets.length, requestedSizesCoveredByPool: study.sizes.every(n => n <= datasets.length), minimumLiquidCandidates: Math.min(...membership.eligibleCounts), maximumLiquidCandidates: Math.max(...membership.eligibleCounts) },
