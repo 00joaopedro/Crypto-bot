@@ -32,7 +32,8 @@
     "strategy:confirmed-reversion": "node dist/confirmed-reversion-experiments-cli.js",
     "strategy:portfolio-readiness": "node dist/portfolio-readiness-cli.js",
     "strategy:refinement-readiness": "node dist/refinement-independent-readiness-cli.js",
-    "account:inspect-readonly": "node dist/okx-read-only-inspection-cli.js"
+    "account:inspect-readonly": "node dist/okx-read-only-inspection-cli.js",
+    "strategy:hybrid-research": "node dist/hybrid-research-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
