@@ -5,6 +5,10 @@
 deployment solicitado. A combinação não foi simulada nem integrada: sua condição
 prévia não foi atendida. Isso não é um erro de execução nem uma aprovação financeira.
 
+Atualização posterior: a intenção atual é começar com **17 USDT**, conforme
+[execução 6](refinement-independent-readiness.md). Os valores em reais abaixo
+são o registro histórico da etapa 5, sem conversão ou revisão retroativa.
+
 ## Evidência consolidada
 
 Comando novo `strategy:portfolio-readiness` lê os três relatórios das execuções

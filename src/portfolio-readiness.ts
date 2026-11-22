@@ -19,10 +19,15 @@ const rowSchema=z.object({variant:z.string(),size:z.union([z.literal(10),z.liter
 const reportSchema=z.object({status:z.string(),protocol:z.unknown(),protocolSha256:digest,referenceStudySha256:digest,sourceStudySha256:digest,
  datasetHashes:z.array(identity).min(2),referenceConfigurationHash:digest,referenceSourceCommit:z.string().regex(/^[a-f0-9]{40}$/),referenceStudy:z.unknown(),results:z.array(rowSchema),
 });
-export const portfolioReadinessPlanSchema=z.object({protocol:z.literal("portfolio-readiness-v1"),referenceStudySha256:digest,sourceStudySha256:digest,
+const legacyPortfolioPlanSchema=z.object({protocol:z.literal("portfolio-readiness-v1"),referenceStudySha256:digest,sourceStudySha256:digest,
  capitalScenariosUsdt:z.tuple([z.literal(10),z.literal(20),z.literal(50),z.literal(100),z.literal(5000)]),allocationPolicy:z.literal("conditional_no_fixed_split"),
  intendedCapital:z.object({currency:z.literal("BRL"),amount:z.literal(100),spendableUsdt:z.null()}).strict(),
+ }).strict();
+const usdtPortfolioPlanSchema=z.object({protocol:z.literal("portfolio-readiness-v2"),referenceStudySha256:digest,sourceStudySha256:digest,
+ capitalScenariosUsdt:z.tuple([z.literal(10),z.literal(17),z.literal(20),z.literal(50),z.literal(100),z.literal(5000)]),allocationPolicy:z.literal("conditional_no_fixed_split"),
+ intendedCapital:z.object({currency:z.literal("USDT"),amount:z.literal(17),fundingStatus:z.literal("planned_not_verified"),spendableUsdt:z.null()}).strict(),
 }).strict();
+export const portfolioReadinessPlanSchema=z.union([legacyPortfolioPlanSchema,usdtPortfolioPlanSchema]);
 const identitiesKey=(rows:z.infer<typeof identity>[])=>{
  if(new Set(rows.map(r=>r.symbol)).size!==rows.length)throw new Error("Duplicate dataset identity");
  return semanticHash([...rows].sort((a,b)=>a.symbol.localeCompare(b.symbol,"en")));
@@ -102,6 +107,6 @@ export function assessReferenceBudgets(datasets:UniverseDataset[],reference:Univ
  return {status:"frozen_price_capacity_only",snapshotUtc:new Date(datasets[0]!.candles.at(-1)!.timestamp).toISOString(),datasetHashes:datasets.map(d=>({symbol:d.symbol,sha256:datasetHash(d)})),referenceCapitalUsdt:reference.initialBalanceUsdt,rows,
   zeroNotionalMinimumSymbols:datasets.filter(d=>d.constraints.minimumNotionalUsdt===0).map(d=>d.symbol),
   allocatedUsdt:0,allocationExecuted:false,intendedCapitalAssessment:"blocked_spendable_usdt_and_current_terms_unconfirmed",
-  limitations:["Frozen historical price/rules and assumed costs, empty wallet, fixed lot and shared exposure limits. A feasible row is not a signal, allocation or live funding recommendation.","The collector hardcodes minimumNotionalUsdt=0; it captures minSz/lotSz but does not verify a current minimum order value or all execution rules. Reported feasibility is conditional, not exchange-confirmed.","Budget scenarios are illustrative USDT amounts, not converted BRL or the user's balance. Intended R$100 lacks confirmed spendable USDT and current rules.",
+  limitations:["Frozen historical price/rules and assumed costs, empty wallet, fixed lot and shared exposure limits. A feasible row is not a signal, allocation or live funding recommendation.","The collector hardcodes minimumNotionalUsdt=0; it captures minSz/lotSz but does not verify a current minimum order value or all execution rules. Reported feasibility is conditional, not exchange-confirmed.","Budget scenarios are illustrative USDT amounts, not converted BRL or the user's balance. The intended capital in the plan lacks confirmed spendable USDT and current rules.",
   "Capacity checks cash, exposure and recorded minimums only; it does not assert a valid signal, liquid membership, execution liquidity, regional eligibility or complete live risk admission.","Reference risk sizing is disabled: this assessment does not silently enable dormant risk/symbol caps or reduce the configured fixed lot to fit capital. Slippage gaps can exceed initial-stop estimates.","No funding, order, automatic 50/50 split, budget increase, portfolio simulation or promotion is performed. Shared-wallet strategy budgets remain conditional on eligible candidates."]};
 }

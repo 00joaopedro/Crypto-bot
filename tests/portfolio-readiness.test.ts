@@ -48,7 +48,8 @@ function capitalData(){
  const datasets:UniverseDataset[]=['BTC/USDT','ETH/USDT'].map(symbol=>({symbol,constraints:{minimumNotionalUsdt:0,minimumQuantity:.001,quantityStep:.001},quoteVolumesUsdt:Array(length).fill(2e6),candles:Array.from({length},(_,i)=>({timestamp:end-(length-i)*900000,open:100,high:100.2,low:99.8,close:100,volume:20000}))}));return {study,datasets};
 }
 it('preserves the fixed lot and shared exposure: small capital rejects rather than silently reducing lot size',()=>{
- const {study,datasets}=capitalData();const r=assessReferenceBudgets(datasets,study,[10,20,50,100,5000]);
+ const {study,datasets}=capitalData();const r=assessReferenceBudgets(datasets,study,[10,17,20,50,100,5000]);
+ expect(r.rows.filter(r=>r.equityUsdt===17).every(r=>Math.abs(r.exposureCapUsdt-1.7)<1e-12&&r.feasibleFixedLotSymbols===0)).toBe(true);
  expect(r.rows.filter(r=>r.equityUsdt<=50).every(r=>r.feasibleFixedLotSymbols===0)).toBe(true);
  expect(r.rows.filter(r=>r.equityUsdt>=100).every(r=>r.feasibleFixedLotSymbols===2)).toBe(true);
  expect(r.rows.filter(r=>r.equityUsdt===100).every(r=>r.nominalLotSlots===1)).toBe(true);
