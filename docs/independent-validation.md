@@ -1,3 +1,7 @@
+> Este documento registra a matriz legada de 18 comparações. A avaliação atual
+> das 20 comparações com custos corrigidos está em
+> [terceira execução](cost-independent-validation.md).
+
 # Execução 4 — passagem para validação independente
 
 A terceira etapa perdeu em todos os 18 cenários. Por isso esta etapa termina

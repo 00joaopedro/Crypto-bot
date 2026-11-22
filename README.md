@@ -642,7 +642,14 @@ O relatório não altera parâmetros. Consulte o [diagnóstico e suas limitaçõ
 
 `npm run strategy:independent-readiness -- docs/limited-experiments.json`
 verifica a matriz de desenvolvimento antes de consumir outro período histórico.
-Consulte [o protocolo e o resultado bloqueado](docs/independent-validation.md).
+Consulte [o protocolo legado e seu resultado](docs/independent-validation.md).
+Para a matriz atual com custos corrigidos, use:
+
+```sh
+npm run strategy:independent-readiness -- docs/cost-aware-experiments.json docs/financial-reference-current.json examples/universe-validation.study.json
+```
+
+Veja [a terceira execução e o bloqueio atual](docs/cost-independent-validation.md).
 O comando não aprova dinheiro real nem aplica configurações.
 
 ### Segunda hipótese de entrada (offline)

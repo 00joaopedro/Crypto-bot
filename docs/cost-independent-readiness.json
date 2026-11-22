@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "status": "blocked_no_eligible_candidate",
+  "evidenceHash": "e7dc95ab7cd6695f8ee01a6950eb02271de6eaf335a739ce2f1b2ebc6fbfb4d2",
+  "financialReferenceHash": "5229d3ed1cf4c424df08380cd1149f7d8664ecc8a80e110c9c7be953b0082fe6",
+  "protocolSha256": "d5eedf0b93da9365f42208449759df859da629fae9e9b241b8e86d097c0b35b3",
+  "referenceStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+  "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+  "sourceConfigurationHash": "97bdb8e289cdc88b05b9fcc20b992dd2b44537c49f5d42876fb7988cd559015d",
+  "sourceCommit": "37649535419065e1554070cdce23a9606ea5330d",
+  "datasetIdentityHash": "9a5e44d1b67815ab50b927799b89e2b4b8876043cfab46355a30107c9efb5c52",
+  "feeEvidenceCoverage": {
+    "symbols": 120,
+    "feeEvidenced": 6,
+    "feesAssumed": 114,
+    "measuredBuyQuoteSymbols": 0
+  },
+  "consultedDevelopmentWindow": {
+    "startUtc": "2026-07-25T00:00:00.000Z",
+    "endExclusiveUtc": "2026-08-31T00:00:00.000Z",
+    "includesWarmup": true
+  },
+  "candidates": [
+    {
+      "variant": "reference",
+      "passesDevelopmentScreen": false,
+      "reasons": [
+        "10:account-conditioned:nonpositive_result",
+        "10:account-conditioned:no_positive_closed_trade_edge",
+        "10:account-conditioned:nonpositive_expectancy",
+        "10:account-conditioned:weak_development_block",
+        "10:account-conditioned:dependent_on_top_three",
+        "10:account-cost-stress:nonpositive_result",
+        "10:account-cost-stress:no_positive_closed_trade_edge",
+        "10:account-cost-stress:nonpositive_expectancy",
+        "10:account-cost-stress:weak_development_block",
+        "10:account-cost-stress:dependent_on_top_three",
+        "30:account-conditioned:nonpositive_result",
+        "30:account-conditioned:no_positive_closed_trade_edge",
+        "30:account-conditioned:nonpositive_expectancy",
+        "30:account-conditioned:weak_development_block",
+        "30:account-conditioned:dependent_on_top_three",
+        "30:account-cost-stress:nonpositive_result",
+        "30:account-cost-stress:no_positive_closed_trade_edge",
+        "30:account-cost-stress:nonpositive_expectancy",
+        "30:account-cost-stress:weak_development_block",
+        "30:account-cost-stress:dependent_on_top_three"
+      ],
+      "readyToFreeze": false,
+      "freezeBlockers": [
+        "development_screen_failed"
+      ]
+    },
+    {
+      "variant": "rsi-63",
+      "passesDevelopmentScreen": false,
+      "reasons": [
+        "10:account-conditioned:nonpositive_result",
+        "10:account-conditioned:no_positive_closed_trade_edge",
+        "10:account-conditioned:nonpositive_expectancy",
+        "10:account-conditioned:weak_development_block",
+        "10:account-conditioned:dependent_on_top_three",
+        "10:account-cost-stress:nonpositive_result",
+        "10:account-cost-stress:no_positive_closed_trade_edge",
+        "10:account-cost-stress:nonpositive_expectancy",
+        "10:account-cost-stress:weak_development_block",
+        "10:account-cost-stress:dependent_on_top_three",
+        "30:account-conditioned:nonpositive_result",
+        "30:account-conditioned:no_positive_closed_trade_edge",
+        "30:account-conditioned:nonpositive_expectancy",
+        "30:account-conditioned:weak_development_block",
+        "30:account-conditioned:dependent_on_top_three",
+        "30:account-cost-stress:nonpositive_result",
+        "30:account-cost-stress:no_positive_closed_trade_edge",
+        "30:account-cost-stress:nonpositive_expectancy",
+        "30:account-cost-stress:weak_development_block",
+        "30:account-cost-stress:dependent_on_top_three"
+      ],
+      "readyToFreeze": false,
+      "freezeBlockers": [
+        "development_screen_failed"
+      ]
+    },
+    {
+      "variant": "cost-buffer-1.5",
+      "passesDevelopmentScreen": false,
+      "reasons": [
+        "10:account-conditioned:nonpositive_result",
+        "10:account-conditioned:no_positive_closed_trade_edge",
+        "10:account-conditioned:nonpositive_expectancy",
+        "10:account-conditioned:weak_development_block",
+        "10:account-conditioned:dependent_on_top_three",
+        "10:account-cost-stress:nonpositive_result",
+        "10:account-cost-stress:no_positive_closed_trade_edge",
+        "10:account-cost-stress:nonpositive_expectancy",
+        "10:account-cost-stress:weak_development_block",
+        "10:account-cost-stress:dependent_on_top_three",
+        "30:account-conditioned:nonpositive_result",
+        "30:account-conditioned:no_positive_closed_trade_edge",
+        "30:account-conditioned:nonpositive_expectancy",
+        "30:account-conditioned:weak_development_block",
+        "30:account-conditioned:dependent_on_top_three",
+        "30:account-cost-stress:nonpositive_result",
+        "30:account-cost-stress:no_positive_closed_trade_edge",
+        "30:account-cost-stress:nonpositive_expectancy",
+        "30:account-cost-stress:weak_development_block",
+        "30:account-cost-stress:dependent_on_top_three"
+      ],
+      "readyToFreeze": false,
+      "freezeBlockers": [
+        "development_screen_failed"
+      ]
+    },
+    {
+      "variant": "cost-buffer-2",
+      "passesDevelopmentScreen": false,
+      "reasons": [
+        "10:account-conditioned:nonpositive_result",
+        "10:account-conditioned:no_positive_closed_trade_edge",
+        "10:account-conditioned:nonpositive_expectancy",
+        "10:account-conditioned:weak_development_block",
+        "10:account-conditioned:dependent_on_top_three",
+        "10:account-cost-stress:nonpositive_result",
+        "10:account-cost-stress:no_positive_closed_trade_edge",
+        "10:account-cost-stress:nonpositive_expectancy",
+        "10:account-cost-stress:weak_development_block",
+        "10:account-cost-stress:dependent_on_top_three",
+        "30:account-conditioned:nonpositive_result",
+        "30:account-conditioned:no_positive_closed_trade_edge",
+        "30:account-conditioned:nonpositive_expectancy",
+        "30:account-conditioned:weak_development_block",
+        "30:account-conditioned:dependent_on_top_three",
+        "30:account-cost-stress:nonpositive_result",
+        "30:account-cost-stress:no_positive_closed_trade_edge",
+        "30:account-cost-stress:nonpositive_expectancy",
+        "30:account-cost-stress:weak_development_block",
+        "30:account-cost-stress:dependent_on_top_three"
+      ],
+      "readyToFreeze": false,
+      "freezeBlockers": [
+        "development_screen_failed"
+      ]
+    },
+    {
+      "variant": "cost-buffer-2.5",
+      "passesDevelopmentScreen": false,
+      "reasons": [
+        "10:account-conditioned:nonpositive_result",
+        "10:account-conditioned:no_positive_closed_trade_edge",
+        "10:account-conditioned:nonpositive_expectancy",
+        "10:account-conditioned:weak_development_block",
+        "10:account-conditioned:dependent_on_top_three",
+        "10:account-cost-stress:nonpositive_result",
+        "10:account-cost-stress:no_positive_closed_trade_edge",
+        "10:account-cost-stress:nonpositive_expectancy",
+        "10:account-cost-stress:weak_development_block",
+        "10:account-cost-stress:dependent_on_top_three",
+        "30:account-conditioned:nonpositive_result",
+        "30:account-conditioned:no_positive_closed_trade_edge",
+        "30:account-conditioned:nonpositive_expectancy",
+        "30:account-conditioned:weak_development_block",
+        "30:account-conditioned:dependent_on_top_three",
+        "30:account-cost-stress:nonpositive_result",
+        "30:account-cost-stress:no_positive_closed_trade_edge",
+        "30:account-cost-stress:nonpositive_expectancy",
+        "30:account-cost-stress:weak_development_block",
+        "30:account-cost-stress:dependent_on_top_three"
+      ],
+      "readyToFreeze": false,
+      "freezeBlockers": [
+        "development_screen_failed"
+      ]
+    }
+  ],
+  "costFamilyStable": false,
+  "minimumWarmupCandles": 672,
+  "reference": {
+    "budgetUsdt": 5000,
+    "lotUsdt": 10,
+    "portfolio": {
+      "maxConcurrentPositions": 30,
+      "maxExposureRate": 0.1,
+      "maxAltExposureRate": 0.1
+    },
+    "parameters": {
+      "exitPolicy": {
+        "mode": "fixed",
+        "breakeven": false,
+        "atrPeriod": 14,
+        "stopMultiplier": 1.5,
+        "targetMultiplier": 3,
+        "minStopRate": 0.005,
+        "maxStopRate": 0.03,
+        "trailingMultiplier": 2,
+        "activationRate": 0.02,
+        "exitFeeRate": 0.001,
+        "exitSlippageRate": 0.001
+      },
+      "pairCooldown": {
+        "hours": 6,
+        "minLosses": 3
+      },
+      "btcRegimeFilter": false,
+      "stopLossRate": 0.01,
+      "takeProfitRate": 0.02,
+      "maxBuyRsi": 70,
+      "minimumSignalScore": 4,
+      "executionDelayCandles": 1
+    }
+  },
+  "definitions": [
+    {
+      "name": "reference",
+      "maxBuyRsi": 70,
+      "minimumTargetCostMultiple": null
+    },
+    {
+      "name": "rsi-63",
+      "maxBuyRsi": 63,
+      "minimumTargetCostMultiple": null
+    },
+    {
+      "name": "cost-buffer-1.5",
+      "maxBuyRsi": 70,
+      "minimumTargetCostMultiple": 1.5
+    },
+    {
+      "name": "cost-buffer-2",
+      "maxBuyRsi": 70,
+      "minimumTargetCostMultiple": 2
+    },
+    {
+      "name": "cost-buffer-2.5",
+      "maxBuyRsi": 70,
+      "minimumTargetCostMultiple": 2.5
+    }
+  ],
+  "holdoutExecuted": false,
+  "configurationPromoted": false,
+  "realMoneyApproved": false,
+  "nextAction": "Reconsider the entry hypothesis in development; do not certify the least negative variant or consume a new holdout for it.",
+  "limitations": [
+    "Hashes and consistency checks do not authenticate exported evidence or establish that no other data was inspected.",
+    "This recomputes the descriptive screen for every candidate, universe and cost scenario. Thirty closes are not statistical proof; partial fee evidence and simulator limitations remain.",
+    "An eligible cost variant also requires its two neighboring thresholds to pass. The single alternative RSI threshold has no local stability evidence.",
+    "No new data is read, collected or replayed. Independent-window selection and its warmup must exclude every consulted window, not only this development source.",
+    "A prospective Demo window checks execution, not financial advantage. No trading, deployment or real-money approval is performed."
+  ]
+}

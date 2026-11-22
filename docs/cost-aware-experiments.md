@@ -92,3 +92,6 @@ novo desta mesma lógica negativa como certificação. Qualquer mudança estrutu
 de entrada ou de custos exige hipótese explícita e comparação em desenvolvimento
 antes de consumir novos dados. Um teste Demo de 48h ainda pode verificar operação,
 mas estes resultados não fundamentam uso real ou expectativa de lucro.
+
+A terceira execução verificou e confirmou esse bloqueio: [avaliação independente](cost-independent-validation.md).
+Nenhum período novo foi consumido.
