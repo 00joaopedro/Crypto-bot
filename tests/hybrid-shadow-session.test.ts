@@ -63,7 +63,7 @@ it('durably checkpoints, excludes concurrent workers, and refuses corrupted JSON
 });
 it('CLI rejects a trading-mode argument before creating any session or calling the network',()=>{
  const root=mkdtempSync(join(tmpdir(),'hybrid-shadow-args-'));
- try{expect(()=>execFileSync(process.execPath,[file('dist/hybrid-shadow-cli.js'),join(root,'session'),'--demo'],{stdio:'pipe'})).toThrow(/Paper only/);expect(()=>statSync(join(root,'session'))).toThrow();}finally{rmSync(root,{recursive:true,force:true});}
+ try{expect(()=>execFileSync(process.execPath,['--import','tsx',file('src/hybrid-shadow-cli.ts'),join(root,'session'),'--demo'],{stdio:'pipe'})).toThrow(/Paper only/);expect(()=>statSync(join(root,'session'))).toThrow();}finally{rmSync(root,{recursive:true,force:true});}
 });
 
 it('accepts a real quarter-hour start with only completed hourly context, without inventing a partial hour',()=>{
