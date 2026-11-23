@@ -9,3 +9,5 @@
 @media(max-width:700px){.diagnostic-actions{display:flex;flex-wrap:wrap;gap:8px}.diagnostic-actions .ghost{display:inline-flex}}
 .metric-toggle{appearance:none;text-align:left;cursor:pointer}.metric-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 
+
+.account-terms-result{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:100%}

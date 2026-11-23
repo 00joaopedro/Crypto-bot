@@ -2,14 +2,14 @@ import { createHmac } from 'node:crypto';
 import { expect,it } from 'vitest';
 import { createOkxReadOnlyClient,inspectOkxReadOnly } from '../src/okx-read-only-inspection.js';
 const credentials={apiKey:'PRIVATE_KEY_SENTINEL',secretKey:'PRIVATE_SECRET_SENTINEL',passphrase:'PRIVATE_PASSPHRASE_SENTINEL'},clock=()=>new Date('2026-11-22T21:00:00Z');
-function fixture(override:{permissions?:string;balance?:any;config?:any;fee?:string;feeFails?:boolean}={}){
+function fixture(override:{permissions?:string;balance?:any;config?:any;fee?:string;feeFails?:boolean;feeGroup?:unknown;groupId?:string}={}){
  const calls:Array<{url:string;options:RequestInit}>=[];
  const transport=async(url:any,options:any)=>{
   calls.push({url:String(url),options});const u=new URL(String(url));let data:any[]=[];
   if(u.pathname.endsWith('/config'))data=[{acctLv:'1',enableSpotBorrow:false,autoLoan:false,perm:override.permissions??'read_only',uid:'ACCOUNT_ID_SENTINEL',label:'PRIVATE_LABEL',...override.config}];
   if(u.pathname.endsWith('/balance'))data=[{details:[{ccy:'USDT',availBal:'20',cashBal:'25',liab:'0',...override.balance}]}];
-  if(u.pathname.endsWith('/instruments'))data=[{instId:'BTC-USDT',instType:'SPOT',quoteCcy:'USDT',state:'live',minSz:'.00001',lotSz:'.00000001',tickSz:'.1'}];
-  if(u.pathname.endsWith('/trade-fee')){if(override.feeFails)throw new Error(credentials.apiKey);data=[{instType:'SPOT',taker:override.fee??'-.004',uid:'ACCOUNT_ID_SENTINEL'}];}
+  if(u.pathname.endsWith('/instruments'))data=[{instId:'BTC-USDT',instType:'SPOT',quoteCcy:'USDT',state:'live',minSz:'.00001',lotSz:'.00000001',tickSz:'.1',...(override.groupId?{groupId:override.groupId}:{})}];
+  if(u.pathname.endsWith('/trade-fee')){if(override.feeFails)throw new Error(credentials.apiKey);data=[{instType:'SPOT',taker:override.fee??'-.004',uid:'ACCOUNT_ID_SENTINEL',...(override.feeGroup?{feeGroup:override.feeGroup}:{})}];}
   return {ok:true,json:async()=>({code:'0',data})} as Response;
  };
  return {calls,client:createOkxReadOnlyClient(credentials,'demo',transport as typeof fetch,clock),transport};
@@ -51,4 +51,14 @@ it('requires explicit environment, separates real headers and bounds inspection 
 
 it('rejects mislabeled Demo/real snapshots before making a request',async()=>{
  const f=fixture();expect(()=>{(f.client as any).environment='real';}).toThrow();await expect(inspectOkxReadOnly(f.client,'real',['BTC/USDT'])).rejects.toThrow(/environment mismatch/);expect(f.calls).toHaveLength(0);
+});
+
+it('resolves the current feeGroup for the instrument and preserves unknown ambiguous groups',async()=>{
+ const feeGroup=[{groupId:'12',taker:'-.001'},{groupId:'13',taker:'-.002'}];
+ const f=fixture({groupId:'12',feeGroup,fee:'-.09',config:{feeType:'1'}}),r=await inspectOkxReadOnly(f.client,'demo',['BTC/USDT']);
+ expect(r.entryFeeCurrency).toBe('quote');expect(r.terms[0]!.takerFeeRate).toBe(.001);
+ const ambiguous=fixture({feeGroup,fee:'-.09'});expect((await inspectOkxReadOnly(ambiguous.client,'demo',['BTC/USDT'])).terms[0]!.takerFeeRate).toBeNull();
+});
+it('rejects every extra write permission rather than only Trade and Withdraw',async()=>{
+ for(const permission of ['transfer','loan','earn']){const f=fixture({permissions:'read_only,'+permission});await expect(inspectOkxReadOnly(f.client,'demo',['BTC/USDT'])).rejects.toThrow(/dedicated/);expect(f.calls).toHaveLength(1);}
 });

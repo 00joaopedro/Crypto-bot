@@ -3,6 +3,7 @@ const money=(n)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'USD'}
 const percent=(n)=>`${Number(n||0).toFixed(2)}%`;
 const login=$('login'),dashboard=$('dashboard');let historySymbol='';let paperSince=localStorage.getItem('paper-since')||'';$('paper-since').value=paperSince;let settingsDirty=false;let loadSequence=0;const metricModes={daily:'usdt',weekly:'usdt',monthly:'usdt',position:'usdt'};
 
+let accountTermsReport=null;
 let authGeneration=0,controlPending=false,controlPoll=null,loadController=null,loginBusy=false,controlVersion=0,controlBusy=false,controlIntentPaused=null;
 async function api(path,options={}){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),options.timeoutMs||15000);
@@ -12,7 +13,7 @@ async function api(path,options={}){
  finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort)}
 }
 function showAuthenticated(){login.hidden=true;dashboard.hidden=false;if(!state)$('dashboard-feedback').textContent='Carregando dados do painel…'}
-function showLogin(){++controlVersion;++authGeneration;++loadSequence;loadController?.abort();state=null;controlBusy=false;controlIntentPaused=null;dashboard.hidden=true;login.hidden=false;controlPending=false;clearTimeout(controlPoll)}
+function showLogin(){accountTermsReport=null;if($('account-terms-result')){$('account-terms-result').textContent='';$('account-terms-result').hidden=true}if($('download-account-terms'))$('download-account-terms').hidden=true;++controlVersion;++authGeneration;++loadSequence;loadController?.abort();state=null;controlBusy=false;controlIntentPaused=null;dashboard.hidden=true;login.hidden=false;controlPending=false;clearTimeout(controlPoll)}
 async function verifySession(){const generation=authGeneration;try{await api('/api/session');if(generation!==authGeneration)return false;showAuthenticated();return true}catch(error){if(generation===authGeneration){if(error.status===401)showLogin();else (dashboard.hidden?$('login-error'):$('dashboard-feedback')).textContent=error.message}return false}}
 async function load(){
  const sequence=++loadSequence,generation=authGeneration;loadController?.abort();const controller=new AbortController();loadController=controller;
@@ -183,3 +184,24 @@ function renderDemoExposure(okx){
 function renderDemoDecision(){const row=state?.latestDemoDecision;if(!row)return;const d=row.details||{};const reasons={demo_symbol_not_available_for_account:'Par indisponível ou restrito para esta conta.',demo_account_instruments_unconfirmed:'Não foi possível consultar os pares disponíveis da conta.',demo_bot_risk_attribution_unconfirmed:'Resultado do bot ainda não conciliado.',demo_bot_risk_basis_changed:'Mudança no orçamento ou marco contábil exige revisão.',pair_loss_cooldown:'Par em pausa após perdas consecutivas.',signal_hold:'Sem sinal de compra.',signal_sell:'Sinal de venda; não abre operação vendida.',entry_filter_or_risk_circuit_breaker:'Filtro de entrada ou circuito de risco bloqueou a compra.',demo_preflight_passed:'Verificações de entrada aprovadas; confira a ordem no histórico.',demo_daily_loss_limit:'Limite de perda diária Demo atingido.',demo_drawdown_limit:'Limite de drawdown Demo atingido.',demo_position_already_open:'Já existe posição Demo neste par.',demo_max_concurrent_positions:'Limite de posições Demo atingido.',demo_entry_cooldown:'Intervalo entre compras Demo ainda não terminou.',demo_max_exposure:'Limite de exposição Demo atingido.',demo_bot_exposure_unconfirmed:'Exposição do bot Demo não comprovada.',demo_bot_budget_unavailable:'Orçamento ou exposição Demo mudou antes do envio.',demo_book_unavailable:'Livro de ofertas Demo ausente, inválido ou desatualizado.',demo_spread_exceeded:'Spread acima do limite de compra Demo.',demo_order_limits_unconfirmed:'Não foi possível confirmar a taxa, a precisão ou os limites para a ordem Demo.',trade_interval_limit_reached:'Limite de ordens Demo no intervalo atingido.',demo_risk_per_trade:'Risco por operação acima do limite.',demo_balance_unconfirmed:'Saldo Demo não confirmado.',pending_demo_order:'Ordem Demo pendente de confirmação.'};const target=$('decision');target.textContent+=' | Demo '+String(d.symbol||'')+': '+(reasons[d.reason]||String(d.reason||'sem motivo informado'))+(d.exposure?' '+percent(d.exposure.projectedRate*100)+' projetados / '+percent(d.exposure.limitRate*100)+' de limite (ordem '+money(d.exposure.requestedUsdt)+', USDT livre '+money(d.exposure.freeUsdt)+', patrimônio '+money(d.exposure.equityUsdt)+(d.exposure.tradingEquityUsdt!=null?(d.exposure.scope==='bot'?', base do bot ':', base da conta ')+money(d.exposure.tradingEquityUsdt):'')+').':'')+(d.riskEvidence?' Risco '+(d.riskEvidence.scope==='bot'?'do bot':'da conta')+': base diária '+money(d.riskEvidence.dayStartEquityUsdt)+', atual '+money(d.riskEvidence.equityUsdt)+', perda '+percent(d.riskEvidence.dailyLossRate*100)+' / limite '+percent(d.riskEvidence.maxDailyLoss*100)+'.':'')+' · '+new Date(row.created_at).toLocaleString('pt-BR')}
 
 function renderDemoSupervision(){const target=$('demo-supervision');if(!target)return;const s=state?.demoSupervision;target.textContent=s?'Supervisão Demo: '+new Date(s.checkedAt).toLocaleString('pt-BR')+' · '+(Date.now()-Date.parse(s.checkedAt)>5*60000?'verificação desatualizada; confira o diagnóstico':s.entriesBlocked?'entradas bloqueadas: '+String(s.reason||'verificar diagnóstico'):'ordens e proteções conferidas'):'Supervisão Demo ainda não confirmada nesta instância.'}
+
+$('check-account-terms')?.addEventListener('click',async()=>{
+ const button=$('check-account-terms'),generation=authGeneration;button.disabled=true;accountTermsReport=null;$('download-account-terms').hidden=true;
+ $('account-terms-result').textContent='';$('account-terms-result').hidden=true;$('logs-message').textContent='Consultando a conta com chave dedicada de leitura…';
+ try{
+  const result=await api('/api/account-terms-readonly');if(generation!==authGeneration||dashboard.hidden)return;
+  if(result.status==='not_configured'){$('logs-message').textContent='Configure OKX_READ_API_KEY, OKX_READ_SECRET_KEY, OKX_READ_PASSPHRASE e OKX_READ_ENVIRONMENT=real ou demo na Railway. Esta consulta não usa a chave operacional.';return;}
+  if(result.status!=='read_only_account_terms_snapshot'){$('logs-message').textContent=result.reason==='dedicated_read_key_required'?'Esta consulta exige chave dedicada somente Read, sem permissões de escrita.':'Não foi possível consultar a conta. Confira credenciais, ambiente e restrições de acesso na OKX.';return;}
+  accountTermsReport=result;$('download-account-terms').hidden=false;
+  const display=n=>n===null||n===undefined?'não confirmado':String(n);
+  const lines=[`Ambiente consultado: ${result.environment==='real'?'REAL (somente leitura)':'DEMO (somente leitura)'}`,`USDT disponível: ${display(result.balance.availableUsdt)} · caixa: ${display(result.balance.cashUsdt)}`,`Caixa: ${result.balance.usableCashStatus==='spot_cash_observed'?'observado em modo Spot':'requer conferência; não é saldo liberado para operar'}`];
+  for(const t of result.terms)lines.push(`${t.symbol}: taxa por perna ${t.takerFeeRate==null?'não confirmada':(t.takerFeeRate*100).toFixed(4)+'%'} · mínimo ${display(t.minimumQuantity)} em moeda base · passo ${display(t.quantityStep)}`);
+  $('account-terms-result').textContent=lines.join('\n');$('account-terms-result').hidden=false;
+  $('logs-message').textContent='Leitura concluída para BTC, ETH e SOL. Nenhuma ordem enviada. Esta leitura não confirma todos os 20 pares nem aprova operação.';
+ }catch(error){if(generation===authGeneration&&!dashboard.hidden)$('logs-message').textContent=error.message;}finally{button.disabled=false;}
+});
+$('download-account-terms')?.addEventListener('click',()=>{
+ if(!accountTermsReport||dashboard.hidden)return;
+ const content=JSON.stringify(accountTermsReport,null,2),url=URL.createObjectURL(new Blob([content],{type:'application/json;charset=utf-8'})),a=document.createElement('a');
+ a.href=url;a.download=`crypto-bot-account-terms-${accountTermsReport.environment}-${accountTermsReport.capturedAtUtc.replace(/[^0-9]/g,'')}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});

@@ -172,3 +172,7 @@ O teste de orçamento existente também passou a cobrir o cenário de 17 USDT.
 Local: 546 aprovados, 20 PostgreSQL pendentes de CI. Tipagem, build e geração dos
 relatórios com fontes já consultadas aprovados; CI verifica banco, Docker e smoke
 móvel. Não há teste real com fundos ou resultado independente declarado.
+
+## Consulta manual pelo painel na Railway
+
+A versão atual do PR adiciona o botão autenticado **Verificar conta (leitura)** e download sanitizado. Usa as três OKX_READ_* acima e **OKX_READ_ENVIRONMENT=real ou demo**, sem fallback para a chave operacional e sem consulta automática. O coletor CLI anterior mantém ambiente no argumento; a quarta variável é para o fluxo do painel. Instruções e serviço identificado: `docs/okx-readonly-railway.md`. O botão só existe depois da implantação da versão correspondente.

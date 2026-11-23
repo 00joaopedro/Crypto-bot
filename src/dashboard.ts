@@ -33,6 +33,7 @@ type DashboardOptions = {
   onSettingsChanged: () => void | Promise<void>;
   getDemoSupervision?: () => unknown;
   getExecutionFidelity?: () => Promise<unknown>;
+  readAccountTerms?: () => Promise<unknown>;
   getLastSignalScan?: () => { pairs: string[]; candleTimestamp: number; cooldowns?: Array<{ symbol: string; until: number }> } | null;
   getOkxDemoSnapshot?: () => Promise<OkxDemoAccountSnapshot>;
   inspectDemoAccounting?: () => Promise<unknown>;
@@ -108,6 +109,11 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
       if (request.method === 'GET' && url.pathname === '/api/control-status') {
         const control = await options.persistence.readControlState();
         return json(response, 200, { paused: control.paused, pauseReason: control.pauseReason, job: controlJob });
+      }
+      if (request.method === "GET" && url.pathname === "/api/account-terms-readonly") {
+        if (request.headers['sec-fetch-site'] === 'cross-site') return json(response, 403, { error: 'Origem inválida.' });
+        try { return json(response, 200, options.readAccountTerms ? await options.readAccountTerms() : { status: 'not_configured', ordersSent: 0 }); }
+        catch { return json(response, 200, { status: 'unavailable', reason: 'read_query_failed', ordersSent: 0 }); }
       }
       if (request.method === "GET" && url.pathname === "/api/execution-fidelity") {
         return json(response, 200, options.getExecutionFidelity ? await options.getExecutionFidelity() : { status: "unavailable", reason: "runtime_not_initialized" });

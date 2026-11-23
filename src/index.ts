@@ -1,3 +1,4 @@
+import { createAccountTermsRead } from "./account-terms-read.js";
 import type { DemoEquityRiskResult } from './demo-entry.js';
 import type { DemoBalanceEvidence } from './demo-ledger.js';
 import { DemoSymbolAccess } from './demo-symbol-access.js';
@@ -80,6 +81,7 @@ async function main(): Promise<void> {
   let appliedExecution: EffectiveExecutionSnapshot | undefined;
   let configurationPersistence: "recorded" | "unavailable" | "disabled" = "disabled";
   const feeQuotes = new TradingTermsCache();
+  const readAccountTerms = createAccountTermsRead(process.env);
   const captureAppliedExecution = async (settings: DashboardSettings, recovery: Awaited<ReturnType<PostgresPersistence["loadRecoveryState"]>>) => {
     appliedExecution = effectiveExecutionSnapshot(config, settings, exitPolicy, recovery ?? undefined, {
       ...(process.env.RAILWAY_GIT_COMMIT_SHA ? { commitSha: process.env.RAILWAY_GIT_COMMIT_SHA } : {}),
@@ -603,6 +605,7 @@ async function main(): Promise<void> {
 
       dashboardServer = await startDashboard({
         getExecutionFidelity: inspectExecutionFidelity,
+        readAccountTerms,
         getDemoSupervision: () => lastSupervision,
         port: config.PORT,
         password: config.DASHBOARD_PASSWORD,

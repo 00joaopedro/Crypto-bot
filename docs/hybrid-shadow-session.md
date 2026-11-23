@@ -58,7 +58,7 @@ O comando não aceita `--demo`, `--live`, chaves ou parâmetro para enviar orden
 
 ## O que ainda depende de decisão/evidência
 
-1. **Decisão do usuário:** aceitar lote variável até 10 USDT, preservando os limites, e seguir primeiro com uma sessão Paper. Esse perfil está concreto no PR, mas não foi aplicado ao serviço. Manter lote fixo de 10 na banca de 17 continua incompatível com os limites atuais; eles não foram aumentados.
+1. **Dimensionamento adotado por delegação do usuário:** lote variável até 10 USDT, preservando os limites, para os próximos testes Paper. O perfil está concreto no PR, mas não foi aplicado ao serviço nem iniciou uma sessão de 48h. Manter lote fixo de 10 na banca de 17 continua incompatível com os limites atuais; eles não foram aumentados.
 2. **Conta:** fornecer a configuração protegida de leitura ou um diagnóstico sanitizado da conta Demo/conta pretendida para verificar taxas, saldo e termos. Não existem credenciais dedicadas de leitura neste ambiente local; isso não é uma auditoria das variáveis da Railway. Nunca enviar chaves no chat. O coletor `account:inspect-readonly` já está disponível e não envia ordens.
 3. **Demo com ordens virtuais:** exige adaptador por modo, precisão/proteção nativa, persistência de alterações/time-stop e reconciliação específicos do híbrido. As proteções legadas não certificam automaticamente esse comportamento novo. O relatório `hybrid-demo-readiness.json` continua bloqueado.
 4. **Economia:** híbrido/B ainda negativos; A tem amostra insuficiente. Nenhuma aprovação de dinheiro real ou vantagem econômica foi produzida nesta entrega.

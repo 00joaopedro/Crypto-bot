@@ -31,7 +31,7 @@ export async function inspectOkxReadOnly(client:ReturnType<typeof createOkxReadO
  if(!symbols.length||symbols.length>3||new Set(symbols).size!==symbols.length||symbols.some(s=>!/^[-A-Z0-9._]+\/USDT$/.test(s)))throw new Error('One to three distinct USDT pairs required');
  const configRows=await client.get('/api/v5/account/config');if(configRows.length!==1)throw new Error('Account configuration unconfirmed');
  const config=envelopeRecord(configRows[0]),permissions=String(config.perm??'').split(',').map(s=>s.trim());
- if(!permissions.includes('read_only')||permissions.some(p=>p==='trade'||p==='withdraw'))throw new Error('A dedicated Read-only API key is required');
+ if(!permissions.includes('read_only')||permissions.some(p=>p!=='read_only'))throw new Error('A dedicated Read-only API key is required');
  const balanceRows=await client.get('/api/v5/account/balance',{ccy:'USDT'});
  const instruments=await client.get('/api/v5/public/instruments',{instType:'SPOT'});
  const details=balanceRows.length===1?z.object({details:z.array(z.unknown())}).parse(balanceRows[0]).details.map(envelopeRecord).filter(r=>r.ccy==='USDT'):[];
@@ -49,14 +49,21 @@ export async function inspectOkxReadOnly(client:ReturnType<typeof createOkxReadO
   if(instrumentConfirmed)try{
    const feeRows=await client.get('/api/v5/account/trade-fee',{instType:'SPOT',instId});
    const f=feeRows.length===1?envelopeRecord(feeRows[0]):null;
-   const signed=f&&(!f.instId||f.instId===instId)&&(!f.instType||f.instType==='SPOT')?numeric(f.taker):null;
+   let signed:number|null=null;
+   if(f&&(!f.instId||f.instId===instId)&&(!f.instType||f.instType==='SPOT')){
+    if(f.feeGroup!==undefined&&(!Array.isArray(f.feeGroup)||f.feeGroup.length)){
+     const groupId=typeof market?.groupId==='string'?market.groupId:null;
+     const groups=(Array.isArray(f.feeGroup)?f.feeGroup:[]).map(envelopeRecord).filter(g=>groupId?g.groupId===groupId:f.feeGroup instanceof Array&&f.feeGroup.length===1);
+     if(groups.length===1)signed=numeric(groups[0]!.taker);
+    }else signed=numeric(f.taker);
+   }
    // OKX API negative = charge, positive = rebate. Never assume rebates or use abs() blindly.
    if(signed!==null&&signed<=0&&signed>-.1){takerCostRate=signed===0?0:-signed;feeStatus='account_pair_quote';}
    else if(signed!==null&&signed>0)feeStatus='rebate_not_modeled';
   }catch{feeStatus='query_failed';}
   terms.push({symbol,instrumentStatus:instrumentConfirmed?'live_spot_rules_observed':'unconfirmed',minimumQuantity:instrumentConfirmed?min:null,quantityStep:instrumentConfirmed?step:null,priceTick:instrumentConfirmed?tick:null,minimumNotionalUsdt:null,feeStatus,takerFeeRate:takerCostRate});
  }
- return {status:'read_only_account_terms_snapshot',environment,capturedAtUtc:clock().toISOString(),declaredBudgetUsdt:17,
+ return {status:'read_only_account_terms_snapshot',environment,capturedAtUtc:clock().toISOString(),declaredBudgetUsdt:17,entryFeeCurrency:config.feeType==='0'?'base':config.feeType==='1'?'quote':null,
   balance:{currency:'USDT',availableUsdt:available,cashUsdt:cash,liabilityUsdt:liability,usableCashStatus:confirmed?'spot_cash_observed':'requires_account_review',withinDeclaredBudgetUsdt:cashUpperBound},terms,
   ordersSent:0,transfersSent:0,configurationChanged:false,realMoneyApproved:false,
   limitations:['Read-only account observations, not fills, strategy approval or capital allocation. No credentials/account IDs/raw API payloads exported.',

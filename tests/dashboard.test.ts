@@ -116,6 +116,18 @@ describe("dashboard authentication", () => {
     }
   });
 
+  networkTest("protects manual account terms, rejects cross-site reads and never leaks raw reader errors", async () => {
+    const readAccountTerms = vi.fn(async ():Promise<unknown> => ({status:'read_only_account_terms_snapshot',environment:'real',ordersSent:0}));
+    server=await startDashboard({port:0,host:'127.0.0.1',password:'password',sessionSecret:'s'.repeat(32),persistence:{} as PostgresPersistence,supportedSymbols:[],onSettingsChanged(){},readAccountTerms});
+    const base=`http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    expect((await fetch(base+'/api/account-terms-readonly')).status).toBe(401);expect(readAccountTerms).not.toHaveBeenCalled();
+    const login=await fetch(base+'/api/login',{method:'POST',body:JSON.stringify({password:'password'})});const cookie=login.headers.get('set-cookie')!.split(';')[0]!;
+    expect((await fetch(base+'/api/account-terms-readonly',{headers:{cookie,'sec-fetch-site':'cross-site'}})).status).toBe(403);expect(readAccountTerms).not.toHaveBeenCalled();
+    const response=await fetch(base+'/api/account-terms-readonly',{headers:{cookie}});expect(response.headers.get('cache-control')).toBe('no-store');expect(await response.json()).toMatchObject({environment:'real',ordersSent:0});
+    readAccountTerms.mockRejectedValueOnce(new Error('PRIVATE_READ_SECRET'));
+    const failed=await(await fetch(base+'/api/account-terms-readonly',{headers:{cookie}})).json();expect(failed).toMatchObject({status:'unavailable',ordersSent:0});expect(JSON.stringify(failed)).not.toContain('PRIVATE_READ_SECRET');
+  });
+
   networkTest("protects runtime fidelity and includes it in diagnostic exports without relabeling records", async () => {
     const content = { generatedAt: "2026-11-19T00:00:00Z", records: [{ section: "paper_trades", trade: { type: "CLOSED" } }] };
     const getExecutionFidelity = vi.fn(async () => ({ status: "equivalence_not_established", snapshot: { configurationHash: "a".repeat(64) } }));
