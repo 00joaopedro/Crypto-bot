@@ -1,0 +1,10 @@
+import { readFile,writeFile,mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { assessHybridDemoReadiness } from './hybrid-demo-readiness.js';
+const [reportPath,strategyPath,policyPath,outDir,...extra]=process.argv.slice(2);
+if(!reportPath||!strategyPath||!policyPath||!outDir||extra.length)throw new Error('Usage: demo:hybrid-readiness -- <development-report.json> <strategy-plan.json> <readiness-plan.json> <NEW-output-directory>');
+const [reportText,strategy,policy]=await Promise.all([readFile(reportPath,'utf8'),readFile(strategyPath,'utf8').then(JSON.parse),readFile(policyPath,'utf8').then(JSON.parse)]);
+const report=assessHybridDemoReadiness(reportText,strategy,policy);
+await mkdir(outDir,{recursive:false});
+await writeFile(join(outDir,'summary.json'),JSON.stringify(report,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(report,null,2));

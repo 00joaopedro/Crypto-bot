@@ -40,3 +40,7 @@ The replay does not certify operational parity for native protection, tick-round
 ## Second execution completed
 
 The frozen 30-day public study is now completed for 18 included pairs; see `hybrid-research-30days.md`, `hybrid-research-results.json`, `hybrid-research-source.json`, `hybrid-research-evaluation.json` and `hybrid-research-ledgers/`. Hybrid and B remain negative in every cost case; A has only 1–2 trades and no demonstrated advantage. No candidate or operational change is promoted. The earlier first-execution status above describes its original scope; the independent validation and Demo integration remain unexecuted.
+
+## Third execution — current default and readiness
+
+The current command defaults to eight replays using archived account-reference costs and stress only; the sixteen-run report above remains historical. To reproduce its hypotheses explicitly add `--include-cost-hypotheses` (no AI calls). See `hybrid-demo-preparation.md` and `hybrid-demo-readiness.json`: preparation/readiness is implemented, but economic approval, independent validation, operational hybrid integration and 48h deployment remain blocked. The application configuration forces quantitative mode and disables paid AI for this version.

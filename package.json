@@ -34,7 +34,8 @@
     "strategy:refinement-readiness": "node dist/refinement-independent-readiness-cli.js",
     "account:inspect-readonly": "node dist/okx-read-only-inspection-cli.js",
     "strategy:hybrid-research": "node dist/hybrid-research-cli.js",
-    "strategy:hybrid-collect": "node dist/hybrid-history-cli.js"
+    "strategy:hybrid-collect": "node dist/hybrid-history-cli.js",
+    "demo:hybrid-readiness": "node dist/hybrid-demo-readiness-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

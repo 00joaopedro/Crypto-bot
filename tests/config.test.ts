@@ -69,3 +69,12 @@ it("supports a bounded or all-eligible universe with conservative scheduling def
   expect(() => parseConfig({ SIGNAL_SCAN_REQUEST_BUDGET: "0" })).toThrow();
   expect(() => parseConfig({ SIGNAL_SCAN_TIME_BUDGET_MS: "999" })).toThrow();
 });
+
+
+it("keeps paid AI disabled even with stale filter settings or a configured API key", () => {
+  for (const extra of [{}, { GEMINI_API_KEY: "unused-test-key" }]) {
+    expect(parseConfig({ AI_MODE: "filter", GEMINI_ENABLED: "true", ...extra }))
+      .toMatchObject({ AI_MODE: "quantitative", GEMINI_ENABLED: false });
+  }
+  expect(parseConfig({})).toMatchObject({ AI_MODE: "quantitative", GEMINI_ENABLED: false });
+});

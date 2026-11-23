@@ -51,8 +51,9 @@ const schema = z
     PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
     DASHBOARD_PASSWORD: optionalTrimmedString,
     DASHBOARD_SESSION_SECRET: optionalTrimmedString,
-    GEMINI_ENABLED: booleanString,
-    AI_MODE: z.enum(["quantitative", "filter"]).default("quantitative"),
+    // Legacy AI settings are accepted but cannot enable paid calls in this version.
+    GEMINI_ENABLED: booleanString.transform((): boolean => false),
+    AI_MODE: z.enum(["quantitative", "filter"]).default("quantitative").transform((): "quantitative" | "filter" => "quantitative"),
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().min(1).default("gemini-flash-latest"),
     AI_FAILURE_MODE: z.enum(["reject", "quantitative"]).default("quantitative"),
@@ -131,13 +132,6 @@ const schema = z
         code: "custom",
         path: ["ATR_MIN_STOP_RATE"],
         message: "ATR_MIN_STOP_RATE cannot exceed ATR_MAX_STOP_RATE",
-      });
-    }
-    if (value.GEMINI_ENABLED && !value.GEMINI_API_KEY) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["GEMINI_API_KEY"],
-        message: "GEMINI_API_KEY is required when GEMINI_ENABLED=true",
       });
     }
     if (value.PAPER_TRADE_SIZE_USDT > value.PAPER_INITIAL_BALANCE_USDT) {

@@ -40,6 +40,10 @@ jobs:
         run: npm run strategy:hybrid-collect -- --verify examples/hybrid-research.plan.json examples/hybrid-collection.study.json .hybrid-data
       - name: Compare baseline, A, B and shared hybrid
         run: npm run --silent strategy:hybrid-research -- examples/hybrid-research.plan.json examples/pullback-reference.study.json .hybrid-data/normalized-data.json .hybrid-results
+      - name: Assess readiness without orders, account access or paid AI
+        run: |
+          npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness
+          diff -u docs/hybrid-demo-readiness.json .hybrid-readiness/summary.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -47,6 +51,7 @@ jobs:
           path: |
             .hybrid-data/
             .hybrid-results/
+            .hybrid-readiness/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error

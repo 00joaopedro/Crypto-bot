@@ -10,3 +10,5 @@ coverage/
 
 .hybrid-data/
 .hybrid-results/
+
+.hybrid-readiness/

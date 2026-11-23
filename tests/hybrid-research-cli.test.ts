@@ -21,15 +21,20 @@ it('describes the frozen protocol without market data, API calls or changing run
  const output=JSON.parse(execFileSync(process.execPath,['--import','tsx',path('src/hybrid-research-cli.ts'),path('examples/hybrid-research.plan.json'),path('examples/pullback-reference.study.json')],{encoding:'utf8'}));
  expect(output).toMatchObject({status:'offline_hybrid_protocol_only',profitabilityValidated:false,liveScannerChanged:false,configurationPromoted:false,realMoneyApproved:false});expect(output.plan.watchlist).toHaveLength(20);expect(output.baselineParameters.minimumSignalScore).toBe(4);
 });
-it('replays supplied synthetic data with four variants and four explicitly labeled cost cases; retains missing coverage and null metrics',()=>{
+it('replays supplied synthetic data with four variants and only account-reference/stress costs by default; retains missing coverage and null metrics',()=>{
  const root=mkdtempSync(join(tmpdir(),'hybrid-research-'));
  try{
  const data=fixture(),dataPath=join(root,'data.json'),out=join(root,'out');writeFileSync(dataPath,JSON.stringify(data));
  const args=[process.execPath,['--import','tsx',path('src/hybrid-research-cli.ts'),path('examples/hybrid-research.plan.json'),path('examples/pullback-reference.study.json'),dataPath,out]] as const;
  const run=()=>execFileSync(args[0],[...args[1]],{encoding:'utf8',stdio:['ignore','pipe','pipe']});
- const r=JSON.parse(run());expect(r.runs).toHaveLength(16);expect(r.missingFromInput).toHaveLength(19);expect(r.demoAvailabilityVerified).toBe(false);expect(r.scenarios[0].evidence).toMatch(/not_verified/);expect(r.runs.every((x:any)=>x.closedTrades===0&&x.profitFactor===null&&x.blocks.every((b:any)=>!b.complete))).toBe(true);expect(readdirSync(out)).toHaveLength(17);
+ const r=JSON.parse(run());expect(r.runs).toHaveLength(8);expect(r.missingFromInput).toHaveLength(19);expect(r.demoAvailabilityVerified).toBe(false);expect(r.paidAiCalls).toBe(false);expect(r.scenarios.map((s:any)=>s.name)).toEqual(['account-conditioned','account-cost-stress']);expect(r.runs.every((x:any)=>x.closedTrades===0&&x.profitFactor===null&&x.blocks.every((b:any)=>!b.complete))).toBe(true);expect(readdirSync(out)).toHaveLength(9);
  expect(run).toThrow(/EEXIST/);
  const wrong=join(root,'wrong-study.json');const base=JSON.parse(readFileSync(path('examples/pullback-reference.study.json'),'utf8'));base.tradeSizeUsdt=20;writeFileSync(wrong,JSON.stringify(base));
  expect(()=>execFileSync(process.execPath,['--import','tsx',path('src/hybrid-research-cli.ts'),path('examples/hybrid-research.plan.json'),wrong],{stdio:'pipe'})).toThrow(/identity/);
  }finally{rmSync(root,{recursive:true,force:true});}
 },20000);
+
+it('keeps archived hypotheses opt-in for historical reproduction without AI calls',()=>{
+ const r=JSON.parse(execFileSync(process.execPath,['--import','tsx',path('src/hybrid-research-cli.ts'),path('examples/hybrid-research.plan.json'),path('examples/pullback-reference.study.json'),'--include-cost-hypotheses'],{encoding:'utf8'}));
+ expect(r.costScope).toBe('archived_full_matrix');expect(r.paidAiCalls).toBe(false);
+});
