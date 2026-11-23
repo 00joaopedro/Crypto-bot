@@ -10,4 +10,4 @@
 .metric-toggle{appearance:none;text-align:left;cursor:pointer}.metric-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 
 
-.account-terms-result{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:100%}
+.account-terms-result{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:100%;max-height:24rem;overflow:auto}

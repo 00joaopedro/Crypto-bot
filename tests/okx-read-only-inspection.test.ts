@@ -62,3 +62,11 @@ it('resolves the current feeGroup for the instrument and preserves unknown ambig
 it('rejects every extra write permission rather than only Trade and Withdraw',async()=>{
  for(const permission of ['transfer','loan','earn']){const f=fixture({permissions:'read_only,'+permission});await expect(inspectOkxReadOnly(f.client,'demo',['BTC/USDT'])).rejects.toThrow(/dedicated/);expect(f.calls).toHaveLength(1);}
 });
+
+it('supports the explicit bounded 20-pair panel mode, pacing each fee query and rejecting a larger list',async()=>{
+ const symbols=Array.from({length:20},(_,i)=>'COIN'+i+'/USDT');const calls:string[]=[],client={environment:'real' as const,get:async(path:string)=>{
+  calls.push(path);return path.endsWith('/config')?[{perm:'read_only'}]:path.endsWith('/balance')?[{details:[]}]:path.endsWith('/instruments')?symbols.map(symbol=>({instId:symbol.replace('/','-'),instType:'SPOT',quoteCcy:'USDT',state:'live',minSz:'.01',lotSz:'.01',tickSz:'.01'})):[{instType:'SPOT',taker:'-.001'}];
+ }};let paced=0;
+ const r=await inspectOkxReadOnly(client,'real',symbols,clock,{maximumSymbols:20,beforeFee:async()=>{paced++;}});expect(r.terms).toHaveLength(20);expect(paced).toBe(20);expect(calls).toHaveLength(23);
+ await expect(inspectOkxReadOnly(client,'real',[...symbols,'MORE/USDT'],clock,{maximumSymbols:20,beforeFee:async()=>{}})).rejects.toThrow(/twenty/);
+});

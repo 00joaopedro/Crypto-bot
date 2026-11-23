@@ -189,15 +189,15 @@ $('check-account-terms')?.addEventListener('click',async()=>{
  const button=$('check-account-terms'),generation=authGeneration;button.disabled=true;accountTermsReport=null;$('download-account-terms').hidden=true;
  $('account-terms-result').textContent='';$('account-terms-result').hidden=true;$('logs-message').textContent='Consultando a conta com chave dedicada de leitura…';
  try{
-  const result=await api('/api/account-terms-readonly');if(generation!==authGeneration||dashboard.hidden)return;
+  const result=await api('/api/account-terms-readonly',{timeoutMs:25000});if(generation!==authGeneration||dashboard.hidden)return;
   if(result.status==='not_configured'){$('logs-message').textContent='Configure OKX_READ_API_KEY, OKX_READ_SECRET_KEY, OKX_READ_PASSPHRASE e OKX_READ_ENVIRONMENT=real ou demo na Railway. Esta consulta não usa a chave operacional.';return;}
   if(result.status!=='read_only_account_terms_snapshot'){$('logs-message').textContent=result.reason==='dedicated_read_key_required'?'Esta consulta exige chave dedicada somente Read, sem permissões de escrita.':'Não foi possível consultar a conta. Confira credenciais, ambiente e restrições de acesso na OKX.';return;}
   accountTermsReport=result;$('download-account-terms').hidden=false;
   const display=n=>n===null||n===undefined?'não confirmado':String(n);
-  const lines=[`Ambiente consultado: ${result.environment==='real'?'REAL (somente leitura)':'DEMO (somente leitura)'}`,`USDT disponível: ${display(result.balance.availableUsdt)} · caixa: ${display(result.balance.cashUsdt)}`,`Caixa: ${result.balance.usableCashStatus==='spot_cash_observed'?'observado em modo Spot':'requer conferência; não é saldo liberado para operar'}`];
+  const lines=[`Leitura: ${new Date(result.capturedAtUtc).toLocaleString('pt-BR')} · cache de até 60s`,`Ambiente consultado: ${result.environment==='real'?'REAL (somente leitura)':'DEMO (somente leitura)'}`,`USDT disponível: ${display(result.balance.availableUsdt)} · caixa: ${display(result.balance.cashUsdt)}`,`Caixa: ${result.balance.usableCashStatus==='spot_cash_observed'?'observado em modo Spot':'requer conferência; não é saldo liberado para operar'}`];
   for(const t of result.terms)lines.push(`${t.symbol}: taxa por perna ${t.takerFeeRate==null?'não confirmada':(t.takerFeeRate*100).toFixed(4)+'%'} · mínimo ${display(t.minimumQuantity)} em moeda base · passo ${display(t.quantityStep)}`);
   $('account-terms-result').textContent=lines.join('\n');$('account-terms-result').hidden=false;
-  $('logs-message').textContent='Leitura concluída para BTC, ETH e SOL. Nenhuma ordem enviada. Esta leitura não confirma todos os 20 pares nem aprova operação.';
+  $('logs-message').textContent=`Taxas confirmadas em ${result.terms.filter(t=>t.takerFeeRate!==null).length}/${result.terms.length} pares. Campos desconhecidos não foram estimados. Nenhuma ordem enviada; esta leitura não aprova operação.`;
  }catch(error){if(generation===authGeneration&&!dashboard.hidden)$('logs-message').textContent=error.message;}finally{button.disabled=false;}
 });
 $('download-account-terms')?.addEventListener('click',()=>{

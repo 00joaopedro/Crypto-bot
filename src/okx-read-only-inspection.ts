@@ -26,9 +26,10 @@ const numeric=(value:unknown):number|null=>typeof value==='string'&&value.trim()
 const nonnegative=(value:unknown)=>{const n=numeric(value);return n!==null&&n>=0?n:null;};
 const envelopeRecord=(value:unknown)=>z.record(z.string(),z.unknown()).parse(value);
 /** Allowlisted projection only: no credentials, uid, account label or complete API payload is returned. */
-export async function inspectOkxReadOnly(client:ReturnType<typeof createOkxReadOnlyClient>,environment:"demo"|"real",symbols:string[],clock=()=>new Date()){
+export async function inspectOkxReadOnly(client:ReturnType<typeof createOkxReadOnlyClient>,environment:"demo"|"real",symbols:string[],clock=()=>new Date(),controls?:{maximumSymbols:20;beforeFee:()=>Promise<void>}){
  if(client.environment!==environment)throw new Error("Read snapshot environment mismatch");
- if(!symbols.length||symbols.length>3||new Set(symbols).size!==symbols.length||symbols.some(s=>!/^[-A-Z0-9._]+\/USDT$/.test(s)))throw new Error('One to three distinct USDT pairs required');
+ const maximumSymbols=controls?.maximumSymbols===20?20:3;
+ if(!symbols.length||symbols.length>maximumSymbols||new Set(symbols).size!==symbols.length||symbols.some(s=>!/^[-A-Z0-9._]+\/USDT$/.test(s)))throw new Error(maximumSymbols===20?'One to twenty distinct USDT pairs required':'One to three distinct USDT pairs required');
  const configRows=await client.get('/api/v5/account/config');if(configRows.length!==1)throw new Error('Account configuration unconfirmed');
  const config=envelopeRecord(configRows[0]),permissions=String(config.perm??'').split(',').map(s=>s.trim());
  if(!permissions.includes('read_only')||permissions.some(p=>p!=='read_only'))throw new Error('A dedicated Read-only API key is required');
@@ -47,6 +48,7 @@ export async function inspectOkxReadOnly(client:ReturnType<typeof createOkxReadO
   const instrumentConfirmed=min!==null&&min>0&&step!==null&&step>0&&tick!==null&&tick>0;
   let takerCostRate:number|null=null,feeStatus='unavailable';
   if(instrumentConfirmed)try{
+   await controls?.beforeFee();
    const feeRows=await client.get('/api/v5/account/trade-fee',{instType:'SPOT',instId});
    const f=feeRows.length===1?envelopeRecord(feeRows[0]):null;
    let signed:number|null=null;
