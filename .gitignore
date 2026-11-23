@@ -12,3 +12,5 @@ coverage/
 .hybrid-results/
 
 .hybrid-readiness/
+
+.hybrid-shadow/

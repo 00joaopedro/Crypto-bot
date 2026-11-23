@@ -19,6 +19,8 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=build /app/dist ./dist
 COPY public ./public
+# Read-only frozen inputs for the optional public Paper runner.
+COPY examples/hybrid-shadow.profile.json examples/hybrid-research.plan.json examples/pullback-reference.study.json ./examples/
 
 USER node
 CMD ["node", "dist/index.js"]

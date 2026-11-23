@@ -1,0 +1,61 @@
+import { readFile,writeFile,readdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { join } from 'node:path';
+import { setTimeout as wait } from 'node:timers/promises';
+import ccxt from 'ccxt';
+import { collectUniverseHistory } from './universe-history.js';
+import { collectOkxSpotHistory } from './okx-history.js';
+import { hybridInstrumentRules } from './hybrid-history.js';
+import { shadowConfiguration,startShadowSession,advanceShadowSession,type ShadowSnapshot } from './hybrid-shadow-session.js';
+import { lockShadowSession,readShadowCheckpoint,saveShadowCheckpoint } from './hybrid-shadow-store.js';
+import type { HybridInstrument } from './hybrid-research-replay.js';
+const [directory,option,...extra]=process.argv.slice(2);
+if(!directory||(option!==undefined&&option!=='--once')||extra.length)throw new Error('Usage: demo:hybrid-shadow -- <session-directory> [--once]; Paper only, no exchange orders');
+const root=new URL('../',import.meta.url),json=async(p:string)=>JSON.parse(await readFile(new URL(p,root),'utf8'));
+const config=shadowConfiguration(await json('examples/hybrid-shadow.profile.json'),await json('examples/hybrid-research.plan.json'),await json('examples/pullback-reference.study.json'));
+const codeFiles=(await readdir(new URL('./',import.meta.url))).filter(p=>p.endsWith('.js')).sort();
+const digest=createHash('sha256');digest.update(process.versions.node);digest.update(await readFile(new URL('package-lock.json',root)));
+for(const p of codeFiles){digest.update(p);digest.update(await readFile(new URL(p,import.meta.url)));}const codeFingerprint=digest.digest('hex');
+const release=await lockShadowSession(directory),exchange=new ccxt.okx({enableRateLimit:true,timeout:20000});
+const controller=new AbortController(),stop=()=>controller.abort();process.once('SIGINT',stop);process.once('SIGTERM',stop);
+const fetchPage=async(request:{instId:string;bar:'15m'|'1H';after:string;limit:string})=>{
+ for(let attempt=0;;attempt++){
+  await wait(250,undefined,{signal:controller.signal});
+  try{return await exchange.publicGetMarketHistoryCandles(request);}catch(e){if(!(e instanceof ccxt.NetworkError)||attempt>=2)throw e;await wait(1000*2**attempt,undefined,{signal:controller.signal});}
+ }
+};
+try{
+ let state=await readShadowCheckpoint(directory);
+ if(state)state=advanceShadowSession(config,state,state.data,codeFingerprint);
+ let specs:HybridInstrument[]=state?.data.instruments??[];
+ if(!state){
+  const r=await exchange.publicGetPublicInstruments({instType:'SPOT'});
+  if(r.code!=='0'||!Array.isArray(r.data))throw new Error('Public Spot instrument list unavailable');
+  const rows=new Map<string,Record<string,unknown>>(r.data.map((v:Record<string,unknown>)=>[String(v.instId),v]));
+  const start=Math.floor(Date.now()/900000)*900000-1000*900000;
+  const skipped:Array<{symbol:string;reason:string}>=[];
+  for(const symbol of config.strategy.watchlist){try{const row=rows.get(symbol.replace('/','-'));if(!row)throw new Error('missing_from_public_spot_list');const terms=hybridInstrumentRules(row,symbol,start);specs.push({symbol,constraints:terms.constraints,candles15m:[],candles1h:[]});}catch(e){skipped.push({symbol,reason:String(e)});}}
+  await writeFile(join(directory,'public-coverage.json'),JSON.stringify({skipped,minimumNotionalVerified:false,demoAvailabilityVerified:false,accountQueried:false,ordersSent:0},null,2)+'\n',{mode:0o600});
+ }
+ while(!controller.signal.aborted){
+  const now=Date.now(),end=Math.min(Math.floor(now/900000)*900000,state?state.evaluationStart+48*3600000:Infinity),start=state?state.evaluationStart-1000*900000:end-1000*900000;
+  const mustCollect=!state||Date.parse(state.data.asOfUtc)<end;
+  if(mustCollect){
+   const instruments:HybridInstrument[]=[];
+   for(const spec of specs){
+    const old=state?.data.instruments.find(d=>d.symbol===spec.symbol),from=old?Date.parse(state!.data.asOfUtc):start;
+    const quarter=await collectUniverseHistory(fetchPage,spec.symbol.replace('/','-'),from,end,Date.now());
+    const hourStart=old?.candles1h.length?old.candles1h.at(-1)!.timestamp+3600000:Math.floor(start/3600000)*3600000,hourEnd=Math.floor(end/3600000)*3600000;
+    const hours=hourStart<hourEnd?await collectOkxSpotHistory(fetchPage,spec.symbol.replace('/','-'),hourStart,hourEnd,Date.now(),'1H'):[];
+    instruments.push({...spec,candles15m:[...(old?.candles15m??[]),...quarter.candles],candles1h:[...(old?.candles1h??[]),...hours],quoteVolumesUsdt:[...(old?.quoteVolumesUsdt??[]),...quarter.quoteVolumesUsdt]});
+   }
+   const data={asOfUtc:new Date(end).toISOString(),instruments};
+   state=state?advanceShadowSession(config,state,data,codeFingerprint):startShadowSession(config,data,codeFingerprint,now);
+  }else if(state){state=advanceShadowSession(config,state,state.data,codeFingerprint);}
+  if(!state)throw new Error('Shadow session unavailable');
+  await saveShadowCheckpoint(directory,state);
+  console.log(JSON.stringify({status:state.status,environment:'paper_public_only',asOfUtc:state.data.asOfUtc,pairs:state.data.instruments.length,closedTrades:state.result?.closedTrades??0,netReturnUsdt:state.result?.netReturnUsdt??0,openPosition:state.result?.openPosition??null,allocationMode:config.profile.allocationMode,ordersSent:0,paidAiCalls:false,realMoneyApproved:false}));
+  if(option==='--once'||state.status==='completed')break;
+  await wait(60000,undefined,{signal:controller.signal});
+ }
+}catch(e){if(!controller.signal.aborted)throw e;}finally{await exchange.close();await release();process.removeListener('SIGINT',stop);process.removeListener('SIGTERM',stop);}

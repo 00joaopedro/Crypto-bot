@@ -671,3 +671,7 @@ Veja [resultados e limitações](docs/complementary-study.md); não ativa execu�
 produz a avaliação offline de custos/fills, configuração observada e viabilidade
 do lote. Sem dados, registra impedimentos; nunca habilita dinheiro real.
 Veja [o protocolo e a decisão atual](docs/pilot-review.md).
+
+### Sessão híbrida Paper de 48h (sem ordens)
+
+`npm run demo:hybrid-shadow -- <diretório-persistente>` executa o perfil público Paper; `--once` faz somente um ciclo. Não há chamadas de IA ou ordens OKX. Banca 17 e teto nominal 10 usam limites conservadores para reduzir o lote, recusando mínimos incompatíveis. Ver `docs/hybrid-shadow-session.md`: a proposta precisa ser distinguida da integração Demo ainda pendente e não aprova dinheiro real.

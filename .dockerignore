@@ -8,3 +8,9 @@ dist
 coverage
 *.log
 tests
+
+.account-terms
+.hybrid-data
+.hybrid-results
+.hybrid-readiness
+.hybrid-shadow

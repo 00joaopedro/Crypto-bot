@@ -51,3 +51,25 @@ it('does not arm trailing on a transient high without a net-profitable confirmin
  const d=data(3);d[0]!.candles15m[2]={timestamp:1800000,open:100,high:102,low:99.5,close:100.5,volume:20000};
  const r=run(d,new Map([['BTC/USDT',[[decision('TREND_PULLBACK')]]]]));expect(r.openPosition!.stopPrice).toBe(r.entries[0]!.stopPrice);
 });
+
+it('optional Paper risk sizing preserves exposure/stop-loss limits and rejects subminimum lots without altering fixed-lot research',()=>{
+ const limits={riskPerTrade:.01,maxExposure:.25,maxSymbolExposure:.15,maxAltExposure:.1};
+ const d=data(4);d[0]!.candles15m[2]!.high=110;
+ const map=new Map([['BTC/USDT',[[decision('TREND_PULLBACK')]]]]);
+ const fixed=run(d,map),sized=replayHybridDecisions(d,map,plan,scenario,baseline,1,limits);
+ expect(fixed.entries[0]!.notionalUsdt).toBeGreaterThan(9.9);expect(sized.entries[0]!.notionalUsdt).toBeLessThanOrEqual(2.55);expect(sized.entries[0]!.estimatedInitialLossUsdt).toBeLessThanOrEqual(.17);expect(sized.closedTradeLedger[0]!.netPnlPercent).toBeCloseTo(2.8,8);
+ const alt=data(4).slice(1);alt[0]!.candles15m[2]!.high=110;
+ const altMap=new Map([['ETH/USDT',[[decision('TREND_PULLBACK')]]]]);
+ expect(replayHybridDecisions(alt,altMap,plan,scenario,baseline,1,limits).entries[0]!.notionalUsdt).toBeLessThanOrEqual(1.7);
+ alt[0]!.constraints.minimumNotionalUsdt=5;
+ expect(replayHybridDecisions(alt,altMap,plan,scenario,baseline,1,limits).entries).toHaveLength(0);
+});
+
+it('Paper risk profile pauses after consecutive losses and blocks new entries after crossing its daily loss threshold',()=>{
+ const d=data(96).slice(0,1);
+ for(let i=1;i<96;i++)d[0]!.candles15m[i]!.low=98;
+ const signals=Array.from({length:96},(_,i)=>[decision('TREND_PULLBACK',i*900000)]);
+ const {pairCooldown,...withoutPairCooldown}=baseline;
+ const r=replayHybridDecisions(d,new Map([['BTC/USDT',signals]]),plan,scenario,withoutPairCooldown,1,{riskPerTrade:.01,maxExposure:.25,maxSymbolExposure:.15,maxAltExposure:.1});
+ expect(r.closedTrades).toBeGreaterThan(3);expect(r.rejected.loss_cooldown).toBeGreaterThan(0);expect(r.rejected.portfolio_risk_halt).toBeGreaterThan(0);expect(r.netReturnPercent).toBeLessThanOrEqual(-3);expect(r.netReturnPercent).toBeGreaterThan(-4);
+});

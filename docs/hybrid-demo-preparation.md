@@ -47,3 +47,7 @@ O objetivo econômico é expectativa líquida favorável com risco controlado. A
 A pesquisa seguinte mais objetiva começa por condições verificadas da conta e separa os modos. A merece avaliação com uma amostra maior sob protocolo prévio, sem concluir vantagem a partir de dois trades. B exige uma nova hipótese explícita para a relação entre margem até a SMA, perdas e custos; não deve ser ativado só para aumentar frequência. Qualquer mudança de parâmetros precisa de novo experimento de desenvolvimento e validação posterior em dados independentes. Não há promessa de melhora nem ajuste novo de indicadores nesta execução.
 
 Fontes oficiais para consulta de taxas/regras e ambiente Demo: https://www.okx.com/docs-v5/en/ . O coletor de leitura e seus limites estão em `docs/refinement-independent-readiness.md`.
+
+## Entrega adicional posterior
+
+Foi implementada uma sessão **Paper somente com dados públicos**, com dimensionamento opcional compatível com risco, retomada por checkpoint, identificação por modo, trailing/time-stop simulados e teste de aquecimento/retomada no CI. Perfil revisável e limites: `examples/hybrid-shadow.profile.json`; detalhes e pendências em `hybrid-shadow-session.md`. Isso não conclui o adaptador de ordens da OKX Demo nem altera a avaliação econômica negativa. A regra histórica de lote fixo 10 continua preservada; o lote variável é um perfil separado, sem ativação na Railway.

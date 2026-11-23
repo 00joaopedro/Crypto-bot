@@ -40,10 +40,24 @@ jobs:
         run: npm run strategy:hybrid-collect -- --verify examples/hybrid-research.plan.json examples/hybrid-collection.study.json .hybrid-data
       - name: Compare baseline, A, B and shared hybrid
         run: npm run --silent strategy:hybrid-research -- examples/hybrid-research.plan.json examples/pullback-reference.study.json .hybrid-data/normalized-data.json .hybrid-results
+      - name: Preserve the eight archived fixed-lot results
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const old=JSON.parse(fs.readFileSync('docs/hybrid-research-results.json','utf8'));
+          const current=JSON.parse(fs.readFileSync('.hybrid-results/summary.json','utf8'));
+          const selected=old.runs.filter(r=>['account-conditioned','account-cost-stress'].includes(r.scenario));
+          if(JSON.stringify(selected)!==JSON.stringify(current.runs))throw new Error('Fixed-lot historical reference changed');
+          console.log('All eight archived fixed-lot results reproduced exactly');
+          JS
       - name: Assess readiness without orders, account access or paid AI
         run: |
           npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness
           diff -u docs/hybrid-demo-readiness.json .hybrid-readiness/summary.json
+      - name: Public Paper shadow warmup and restart smoke (no exchange orders)
+        run: |
+          npm run demo:hybrid-shadow -- .hybrid-shadow --once
+          npm run demo:hybrid-shadow -- .hybrid-shadow --once
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -52,6 +66,7 @@ jobs:
             .hybrid-data/
             .hybrid-results/
             .hybrid-readiness/
+            .hybrid-shadow/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
