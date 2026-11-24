@@ -71,7 +71,7 @@ jobs:
             echo "Unexpected transport mode change accepted"
             exit 1
           fi
-          rg 'Frozen transport mode changed' /tmp/frozen-transport-mode.log
+          node --input-type=module -e "import fs from 'node:fs'; if (!fs.readFileSync('/tmp/frozen-transport-mode.log','utf8').includes('Frozen transport mode changed')) throw new Error('Expected frozen transport rejection missing');"
           npm run demo:hybrid-audit -- .hybrid-shadow .hybrid-shadow-audit
           npm run market:stream-smoke
       - uses: actions/upload-artifact@v4
