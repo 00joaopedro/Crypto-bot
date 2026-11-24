@@ -1,0 +1,163 @@
+{
+  "protocol": "hybrid-evolution-development-v1",
+  "developmentOnly": true,
+  "frozenBeforeReplay": true,
+  "datasetSha256": "fb88541a351e706edcc838fffdd42ed9a11ba25ace8d4a883d8090ed6eaadfc4",
+  "strategyPlanSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "cases": [
+    {
+      "name": "A_REFERENCE",
+      "variant": "trend_pullback",
+      "change": "reference"
+    },
+    {
+      "name": "B_REFERENCE",
+      "variant": "mean_reversion",
+      "change": "reference"
+    },
+    {
+      "name": "AB_REFERENCE",
+      "variant": "hybrid",
+      "change": "reference"
+    },
+    {
+      "name": "A_TRANSITION",
+      "variant": "trend_pullback",
+      "change": "transition"
+    },
+    {
+      "name": "B_TRANSITION",
+      "variant": "mean_reversion",
+      "change": "transition"
+    },
+    {
+      "name": "A_REGIME",
+      "variant": "trend_pullback",
+      "change": "regime"
+    },
+    {
+      "name": "B_REGIME",
+      "variant": "mean_reversion",
+      "change": "regime"
+    },
+    {
+      "name": "A_ROI",
+      "variant": "trend_pullback",
+      "change": "roi"
+    },
+    {
+      "name": "B_ROI",
+      "variant": "mean_reversion",
+      "change": "roi"
+    },
+    {
+      "name": "A_FULL",
+      "variant": "trend_pullback",
+      "change": "full"
+    },
+    {
+      "name": "B_FULL",
+      "variant": "mean_reversion",
+      "change": "full"
+    },
+    {
+      "name": "AB_FULL",
+      "variant": "hybrid",
+      "change": "full"
+    },
+    {
+      "name": "C_SQUEEZE",
+      "variant": "squeeze",
+      "change": "squeeze"
+    }
+  ],
+  "scenarios": [
+    "account-conditioned",
+    "account-cost-stress"
+  ],
+  "bankUsdt": 17,
+  "lotCeilingUsdt": 10,
+  "maxConcurrentPositions": 1,
+  "riskLimits": {
+    "riskPerTrade": 0.01,
+    "maxExposure": 0.25,
+    "maxAltExposure": 0.1,
+    "maxSymbolExposure": 0.15
+  },
+  "transition": "per symbol/mode; complete quality+signal false -> true; compute previous warmup signal; not reset on position occupancy",
+  "regime": {
+    "timeframe": "fully_closed_1h",
+    "trendAdxMinimum": 22,
+    "lateralAdxExclusiveMaximum": 20,
+    "trend": "EMA50>EMA200 and EMA50>EMA50_previous_hour",
+    "lateral": "ADX<20 and absolute EMA50 change over 3 hours <=0.003",
+    "gap": "20<=ADX<22 enables neither mode; original 15m B ADX<22 remains"
+  },
+  "roi": {
+    "netRateSchedule": [
+      {
+        "minutes": 0,
+        "rate": 0.016
+      },
+      {
+        "minutes": 30,
+        "rate": 0.011
+      },
+      {
+        "minutes": 180,
+        "rate": 0.006
+      }
+    ],
+    "timing": "threshold selected at candle OPEN by elapsed holding minutes; no retrospective high; next-candle processing; original stop precedence and gap losses preserved",
+    "a": "minimum of original target 2.8% net and schedule; original trailing retained",
+    "b": "minimum of frozen SMA20, original 1.4% net and schedule; six-candle time stop retained"
+  },
+  "feeAwareGate": {
+    "appliesTo": [
+      "full",
+      "squeeze"
+    ],
+    "minimumNetRewardRisk": 0.5,
+    "minimumNetGainCostMultiple": 0.5,
+    "quotes": "closed decision unit quote AND quantized next opening quote; entry base/quote fee, exit taker, common spread/slippage; initial target only; does not predict future win probability"
+  },
+  "squeeze": {
+    "offlineOnly": true,
+    "mode": "VOLATILITY_SQUEEZE",
+    "previousSqueeze": "BB20 population std 2 strictly within EMA20 +/- 1.5 simple ATR20 at t-1",
+    "trigger": "closed t close > current BB20 upper and previous close <= previous upper; current green; current volume / previous 20 mean >=1.5",
+    "context": "same fully closed 1h trend regime",
+    "atrFloorRate": 0.007,
+    "transition": true,
+    "initialStopRate": 0.012,
+    "netTargetRate": 0.03,
+    "exit": "fixed stop/target; no new trailing, time stop or portfolio combination"
+  },
+  "criteria": {
+    "minimumClosedTradesEachScenario": 30,
+    "profitFactorGreaterThan": 1.25,
+    "positiveNetExpectancy": true,
+    "positiveNetMarkedReturn": true,
+    "allThreeDevelopmentBlocksPositive": true,
+    "maxDrawdownPercent": 10,
+    "positiveRealizedWithoutTop3": true
+  },
+  "selection": "triage only, no automatic holdout/deploy/real approval. AB_FULL additionally requires both A_FULL/B_FULL eligible. No thresholds searched after replay; all negative cases retained.",
+  "unchanged": [
+    "frozen watchlist and availability",
+    "ATR .70% A/B",
+    "original touch/volume/RSI A/B",
+    "closed bars, next-open entry, pessimistic stop precedence",
+    "costs/slippage/spread/liquidity",
+    "initial protection A/B",
+    "risk limits, daily halt, cooldowns, one shared position"
+  ],
+  "unknown": [
+    "historical spreads and depth",
+    "actual maker fees/fills",
+    "minimum notional USDT",
+    "spendable real account cash"
+  ],
+  "configurationPromoted": false,
+  "realMoneyApproved": false
+}
