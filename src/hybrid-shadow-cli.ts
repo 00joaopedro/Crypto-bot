@@ -1,13 +1,15 @@
-import { readFile,writeFile,readdir } from 'node:fs/promises';
+import { readFile,writeFile,readdir,appendFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
 import ccxt from 'ccxt';
+import { ShadowBatchCollector } from './hybrid-shadow-collection.js';
+import { auditShadowSession } from './hybrid-shadow-diagnostics.js';
 import { collectUniverseHistory } from './universe-history.js';
 import { collectOkxSpotHistory } from './okx-history.js';
 import { hybridInstrumentRules } from './hybrid-history.js';
 import { shadowConfiguration,startShadowSession,advanceShadowSession,type ShadowSnapshot } from './hybrid-shadow-session.js';
-import { lockShadowSession,readShadowCheckpoint,saveShadowCheckpoint } from './hybrid-shadow-store.js';
+import { lockShadowSession,readShadowCheckpoint,saveShadowCheckpoint,saveShadowArtifact } from './hybrid-shadow-store.js';
 import type { HybridInstrument } from './hybrid-research-replay.js';
 const [directory,option,...extra]=process.argv.slice(2);
 if(!directory||(option!==undefined&&option!=='--once')||extra.length)throw new Error('Usage: demo:hybrid-shadow -- <session-directory> [--once]; Paper only, no exchange orders');
@@ -19,11 +21,10 @@ for(const p of codeFiles){digest.update(p);digest.update(await readFile(new URL(
 const release=await lockShadowSession(directory),exchange=new ccxt.okx({enableRateLimit:true,timeout:20000});
 const controller=new AbortController(),stop=()=>controller.abort();process.once('SIGINT',stop);process.once('SIGTERM',stop);
 const fetchPage=async(request:{instId:string;bar:'15m'|'1H';after:string;limit:string})=>{
- for(let attempt=0;;attempt++){
-  await wait(250,undefined,{signal:controller.signal});
-  try{return await exchange.publicGetMarketHistoryCandles(request);}catch(e){if(!(e instanceof ccxt.NetworkError)||attempt>=2)throw e;await wait(1000*2**attempt,undefined,{signal:controller.signal});}
- }
+ await wait(250,undefined,{signal:controller.signal});
+ return exchange.publicGetMarketHistoryCandles(request);
 };
+const collector=new ShadowBatchCollector<HybridInstrument>({isNetworkError:e=>e instanceof ccxt.NetworkError,emit:async event=>{await appendFile(join(directory,'collection-events.jsonl'),JSON.stringify(event)+'\n',{mode:0o600});console.log(JSON.stringify(event));}});
 try{
  let state=await readShadowCheckpoint(directory);
  if(state)state=advanceShadowSession(config,state,state.data,codeFingerprint);
@@ -41,19 +42,32 @@ try{
   const now=Date.now(),end=Math.min(Math.floor(now/900000)*900000,state?state.evaluationStart+48*3600000:Infinity),start=state?state.evaluationStart-1000*900000:end-1000*900000;
   const mustCollect=!state||Date.parse(state.data.asOfUtc)<end;
   if(mustCollect){
-   const instruments:HybridInstrument[]=[];
-   for(const spec of specs){
+   const instruments=await collector.collect(new Date(end).toISOString(),specs.map(s=>s.symbol),async symbol=>{
+    const spec=specs.find(s=>s.symbol===symbol)!;
     const old=state?.data.instruments.find(d=>d.symbol===spec.symbol),from=old?Date.parse(state!.data.asOfUtc):start;
     const quarter=await collectUniverseHistory(fetchPage,spec.symbol.replace('/','-'),from,end,Date.now());
     const hourStart=old?.candles1h.length?old.candles1h.at(-1)!.timestamp+3600000:Math.floor(start/3600000)*3600000,hourEnd=Math.floor(end/3600000)*3600000;
     const hours=hourStart<hourEnd?await collectOkxSpotHistory(fetchPage,spec.symbol.replace('/','-'),hourStart,hourEnd,Date.now(),'1H'):[];
-    instruments.push({...spec,candles15m:[...(old?.candles15m??[]),...quarter.candles],candles1h:[...(old?.candles1h??[]),...hours],quoteVolumesUsdt:[...(old?.quoteVolumesUsdt??[]),...quarter.quoteVolumesUsdt]});
+    return {...spec,candles15m:[...(old?.candles15m??[]),...quarter.candles],candles1h:[...(old?.candles1h??[]),...hours],quoteVolumesUsdt:[...(old?.quoteVolumesUsdt??[]),...quarter.quoteVolumesUsdt]};
+   },controller.signal);
+   if(!instruments){
+    const health={status:'collection_blocked',targetUtc:new Date(end).toISOString(),committedAsOfUtc:state?.data.asOfUtc??null,recordedAtUtc:new Date().toISOString(),ordersSent:0};
+    await saveShadowArtifact(directory,'collection-health.json',health);console.log(JSON.stringify(health));
+    if(option==='--once')throw new Error('Shadow collection incomplete; checkpoint preserved');
+    await wait(60000,undefined,{signal:controller.signal});continue;
    }
    const data={asOfUtc:new Date(end).toISOString(),instruments};
    state=state?advanceShadowSession(config,state,data,codeFingerprint):startShadowSession(config,data,codeFingerprint,now);
   }else if(state){state=advanceShadowSession(config,state,state.data,codeFingerprint);}
   if(!state)throw new Error('Shadow session unavailable');
+  const previous=await readShadowCheckpoint(directory);
   await saveShadowCheckpoint(directory,state);
+  if(previous?.data.asOfUtc!==state.data.asOfUtc||state.status==='completed'){
+   const report=auditShadowSession(config,state);await saveShadowArtifact(directory,'diagnostics.json',report);
+   console.log(JSON.stringify({event:'shadow_diagnostics',asOfUtc:state.data.asOfUtc,balance:report.balance,funnel:report.funnel.map(r=>({symbol:r.symbol,strategy_mode:r.strategy_mode,candles:r.candles,signals:r.signals})),admissions:report.admissions,detailsFile:'diagnostics.json',scope:'cumulative_reconstructed_not_incremental',ordersSent:0}));
+   for(const trade of report.ledger.slice(previous?.result?.closedTrades??0))console.log(JSON.stringify({event:'shadow_trade_closed',...trade,ordersSent:0}));
+  }
+  await saveShadowArtifact(directory,'collection-health.json',{status:'collection_ready',committedAsOfUtc:state.data.asOfUtc,recordedAtUtc:new Date().toISOString(),ordersSent:0});
   console.log(JSON.stringify({status:state.status,environment:'paper_public_only',asOfUtc:state.data.asOfUtc,pairs:state.data.instruments.length,closedTrades:state.result?.closedTrades??0,netReturnUsdt:state.result?.netReturnUsdt??0,openPosition:state.result?.openPosition??null,allocationMode:config.profile.allocationMode,ordersSent:0,paidAiCalls:false,realMoneyApproved:false}));
   if(option==='--once'||state.status==='completed')break;
   await wait(60000,undefined,{signal:controller.signal});

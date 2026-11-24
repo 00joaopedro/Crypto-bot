@@ -67,7 +67,8 @@ function closedMetrics(trades:HybridTrade[]){
  return {closedTrades:trades.length,realizedPnlUsdt:net,winRatePercent:trades.length?100*trades.filter(t=>t.netPnlUsdt>0).length/trades.length:null,profitFactor:loss>0?win/loss:null,expectancyUsdt:trades.length?net/trades.length:null,...tradeProfitConcentration(trades.map(t=>t.netPnlUsdt),win,net)};
 }
 /** Low-level offline kernel. Decisions must be frozen at the PREVIOUS candle, including mode and target. */
-export function replayHybridDecisions(instruments:HybridInstrument[],decisions:ReadonlyMap<string,ReadonlyArray<readonly HybridDecision[]>>,rawPlan:unknown,rawScenario:ComparisonOptions['scenarios'][number],baseline:ComparisonOptions['baseline'],start:number,rawRiskLimits?:PositionSizingLimits){
+export type HybridAdmissionEvent={symbol:string;strategy_mode:ResearchMode;timestamp:number;outcome:'accepted'|'rejected';reason:string};
+export function replayHybridDecisions(instruments:HybridInstrument[],decisions:ReadonlyMap<string,ReadonlyArray<readonly HybridDecision[]>>,rawPlan:unknown,rawScenario:ComparisonOptions['scenarios'][number],baseline:ComparisonOptions['baseline'],start:number,rawRiskLimits?:PositionSizingLimits,observe?:(event:HybridAdmissionEvent)=>void){
  const plan=hybridPlanSchema.parse(rawPlan),scenario=comparisonSchema.shape.scenarios.element.parse(rawScenario),clock=instruments[0]?.candles15m;
  if(!clock||!Number.isInteger(start)||start<1||start>=clock.length||clock.length-start>2880)throw new Error('Valid replay clock/start required');
  if(new Set(instruments.map(d=>d.symbol)).size!==instruments.length)throw new Error('Duplicate replay instrument');
@@ -79,7 +80,8 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
  let riskDay=-1,dayStartEquity=cash;
  const trades:HybridTrade[]=[],entries:Array<{symbol:string;strategy_mode:ResearchMode;decisionTimestamp:number;entryTimestamp:number;stopPrice:number;targetPrice:number;notionalUsdt:number;estimatedInitialLossUsdt:number}>=[],marks:number[]=[];
  const rejected:Record<string,number>={},cooldowns=new Map<string,number>();
- const reject=(r:string)=>{rejected[r]=(rejected[r]??0)+1;};
+ let context:{symbol:string;strategy_mode:ResearchMode;timestamp:number}|undefined;
+ const reject=(r:string)=>{rejected[r]=(rejected[r]??0)+1;if(context)observe?.({...context,outcome:'rejected',reason:r});};
  const process=(p:Active,i:number,open:boolean,rates?:{stopLossRate:number;takeProfitRate:number;referencePrice:number})=>{
   const c=p.d.candles15m[i]!,costs=scenarioCosts(scenario,p.d.symbol),slip=comparisonSlippage(costs),before=p.trader.exportState().totalFeesUsdt;
   const timeStop=p.mode==='MEAN_REVERSION'&&i-p.entryIndex+1>=6;
@@ -116,10 +118,12 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
  for(let i=start;i<clock.length;i++){
   const day=Math.floor(clock[i]!.timestamp/86400000);if(day!==riskDay){riskDay=day;dayStartEquity=equity;}
   const hadPosition=active!==undefined;
+  if(hadPosition&&observe)for(const d of ordered)for(const signal of decisions.get(d.symbol)?.[i-1]??[])observe({symbol:d.symbol,strategy_mode:signal.strategy_mode,timestamp:clock[i]!.timestamp,outcome:'rejected',reason:'position_occupied'});
   if(active&&!process(active,i,false))active=undefined;
   if(!hadPosition){
    const candidates=ordered.flatMap(d=>(decisions.get(d.symbol)?.[i-1]??[]).map(signal=>({d,signal}))).sort((a,b)=>HYBRID_WATCHLIST.indexOf(a.d.symbol)-HYBRID_WATCHLIST.indexOf(b.d.symbol)||(['TREND_PULLBACK','MEAN_REVERSION','BASELINE'].indexOf(a.signal.strategy_mode)-['TREND_PULLBACK','MEAN_REVERSION','BASELINE'].indexOf(b.signal.strategy_mode)));
    for(const {d,signal} of candidates){
+    context={symbol:d.symbol,strategy_mode:signal.strategy_mode,timestamp:clock[i]!.timestamp};
     if(signal.decisionTimestamp!==clock[i-1]!.timestamp||!['BASELINE','TREND_PULLBACK','MEAN_REVERSION'].includes(signal.strategy_mode)||!Number.isFinite(signal.atr)||signal.atr<=0||!Number.isFinite(signal.sma20)||signal.sma20<=0||!Number.isFinite(signal.pullbackLow)||signal.pullbackLow<=0)throw new Error('Invalid frozen hybrid decision');
     const c=d.candles15m[i]!,costs=scenarioCosts(scenario,d.symbol),slip=comparisonSlippage(costs),fill=c.open*(1+slip);
     if((cooldowns.get(d.symbol)??0)>c.timestamp){reject('cooldown');continue;}
@@ -155,7 +159,9 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
     if(signal.strategy_mode!=='BASELINE'&&target*quantity*(1-costs.feeRate)*(1-slip)<=cost){reject('target_costs');continue;}
     const trader=new PaperTrader({initialBalanceUsdt:cash,tradeSizeUsdt:budget,feeRate:costs.feeRate,entryFeeCurrency:costs.entryFeeCurrency,slippageRate:slip,stopLossRate:1-stop/fill,takeProfitRate:target/fill-1,executionConstraints:d.constraints});
     const p:Active={d,trader,mode:signal.strategy_mode,entryIndex:i,initialStop:stop,high:fill,activated:false};
+    const entriesBefore=entries.length;
     if(process(p,i,true,{stopLossRate:1-stop/fill,takeProfitRate:target/fill-1,referencePrice:fill}))active=p;
+    if(entries.length>entriesBefore){observe?.({...context,outcome:'accepted',reason:'entry'});if(observe)for(const later of candidates.slice(candidates.findIndex(v=>v.d===d&&v.signal===signal)+1))observe({symbol:later.d.symbol,strategy_mode:later.signal.strategy_mode,timestamp:c.timestamp,outcome:'rejected',reason:'portfolio_priority'});}
     break; // One admitted entry per bar; no same-bar reuse of proceeds or mode switching.
    }
   }

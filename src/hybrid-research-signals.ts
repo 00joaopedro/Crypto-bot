@@ -49,12 +49,15 @@ export function hybridFeatures(history15m:Candle[],hours:Candle[]):HybridFeature
  const previousVolumes=history15m.slice(-22,-2).map(c=>c.volume),average=mean(previousVolumes);
  return {previous,current,previousEma21:ema21.at(-2)!,ema21:ema21.at(-1)!,previousVwap:utcResearchVwap(history15m.slice(0,-1)),previousRsi14:r14.at(-2)!,rsi14:r14.at(-1)!,previousRsi7:r7.at(-2)!,previousVolumeRatio:average>0?previous.volume/average:Infinity,previousLowerBand:prevBand.lower,lowerBand:nowBand.lower,sma20:nowBand.center,adx14,atr14:averageTrueRange(history15m,14),previousAtr14:averageTrueRange(history15m.slice(0,-1),14),macroBullish:closedHours.length>=250&&emaSeries(hourCloses,50).at(-1)!>emaSeries(hourCloses,200).at(-1)!};
 }
-export function hybridDecisions(f:HybridFeatures):HybridDecision[]{
- if(!Number.isFinite(f.atr14)||f.atr14<=0||f.atr14/f.current.close<.007)return [];
- const decision=(strategy_mode:HybridMode):HybridDecision=>({strategy_mode,decisionTimestamp:f.current.timestamp,atr:f.atr14,pullbackLow:f.previous.low,sma20:f.sma20});
+export function hybridSignalChecks(f:HybridFeatures){
  const touch=(level:number|null)=>level!==null&&Number.isFinite(level)&&f.previous.low<=level&&f.previous.low>=level-.25*f.previousAtr14;
- const result:HybridDecision[]=[];
- if(f.macroBullish&&(touch(f.previousEma21)||touch(f.previousVwap))&&f.previousRsi14>=40&&f.previousRsi14<=50&&f.previousVolumeRatio<1.1&&f.current.close>f.current.open&&f.current.close>f.ema21&&f.rsi14<=58)result.push(decision('TREND_PULLBACK'));
- if(f.adx14<22&&f.previous.close<f.previousLowerBand&&f.previousRsi7<25&&f.current.close>f.current.open&&f.current.close>f.lowerBand)result.push(decision('MEAN_REVERSION'));
- return result;
+ const atr=Number.isFinite(f.atr14)&&f.atr14>0&&f.atr14/f.current.close>=.007;
+ return {
+  TREND_PULLBACK:{atr,macro:f.macroBullish,touch:touch(f.previousEma21)||touch(f.previousVwap),rsi_previous:f.previousRsi14>=40&&f.previousRsi14<=50,volume:f.previousVolumeRatio<1.1,green:f.current.close>f.current.open,recovery:f.current.close>f.ema21,rsi_confirmation:f.rsi14<=58},
+  MEAN_REVERSION:{atr,regime:f.adx14<22,exhaustion:f.previous.close<f.previousLowerBand,rsi_previous:f.previousRsi7<25,green:f.current.close>f.current.open,recovery:f.current.close>f.lowerBand},
+ };
+}
+export function hybridDecisions(f:HybridFeatures):HybridDecision[]{
+ const checks=hybridSignalChecks(f);
+ return (['TREND_PULLBACK','MEAN_REVERSION'] as const).filter(mode=>Object.values(checks[mode]).every(Boolean)).map(strategy_mode=>({strategy_mode,decisionTimestamp:f.current.timestamp,atr:f.atr14,pullbackLow:f.previous.low,sma20:f.sma20}));
 }

@@ -5,6 +5,13 @@ export const OKX_HISTORY_ENDPOINT = "/api/v5/market/history-candles";
 
 type FetchPage = (request: { instId: string; bar: "15m" | "1H"; after: string; limit: string }) => Promise<unknown>;
 
+export class MissingConfirmedCandleError extends Error {
+  constructor(readonly timestamp:number,readonly duration:number) {
+    super(`Missing confirmed OKX candle at ${new Date(timestamp).toISOString()}`);
+    this.name='MissingConfirmedCandleError';
+  }
+}
+
 function numberFromOkx(value: unknown): number {
   return typeof value === "string" && value.trim() ? Number(value) : NaN;
 }
@@ -65,7 +72,7 @@ export async function collectOkxSpotHistory(
   const ordered: Candle[] = [];
   for (let timestamp = start; timestamp < end; timestamp += duration) {
     const candle = candles.get(timestamp);
-    if (!candle) throw new Error(`Missing confirmed OKX candle at ${new Date(timestamp).toISOString()}`);
+    if (!candle) throw new MissingConfirmedCandleError(timestamp,duration);
     ordered.push(candle);
   }
   return ordered;

@@ -1,3 +1,4 @@
+import { auditShadowSession } from '../src/hybrid-shadow-diagnostics.js';
 import { readFileSync,mkdtempSync,rmSync,statSync,writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -70,4 +71,29 @@ it('accepts a real quarter-hour start with only completed hourly context, withou
  const full=frame(1004),d=full.instruments[0]!;
  const data={asOfUtc:new Date(1001*900000).toISOString(),instruments:[{...d,candles15m:d.candles15m.slice(1,1001),quoteVolumesUsdt:d.quoteVolumesUsdt.slice(1,1001),candles1h:d.candles1h.slice(0,250)}]};
  expect(startShadowSession(config,data,code,1001*900000).status).toBe('warming');
+});
+
+it('reconstructs signal/admission funnels and reconciles the full ledger without changing the checkpoint',()=>{
+ const state=advanceShadowSession(config,begin(),frame(1007),code,1007*900000),before=JSON.stringify(state),report=auditShadowSession(config,state);
+ expect(JSON.stringify(state)).toBe(before);expect(report.metrics).toEqual(state.result);expect(report.balance.finalEquityUsdt).toBeCloseTo(17+report.balance.netReturnUsdt,10);
+ expect(report.ledger).toHaveLength(1);expect(report.ledger[0]!.reason).toBe('TIME_STOP');expect(report.ledger[0]!.netBeforeChargedFeesUsdt).toBeCloseTo(report.ledger[0]!.netPnlUsdt+report.ledger[0]!.feesUsdt,12);
+ expect(report.admissions.filter(e=>e.outcome==='accepted').reduce((s,e)=>s+e.count,0)).toBe(state.result!.entries.length);
+ for(const row of report.funnel){expect(row.candles).toBe(6);const stages=Object.values(row.sequentialPassed);expect(stages.every((n,i)=>i===0||n<=stages[i-1]!)).toBe(true);expect(row.signals).toBe(stages.at(-1));}
+});
+it('refuses diagnostic output from an altered ledger and explains warmup without inventing trades',()=>{
+ const state=advanceShadowSession(config,begin(),frame(1007),code,1007*900000),corrupt=JSON.parse(JSON.stringify(state));corrupt.result.closedTrades=99;
+ expect(()=>auditShadowSession(config,corrupt)).toThrow(/corruption/);const r=auditShadowSession(config,begin());expect(r.balance.netReturnUsdt).toBe(0);expect(r.admissions).toEqual([]);expect(r.ledger).toEqual([]);expect(r.funnel.every(f=>f.candles===0)).toBe(true);
+});
+it('excludes an ambiguous exit-candle spike from favorable excursion instead of calling it attainable profit',()=>{
+ const data=frame(1007);data.instruments[0]!.candles15m[1006]!.high=999;
+ const state=advanceShadowSession(config,begin(),data,code,1007*900000),trade=auditShadowSession(config,state).ledger[0]!;
+ expect(trade.excursion.exitCandleExcluded).toBe(true);expect(trade.excursion.candles).toBe(5);expect(trade.excursion.mfeRate).toBeLessThan(.02);
+});
+it('audits a copied checkpoint through the CLI without modifying source or requiring account credentials',async()=>{
+ const root=mkdtempSync(join(tmpdir(),'hybrid-audit-'));
+ try{
+  await saveShadowCheckpoint(root,advanceShadowSession(config,begin(),frame(1007),code,1007*900000));const before=readFileSync(join(root,'checkpoint.json'),'utf8');
+  const output=join(root,'audit');execFileSync(process.execPath,['--import','tsx',file('src/hybrid-shadow-audit-cli.ts'),root,output],{stdio:'pipe'});
+  const report=JSON.parse(readFileSync(join(output,'diagnostics.json'),'utf8'));expect(report.ledger).toHaveLength(1);expect(report.collectionEvidence.status).toBe('unavailable_in_supplied_directory');expect(report.sourceFileSha256).toMatch(/^[a-f0-9]{64}$/);expect(report.ordersSent).toBe(0);expect(readFileSync(join(root,'checkpoint.json'),'utf8')).toBe(before);
+ }finally{rmSync(root,{recursive:true,force:true});}
 });

@@ -36,7 +36,8 @@
     "strategy:hybrid-research": "node dist/hybrid-research-cli.js",
     "strategy:hybrid-collect": "node dist/hybrid-history-cli.js",
     "demo:hybrid-readiness": "node dist/hybrid-demo-readiness-cli.js",
-    "demo:hybrid-shadow": "node dist/hybrid-shadow-cli.js"
+    "demo:hybrid-shadow": "node dist/hybrid-shadow-cli.js",
+    "demo:hybrid-audit": "node dist/hybrid-shadow-audit-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
