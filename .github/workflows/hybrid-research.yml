@@ -50,6 +50,11 @@ jobs:
           if(JSON.stringify(selected)!==JSON.stringify(current.runs))throw new Error('Fixed-lot historical reference changed');
           console.log('All eight archived fixed-lot results reproduced exactly');
           JS
+      - name: Reproduce frozen economic experiments and every ledger
+        run: |
+          npm run strategy:hybrid-economic -- .hybrid-data/normalized-data.json .hybrid-economic-results
+          diff -u docs/hybrid-economic-results.json .hybrid-economic-results/summary.json
+          diff -u docs/hybrid-economic-ledgers.json .hybrid-economic-results/ledgers.json
       - name: Assess readiness without orders, account access or paid AI
         run: |
           npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness
@@ -66,6 +71,7 @@ jobs:
           path: |
             .hybrid-data/
             .hybrid-results/
+            .hybrid-economic-results/
             .hybrid-readiness/
             .hybrid-shadow/
             .hybrid-shadow-audit/

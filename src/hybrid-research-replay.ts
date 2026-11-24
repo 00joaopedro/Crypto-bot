@@ -1,3 +1,4 @@
+import { hybridEconomicHypothesisSchema,netRewardRisk,type HybridEconomicHypothesis } from './hybrid-economic-options.js';
 import { z } from "zod";
 import { positionSize,positionSizingSchema,type PositionSizingLimits } from "./position-sizing.js";
 import { Precise } from "ccxt";
@@ -68,7 +69,8 @@ function closedMetrics(trades:HybridTrade[]){
 }
 /** Low-level offline kernel. Decisions must be frozen at the PREVIOUS candle, including mode and target. */
 export type HybridAdmissionEvent={symbol:string;strategy_mode:ResearchMode;timestamp:number;outcome:'accepted'|'rejected';reason:string};
-export function replayHybridDecisions(instruments:HybridInstrument[],decisions:ReadonlyMap<string,ReadonlyArray<readonly HybridDecision[]>>,rawPlan:unknown,rawScenario:ComparisonOptions['scenarios'][number],baseline:ComparisonOptions['baseline'],start:number,rawRiskLimits?:PositionSizingLimits,observe?:(event:HybridAdmissionEvent)=>void){
+export function replayHybridDecisions(instruments:HybridInstrument[],decisions:ReadonlyMap<string,ReadonlyArray<readonly HybridDecision[]>>,rawPlan:unknown,rawScenario:ComparisonOptions['scenarios'][number],baseline:ComparisonOptions['baseline'],start:number,rawRiskLimits?:PositionSizingLimits,observe?:(event:HybridAdmissionEvent)=>void,rawHypothesis?:HybridEconomicHypothesis){
+ const hypothesis=rawHypothesis===undefined?undefined:hybridEconomicHypothesisSchema.parse(rawHypothesis);
  const plan=hybridPlanSchema.parse(rawPlan),scenario=comparisonSchema.shape.scenarios.element.parse(rawScenario),clock=instruments[0]?.candles15m;
  if(!clock||!Number.isInteger(start)||start<1||start>=clock.length||clock.length-start>2880)throw new Error('Valid replay clock/start required');
  if(new Set(instruments.map(d=>d.symbol)).size!==instruments.length)throw new Error('Duplicate replay instrument');
@@ -157,6 +159,16 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
     }else{stop=fill*(1-.012);target=Math.min(signal.sma20,netActivationPrice(cost,quantity,costs.feeRate,slip,.014));}
     if(!(stop>0&&stop<fill&&target>fill&&target/fill-1<1)){reject('exit_levels');continue;}
     if(signal.strategy_mode!=='BASELINE'&&target*quantity*(1-costs.feeRate)*(1-slip)<=cost){reject('target_costs');continue;}
+    if(hypothesis==='B_NET_RR_1_5'&&signal.strategy_mode==='MEAN_REVERSION'){
+     // Decision-close unit quote uses only closed information. Actual opening quote also includes quantization and cash cost.
+     const decisionFill=d.candles15m[i-1]!.close*(1+slip),decisionCost=costs.entryFeeCurrency==='quote'?1+costs.feeRate:1;
+     const decisionQuantity=(costs.entryFeeCurrency==='base'?1-costs.feeRate:1)/decisionFill;
+     const decisionTarget=Math.min(signal.sma20,netActivationPrice(decisionCost,decisionQuantity,costs.feeRate,slip,.014));
+     const atDecision=netRewardRisk({cost:decisionCost,quantity:decisionQuantity,stop:decisionFill*.988,target:decisionTarget,fee:costs.feeRate,slippage:slip});
+     if(atDecision===null||atDecision<1.5){reject('net_rr_decision');continue;}
+     const atOpen=netRewardRisk({cost,quantity,stop,target,fee:costs.feeRate,slippage:slip});
+     if(atOpen===null||atOpen<1.5){reject('net_rr_open');continue;}
+    }
     const trader=new PaperTrader({initialBalanceUsdt:cash,tradeSizeUsdt:budget,feeRate:costs.feeRate,entryFeeCurrency:costs.entryFeeCurrency,slippageRate:slip,stopLossRate:1-stop/fill,takeProfitRate:target/fill-1,executionConstraints:d.constraints});
     const p:Active={d,trader,mode:signal.strategy_mode,entryIndex:i,initialStop:stop,high:fill,activated:false};
     const entriesBefore=entries.length;
