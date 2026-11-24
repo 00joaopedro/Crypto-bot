@@ -65,9 +65,15 @@ jobs:
           diff -u docs/hybrid-demo-readiness.json .hybrid-readiness/summary.json
       - name: Public Paper shadow warmup and restart smoke (no exchange orders)
         run: |
-          npm run demo:hybrid-shadow -- .hybrid-shadow --once
-          npm run demo:hybrid-shadow -- .hybrid-shadow --once
+          npm run demo:hybrid-shadow -- .hybrid-shadow --once --websocket
+          npm run demo:hybrid-shadow -- .hybrid-shadow --once --websocket
+          if npm run demo:hybrid-shadow -- .hybrid-shadow --once > /tmp/frozen-transport-mode.log 2>&1; then
+            echo "Unexpected transport mode change accepted"
+            exit 1
+          fi
+          rg 'Frozen transport mode changed' /tmp/frozen-transport-mode.log
           npm run demo:hybrid-audit -- .hybrid-shadow .hybrid-shadow-audit
+          npm run market:stream-smoke
       - uses: actions/upload-artifact@v4
         if: always()
         with:

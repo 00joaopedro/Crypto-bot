@@ -1,3 +1,4 @@
+import { okxEnvelopeData,classifyOkxReadError,OkxReadError } from './okx-response-error.js';
 import { createHmac } from "node:crypto";
 import { z } from "zod";
 const paths=["/api/v5/account/config","/api/v5/account/balance","/api/v5/account/trade-fee","/api/v5/public/instruments"] as const;
@@ -17,9 +18,9 @@ export function createOkxReadOnlyClient(credentials:ReadCredentials,environment:
   }
   try{
    const response=await transport('https://openapi.okx.com'+requestPath,{method:'GET',headers,redirect:'error',signal:AbortSignal.timeout(10000)});
-   if(!response.ok)throw new Error('failed');
-   const envelope=z.object({code:z.literal('0'),data:z.array(z.unknown())}).parse(await response.json());return envelope.data;
-  }catch{throw new Error('OKX read query failed');}
+   let payload:unknown;try{payload=await response.json();}catch{throw new OkxReadError({httpStatus:response.status??(response.ok?200:500)});}
+   return okxEnvelopeData(payload,response.status??(response.ok?200:500));
+  }catch(e){if(e instanceof OkxReadError)throw e;throw classifyOkxReadError(e);}
  }});
 }
 const numeric=(value:unknown):number|null=>typeof value==='string'&&value.trim()!==''&&Number.isFinite(Number(value))?Number(value):null;
@@ -46,24 +47,26 @@ export async function inspectOkxReadOnly(client:ReturnType<typeof createOkxReadO
   const rows=instruments.map(envelopeRecord).filter(r=>r.instId===instId&&r.instType==='SPOT'&&r.quoteCcy==='USDT'&&r.state==='live');
   const market=rows.length===1?rows[0]:undefined,min=numeric(market?.minSz),step=numeric(market?.lotSz),tick=numeric(market?.tickSz);
   const instrumentConfirmed=min!==null&&min>0&&step!==null&&step>0&&tick!==null&&tick>0;
-  let takerCostRate:number|null=null,feeStatus='unavailable';
+  let takerCostRate:number|null=null,makerCostRate:number|null=null,feeStatus='unavailable',makerFeeStatus='unavailable',feeError:ReturnType<OkxReadError['safeDetails']>|undefined;
   if(instrumentConfirmed)try{
    await controls?.beforeFee();
    const feeRows=await client.get('/api/v5/account/trade-fee',{instType:'SPOT',instId});
    const f=feeRows.length===1?envelopeRecord(feeRows[0]):null;
-   let signed:number|null=null;
+   let signed:number|null=null,makerSigned:number|null=null;
    if(f&&(!f.instId||f.instId===instId)&&(!f.instType||f.instType==='SPOT')){
     if(f.feeGroup!==undefined&&(!Array.isArray(f.feeGroup)||f.feeGroup.length)){
      const groupId=typeof market?.groupId==='string'?market.groupId:null;
      const groups=(Array.isArray(f.feeGroup)?f.feeGroup:[]).map(envelopeRecord).filter(g=>groupId?g.groupId===groupId:f.feeGroup instanceof Array&&f.feeGroup.length===1);
-     if(groups.length===1)signed=numeric(groups[0]!.taker);
-    }else signed=numeric(f.taker);
+     if(groups.length===1){signed=numeric(groups[0]!.taker);makerSigned=numeric(groups[0]!.maker);}
+    }else{signed=numeric(f.taker);makerSigned=numeric(f.maker);}
    }
    // OKX API negative = charge, positive = rebate. Never assume rebates or use abs() blindly.
    if(signed!==null&&signed<=0&&signed>-.1){takerCostRate=signed===0?0:-signed;feeStatus='account_pair_quote';}
    else if(signed!==null&&signed>0)feeStatus='rebate_not_modeled';
-  }catch{feeStatus='query_failed';}
-  terms.push({symbol,instrumentStatus:instrumentConfirmed?'live_spot_rules_observed':'unconfirmed',minimumQuantity:instrumentConfirmed?min:null,quantityStep:instrumentConfirmed?step:null,priceTick:instrumentConfirmed?tick:null,minimumNotionalUsdt:null,feeStatus,takerFeeRate:takerCostRate});
+   if(makerSigned!==null&&makerSigned<=0&&makerSigned>-.1){makerCostRate=makerSigned===0?0:-makerSigned;makerFeeStatus='account_pair_quote';}
+   else if(makerSigned!==null&&makerSigned>0)makerFeeStatus='rebate_not_modeled';
+  }catch(e){feeStatus='query_failed';makerFeeStatus='query_failed';feeError=classifyOkxReadError(e).safeDetails();}
+  terms.push({symbol,instrumentStatus:instrumentConfirmed?'live_spot_rules_observed':'unconfirmed',minimumQuantity:instrumentConfirmed?min:null,quantityStep:instrumentConfirmed?step:null,priceTick:instrumentConfirmed?tick:null,minimumNotionalUsdt:null,feeStatus,takerFeeRate:takerCostRate,makerFeeStatus,makerFeeRate:makerCostRate,...(feeError?{feeError}:{})});
  }
  return {status:'read_only_account_terms_snapshot',environment,capturedAtUtc:clock().toISOString(),declaredBudgetUsdt:17,entryFeeCurrency:config.feeType==='0'?'base':config.feeType==='1'?'quote':null,
   balance:{currency:'USDT',availableUsdt:available,cashUsdt:cash,liabilityUsdt:liability,usableCashStatus:confirmed?'spot_cash_observed':'requires_account_review',withinDeclaredBudgetUsdt:cashUpperBound},terms,

@@ -2,14 +2,14 @@ import { createHmac } from 'node:crypto';
 import { expect,it } from 'vitest';
 import { createOkxReadOnlyClient,inspectOkxReadOnly } from '../src/okx-read-only-inspection.js';
 const credentials={apiKey:'PRIVATE_KEY_SENTINEL',secretKey:'PRIVATE_SECRET_SENTINEL',passphrase:'PRIVATE_PASSPHRASE_SENTINEL'},clock=()=>new Date('2026-11-22T21:00:00Z');
-function fixture(override:{permissions?:string;balance?:any;config?:any;fee?:string;feeFails?:boolean;feeGroup?:unknown;groupId?:string}={}){
+function fixture(override:{permissions?:string;balance?:any;config?:any;fee?:string;maker?:string;feeFails?:boolean;feeGroup?:unknown;groupId?:string}={}){
  const calls:Array<{url:string;options:RequestInit}>=[];
  const transport=async(url:any,options:any)=>{
   calls.push({url:String(url),options});const u=new URL(String(url));let data:any[]=[];
   if(u.pathname.endsWith('/config'))data=[{acctLv:'1',enableSpotBorrow:false,autoLoan:false,perm:override.permissions??'read_only',uid:'ACCOUNT_ID_SENTINEL',label:'PRIVATE_LABEL',...override.config}];
   if(u.pathname.endsWith('/balance'))data=[{details:[{ccy:'USDT',availBal:'20',cashBal:'25',liab:'0',...override.balance}]}];
   if(u.pathname.endsWith('/instruments'))data=[{instId:'BTC-USDT',instType:'SPOT',quoteCcy:'USDT',state:'live',minSz:'.00001',lotSz:'.00000001',tickSz:'.1',...(override.groupId?{groupId:override.groupId}:{})}];
-  if(u.pathname.endsWith('/trade-fee')){if(override.feeFails)throw new Error(credentials.apiKey);data=[{instType:'SPOT',taker:override.fee??'-.004',uid:'ACCOUNT_ID_SENTINEL',...(override.feeGroup?{feeGroup:override.feeGroup}:{})}];}
+  if(u.pathname.endsWith('/trade-fee')){if(override.feeFails)throw new Error(credentials.apiKey);data=[{instType:'SPOT',taker:override.fee??'-.004',maker:override.maker,uid:'ACCOUNT_ID_SENTINEL',...(override.feeGroup?{feeGroup:override.feeGroup}:{})}];}
   return {ok:true,json:async()=>({code:'0',data})} as Response;
  };
  return {calls,client:createOkxReadOnlyClient(credentials,'demo',transport as typeof fetch,clock),transport};
@@ -69,4 +69,14 @@ it('supports the explicit bounded 20-pair panel mode, pacing each fee query and 
  }};let paced=0;
  const r=await inspectOkxReadOnly(client,'real',symbols,clock,{maximumSymbols:20,beforeFee:async()=>{paced++;}});expect(r.terms).toHaveLength(20);expect(paced).toBe(20);expect(calls).toHaveLength(23);
  await expect(inspectOkxReadOnly(client,'real',[...symbols,'MORE/USDT'],clock,{maximumSymbols:20,beforeFee:async()=>{}})).rejects.toThrow(/twenty/);
+});
+
+it('quotes maker independently of taker and does not turn maker rebates into zero fees',async()=>{
+ const f=fixture({maker:'-.002'});expect((await inspectOkxReadOnly(f.client,'demo',['BTC/USDT'])).terms[0]).toMatchObject({makerFeeRate:.002,makerFeeStatus:'account_pair_quote',takerFeeRate:.004});
+ const rebate=fixture({maker:'.001'});expect((await inspectOkxReadOnly(rebate.client,'demo',['BTC/USDT'])).terms[0]).toMatchObject({makerFeeRate:null,makerFeeStatus:'rebate_not_modeled'});
+ const grouped=fixture({groupId:'12',feeGroup:[{groupId:'12',maker:'-.001',taker:'-.003'}]});expect((await inspectOkxReadOnly(grouped.client,'demo',['BTC/USDT'])).terms[0]).toMatchObject({makerFeeRate:.001,takerFeeRate:.003});
+});
+it('retains safe API failure codes even when a non-JSON HTTP rate-limit response is returned',async()=>{
+ const client=createOkxReadOnlyClient(credentials,'real',(async()=>({ok:false,status:429,json:async()=>{throw new Error(credentials.secretKey);}})) as any,clock);
+ try{await client.get('/api/v5/account/config');throw Error('expected');}catch(e){expect(e).toMatchObject({category:'rate_limit',retryableRead:true});expect(JSON.stringify(e)).not.toContain(credentials.secretKey);}
 });

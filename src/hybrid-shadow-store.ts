@@ -13,7 +13,7 @@ export async function readShadowCheckpoint(directory:string):Promise<ShadowSnaps
  try{return JSON.parse(await readFile(join(directory,'checkpoint.json'),'utf8')) as ShadowSnapshot;}catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT')return null;throw e;}
 }
 export async function saveShadowCheckpoint(directory:string,state:ShadowSnapshot){return saveShadowArtifact(directory,'checkpoint.json',state);}
-export async function saveShadowArtifact(directory:string,name:'checkpoint.json'|'diagnostics.json'|'collection-health.json',state:unknown){
+export async function saveShadowArtifact(directory:string,name:'checkpoint.json'|'diagnostics.json'|'collection-health.json'|'current-instruments.json',state:unknown){
  const temporary=join(directory,'checkpoint-'+randomUUID()+'.tmp'),destination=join(directory,name);
  const f=await open(temporary,'wx',0o600);
  try{await f.writeFile(JSON.stringify(state)+'\n');await f.sync();}finally{await f.close();}

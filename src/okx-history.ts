@@ -1,3 +1,4 @@
+import { okxEnvelopeData } from './okx-response-error.js';
 import type { Candle } from "./types.js";
 import { REGIME_CANDLE_MS } from "./btc-regime.js";
 
@@ -35,6 +36,7 @@ export async function collectOkxSpotHistory(
 
   while (cursor > start) {
     const payload = await fetchPage({ instId, bar, after: String(cursor), limit: "300" });
+    okxEnvelopeData(payload,200,'OKX returned an invalid history page');
     if (!payload || typeof payload !== "object" || !("code" in payload) || payload.code !== "0" ||
         !("data" in payload) || !Array.isArray(payload.data)) {
       throw new Error("OKX returned an invalid history page");

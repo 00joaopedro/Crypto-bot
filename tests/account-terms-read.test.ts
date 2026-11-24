@@ -19,7 +19,7 @@ it('shares an in-flight read, caches for 60 seconds, projects only allowed data 
 });
 it('suppresses raw network errors and credentials and bounds retries through a cached failure',async()=>{
  const fetch=vi.fn(async()=>{throw new Error(env.OKX_READ_SECRET_KEY);}),read=createAccountTermsRead(env,fetch as typeof globalThis.fetch);
- const a=await read();expect(a).toEqual({status:'unavailable',reason:'read_query_failed',environment:'real',ordersSent:0});expect(JSON.stringify(a)).not.toContain(env.OKX_READ_SECRET_KEY);await read();expect(fetch).toHaveBeenCalledTimes(1);
+ const a=await read();expect(a).toMatchObject({status:'unavailable',reason:'read_query_failed',environment:'real',ordersSent:0,readError:{code:null,sCode:null,category:'unknown',retryableRead:false}});expect(JSON.stringify(a)).not.toContain(env.OKX_READ_SECRET_KEY);await read();expect(fetch).toHaveBeenCalledTimes(1);
 });
 it('rejects Trade permissions with a clear safe error before querying balance or fees',async()=>{
  const fetch=vi.fn(async()=>({ok:true,json:async()=>({code:'0',data:[{perm:'read_only,trade'}]})}) as Response),read=createAccountTermsRead(env,fetch as typeof globalThis.fetch);
