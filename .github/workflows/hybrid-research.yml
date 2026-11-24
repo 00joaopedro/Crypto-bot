@@ -55,6 +55,10 @@ jobs:
           npm run strategy:hybrid-economic -- .hybrid-data/normalized-data.json .hybrid-economic-results
           diff -u docs/hybrid-economic-results.json .hybrid-economic-results/summary.json
           diff -u docs/hybrid-economic-ledgers.json .hybrid-economic-results/ledgers.json
+      - name: Recompute economic decision without holdout or Demo promotion
+        run: |
+          npm run strategy:hybrid-economic-readiness -- docs/hybrid-economic-results.json docs/hybrid-economic-ledgers.json examples/hybrid-economic-experiments.plan.json examples/hybrid-economic-readiness.plan.json .hybrid-economic-readiness
+          diff -u docs/hybrid-economic-readiness.json .hybrid-economic-readiness/summary.json
       - name: Assess readiness without orders, account access or paid AI
         run: |
           npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness
@@ -72,6 +76,7 @@ jobs:
             .hybrid-data/
             .hybrid-results/
             .hybrid-economic-results/
+            .hybrid-economic-readiness/
             .hybrid-readiness/
             .hybrid-shadow/
             .hybrid-shadow-audit/

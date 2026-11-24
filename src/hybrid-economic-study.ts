@@ -1,3 +1,4 @@
+import { screenEconomicCandidates } from './hybrid-economic-screen.js';
 import { isDeepStrictEqual } from 'node:util';
 import { shadowDataSchema,shadowConfiguration } from './hybrid-shadow-session.js';
 import { hybridFeatures,hybridSignalChecks,type HybridDecision } from './hybrid-research-signals.js';
@@ -51,11 +52,4 @@ export function runHybridEconomicStudy(rawData:unknown,rawPlan:unknown,rawRefere
  return {protocol:'hybrid-economic-development-v1',datasetSha256:semanticHash(data),asOfUtc:data.asOfUtc,includedSymbols:data.instruments.map(d=>d.symbol),funnel,legacyFixedLotReferencesReproduced:reproduced,bankUsdt:17,lotCeilingUsdt:10,riskLimits:config.profile.riskLimits,scenarios,staticFeasibility,runs,selection,status:selection.some(s=>s.eligibleForFutureIndependentProtocol)?'development_screen_passed_not_validated':'blocked_no_eligible_candidate',configurationPromoted:false,realMoneyApproved:false};
 }
 
-type ScreeningRun={name:string;scenario:string;closedTrades:number;expectancyUsdt:number|null;profitFactor:number|null;netReturnUsdt:number;blocks:Array<{complete:boolean;netReturnUsdt:number}>};
-export function screenEconomicCandidates(runs:ScreeningRun[]){
- return ECONOMIC_CASES.filter(c=>c[2]!==undefined).map(([name])=>{
-  const cases=runs.filter(r=>r.name===name);const checks=cases.map(r=>({scenario:r.scenario,sample:Number.isSafeInteger(r.closedTrades)&&r.closedTrades>=30,ev:r.expectancyUsdt!==null&&Number.isFinite(r.expectancyUsdt)&&r.expectancyUsdt>0,pf:r.profitFactor!==null&&Number.isFinite(r.profitFactor)&&r.profitFactor>1,net:Number.isFinite(r.netReturnUsdt)&&r.netReturnUsdt>0,blocks:r.blocks.length===3&&r.blocks.every(b=>b.complete&&Number.isFinite(b.netReturnUsdt)&&b.netReturnUsdt>0)}));
-  return {name,eligibleForFutureIndependentProtocol:checks.length===2&&new Set(cases.map(c=>c.scenario)).size===2&&cases.every(c=>['account-conditioned','account-cost-stress'].includes(c.scenario))&&checks.every(c=>c.sample&&c.ev&&c.pf&&c.net&&c.blocks),checks};
- });
-
-}
+export { screenEconomicCandidates } from './hybrid-economic-screen.js';

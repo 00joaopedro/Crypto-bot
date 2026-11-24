@@ -1,0 +1,10 @@
+{
+  "protocol": "hybrid-economic-readiness-v1",
+  "reportFileSha256": "c7e3fbe9dd4f9372d6ae36a5b992f36cd73ec54a730cfbf5c12387626a4237a9",
+  "ledgerFileSha256": "e921a24b6ef6fa652131b048590ff38df8be822cd8c117a620088f3e17529682",
+  "experimentFileSha256": "c7213dc6faf2dc2c89e83a9bd70a9293f29e9baed469e93e02b63d254ef1c8c8",
+  "developmentDatasetSha256": "fb88541a351e706edcc838fffdd42ed9a11ba25ace8d4a883d8090ed6eaadfc4",
+  "strategyPlanSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "minimumClosedTradesPerScenario": 30,
+  "purpose": "recompute_selection_no_execution_or_promotion"
+}
