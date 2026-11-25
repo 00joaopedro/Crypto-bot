@@ -1,3 +1,4 @@
+import { evolutionReplaySchema,evolutionNetRoi,evolutionQuoteGate,type EvolutionReplay } from './hybrid-evolution-options.js';
 import { hybridEconomicHypothesisSchema,netRewardRisk,type HybridEconomicHypothesis } from './hybrid-economic-options.js';
 import { z } from "zod";
 import { positionSize,positionSizingSchema,type PositionSizingLimits } from "./position-sizing.js";
@@ -16,7 +17,7 @@ import { tradeProfitConcentration } from "./backtest-performance.js";
 import type { Candle } from "./types.js";
 export type HybridInstrument={symbol:string;candles15m:Candle[];candles1h:Candle[];constraints:ComparisonOptions['constraints'];quoteVolumesUsdt?:number[]|undefined};
 export type HybridVariant='baseline'|'trend_pullback'|'mean_reversion'|'hybrid';
-export type HybridTrade=Omit<PaperTradeClosed,'reason'>&{reason:PaperTradeClosed['reason']|'TIME_STOP';symbol:string;strategy_mode:ResearchMode;holdingCandles:number;exitTimeProxy:number|null};
+export type HybridTrade=Omit<PaperTradeClosed,'reason'>&{reason:PaperTradeClosed['reason']|'TIME_STOP'|'TIME_ROI';symbol:string;strategy_mode:ResearchMode;holdingCandles:number;exitTimeProxy:number|null};
 const interval=900000;
 function validateBars(candles:Candle[],duration:number){
  if(!candles.length)throw new Error('Empty research series');
@@ -69,7 +70,9 @@ function closedMetrics(trades:HybridTrade[]){
 }
 /** Low-level offline kernel. Decisions must be frozen at the PREVIOUS candle, including mode and target. */
 export type HybridAdmissionEvent={symbol:string;strategy_mode:ResearchMode;timestamp:number;outcome:'accepted'|'rejected';reason:string};
-export function replayHybridDecisions(instruments:HybridInstrument[],decisions:ReadonlyMap<string,ReadonlyArray<readonly HybridDecision[]>>,rawPlan:unknown,rawScenario:ComparisonOptions['scenarios'][number],baseline:ComparisonOptions['baseline'],start:number,rawRiskLimits?:PositionSizingLimits,observe?:(event:HybridAdmissionEvent)=>void,rawHypothesis?:HybridEconomicHypothesis){
+export function replayHybridDecisions(instruments:HybridInstrument[],decisions:ReadonlyMap<string,ReadonlyArray<readonly HybridDecision[]>>,rawPlan:unknown,rawScenario:ComparisonOptions['scenarios'][number],baseline:ComparisonOptions['baseline'],start:number,rawRiskLimits?:PositionSizingLimits,observe?:(event:HybridAdmissionEvent)=>void,rawHypothesis?:HybridEconomicHypothesis,rawEvolution?:EvolutionReplay){
+ const evolution=rawEvolution===undefined?undefined:evolutionReplaySchema.parse(rawEvolution);
+ if(evolution&&rawHypothesis)throw new Error('Independent experiment options cannot be mixed');
  const hypothesis=rawHypothesis===undefined?undefined:hybridEconomicHypothesisSchema.parse(rawHypothesis);
  const plan=hybridPlanSchema.parse(rawPlan),scenario=comparisonSchema.shape.scenarios.element.parse(rawScenario),clock=instruments[0]?.candles15m;
  if(!clock||!Number.isInteger(start)||start<1||start>=clock.length||clock.length-start>2880)throw new Error('Valid replay clock/start required');
@@ -77,7 +80,7 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
  for(const d of instruments){if(!plan.watchlist.includes(d.symbol))throw new Error('Instrument outside watchlist');validateBars(d.candles15m,interval);if(d.candles15m.length!==clock.length||d.candles15m.some((c,i)=>c.timestamp!==clock[i]!.timestamp))throw new Error('Replay clocks differ');comparisonSchema.shape.constraints.parse(d.constraints);if(d.quoteVolumesUsdt&&(d.quoteVolumesUsdt.length!==clock.length||d.quoteVolumesUsdt.some(v=>!Number.isFinite(v)||v<0)))throw new Error('Invalid quote volume history');}
  const riskLimits=rawRiskLimits===undefined?undefined:positionSizingSchema.parse(rawRiskLimits);
  const ordered=[...instruments].sort((a,b)=>HYBRID_WATCHLIST.indexOf(a.symbol)-HYBRID_WATCHLIST.indexOf(b.symbol));
- type Active={d:HybridInstrument;trader:PaperTrader;mode:ResearchMode;entryIndex:number;initialStop:number;high:number;activated:boolean};
+ type Active={d:HybridInstrument;trader:PaperTrader;mode:ResearchMode;entryIndex:number;initialStop:number;initialTarget:number;high:number;activated:boolean};
  let active:Active|undefined,cash=plan.bankUsdt as number,equity=cash,peak=cash,maxDrawdownUsdt=0,maxDrawdownPercent=0,feesUsdt=0,peakExposureRate=0;
  let riskDay=-1,dayStartEquity=cash;
  const trades:HybridTrade[]=[],entries:Array<{symbol:string;strategy_mode:ResearchMode;decisionTimestamp:number;entryTimestamp:number;stopPrice:number;targetPrice:number;notionalUsdt:number;estimatedInitialLossUsdt:number}>=[],marks:number[]=[];
@@ -86,6 +89,12 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
  const reject=(r:string)=>{rejected[r]=(rejected[r]??0)+1;if(context)observe?.({...context,outcome:'rejected',reason:r});};
  const process=(p:Active,i:number,open:boolean,rates?:{stopLossRate:number;takeProfitRate:number;referencePrice:number})=>{
   const c=p.d.candles15m[i]!,costs=scenarioCosts(scenario,p.d.symbol),slip=comparisonSlippage(costs),before=p.trader.exportState().totalFeesUsdt;
+  if(!open&&(evolution==='roi'||evolution==='full')&&p.mode!=='BASELINE'){
+   const state=p.trader.exportState(),pos=state.position!,cost=pos.entryNotional+(pos.entryFeeCurrency==='base'?0:pos.entryFee);
+   pos.takeProfitPrice=Math.min(pos.takeProfitPrice,netActivationPrice(cost,pos.quantity,costs.feeRate,slip,evolutionNetRoi((i-p.entryIndex)*15)));
+   p.trader.restoreState(state);
+  }
+  const roiReduced=(evolution==='roi'||evolution==='full')&&(p.trader.exportState().position?.takeProfitPrice??p.initialTarget)<p.initialTarget*(1-1e-12);
   const timeStop=p.mode==='MEAN_REVERSION'&&i-p.entryIndex+1>=6;
   const priorStop=p.trader.exportState().position?.stopLossPrice??p.initialStop;
   const result=p.trader.processCandle(c,open,rates,!open&&timeStop,open?c.open:undefined);
@@ -97,7 +106,7 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
     peakExposureRate=Math.max(peakExposureRate,e.notionalUsdt/equity);
    }else{
     const raised=priorStop>p.initialStop;
-    const reason=e.reason==='SIGNAL_CONTRARY'&&timeStop?'TIME_STOP':e.reason==='STOP_LOSS'&&raised?'TRAILING_STOP':e.reason;
+    const reason=e.reason==='TAKE_PROFIT'&&roiReduced?'TIME_ROI':e.reason==='SIGNAL_CONTRARY'&&timeStop?'TIME_STOP':e.reason==='STOP_LOSS'&&raised?'TRAILING_STOP':e.reason;
     trades.push({...e,reason,symbol:p.d.symbol,strategy_mode:p.mode,holdingCandles:i-p.entryIndex+1,exitTimeProxy:reason==='TIME_STOP'?c.timestamp+interval:null});
     cash=p.trader.exportState().cashUsdt;
     if(baseline.pairCooldown){const recent=trades.filter(t=>t.symbol===p.d.symbol).slice(-baseline.pairCooldown.minLosses).reverse().map(t=>({closedAt:t.exitTimestamp+interval,netPnlUsdt:t.netPnlUsdt}));const until=pairCooldownUntil(recent,c.timestamp+interval,baseline.pairCooldown);if(until!==undefined)cooldowns.set(p.d.symbol,until);}
@@ -123,10 +132,10 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
   if(hadPosition&&observe)for(const d of ordered)for(const signal of decisions.get(d.symbol)?.[i-1]??[])observe({symbol:d.symbol,strategy_mode:signal.strategy_mode,timestamp:clock[i]!.timestamp,outcome:'rejected',reason:'position_occupied'});
   if(active&&!process(active,i,false))active=undefined;
   if(!hadPosition){
-   const candidates=ordered.flatMap(d=>(decisions.get(d.symbol)?.[i-1]??[]).map(signal=>({d,signal}))).sort((a,b)=>HYBRID_WATCHLIST.indexOf(a.d.symbol)-HYBRID_WATCHLIST.indexOf(b.d.symbol)||(['TREND_PULLBACK','MEAN_REVERSION','BASELINE'].indexOf(a.signal.strategy_mode)-['TREND_PULLBACK','MEAN_REVERSION','BASELINE'].indexOf(b.signal.strategy_mode)));
+   const candidates=ordered.flatMap(d=>(decisions.get(d.symbol)?.[i-1]??[]).map(signal=>({d,signal}))).sort((a,b)=>HYBRID_WATCHLIST.indexOf(a.d.symbol)-HYBRID_WATCHLIST.indexOf(b.d.symbol)||(['TREND_PULLBACK','MEAN_REVERSION','BASELINE','VOLATILITY_SQUEEZE'].indexOf(a.signal.strategy_mode)-['TREND_PULLBACK','MEAN_REVERSION','BASELINE','VOLATILITY_SQUEEZE'].indexOf(b.signal.strategy_mode)));
    for(const {d,signal} of candidates){
     context={symbol:d.symbol,strategy_mode:signal.strategy_mode,timestamp:clock[i]!.timestamp};
-    if(signal.decisionTimestamp!==clock[i-1]!.timestamp||!['BASELINE','TREND_PULLBACK','MEAN_REVERSION'].includes(signal.strategy_mode)||!Number.isFinite(signal.atr)||signal.atr<=0||!Number.isFinite(signal.sma20)||signal.sma20<=0||!Number.isFinite(signal.pullbackLow)||signal.pullbackLow<=0)throw new Error('Invalid frozen hybrid decision');
+    if(signal.decisionTimestamp!==clock[i-1]!.timestamp||!['BASELINE','TREND_PULLBACK','MEAN_REVERSION',...(evolution==='squeeze'?['VOLATILITY_SQUEEZE']:[])].includes(signal.strategy_mode)||!Number.isFinite(signal.atr)||signal.atr<=0||!Number.isFinite(signal.sma20)||signal.sma20<=0||!Number.isFinite(signal.pullbackLow)||signal.pullbackLow<=0)throw new Error('Invalid frozen hybrid decision');
     const c=d.candles15m[i]!,costs=scenarioCosts(scenario,d.symbol),slip=comparisonSlippage(costs),fill=c.open*(1+slip);
     if((cooldowns.get(d.symbol)??0)>c.timestamp){reject('cooldown');continue;}
     const quote=d.quoteVolumesUsdt?.[i-1]??d.candles15m[i-1]!.volume*d.candles15m[i-1]!.close;
@@ -156,9 +165,21 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
      stop=ask*(1-rates.stopLossRate);target=ask*(1+rates.takeProfitRate);
     }else if(signal.strategy_mode==='TREND_PULLBACK'){
      stop=Math.max(fill*(1-.011),signal.pullbackLow-1.5*signal.atr);target=netActivationPrice(cost,quantity,costs.feeRate,slip,.028);
+    }else if(signal.strategy_mode==='VOLATILITY_SQUEEZE'){stop=fill*.988;target=netActivationPrice(cost,quantity,costs.feeRate,slip,.03);
     }else{stop=fill*(1-.012);target=Math.min(signal.sma20,netActivationPrice(cost,quantity,costs.feeRate,slip,.014));}
+    if((evolution==='roi'||evolution==='full')&&signal.strategy_mode!=='BASELINE')target=Math.min(target,netActivationPrice(cost,quantity,costs.feeRate,slip,evolutionNetRoi(0)));
     if(!(stop>0&&stop<fill&&target>fill&&target/fill-1<1)){reject('exit_levels');continue;}
     if(signal.strategy_mode!=='BASELINE'&&target*quantity*(1-costs.feeRate)*(1-slip)<=cost){reject('target_costs');continue;}
+    if((evolution==='full'||evolution==='squeeze')&&signal.strategy_mode!=='BASELINE'){
+     const ref=d.candles15m[i-1]!.close,decisionFill=ref*(1+slip),decisionCost=costs.entryFeeCurrency==='quote'?1+costs.feeRate:1,decisionQuantity=(costs.entryFeeCurrency==='base'?1-costs.feeRate:1)/decisionFill;
+     const decisionStop=signal.strategy_mode==='TREND_PULLBACK'?Math.max(decisionFill*.989,signal.pullbackLow-1.5*signal.atr):decisionFill*.988;
+     const decisionCap=signal.strategy_mode==='VOLATILITY_SQUEEZE'?.03:signal.strategy_mode==='TREND_PULLBACK'?.016:.014;
+     const decisionTarget=Math.min(signal.strategy_mode==='MEAN_REVERSION'?signal.sma20:Infinity,netActivationPrice(decisionCost,decisionQuantity,costs.feeRate,slip,decisionCap));
+     const atDecision=evolutionQuoteGate({cost:decisionCost,quantity:decisionQuantity,fill:decisionFill,referencePrice:ref,stop:decisionStop,target:decisionTarget,fee:costs.feeRate,slippage:slip});
+     if(atDecision){reject(atDecision+'_decision');continue;}
+     const atOpen=evolutionQuoteGate({cost,quantity,fill,referencePrice:c.open,stop,target,fee:costs.feeRate,slippage:slip});
+     if(atOpen){reject(atOpen+'_open');continue;}
+    }
     if(hypothesis==='B_NET_RR_1_5'&&signal.strategy_mode==='MEAN_REVERSION'){
      // Decision-close unit quote uses only closed information. Actual opening quote also includes quantization and cash cost.
      const decisionFill=d.candles15m[i-1]!.close*(1+slip),decisionCost=costs.entryFeeCurrency==='quote'?1+costs.feeRate:1;
@@ -170,7 +191,7 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
      if(atOpen===null||atOpen<1.5){reject('net_rr_open');continue;}
     }
     const trader=new PaperTrader({initialBalanceUsdt:cash,tradeSizeUsdt:budget,feeRate:costs.feeRate,entryFeeCurrency:costs.entryFeeCurrency,slippageRate:slip,stopLossRate:1-stop/fill,takeProfitRate:target/fill-1,executionConstraints:d.constraints});
-    const p:Active={d,trader,mode:signal.strategy_mode,entryIndex:i,initialStop:stop,high:fill,activated:false};
+    const p:Active={d,trader,mode:signal.strategy_mode,entryIndex:i,initialStop:stop,initialTarget:target,high:fill,activated:false};
     const entriesBefore=entries.length;
     if(process(p,i,true,{stopLossRate:1-stop/fill,takeProfitRate:target/fill-1,referencePrice:fill}))active=p;
     if(entries.length>entriesBefore){observe?.({...context,outcome:'accepted',reason:'entry'});if(observe)for(const later of candidates.slice(candidates.findIndex(v=>v.d===d&&v.signal===signal)+1))observe({symbol:later.d.symbol,strategy_mode:later.signal.strategy_mode,timestamp:c.timestamp,outcome:'rejected',reason:'portfolio_priority'});}
@@ -183,7 +204,7 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
  const netReturnUsdt=equity-plan.bankUsdt;
  const blocks=[0,1,2].map(b=>{const from=start+b*960,to=Math.min(clock.length,from+960),blockTrades=trades.filter(t=>t.exitTimestamp>=(clock[from]?.timestamp??Infinity)&&t.exitTimestamp<(clock[to-1]?.timestamp??-Infinity)+interval),begin=marks[b*960-1]??plan.bankUsdt,end=to>from?marks[to-start-1]!:begin;return {name:`D${b*10+1}-D${b*10+10}`,complete:to-from===960,candles:Math.max(0,to-from),netReturnUsdt:end-begin,...closedMetrics(blockTrades)};});
  return {status:'offline_research_only',...(riskLimits?{allocationMode:'risk_preserving_ceiling',riskLimits,dailyLossHaltRate:.03,drawdownHaltRate:.1}:{}),...closedMetrics(trades),netReturnUsdt,netReturnPercent:100*netReturnUsdt/plan.bankUsdt,finalEquityUsdt:equity,maxDrawdownUsdt,maxDrawdownPercent,recoveryFactor:maxDrawdownUsdt>0?netReturnUsdt/maxDrawdownUsdt:null,feesUsdt,peakExposureRate,peakConcurrentPositions:entries.length?1:0,
-  byMode:(['BASELINE','TREND_PULLBACK','MEAN_REVERSION'] as const).map(strategy_mode=>({strategy_mode,...closedMetrics(trades.filter(t=>t.strategy_mode===strategy_mode))})),blocks,entries,closedTradeLedger:trades,rejected,
+  byMode:([...(['BASELINE','TREND_PULLBACK','MEAN_REVERSION'] as const),...(evolution==='squeeze'?['VOLATILITY_SQUEEZE' as const]:[])]).map(strategy_mode=>({strategy_mode,...closedMetrics(trades.filter(t=>t.strategy_mode===strategy_mode))})),blocks,entries,closedTradeLedger:trades,rejected,
   openPosition:active?{symbol:active.d.symbol,strategy_mode:active.mode,entryTimestamp:active.d.candles15m[active.entryIndex]!.timestamp,stopPrice:active.trader.exportState().position!.stopLossPrice,targetPrice:active.trader.exportState().position!.takeProfitPrice}:null,
   configurationPromoted:false,realMoneyApproved:false};
 }

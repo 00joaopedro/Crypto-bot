@@ -41,7 +41,8 @@
     "strategy:hybrid-economic": "node dist/hybrid-economic-cli.js",
     "strategy:hybrid-economic-readiness": "node dist/hybrid-economic-readiness-cli.js",
     "market:stream-smoke": "node dist/okx-candle-stream-smoke-cli.js",
-    "account:preflight-readonly": "node dist/spot-entry-preflight-cli.js"
+    "account:preflight-readonly": "node dist/spot-entry-preflight-cli.js",
+    "strategy:hybrid-evolution": "node dist/hybrid-evolution-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

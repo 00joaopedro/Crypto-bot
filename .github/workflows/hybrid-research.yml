@@ -59,6 +59,11 @@ jobs:
         run: |
           npm run strategy:hybrid-economic-readiness -- docs/hybrid-economic-results.json docs/hybrid-economic-ledgers.json examples/hybrid-economic-experiments.plan.json examples/hybrid-economic-readiness.plan.json .hybrid-economic-readiness
           diff -u docs/hybrid-economic-readiness.json .hybrid-economic-readiness/summary.json
+      - name: Reproduce frozen transition, regime, ROI and isolated squeeze experiments
+        run: |
+          npm run strategy:hybrid-evolution -- .hybrid-data/normalized-data.json .hybrid-evolution-results
+          diff -u docs/hybrid-evolution-results.json .hybrid-evolution-results/summary.json
+          diff -u docs/hybrid-evolution-ledgers.json .hybrid-evolution-results/ledgers.json
       - name: Assess readiness without orders, account access or paid AI
         run: |
           npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness
@@ -83,6 +88,7 @@ jobs:
             .hybrid-results/
             .hybrid-economic-results/
             .hybrid-economic-readiness/
+            .hybrid-evolution-results/
             .hybrid-readiness/
             .hybrid-shadow/
             .hybrid-shadow-audit/
