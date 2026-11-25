@@ -15,3 +15,5 @@
 #hybrid-funnel{max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}#hybrid-summary{overflow-wrap:anywhere}#legacy-panel>summary{cursor:pointer;font-weight:600;padding:8px 0}
 
 #hybrid-summary{white-space:pre-wrap}
+
+.hybrid-panel{padding:18px}.hybrid-panel input[type=file]{max-width:100%;margin:8px 0}.hybrid-panel button{border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text);padding:10px 12px;margin:5px 5px 8px 0}.hybrid-panel .section-head{flex-wrap:wrap}

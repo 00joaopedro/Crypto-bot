@@ -29,3 +29,5 @@ coverage/
 
 .trend-horizon-source/
 .trend-horizon-results/
+
+.trend-frozen-artifact/

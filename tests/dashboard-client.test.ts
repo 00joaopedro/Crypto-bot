@@ -10,7 +10,7 @@ function client(){
  const sandbox=createContext({document:{getElementById:element},localStorage:{getItem:()=>null},fetch,AbortController,setTimeout,clearTimeout,URLSearchParams,Intl});
  // Exercise the actual authentication/data functions, without chart or unrelated forms.
  runInContext(source.slice(0,source.indexOf("$('logout')")),sandbox);
- runInContext('render=()=>{}',sandbox);
+ runInContext('render=()=>{};loadHybridReport=async()=>{};renderHybrid=()=>{}',sandbox);
  return {element,fetch,run:(code:string)=>runInContext(code,sandbox)};
 }
 const response=(status:number,body:unknown)=>({ok:status===200,status,json:async()=>body});

@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: hybrid-research-${{ github.event.pull_request.number || github.ref }}
@@ -74,6 +75,19 @@ jobs:
         with:
           path: .trend-horizon-source
           key: trend-horizon-v1-${{ hashFiles('examples/trend-horizon.plan.json') }}
+      - uses: actions/download-artifact@v4
+        if: hashFiles('.trend-horizon-source/normalized-data.json') == '' && hashFiles('docs/trend-horizon-results.json') != ''
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 45722652141
+          name: okx-hybrid-research
+          path: .trend-frozen-artifact
+      - name: Restore the exact archived horizon source when cache expires
+        if: hashFiles('.trend-horizon-source/normalized-data.json') == '' && hashFiles('docs/trend-horizon-results.json') != ''
+        run: |
+          mkdir -p .trend-horizon-source
+          cp .trend-frozen-artifact/.trend-horizon-source/normalized-data.json .trend-horizon-source/normalized-data.json
       - name: Collect and evaluate one frozen1h/4h hypothesis without orders
         run: |
           if [ ! -f .trend-horizon-source/normalized-data.json ]; then

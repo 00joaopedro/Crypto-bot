@@ -28,7 +28,7 @@ describe('dashboard control intent',()=>{
  it('shows resume phase and refuses to show Online while safety remains pending',()=>{
   const c=controls();c.run("controlPending=true;state.controlJob={status:'pending',phase:'checking_accounting',startedAt:Date.now()-2000};renderControl()");
   expect(c.element('control-message').textContent).toContain('Conferindo saldos, execuções e risco');
-  expect(c.element('connection').lastChild.textContent).toBe(' Pausado');expect(c.element('keep-paused').hidden).toBe(false);
+  expect(c.element('connection').lastChild.textContent).toBe(' Legado: Pausado');expect(c.element('keep-paused').hidden).toBe(false);
  });
  it('shows specific attribution once instead of repeating the generic reason',()=>{
   const c=controls();c.run("state.pauseReason='demo_bot_risk_attribution_unconfirmed';state.autoResume={enabled:true,eligibleAt:1,checkedAt:Date.now(),reason:state.pauseReason,attributionReason:'position_balance_missing',balanceEvidence:{asset:'SOL',expected:0.5,actual:null}};renderControl()");
