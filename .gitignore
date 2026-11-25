@@ -24,3 +24,5 @@ coverage/
 .hybrid-evolution-development/
 .hybrid-evolution-reproduction/
 .hybrid-evolution-results/
+
+.hybrid-evolution-readiness/

@@ -1,0 +1,318 @@
+{
+  "protocol": "hybrid-evolution-readiness-v1",
+  "status": "blocked_no_eligible_candidate",
+  "evidence": {
+    "reportFileSha256": "44cd48d69c00a3b14e745bf46ec3154724c7ea77e50242f99ace71d4b5c350ef",
+    "ledgerFileSha256": "c343dfffc88b255a02ece252f70203455f2ed885001ac0d840a810793030cdbb",
+    "experimentFileSha256": "21819470719e6bc5f7d33a5493ddb49f408c9d94af011cd1fa2fcc36d5e94f49",
+    "developmentDatasetSha256": "fb88541a351e706edcc838fffdd42ed9a11ba25ace8d4a883d8090ed6eaadfc4"
+  },
+  "matrixCases": 26,
+  "candidates": [
+    {
+      "name": "A_TRANSITION",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    },
+    {
+      "name": "B_TRANSITION",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    },
+    {
+      "name": "A_REGIME",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    },
+    {
+      "name": "B_REGIME",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    },
+    {
+      "name": "A_ROI",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    },
+    {
+      "name": "B_ROI",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    },
+    {
+      "name": "A_FULL",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    },
+    {
+      "name": "B_FULL",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    },
+    {
+      "name": "AB_FULL",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    },
+    {
+      "name": "C_SQUEEZE",
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": true,
+          "pf": true,
+          "net": true,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "drawdown": true,
+          "withoutTop3": false,
+          "blocks": false
+        }
+      ],
+      "eligibleForFutureIndependentProtocol": false
+    }
+  ],
+  "eligibleForFutureIndependentProtocol": [],
+  "blockers": [
+    "no_eligible_development_candidate",
+    "independent_validation_not_performed",
+    "hybrid_native_demo_entry_exit_protection_and_reconciliation_not_validated",
+    "current_account_balance_minimum_notional_access_and_maker_fee_unconfirmed",
+    "kill_switch_and_risk_limits_require_validation_in_native_hybrid_adapter"
+  ],
+  "independentDataCollected": false,
+  "holdoutExecuted": false,
+  "demoIntegrationApproved": false,
+  "nativeDemoAdapterExecuted": false,
+  "configurationPromoted": false,
+  "realMoneyApproved": false,
+  "ordersSent": 0,
+  "paidAiCalls": false,
+  "paper48h": {
+    "classification": "experimental_observation_not_financial_approval",
+    "automaticRestart": false,
+    "updateRunningCommit": false,
+    "automaticNewSession": false,
+    "completionEvidence": "completed checkpoint, full coverage and reconciled ledger required; logs alone do not audit the volume",
+    "knownInterruption": "prior missing-confirmed-candle failure/recovery; not certified as uninterrupted",
+    "afterCompletion": "archive checkpoint/coverage and audit copied files; do not rerun rejected candidates"
+  },
+  "nextVersion": {
+    "separateSessionDirectoryRequired": true,
+    "oldCheckpointMigrationApproved": false,
+    "freezeBeforeIndependentData": [
+      "code",
+      "strategy",
+      "costs",
+      "universe",
+      "risk",
+      "criteria"
+    ],
+    "nativeDemoWorkConditionalOnEconomicEligibility": true
+  },
+  "limitations": [
+    "Hashes bind archived bytes; they do not authenticate exchange fills or prove real profitability.",
+    "Reconciles modeled cash/fees, trade identity, single-position timeline, metrics, mode/block closed PnL and capital time. Does not rebuild candles, intra-block marks or maximum drawdown path. Those remain bound to prior replay reproduction.",
+    "Positive synthetic inputs only permit considering a future independent protocol. They never authorize execution or funds.",
+    "Account quotes and Paper observations do not certify native Demo fills, balances, minimum notional or live protection. No account requery is performed.",
+    "This deterministic report contains no claim about current live health or actual 48h completion; operational observations must be separately timestamped."
+  ]
+}

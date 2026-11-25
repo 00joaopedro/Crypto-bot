@@ -64,6 +64,10 @@ jobs:
           npm run strategy:hybrid-evolution -- .hybrid-data/normalized-data.json .hybrid-evolution-results
           diff -u docs/hybrid-evolution-results.json .hybrid-evolution-results/summary.json
           diff -u docs/hybrid-evolution-ledgers.json .hybrid-evolution-results/ledgers.json
+      - name: Reconcile latest evidence without collecting holdout or authorizing Demo
+        run: |
+          npm run strategy:hybrid-evolution-readiness -- docs/hybrid-evolution-results.json docs/hybrid-evolution-ledgers.json examples/hybrid-evolution.plan.json examples/hybrid-evolution-readiness.plan.json .hybrid-evolution-readiness
+          diff -u docs/hybrid-evolution-readiness.json .hybrid-evolution-readiness/summary.json
       - name: Assess readiness without orders, account access or paid AI
         run: |
           npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness
@@ -89,6 +93,7 @@ jobs:
             .hybrid-economic-results/
             .hybrid-economic-readiness/
             .hybrid-evolution-results/
+            .hybrid-evolution-readiness/
             .hybrid-readiness/
             .hybrid-shadow/
             .hybrid-shadow-audit/

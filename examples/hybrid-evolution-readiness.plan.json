@@ -1,0 +1,9 @@
+{
+  "protocol": "hybrid-evolution-readiness-v1",
+  "reportFileSha256": "44cd48d69c00a3b14e745bf46ec3154724c7ea77e50242f99ace71d4b5c350ef",
+  "ledgerFileSha256": "c343dfffc88b255a02ece252f70203455f2ed885001ac0d840a810793030cdbb",
+  "experimentFileSha256": "21819470719e6bc5f7d33a5493ddb49f408c9d94af011cd1fa2fcc36d5e94f49",
+  "developmentDatasetSha256": "fb88541a351e706edcc838fffdd42ed9a11ba25ace8d4a883d8090ed6eaadfc4",
+  "strategyPlanSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "purpose": "reconcile_latest_evidence_no_collection_orders_or_promotion"
+}
