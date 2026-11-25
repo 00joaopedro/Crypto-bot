@@ -43,7 +43,8 @@
     "market:stream-smoke": "node dist/okx-candle-stream-smoke-cli.js",
     "account:preflight-readonly": "node dist/spot-entry-preflight-cli.js",
     "strategy:hybrid-evolution": "node dist/hybrid-evolution-cli.js",
-    "strategy:hybrid-evolution-readiness": "node dist/hybrid-evolution-readiness-cli.js"
+    "strategy:hybrid-evolution-readiness": "node dist/hybrid-evolution-readiness-cli.js",
+    "strategy:trend-horizon": "node dist/trend-horizon-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

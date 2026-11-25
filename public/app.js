@@ -3,7 +3,7 @@ const money=(n)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'USD'}
 const percent=(n)=>`${Number(n||0).toFixed(2)}%`;
 const login=$('login'),dashboard=$('dashboard');let historySymbol='';let paperSince=localStorage.getItem('paper-since')||'';$('paper-since').value=paperSince;let settingsDirty=false;let loadSequence=0;const metricModes={daily:'usdt',weekly:'usdt',monthly:'usdt',position:'usdt'};
 
-let accountTermsReport=null;
+let accountTermsReport=null,hybridReport=null,hybridLoaded=false;
 let authGeneration=0,controlPending=false,controlPoll=null,loadController=null,loginBusy=false,controlVersion=0,controlBusy=false,controlIntentPaused=null;
 async function api(path,options={}){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),options.timeoutMs||15000);
@@ -12,8 +12,8 @@ async function api(path,options={}){
  catch(error){if(error.name==='AbortError')throw new Error('A consulta demorou. Sua sessão não foi encerrada; tente novamente.');throw error}
  finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort)}
 }
-function showAuthenticated(){login.hidden=true;dashboard.hidden=false;if(!state)$('dashboard-feedback').textContent='Carregando dados do painel…'}
-function showLogin(){accountTermsReport=null;if($('account-terms-result')){$('account-terms-result').textContent='';$('account-terms-result').hidden=true}if($('download-account-terms'))$('download-account-terms').hidden=true;++controlVersion;++authGeneration;++loadSequence;loadController?.abort();state=null;controlBusy=false;controlIntentPaused=null;dashboard.hidden=true;login.hidden=false;controlPending=false;clearTimeout(controlPoll)}
+function showAuthenticated(){login.hidden=true;dashboard.hidden=false;if(!hybridLoaded){hybridLoaded=true;void loadHybridReport();}if(!state)$('dashboard-feedback').textContent='Carregando dados do painel…'}
+function showLogin(){accountTermsReport=null;hybridReport=null;hybridLoaded=false;renderHybrid();if($('account-terms-result')){$('account-terms-result').textContent='';$('account-terms-result').hidden=true}if($('download-account-terms'))$('download-account-terms').hidden=true;++controlVersion;++authGeneration;++loadSequence;loadController?.abort();state=null;controlBusy=false;controlIntentPaused=null;dashboard.hidden=true;login.hidden=false;controlPending=false;clearTimeout(controlPoll)}
 async function verifySession(){const generation=authGeneration;try{await api('/api/session');if(generation!==authGeneration)return false;showAuthenticated();return true}catch(error){if(generation===authGeneration){if(error.status===401)showLogin();else (dashboard.hidden?$('login-error'):$('dashboard-feedback')).textContent=error.message}return false}}
 async function load(){
  const sequence=++loadSequence,generation=authGeneration;loadController?.abort();const controller=new AbortController();loadController=controller;
@@ -128,7 +128,7 @@ function renderControl(){
  button.textContent=controlPending?'Verificando…':state.paused?'Retomar bot':'Pausar bot';
  button.disabled=controlPending;
  button.classList.toggle('resume',state.paused);
- $('connection').lastChild.textContent=state.paused?' Pausado':' Online';
+ $('connection').lastChild.textContent=state.paused?' Legado: Pausado':' Legado: Online';
  const resume=state.paused?state.autoResume:null;
  $('keep-paused').hidden=!controlPending&&resume?.eligibleAt==null&&!['blocked','failed'].includes(state.controlJob?.status);
  if(controlPending){const phases={queued:'Iniciando conferência',waiting_cycle:'Aguardando o ciclo atual terminar',reconciling_orders:'Confirmando ordens na OKX',checking_accounting:'Conferindo saldos, execuções e risco',checking_protections:'Conferindo proteções de saída',applying_state:'Aplicando retomada'};const job=state.controlJob;const phase=phases[job?.phase]||'Verificando segurança para retomar';const elapsed=Number.isFinite(job?.startedAt)?' · '+Math.max(0,Math.floor((Date.now()-job.startedAt)/1000))+'s':'';$('control-message').textContent='Verificando segurança: '+phase+elapsed+'. O bot só será liberado após confirmação.';return}
@@ -205,3 +205,16 @@ $('download-account-terms')?.addEventListener('click',()=>{
  const content=JSON.stringify(accountTermsReport,null,2),url=URL.createObjectURL(new Blob([content],{type:'application/json;charset=utf-8'})),a=document.createElement('a');
  a.href=url;a.download=`crypto-bot-account-terms-${accountTermsReport.environment}-${accountTermsReport.capturedAtUtc.replace(/[^0-9]/g,'')}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
+
+function renderHybrid(){
+ const message=$('hybrid-message'),summary=$('hybrid-summary'),trades=$('hybrid-trades');if(!message)return;trades.replaceChildren();summary.textContent='';$('hybrid-funnel').textContent='';$('hybrid-download').hidden=true;
+ if(!hybridReport||hybridReport.status!=='checkpoint_replayed'){message.textContent='Nenhuma sessão importada. Os indicadores legados não representam o híbrido.';return;}
+ message.textContent='Checkpoint reproduzido. Arquivo importado; acompanhamento ao vivo e continuidade não certificados. Nenhuma ordem autorizada.';
+ const r=hybridReport,b=r.balance;summary.textContent=`Sessão ${r.sessionStatus} · estado ${r.metrics?.openPosition?'posição aberta':'sem posição aberta'}\nInício: ${r.startedAtUtc} · dados até ${r.asOfUtc}\nBanca: ${money(b.initialUsdt)} · patrimônio: ${money(b.finalEquityUsdt)} · líquido simulado: ${money(b.netReturnUsdt)}\nFechamentos: ${r.ledger.length} · taxas modeladas: ${money(b.totalModeledFeesUsdt)}\nPF: ${r.metrics?.profitFactor??'—'} · EV: ${r.metrics?.expectancyUsdt??'—'} USDT\nSHA256 do arquivo: ${r.sourceFileSha256}`;
+ const groups=new Map();for(const t of r.ledger){const key=t.strategy_mode+' / '+t.symbol,g=groups.get(key)||{count:0,net:0};g.count++;g.net+=t.netPnlUsdt;groups.set(key,g);}
+ for(const [key,g]of groups){const tr=document.createElement('tr');for(const v of [key,String(g.count),money(g.net)]){const td=document.createElement('td');td.textContent=v;tr.append(td);}trades.append(tr);}
+ $('hybrid-funnel').textContent=JSON.stringify({funil:r.funnel,rejeicoes:r.admissions,limitacoes:r.limitations},null,2);$('hybrid-download').hidden=false;
+}
+async function loadHybridReport(){const generation=authGeneration;try{const result=await api('/api/hybrid-session');if(generation!==authGeneration||dashboard.hidden)return;hybridReport=result;renderHybrid();}catch{if(generation===authGeneration&&!dashboard.hidden)$('hybrid-message').textContent='Não foi possível carregar a sessão híbrida. Tente importar o checkpoint.';}}
+$('hybrid-import')?.addEventListener('click',async()=>{const file=$('hybrid-file').files[0];if(!file){$('hybrid-message').textContent='Selecione checkpoint.json da sessão encerrada.';return;}if(file.size>16*1024*1024){$('hybrid-message').textContent='O arquivo excede16MB.';return;}const generation=authGeneration,button=$('hybrid-import');button.disabled=true;$('hybrid-message').textContent='Reproduzindo checkpoint; aguarde…';try{const result=await api('/api/hybrid-session',{method:'POST',body:await file.text(),timeoutMs:75000});if(generation!==authGeneration||dashboard.hidden)return;hybridReport=result;renderHybrid();}catch(e){if(generation===authGeneration&&!dashboard.hidden)$('hybrid-message').textContent=e.message;}finally{button.disabled=false;}});
+$('hybrid-download')?.addEventListener('click',()=>{if(!hybridReport||hybridReport.status!=='checkpoint_replayed')return;const url=URL.createObjectURL(new Blob([JSON.stringify(hybridReport,null,2)+'\n'],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='crypto-bot-hybrid-session-audit.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});

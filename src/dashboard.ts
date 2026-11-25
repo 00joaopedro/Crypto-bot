@@ -1,3 +1,4 @@
+import { auditUploadedCheckpoint } from './hybrid-dashboard-audit.js';
 import type { DemoBalanceEvidence } from './demo-ledger.js';
 import { createSessionCookie, sessionExpires } from './dashboard-session.js';
 import { DashboardRead } from './dashboard-read-cache.js';
@@ -53,6 +54,9 @@ const assets = new Map<string, { file: string; type: string }>([
 ]);
 
 export async function startDashboard(options: DashboardOptions): Promise<Server> {
+  let hybridReport:unknown={status:'checkpoint_required',source:'no_session_imported',ordersSent:0,realMoneyApproved:false};
+  let hybridBusy=false;
+  let hybridLastImport=0;
   let settingsApply: { revision: number; status: "idle" | "pending" | "applied" | "failed" } = { revision: 0, status: "idle" };
   // Legacy synchronous clients retain request ordering; the UI uses cancellable jobs.
   let controlTail: Promise<void> = Promise.resolve();
@@ -106,6 +110,17 @@ export async function startDashboard(options: DashboardOptions): Promise<Server>
         return json(response, 401, { error: "Não autenticado." });
       }
       if (request.method === 'GET' && url.pathname === '/api/session') return json(response, 200, { authenticated: true, expiresAt });
+      if(request.method==='GET'&&url.pathname==='/api/hybrid-session')return json(response,200,hybridReport);
+      if(request.method==='POST'&&url.pathname==='/api/hybrid-session'){
+        try{requireSameOrigin(request);}catch{return json(response,403,{error:'Origem inválida.'});}
+        if(hybridBusy||Date.now()-hybridLastImport<5000)return json(response,409,{error:'Aguarde a auditoria atual antes de importar novamente.'});
+        hybridBusy=true;hybridLastImport=Date.now();
+        try{const chunks:Buffer[]=[];let size=0;const deadline=setTimeout(()=>request.destroy(),30000);
+          try{for await(const chunk of request){const b=Buffer.from(chunk);size+=b.length;if(size>16*1024*1024)throw new Error('oversize');chunks.push(b);}}finally{clearTimeout(deadline);}
+          hybridReport=await auditUploadedCheckpoint(Buffer.concat(chunks).toString('utf8'));return json(response,200,hybridReport);
+        }catch{return json(response,400,{error:'Checkpoint inválido, incompleto ou acima de16MB. O relatório anterior foi preservado.'});}
+        finally{hybridBusy=false;}
+      }
       if (request.method === 'GET' && url.pathname === '/api/control-status') {
         const control = await options.persistence.readControlState();
         return json(response, 200, { paused: control.paused, pauseReason: control.pauseReason, job: controlJob });

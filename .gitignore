@@ -26,3 +26,6 @@ coverage/
 .hybrid-evolution-results/
 
 .hybrid-evolution-readiness/
+
+.trend-horizon-source/
+.trend-horizon-results/

@@ -23,7 +23,7 @@
   <div id="dashboard" class="app" hidden>
     <p id="dashboard-feedback" class="message" role="status" aria-live="polite"></p>
     <header class="topbar">
-      <div><p class="eyebrow">OKX DEMO</p><h1>Crypto Bot</h1></div>
+      <div><p class="eyebrow">PESQUISA HÍBRIDA · SPOT</p><h1>Crypto Bot</h1></div>
       <div class="top-actions">
         <span id="connection" class="status"><i></i> Carregando</span>
         <button id="theme" class="icon-button" aria-label="Alternar tema">☾</button>
@@ -32,6 +32,17 @@
     </header>
 
     <main>
+      <section class="panel" aria-label="Sessão híbrida">
+        <div class="section-head"><div><p class="eyebrow">HÍBRIDO · BANCA17 USDT</p><h2>Auditoria da sessão Paper</h2></div><span class="pill">Somente acompanhamento</span></div>
+        <p class="muted">Importe o checkpoint para reproduzir o resultado da sessão15m A/B. A proposta1h/4h continua offline, sem aprovação para operar.</p>
+        <label>Checkpoint da sessão (JSON, até16MB)<input id="hybrid-file" type="file" accept=".json,application/json"></label>
+        <button id="hybrid-import" type="button">Importar e auditar</button><button id="hybrid-download" type="button" hidden>Baixar relatório auditado</button>
+        <p id="hybrid-message" class="message" role="status">Nenhuma sessão importada. Os indicadores legados abaixo não representam o híbrido.</p>
+        <div id="hybrid-summary" class="decision-copy"></div><div class="table-scroll"><table><thead><tr><th>Modo / par</th><th>Operações</th><th>Resultado líquido</th></tr></thead><tbody id="hybrid-trades"></tbody></table></div>
+        <details><summary>Funil de sinais e rejeições</summary><pre id="hybrid-funnel"></pre></details>
+      </section>
+      <details id="legacy-panel" class="panel"><summary>Histórico e controles legados · não controlam o híbrido</summary>
+      <p class="muted">Estes dados e botões pertencem ao motor anterior. Importar uma sessão não inicia operações nem altera a conta.</p>
       <section class="hero panel">
         <div><p class="eyebrow">CONTROLE OPERACIONAL</p><h2>Visão geral da estratégia</h2><p class="muted">Dados do PostgreSQL atualizados automaticamente.</p></div>
         <button id="toggle-bot" class="danger" disabled>Pausar bot</button>
@@ -114,6 +125,7 @@
         <article class="panel"><div class="section-head"><div><p class="eyebrow">SINAL ATUAL</p><h2>Última decisão</h2></div><span id="decision-action" class="pill">—</span></div><div id="decision" class="decision-copy">Aguardando dados…</div></article>
         <article class="panel table-panel"><div class="section-head"><div><p class="eyebrow">ATIVIDADE</p><h2>Ordens e trades recentes</h2></div><select id="history-symbol" aria-label="Filtrar histórico por par"><option value="">Todos os pares</option></select></div><div class="table-scroll"><table><thead><tr><th>Data</th><th>Par</th><th>Tipo</th><th>Status / Resultado</th></tr></thead><tbody id="activity"></tbody></table></div></article>
       </section>
+      </details>
     </main>
   </div>
   <script src="/app.js" defer></script>

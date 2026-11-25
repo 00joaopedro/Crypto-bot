@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'src/hybrid-*.ts'
+      - 'src/trend-horizon*.ts'
+      - 'examples/trend-horizon*.json'
       - 'src/okx-history.ts'
       - 'examples/hybrid-*.json'
       - '.github/workflows/hybrid-research.yml'
@@ -68,6 +70,20 @@ jobs:
         run: |
           npm run strategy:hybrid-evolution-readiness -- docs/hybrid-evolution-results.json docs/hybrid-evolution-ledgers.json examples/hybrid-evolution.plan.json examples/hybrid-evolution-readiness.plan.json .hybrid-evolution-readiness
           diff -u docs/hybrid-evolution-readiness.json .hybrid-evolution-readiness/summary.json
+      - uses: actions/cache@v4
+        with:
+          path: .trend-horizon-source
+          key: trend-horizon-v1-${{ hashFiles('examples/trend-horizon.plan.json') }}
+      - name: Collect and evaluate one frozen1h/4h hypothesis without orders
+        run: |
+          if [ ! -f .trend-horizon-source/normalized-data.json ]; then
+            npm run strategy:trend-horizon -- .trend-horizon-source
+          fi
+          npm run strategy:trend-horizon -- --replay .trend-horizon-source/normalized-data.json .trend-horizon-results
+          if [ -f docs/trend-horizon-results.json ]; then
+            diff -u docs/trend-horizon-results.json .trend-horizon-results/summary.json
+            diff -u docs/trend-horizon-ledgers.json .trend-horizon-results/ledgers.json
+          fi
       - name: Assess readiness without orders, account access or paid AI
         run: |
           npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness
@@ -94,6 +110,8 @@ jobs:
             .hybrid-economic-readiness/
             .hybrid-evolution-results/
             .hybrid-evolution-readiness/
+            .trend-horizon-source/
+            .trend-horizon-results/
             .hybrid-readiness/
             .hybrid-shadow/
             .hybrid-shadow-audit/

@@ -4,7 +4,7 @@ import { researchAdx,type HybridFeatures,type HybridDecision } from './hybrid-re
 import { netRewardRisk } from './hybrid-economic-options.js';
 import type { Candle } from './types.js';
 
-export const evolutionReplaySchema=z.enum(['roi','full','squeeze']);
+export const evolutionReplaySchema=z.enum(['roi','full','squeeze','horizon','horizon_reference']);
 export type EvolutionReplay=z.infer<typeof evolutionReplaySchema>;
 export type EvolutionChange='reference'|'transition'|'regime'|'roi'|'full'|'squeeze';
 export function closedHourRegime(hours:readonly Candle[],decisionClose:number){
@@ -32,4 +32,9 @@ export function squeezeDecision(history:readonly Candle[],f:HybridFeatures,regim
  const currentCloses=history.slice(-20).map(c=>c.close),nowMean=currentCloses.reduce((a,b)=>a+b,0)/20,upper=nowMean+2*Math.sqrt(currentCloses.reduce((a,b)=>a+(b-nowMean)**2,0)/20);
  const volume=previous.slice(-20).reduce((a,c)=>a+c.volume,0)/20;
  return squeeze&&f.previous.close<=mean+2*sigma&&f.current.close>upper&&f.current.close>f.current.open&&volume>0&&f.current.volume/volume>=1.5?[{strategy_mode:'VOLATILITY_SQUEEZE',decisionTimestamp:f.current.timestamp,atr:f.atr14,pullbackLow:f.previous.low,sma20:f.sma20}]:[];
+}
+
+export function horizonQuoteGate(q:{cost:number;quantity:number;fill:number;referencePrice:number;stop:number;target:number;fee:number;slippage:number}){
+ const rr=netRewardRisk(q),gain=q.quantity*q.target*(1-q.fee)*(1-q.slippage)-q.cost,cost=q.cost-q.quantity*q.referencePrice*(1-q.fee)*(1-q.slippage);
+ return q.stop>0&&q.stop<q.fill&&rr!==null&&rr>=1&&Number.isFinite(cost)&&cost>=0&&gain>=cost;
 }
