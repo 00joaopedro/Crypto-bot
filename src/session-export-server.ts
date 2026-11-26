@@ -8,7 +8,7 @@ const files=['checkpoint.json','public-coverage.json'] as const;
 const shell=(content:string)=>`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Arquivos da sessão48h</title><style>body{font:16px system-ui;background:#10151e;color:#ecf0f5;max-width:520px;margin:40px auto;padding:20px}input,button,a{font:inherit;padding:12px;margin:10px 0;display:block}a{color:#8abaff}input{max-width:90%}small{color:#aab6c5}</style><h1>Arquivos da sessão48h</h1>${content}</html>`;
 /** Read-only exporter, independent of bot/runtime/account clients. Never starts or resumes a session. */
 export async function startSessionExport(options:{directory:string;password:string;sessionSecret:string;port:number;host?:string}):Promise<Server>{
- if(options.password.length<8||options.sessionSecret.length<32)throw new Error('Dedicated dashboard authentication must be configured');
+ if(!options.password.trim()||options.sessionSecret.length<32)throw new Error('Dedicated dashboard authentication must be configured');
  const server=createServer(async(req,res)=>{
   res.setHeader('cache-control','no-store');res.setHeader('x-content-type-options','nosniff');res.setHeader('x-frame-options','DENY');res.setHeader('referrer-policy','no-referrer');res.setHeader('content-security-policy',"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
   const reply=(status:number,content:string)=>{res.writeHead(status,{'content-type':'text/html; charset=utf-8'});res.end(content);};

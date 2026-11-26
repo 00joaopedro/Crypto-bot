@@ -9,7 +9,7 @@ let server:Awaited<ReturnType<typeof startSessionExport>>|undefined,dir:string;
 afterEach(async()=>{if(server)await new Promise<void>(r=>server!.close(()=>r()));server=undefined;if(dir)await rm(dir,{recursive:true,force:true});});
 async function setup(){dir=await mkdtemp(join(tmpdir(),'session-export-'));server=await startSessionExport({directory:dir,password:'test-password',sessionSecret:'s'.repeat(32),port:0,host:'127.0.0.1'});return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;}
 const auth={cookie:createSessionCookie('s'.repeat(32)).split(';')[0]!};
-it('fails closed without strong configured dashboard authentication',async()=>{
+it('fails closed without configured dashboard authentication',async()=>{
  await expect(startSessionExport({directory:'/',password:'',sessionSecret:'',port:0})).rejects.toThrow(/authentication/);
 });
 it('requires authentication and same-origin login, creates the existing secure12h session',async()=>{
