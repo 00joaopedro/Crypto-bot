@@ -5,6 +5,9 @@ on:
     paths:
       - 'src/hybrid-*.ts'
       - 'src/trend-horizon*.ts'
+      - 'src/opportunity-diagnosis*.ts'
+      - 'scripts/opportunity-reproduce.mjs'
+      - 'docs/opportunity-cost-diagnosis.json'
       - 'examples/trend-horizon*.json'
       - 'src/okx-history.ts'
       - 'examples/hybrid-*.json'
@@ -98,6 +101,8 @@ jobs:
             diff -u docs/trend-horizon-results.json .trend-horizon-results/summary.json
             diff -u docs/trend-horizon-ledgers.json .trend-horizon-results/ledgers.json
           fi
+      - name: Reproduce descriptive opportunity and cost attribution without choosing a strategy
+        run: node scripts/opportunity-reproduce.mjs .hybrid-data/normalized-data.json .trend-horizon-source/normalized-data.json
       - name: Assess readiness without orders, account access or paid AI
         run: |
           npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness

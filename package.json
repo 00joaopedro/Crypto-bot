@@ -45,7 +45,8 @@
     "strategy:hybrid-evolution": "node dist/hybrid-evolution-cli.js",
     "strategy:hybrid-evolution-readiness": "node dist/hybrid-evolution-readiness-cli.js",
     "strategy:trend-horizon": "node dist/trend-horizon-cli.js",
-    "session:export": "node dist/session-export-cli.js"
+    "session:export": "node dist/session-export-cli.js",
+    "strategy:opportunities": "node dist/opportunity-diagnosis-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
