@@ -8,6 +8,10 @@ on:
       - 'src/opportunity-diagnosis*.ts'
       - 'scripts/opportunity-reproduce.mjs'
       - 'docs/opportunity-cost-diagnosis.json'
+      - 'src/channel-continuation*.ts'
+      - 'examples/channel-continuation*.json'
+      - 'docs/channel-continuation*.json'
+      - 'scripts/channel-diagnosis.mjs'
       - 'examples/trend-horizon*.json'
       - 'src/okx-history.ts'
       - 'examples/hybrid-*.json'
@@ -103,6 +107,13 @@ jobs:
           fi
       - name: Reproduce descriptive opportunity and cost attribution without choosing a strategy
         run: node scripts/opportunity-reproduce.mjs .hybrid-data/normalized-data.json .trend-horizon-source/normalized-data.json
+      - name: Reproduce one frozen channel hypothesis and all negative/reference results
+        run: |
+          npm run strategy:channel-continuation -- .trend-horizon-source/normalized-data.json .channel-continuation-results
+          diff -u docs/channel-continuation-results.json .channel-continuation-results/summary.json
+          diff -u docs/channel-continuation-ledgers.json .channel-continuation-results/ledgers.json
+          node scripts/channel-diagnosis.mjs .trend-horizon-source/normalized-data.json .channel-continuation-results .channel-continuation-results/diagnosis.json
+          diff -u docs/channel-continuation-diagnosis.json .channel-continuation-results/diagnosis.json
       - name: Assess readiness without orders, account access or paid AI
         run: |
           npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness
@@ -131,6 +142,7 @@ jobs:
             .hybrid-evolution-readiness/
             .trend-horizon-source/
             .trend-horizon-results/
+            .channel-continuation-results/
             .hybrid-readiness/
             .hybrid-shadow/
             .hybrid-shadow-audit/

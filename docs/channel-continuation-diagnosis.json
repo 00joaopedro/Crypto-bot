@@ -1,0 +1,903 @@
+{
+  "protocol": "channel-fixed-path-attribution-v1",
+  "protocolFrozenCommit": "40f262e3521a0a35043ff3656b1c3d262af95b47",
+  "sourceDatasetSha256": "c86e45083ffbee12859819abe1e9584a5a72b397fe10863c5df458b755ec6dde",
+  "ledgerFileSha256": "00f24d8f839bdbc3f31de7a2f28fd7512f4b8958f0e2f32cfa6e6f81a822fe21",
+  "runs": [
+    {
+      "name": "HORIZON_ATR_CORE",
+      "scenario": "account-conditioned",
+      "summary": {
+        "trades": 0,
+        "netPnlUsdt": 0,
+        "recordedFeesUsdt": 0,
+        "addBackRecordedFeesUsdt": 0,
+        "beforeFeesAtFixedFillsUsdt": 0,
+        "referencePathPnlUsdt": 0,
+        "entryFrictionUsdt": 0,
+        "exitFrictionUsdt": 0,
+        "feeEffectUsdt": 0,
+        "baseFeeRevaluationUsdt": 0,
+        "profitFactor": null,
+        "expectancyUsdt": null,
+        "winRate": null,
+        "averageWinUsdt": null,
+        "averageLossUsdt": null,
+        "breakEvenWinRate": null,
+        "feeTurnedLossesAtFixedFills": 0,
+        "allFrictionTurnedLossesOnReferencePath": 0,
+        "notionalUsdt": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "holdingMinutesUpperBound": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "plannedNetRewardRisk": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "breakEvenMoveFromReferenceRate": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "ownedExcursionSamples": 0,
+        "mfeRate": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "maeRate": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "ownedHighReachedModeledBreakEven": 0,
+        "forward": [
+          {
+            "bars": 1,
+            "minutes": 60,
+            "completeSamples": 0,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "closeMoveRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "highReachedModeledBreakEven": 0
+          },
+          {
+            "bars": 4,
+            "minutes": 240,
+            "completeSamples": 0,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "closeMoveRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "highReachedModeledBreakEven": 0
+          },
+          {
+            "bars": 8,
+            "minutes": 480,
+            "completeSamples": 0,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "closeMoveRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "highReachedModeledBreakEven": 0
+          }
+        ]
+      },
+      "byMode": [],
+      "byExit": [],
+      "bySymbol": [],
+      "byEntrySessionUtc": []
+    },
+    {
+      "name": "HORIZON_ATR_CORE",
+      "scenario": "account-cost-stress",
+      "summary": {
+        "trades": 0,
+        "netPnlUsdt": 0,
+        "recordedFeesUsdt": 0,
+        "addBackRecordedFeesUsdt": 0,
+        "beforeFeesAtFixedFillsUsdt": 0,
+        "referencePathPnlUsdt": 0,
+        "entryFrictionUsdt": 0,
+        "exitFrictionUsdt": 0,
+        "feeEffectUsdt": 0,
+        "baseFeeRevaluationUsdt": 0,
+        "profitFactor": null,
+        "expectancyUsdt": null,
+        "winRate": null,
+        "averageWinUsdt": null,
+        "averageLossUsdt": null,
+        "breakEvenWinRate": null,
+        "feeTurnedLossesAtFixedFills": 0,
+        "allFrictionTurnedLossesOnReferencePath": 0,
+        "notionalUsdt": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "holdingMinutesUpperBound": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "plannedNetRewardRisk": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "breakEvenMoveFromReferenceRate": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "ownedExcursionSamples": 0,
+        "mfeRate": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "maeRate": {
+          "samples": 0,
+          "mean": null,
+          "median": null
+        },
+        "ownedHighReachedModeledBreakEven": 0,
+        "forward": [
+          {
+            "bars": 1,
+            "minutes": 60,
+            "completeSamples": 0,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "closeMoveRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "highReachedModeledBreakEven": 0
+          },
+          {
+            "bars": 4,
+            "minutes": 240,
+            "completeSamples": 0,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "closeMoveRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "highReachedModeledBreakEven": 0
+          },
+          {
+            "bars": 8,
+            "minutes": 480,
+            "completeSamples": 0,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "closeMoveRate": {
+              "samples": 0,
+              "mean": null,
+              "median": null
+            },
+            "highReachedModeledBreakEven": 0
+          }
+        ]
+      },
+      "byMode": [],
+      "byExit": [],
+      "bySymbol": [],
+      "byEntrySessionUtc": []
+    },
+    {
+      "name": "CHANNEL_4H",
+      "scenario": "account-conditioned",
+      "summary": {
+        "trades": 9,
+        "netPnlUsdt": -0.5146101715957874,
+        "recordedFeesUsdt": 0.14546495104369886,
+        "addBackRecordedFeesUsdt": -0.36914522055208854,
+        "beforeFeesAtFixedFillsUsdt": -0.37062773147800127,
+        "referencePathPnlUsdt": -0.3073713799505698,
+        "entryFrictionUsdt": 0.03162817576371528,
+        "exitFrictionUsdt": 0.03162817576371563,
+        "feeEffectUsdt": 0.1439824401177861,
+        "baseFeeRevaluationUsdt": -0.0014825109259127556,
+        "profitFactor": 0.21941672052203223,
+        "expectancyUsdt": -0.05717890795508748,
+        "winRate": 0.1111111111111111,
+        "averageWinUsdt": 0.14465346512974464,
+        "averageLossUsdt": 0.0824079545906915,
+        "breakEvenWinRate": 0.36293243780539336,
+        "feeTurnedLossesAtFixedFills": 0,
+        "allFrictionTurnedLossesOnReferencePath": 0,
+        "notionalUsdt": {
+          "samples": 9,
+          "mean": 2.044944499080205,
+          "median": 1.6899452608238201
+        },
+        "holdingMinutesUpperBound": {
+          "samples": 9,
+          "mean": 4620,
+          "median": 2760
+        },
+        "plannedNetRewardRisk": {
+          "samples": 9,
+          "mean": 2.0034079578352992,
+          "median": 2.0066628721583135
+        },
+        "breakEvenMoveFromReferenceRate": {
+          "samples": 9,
+          "mean": 0.01158412868591342,
+          "median": 0.01158412868591352
+        },
+        "ownedExcursionSamples": 9,
+        "mfeRate": {
+          "samples": 9,
+          "mean": 0.02761369649288619,
+          "median": 0.014970105800113043
+        },
+        "maeRate": {
+          "samples": 9,
+          "mean": 0.024001908572226418,
+          "median": 0.022375851756081255
+        },
+        "ownedHighReachedModeledBreakEven": 6,
+        "forward": [
+          {
+            "bars": 1,
+            "minutes": 60,
+            "completeSamples": 9,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 9,
+              "mean": 0.0028521283144214613,
+              "median": 0.0017374329486534723
+            },
+            "closeMoveRate": {
+              "samples": 9,
+              "mean": -0.0003320012664173773,
+              "median": -0.0016592236333349275
+            },
+            "highReachedModeledBreakEven": 0
+          },
+          {
+            "bars": 4,
+            "minutes": 240,
+            "completeSamples": 9,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 9,
+              "mean": 0.010912721749884459,
+              "median": 0.006555353555028232
+            },
+            "closeMoveRate": {
+              "samples": 9,
+              "mean": 0.0015829412401986184,
+              "median": -0.0022194540828249787
+            },
+            "highReachedModeledBreakEven": 3
+          },
+          {
+            "bars": 8,
+            "minutes": 480,
+            "completeSamples": 9,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 9,
+              "mean": 0.021276118897329513,
+              "median": 0.014277212383080773
+            },
+            "closeMoveRate": {
+              "samples": 9,
+              "mean": 0.010733472093907095,
+              "median": 0.007090786983835917
+            },
+            "highReachedModeledBreakEven": 6
+          }
+        ]
+      },
+      "byMode": [
+        {
+          "key": "CHANNEL_BREAKOUT",
+          "trades": 9,
+          "netPnlUsdt": -0.5146101715957874,
+          "recordedFeesUsdt": 0.14546495104369886,
+          "referencePathPnlUsdt": -0.3073713799505698,
+          "profitFactor": 0.21941672052203223,
+          "expectancyUsdt": -0.05717890795508748,
+          "mfeRate": {
+            "samples": 9,
+            "mean": 0.02761369649288619,
+            "median": 0.014970105800113043
+          },
+          "maeRate": {
+            "samples": 9,
+            "mean": 0.024001908572226418,
+            "median": 0.022375851756081255
+          },
+          "ownedExcursionSamples": 9,
+          "ownedHighReachedModeledBreakEven": 6,
+          "holdingMinutesUpperBound": {
+            "samples": 9,
+            "mean": 4620,
+            "median": 2760
+          }
+        }
+      ],
+      "byExit": [
+        {
+          "key": "STOP_LOSS",
+          "trades": 8,
+          "netPnlUsdt": -0.659263636725532,
+          "recordedFeesUsdt": 0.13160246037050558,
+          "referencePathPnlUsdt": -0.47289389102622015,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.0824079545906915,
+          "mfeRate": {
+            "samples": 8,
+            "mean": 0.02121171160394164,
+            "median": 0.011062492268062885
+          },
+          "maeRate": {
+            "samples": 8,
+            "mean": 0.026217569243041805,
+            "median": 0.022375851756081255
+          },
+          "ownedExcursionSamples": 8,
+          "ownedHighReachedModeledBreakEven": 5,
+          "holdingMinutesUpperBound": {
+            "samples": 8,
+            "mean": 4650,
+            "median": 2160
+          }
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "trades": 1,
+          "netPnlUsdt": 0.14465346512974464,
+          "recordedFeesUsdt": 0.013862490673193294,
+          "referencePathPnlUsdt": 0.1655225110756503,
+          "profitFactor": null,
+          "expectancyUsdt": 0.14465346512974464,
+          "mfeRate": {
+            "samples": 1,
+            "mean": 0.07882957560444259,
+            "median": 0.07882957560444259
+          },
+          "maeRate": {
+            "samples": 1,
+            "mean": 0.0062766232057033244,
+            "median": 0.0062766232057033244
+          },
+          "ownedExcursionSamples": 1,
+          "ownedHighReachedModeledBreakEven": 1,
+          "holdingMinutesUpperBound": {
+            "samples": 1,
+            "mean": 4380,
+            "median": 4380
+          }
+        }
+      ],
+      "bySymbol": [
+        {
+          "key": "BTC/USDT",
+          "trades": 4,
+          "netPnlUsdt": -0.3349576358888151,
+          "recordedFeesUsdt": 0.07928747206937957,
+          "referencePathPnlUsdt": -0.22231438837405965,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.08373940897220378,
+          "mfeRate": {
+            "samples": 4,
+            "mean": 0.014026454030232116,
+            "median": 0.009616554193464077
+          },
+          "maeRate": {
+            "samples": 4,
+            "mean": 0.018279719066914613,
+            "median": 0.01803185824397391
+          },
+          "ownedExcursionSamples": 4,
+          "ownedHighReachedModeledBreakEven": 2,
+          "holdingMinutesUpperBound": {
+            "samples": 4,
+            "mean": 1815,
+            "median": 1260
+          }
+        },
+        {
+          "key": "ETH/USDT",
+          "trades": 1,
+          "netPnlUsdt": -0.07824918467229924,
+          "recordedFeesUsdt": 0.013023676942942486,
+          "referencePathPnlUsdt": -0.05988079958326194,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.07824918467229924,
+          "mfeRate": {
+            "samples": 1,
+            "mean": 0.007621249240890915,
+            "median": 0.007621249240890915
+          },
+          "maeRate": {
+            "samples": 1,
+            "mean": 0.03733561851797251,
+            "median": 0.03733561851797251
+          },
+          "ownedExcursionSamples": 1,
+          "ownedHighReachedModeledBreakEven": 0,
+          "holdingMinutesUpperBound": {
+            "samples": 1,
+            "mean": 2760,
+            "median": 2760
+          }
+        },
+        {
+          "key": "SOL/USDT",
+          "trades": 4,
+          "netPnlUsdt": -0.10140335103467302,
+          "recordedFeesUsdt": 0.053153802031376804,
+          "referencePathPnlUsdt": -0.02517619199324818,
+          "profitFactor": 0.5878864377123604,
+          "expectancyUsdt": -0.025350837758668254,
+          "mfeRate": {
+            "samples": 4,
+            "mean": 0.046199050768539085,
+            "median": 0.03220197458579488
+          },
+          "maeRate": {
+            "samples": 4,
+            "mean": 0.0263906705911017,
+            "median": 0.022375851756081255
+          },
+          "ownedExcursionSamples": 4,
+          "ownedHighReachedModeledBreakEven": 4,
+          "holdingMinutesUpperBound": {
+            "samples": 4,
+            "mean": 7890,
+            "median": 4380
+          }
+        }
+      ],
+      "byEntrySessionUtc": [
+        {
+          "key": "00–06",
+          "trades": 2,
+          "netPnlUsdt": -0.1638276722326193,
+          "recordedFeesUsdt": 0.033174481388303756,
+          "referencePathPnlUsdt": -0.11683375526015358,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.08191383611630965,
+          "mfeRate": {
+            "samples": 2,
+            "mean": 0.007381674151749507,
+            "median": 0.0037008560354361286
+          },
+          "maeRate": {
+            "samples": 2,
+            "mean": 0.023551096817097716,
+            "median": 0.022375851756081255
+          },
+          "ownedExcursionSamples": 2,
+          "ownedHighReachedModeledBreakEven": 1,
+          "holdingMinutesUpperBound": {
+            "samples": 2,
+            "mean": 1380,
+            "median": 600
+          }
+        },
+        {
+          "key": "06–12",
+          "trades": 1,
+          "netPnlUsdt": 0.14465346512974464,
+          "recordedFeesUsdt": 0.013862490673193294,
+          "referencePathPnlUsdt": 0.1655225110756503,
+          "profitFactor": null,
+          "expectancyUsdt": 0.14465346512974464,
+          "mfeRate": {
+            "samples": 1,
+            "mean": 0.07882957560444259,
+            "median": 0.07882957560444259
+          },
+          "maeRate": {
+            "samples": 1,
+            "mean": 0.0062766232057033244,
+            "median": 0.0062766232057033244
+          },
+          "ownedExcursionSamples": 1,
+          "ownedHighReachedModeledBreakEven": 1,
+          "holdingMinutesUpperBound": {
+            "samples": 1,
+            "mean": 4380,
+            "median": 4380
+          }
+        },
+        {
+          "key": "12–18",
+          "trades": 6,
+          "netPnlUsdt": -0.4954359644929127,
+          "recordedFeesUsdt": 0.09842797898220182,
+          "referencePathPnlUsdt": -0.3560601357660665,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.08257266074881879,
+          "mfeRate": {
+            "samples": 6,
+            "mean": 0.025821724088005687,
+            "median": 0.014970105800113043
+          },
+          "maeRate": {
+            "samples": 6,
+            "mean": 0.02710639338502317,
+            "median": 0.018123574816472754
+          },
+          "ownedExcursionSamples": 6,
+          "ownedHighReachedModeledBreakEven": 4,
+          "holdingMinutesUpperBound": {
+            "samples": 6,
+            "mean": 5740,
+            "median": 2760
+          }
+        }
+      ]
+    },
+    {
+      "name": "CHANNEL_4H",
+      "scenario": "account-cost-stress",
+      "summary": {
+        "trades": 5,
+        "netPnlUsdt": -0.23519631278604813,
+        "recordedFeesUsdt": 0.1334115371639138,
+        "addBackRecordedFeesUsdt": -0.10178477562213431,
+        "beforeFeesAtFixedFillsUsdt": -0.10260562058682837,
+        "referencePathPnlUsdt": -0.04410939369888536,
+        "entryFrictionUsdt": 0.029248113443971584,
+        "exitFrictionUsdt": 0.02924811344397151,
+        "feeEffectUsdt": 0.13259069219921976,
+        "baseFeeRevaluationUsdt": -0.0008208449646940202,
+        "profitFactor": 0.3968775273199105,
+        "expectancyUsdt": -0.047039262557209624,
+        "winRate": 0.2,
+        "averageWinUsdt": 0.15476811971289117,
+        "averageLossUsdt": 0.09749110812473483,
+        "breakEvenWinRate": 0.3864719200182751,
+        "feeTurnedLossesAtFixedFills": 0,
+        "allFrictionTurnedLossesOnReferencePath": 0,
+        "notionalUsdt": {
+          "samples": 5,
+          "mean": 1.6845609358545537,
+          "median": 1.68575824739595
+        },
+        "holdingMinutesUpperBound": {
+          "samples": 5,
+          "mean": 5004,
+          "median": 2520
+        },
+        "plannedNetRewardRisk": {
+          "samples": 5,
+          "mean": 1.6429919336468397,
+          "median": 1.621921491436571
+        },
+        "breakEvenMoveFromReferenceRate": {
+          "samples": 5,
+          "mean": 0.02333855144675869,
+          "median": 0.02333855144675856
+        },
+        "ownedExcursionSamples": 5,
+        "mfeRate": {
+          "samples": 5,
+          "mean": 0.036114203061295494,
+          "median": 0.008470237110581147
+        },
+        "maeRate": {
+          "samples": 5,
+          "mean": 0.031121050441534882,
+          "median": 0.034393393884035506
+        },
+        "ownedHighReachedModeledBreakEven": 2,
+        "forward": [
+          {
+            "bars": 1,
+            "minutes": 60,
+            "completeSamples": 5,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 5,
+              "mean": 0.004031736896231974,
+              "median": 0.004467494885765255
+            },
+            "closeMoveRate": {
+              "samples": 5,
+              "mean": -0.002011433008349872,
+              "median": 0.0013033647472362464
+            },
+            "highReachedModeledBreakEven": 0
+          },
+          {
+            "bars": 4,
+            "minutes": 240,
+            "completeSamples": 5,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 5,
+              "mean": 0.01420537556463275,
+              "median": 0.005861808228774024
+            },
+            "closeMoveRate": {
+              "samples": 5,
+              "mean": 0.006424115906921468,
+              "median": -0.0029364715114422735
+            },
+            "highReachedModeledBreakEven": 2
+          },
+          {
+            "bars": 8,
+            "minutes": 480,
+            "completeSamples": 5,
+            "missingSamples": 0,
+            "includesExitOrLater": 0,
+            "mfeRate": {
+              "samples": 5,
+              "mean": 0.017868095906808802,
+              "median": 0.005861808228774024
+            },
+            "closeMoveRate": {
+              "samples": 5,
+              "mean": 0.0018781373827608584,
+              "median": -0.007204583935788378
+            },
+            "highReachedModeledBreakEven": 2
+          }
+        ]
+      },
+      "byMode": [
+        {
+          "key": "CHANNEL_BREAKOUT",
+          "trades": 5,
+          "netPnlUsdt": -0.23519631278604813,
+          "recordedFeesUsdt": 0.1334115371639138,
+          "referencePathPnlUsdt": -0.04410939369888536,
+          "profitFactor": 0.3968775273199105,
+          "expectancyUsdt": -0.047039262557209624,
+          "mfeRate": {
+            "samples": 5,
+            "mean": 0.036114203061295494,
+            "median": 0.008470237110581147
+          },
+          "maeRate": {
+            "samples": 5,
+            "mean": 0.031121050441534882,
+            "median": 0.034393393884035506
+          },
+          "ownedExcursionSamples": 5,
+          "ownedHighReachedModeledBreakEven": 2,
+          "holdingMinutesUpperBound": {
+            "samples": 5,
+            "mean": 5004,
+            "median": 2520
+          }
+        }
+      ],
+      "byExit": [
+        {
+          "key": "STOP_LOSS",
+          "trades": 4,
+          "netPnlUsdt": -0.3899644324989393,
+          "recordedFeesUsdt": 0.10533198535491088,
+          "referencePathPnlUsdt": -0.2414703041808476,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.09749110812473483,
+          "mfeRate": {
+            "samples": 4,
+            "mean": 0.019547351279568248,
+            "median": 0.005861808228774024
+          },
+          "maeRate": {
+            "samples": 4,
+            "mean": 0.029601859799526065,
+            "median": 0.03119029493692671
+          },
+          "ownedExcursionSamples": 4,
+          "ownedHighReachedModeledBreakEven": 1,
+          "holdingMinutesUpperBound": {
+            "samples": 4,
+            "mean": 3135,
+            "median": 1260
+          }
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "trades": 1,
+          "netPnlUsdt": 0.15476811971289117,
+          "recordedFeesUsdt": 0.028079551809002925,
+          "referencePathPnlUsdt": 0.19736091048196225,
+          "profitFactor": null,
+          "expectancyUsdt": 0.15476811971289117,
+          "mfeRate": {
+            "samples": 1,
+            "mean": 0.10238161018820446,
+            "median": 0.10238161018820446
+          },
+          "maeRate": {
+            "samples": 1,
+            "mean": 0.037197813009570146,
+            "median": 0.037197813009570146
+          },
+          "ownedExcursionSamples": 1,
+          "ownedHighReachedModeledBreakEven": 1,
+          "holdingMinutesUpperBound": {
+            "samples": 1,
+            "mean": 12480,
+            "median": 12480
+          }
+        }
+      ],
+      "bySymbol": [
+        {
+          "key": "ETH/USDT",
+          "trades": 2,
+          "netPnlUsdt": -0.1828350570151387,
+          "recordedFeesUsdt": 0.0526119233841567,
+          "referencePathPnlUsdt": -0.10852536552176417,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.09141752850756935,
+          "mfeRate": {
+            "samples": 2,
+            "mean": 0.007166022669677585,
+            "median": 0.005861808228774024
+          },
+          "maeRate": {
+            "samples": 2,
+            "mean": 0.02295480371344888,
+            "median": 0.014719312489971048
+          },
+          "ownedExcursionSamples": 2,
+          "ownedHighReachedModeledBreakEven": 0,
+          "holdingMinutesUpperBound": {
+            "samples": 2,
+            "mean": 1890,
+            "median": 1260
+          }
+        },
+        {
+          "key": "SOL/USDT",
+          "trades": 3,
+          "netPnlUsdt": -0.05236125577090944,
+          "recordedFeesUsdt": 0.0807996137797571,
+          "referencePathPnlUsdt": 0.06441597182287881,
+          "profitFactor": 0.7472050709919484,
+          "expectancyUsdt": -0.01745375192363648,
+          "mfeRate": {
+            "samples": 3,
+            "mean": 0.05541298998904076,
+            "median": 0.060846540990464604
+          },
+          "maeRate": {
+            "samples": 3,
+            "mean": 0.03656521492692555,
+            "median": 0.037197813009570146
+          },
+          "ownedExcursionSamples": 3,
+          "ownedHighReachedModeledBreakEven": 2,
+          "holdingMinutesUpperBound": {
+            "samples": 3,
+            "mean": 7080,
+            "median": 7620
+          }
+        }
+      ],
+      "byEntrySessionUtc": [
+        {
+          "key": "06–12",
+          "trades": 1,
+          "netPnlUsdt": -0.0931617854710225,
+          "recordedFeesUsdt": 0.02632958583340089,
+          "referencePathPnlUsdt": -0.05599289101046184,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.0931617854710225,
+          "mfeRate": {
+            "samples": 1,
+            "mean": 0.003010818788453218,
+            "median": 0.003010818788453218
+          },
+          "maeRate": {
+            "samples": 1,
+            "mean": 0.034393393884035506,
+            "median": 0.034393393884035506
+          },
+          "ownedExcursionSamples": 1,
+          "ownedHighReachedModeledBreakEven": 0,
+          "holdingMinutesUpperBound": {
+            "samples": 1,
+            "mean": 1140,
+            "median": 1140
+          }
+        },
+        {
+          "key": "12–18",
+          "trades": 4,
+          "netPnlUsdt": -0.14203452731502564,
+          "recordedFeesUsdt": 0.10708195133051292,
+          "referencePathPnlUsdt": 0.01188349731157648,
+          "profitFactor": 0.5214512783584909,
+          "expectancyUsdt": -0.03550863182875641,
+          "mfeRate": {
+            "samples": 4,
+            "mean": 0.04439004912950606,
+            "median": 0.008470237110581147
+          },
+          "maeRate": {
+            "samples": 4,
+            "mean": 0.030302964580909725,
+            "median": 0.03119029493692671
+          },
+          "ownedExcursionSamples": 4,
+          "ownedHighReachedModeledBreakEven": 2,
+          "holdingMinutesUpperBound": {
+            "samples": 4,
+            "mean": 5970,
+            "median": 2520
+          }
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Fixed same-trade/same-exit-reference attribution, not a strategy replay with cheaper fees. Gates, sizing and portfolio would change.",
+    "Modeled costs, not native fills. MFE/MAE exclude exit candle; forward windows can include post-exit prices.",
+    "Reference has no trades; zero P&L is not evidence of profitable edge. No parameters were changed after these results."
+  ],
+  "ordersSent": 0,
+  "realMoneyApproved": false
+}

@@ -31,3 +31,5 @@ coverage/
 .trend-horizon-results/
 
 .trend-frozen-artifact/
+
+.channel-continuation-results/
