@@ -50,5 +50,12 @@ try { browser=await chromium.launch({executablePath:process.env.DASHBOARD_BROWSE
  if(!await page.locator('#dashboard').isVisible()||await page.locator('#login').isVisible())throw new Error('data failure ended session');
  console.log(JSON.stringify({check:'network failure preserves authenticated panel',authenticated:true}));
  console.log(JSON.stringify({check:'manual pause cancels late resume',paused,pageErrors:errors}));
+ const {startSessionExport}=await import('../dist/session-export-server.js'),fsExport=await import('node:fs/promises'),{tmpdir}=await import('node:os'),{join}=await import('node:path');
+ const exportDir=await fsExport.mkdtemp(join(tmpdir(),'mobile-session-export-'));await fsExport.writeFile(join(exportDir,'checkpoint.json'),'original-checkpoint\n');await fsExport.writeFile(join(exportDir,'public-coverage.json'),'original-coverage\n');
+ const exportServer=await startSessionExport({directory:exportDir,password:'test-export-password',sessionSecret:'s'.repeat(32),port:0,host:'127.0.0.1'}),exportContext=await browser.newContext({viewport:{width:390,height:844}});
+ try{const exportPage=await exportContext.newPage();await exportPage.goto(`http://127.0.0.1:${exportServer.address().port}`);await exportPage.locator('input[name=password]').fill('test-export-password');await exportPage.getByRole('button',{name:'Entrar',exact:true}).click();
+  for(const [name,expected]of [['checkpoint.json','original-checkpoint\n'],['public-coverage.json','original-coverage\n']]){const event=exportPage.waitForEvent('download');await exportPage.getByRole('link',{name:'Baixar '+name,exact:true}).click();const file=await event;if(file.suggestedFilename()!==name||await fsExport.readFile(await file.path(),'utf8')!==expected)throw new Error('Session exporter changed file bytes');}
+  console.log(JSON.stringify({check:'mobile authenticated session export without Termux or bot startup',passed:true}));
+ }finally{await exportContext.close();await new Promise(r=>exportServer.close(r));await fsExport.rm(exportDir,{recursive:true,force:true});}
  if(errors.length)throw new Error('browser JavaScript errors');
 }finally{release();await browser?.close();await stopDashboard(server)}
