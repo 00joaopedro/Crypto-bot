@@ -15,6 +15,7 @@ it('fails closed without configured dashboard authentication',async()=>{
 it('requires authentication and same-origin login, creates the existing secure12h session',async()=>{
  const base=await setup();expect((await fetch(base+'/files/checkpoint.json')).status).toBe(401);expect(await(await fetch(base+'/')).text()).toContain('type="password"');
  expect((await fetch(base+'/login',{method:'POST',headers:{origin:'https://other.example'},body:'password=test-password'})).status).toBe(403);
+ expect((await fetch(base+'/login',{method:'POST',headers:{origin:'null'},body:'password=test-password'})).status).toBe(403);
  const bad=await fetch(base+'/login',{method:'POST',headers:{origin:base},body:'password=wrong'});expect(bad.status).toBe(401);
  const login=await fetch(base+'/login',{method:'POST',headers:{origin:base},body:'password=test-password',redirect:'manual'});expect(login.status).toBe(303);expect(login.headers.get('set-cookie')).toContain('HttpOnly; SameSite=Lax; Secure');expect(login.headers.get('set-cookie')).toContain('Max-Age=43200');
 });

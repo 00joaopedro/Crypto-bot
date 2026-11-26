@@ -10,7 +10,7 @@ const shell=(content:string)=>`<!doctype html><html lang="pt-BR"><meta charset="
 export async function startSessionExport(options:{directory:string;password:string;sessionSecret:string;port:number;host?:string}):Promise<Server>{
  if(!options.password.trim()||options.sessionSecret.length<32)throw new Error('Dedicated dashboard authentication must be configured');
  const server=createServer(async(req,res)=>{
-  res.setHeader('cache-control','no-store');res.setHeader('x-content-type-options','nosniff');res.setHeader('x-frame-options','DENY');res.setHeader('referrer-policy','no-referrer');res.setHeader('content-security-policy',"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+  res.setHeader('cache-control','no-store');res.setHeader('x-content-type-options','nosniff');res.setHeader('x-frame-options','DENY');res.setHeader('referrer-policy','same-origin');res.setHeader('content-security-policy',"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
   const reply=(status:number,content:string)=>{res.writeHead(status,{'content-type':'text/html; charset=utf-8'});res.end(content);};
   try{
    const url=new URL(req.url??'/','http://localhost');
