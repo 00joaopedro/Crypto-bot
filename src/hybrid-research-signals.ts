@@ -11,7 +11,7 @@ export const hybridPlanSchema=z.object({
 }).strict().refine(p=>JSON.stringify(p.watchlist)===JSON.stringify(HYBRID_WATCHLIST),'Frozen watchlist required');
 export type HybridPlan=z.infer<typeof hybridPlanSchema>;
 export type HybridMode='TREND_PULLBACK'|'MEAN_REVERSION';
-export type ResearchMode=HybridMode|'BASELINE'|'VOLATILITY_SQUEEZE';
+export type ResearchMode=HybridMode|'BASELINE'|'VOLATILITY_SQUEEZE'|'CHANNEL_BREAKOUT';
 export type HybridDecision={strategy_mode:ResearchMode;decisionTimestamp:number;atr:number;pullbackLow:number;sma20:number};
 export type HybridFeatures={previous:Candle;current:Candle;previousEma21:number;ema21:number;previousVwap:number|null;previousRsi14:number;rsi14:number;previousRsi7:number;previousVolumeRatio:number;previousLowerBand:number;lowerBand:number;sma20:number;adx14:number;atr14:number;previousAtr14:number;macroBullish:boolean};
 const mean=(a:number[])=>a.reduce((s,v)=>s+v,0)/a.length;

@@ -1,0 +1,66 @@
+{
+  "protocol": "channel-continuation-development-v1",
+  "developmentOnly": true,
+  "experimentBudget": {
+    "newHypotheses": 1,
+    "parameterVariants": 1,
+    "referenceCases": 1,
+    "costScenarios": 2,
+    "allowPostResultRetuning": false
+  },
+  "window": {
+    "evaluationStartUtc": "2026-08-24T00:00:00Z",
+    "endExclusiveUtc": "2026-11-22T00:00:00Z",
+    "days": 90,
+    "warmupHours": 1000
+  },
+  "sourceDatasetSha256": "c86e45083ffbee12859819abe1e9584a5a72b397fe10863c5df458b755ec6dde",
+  "sourceArtifactId": 15072833477,
+  "sourceZipSha256": "8ab8d901086731df9ca641f339d8c473ab8332d0556e850a2ff164e13a27da54",
+  "costProtocolFile": "examples/trend-horizon.plan.json",
+  "costProtocolFileSha256": "ba10e5f47fb876a420036dcd3255b269bb7972c4abc4e7bd030fb646ff94ae9f",
+  "universe": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT"
+  ],
+  "universeReason": "Predeclared core, not selected by realized profit. All three passed the dated static quantity screen. No current liquidity ranking or native account access certified.",
+  "entry": "At a completed UTC4h close: close above maximum HIGH of previous20 completed4h bars, green candle, EMA50>EMA200 and EMA50 rising from previous4h bar; false->true at4h cadence; >=250 closed4h warmup. Technical quality>=3 on last100 closed1h bars. No RSI, Bollinger squeeze, mean-reversion or pullback touch filter.",
+  "entryExecution": "next1h OPEN after4h closes; one shared position; fixed BTC,ETH,SOL priority; no same-bar reuse; taker modeled, not assumed maker fill",
+  "candidateExit": "ATR14 simple true-range mean on closed4h signal; freeze stop=fill-2ATR,target=fill+6ATR; no partial exit, trailing, breakeven or time-stop. Exit evaluated on1h with existing pessimistic stop-first/gap model.",
+  "candidateFeeGate": "net reward/net stop loss>=1.5 and net gain>=2*modeled roundtrip cost, both closed-decision unit quote and quantized next-open quote. Projected payoff is not statistical EV.",
+  "reference": "Old1h/4h HORIZON_ATR rules unchanged, replayed on same3pairs/window/costs/bank/risk. Changing several strategy rules is not a causal attribution to one indicator.",
+  "bankUsdt": 17,
+  "lotCeilingUsdt": 10,
+  "riskLimits": {
+    "riskPerTrade": 0.01,
+    "maxExposure": 0.25,
+    "maxAltExposure": 0.1,
+    "maxSymbolExposure": 0.15
+  },
+  "costs": "Frozen taker0.40% per leg, slippage0.10%, spread0.15%; stress doubles all three to0.80%,0.20%,0.30%. Account quote is dated; maker/current cash/notional unknown, no favorable replacement.",
+  "criteria": {
+    "minimumClosedTradesEachScenario": 30,
+    "profitFactorGreaterThan": 1.25,
+    "positiveNetExpectancy": true,
+    "positiveNetMarkedReturn": true,
+    "allThree30DayBlocksPositive": true,
+    "maxDrawdownPercent": 10,
+    "positiveRealizedWithoutTop3": true
+  },
+  "independentReservation": {
+    "evaluationStartUtc": "2025-10-01T00:00:00Z",
+    "endExclusiveUtc": "2025-12-30T00:00:00Z",
+    "warmupHours": 1000,
+    "status": "reserved_not_collected_not_certified_blind",
+    "conditions": [
+      "development candidate passes all frozen criteria",
+      "complete consulted-window registry verified including warmup",
+      "current costs cash rules and native prerequisites resolved",
+      "separate immutable protocol and implementation reviewed before collection"
+    ],
+    "ifDevelopmentFails": "do not collect or inspect reserved candles; do not retune same hypothesis"
+  },
+  "configurationPromoted": false,
+  "realMoneyApproved": false
+}

@@ -1,4 +1,4 @@
-import { evolutionReplaySchema,evolutionNetRoi,evolutionQuoteGate,horizonQuoteGate,type EvolutionReplay } from './hybrid-evolution-options.js';
+import { evolutionReplaySchema,evolutionNetRoi,evolutionQuoteGate,horizonQuoteGate,channelQuoteGate,type EvolutionReplay } from './hybrid-evolution-options.js';
 import { hybridEconomicHypothesisSchema,netRewardRisk,type HybridEconomicHypothesis } from './hybrid-economic-options.js';
 import { z } from "zod";
 import { positionSize,positionSizingSchema,type PositionSizingLimits } from "./position-sizing.js";
@@ -72,7 +72,7 @@ function closedMetrics(trades:HybridTrade[]){
 export type HybridAdmissionEvent={symbol:string;strategy_mode:ResearchMode;timestamp:number;outcome:'accepted'|'rejected';reason:string};
 export function replayHybridDecisions(instruments:HybridInstrument[],decisions:ReadonlyMap<string,ReadonlyArray<readonly HybridDecision[]>>,rawPlan:unknown,rawScenario:ComparisonOptions['scenarios'][number],baseline:ComparisonOptions['baseline'],start:number,rawRiskLimits?:PositionSizingLimits,observe?:(event:HybridAdmissionEvent)=>void,rawHypothesis?:HybridEconomicHypothesis,rawEvolution?:EvolutionReplay,rawIntervalMs:900000|3600000=900000){
  const interval=rawIntervalMs;
- if(![900000,3600000].includes(interval)||(interval===3600000)!==['horizon','horizon_reference'].includes(rawEvolution??''))throw new Error('Explicit horizon experiment required for1h replay');
+ if(![900000,3600000].includes(interval)||(interval===3600000)!==['horizon','horizon_reference','channel'].includes(rawEvolution??''))throw new Error('Explicit horizon experiment required for1h replay');
  const evolution=rawEvolution===undefined?undefined:evolutionReplaySchema.parse(rawEvolution);
  if(evolution&&rawHypothesis)throw new Error('Independent experiment options cannot be mixed');
  const hypothesis=rawHypothesis===undefined?undefined:hybridEconomicHypothesisSchema.parse(rawHypothesis);
@@ -137,7 +137,7 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
    const candidates=ordered.flatMap(d=>(decisions.get(d.symbol)?.[i-1]??[]).map(signal=>({d,signal}))).sort((a,b)=>HYBRID_WATCHLIST.indexOf(a.d.symbol)-HYBRID_WATCHLIST.indexOf(b.d.symbol)||(['TREND_PULLBACK','MEAN_REVERSION','BASELINE','VOLATILITY_SQUEEZE'].indexOf(a.signal.strategy_mode)-['TREND_PULLBACK','MEAN_REVERSION','BASELINE','VOLATILITY_SQUEEZE'].indexOf(b.signal.strategy_mode)));
    for(const {d,signal} of candidates){
     context={symbol:d.symbol,strategy_mode:signal.strategy_mode,timestamp:clock[i]!.timestamp};
-    if(signal.decisionTimestamp!==clock[i-1]!.timestamp||!['BASELINE','TREND_PULLBACK','MEAN_REVERSION',...(evolution==='squeeze'?['VOLATILITY_SQUEEZE']:[])].includes(signal.strategy_mode)||!Number.isFinite(signal.atr)||signal.atr<=0||!Number.isFinite(signal.sma20)||signal.sma20<=0||!Number.isFinite(signal.pullbackLow)||signal.pullbackLow<=0)throw new Error('Invalid frozen hybrid decision');
+    if(signal.decisionTimestamp!==clock[i-1]!.timestamp||!(evolution==='channel'?['CHANNEL_BREAKOUT']:['BASELINE','TREND_PULLBACK','MEAN_REVERSION',...(evolution==='squeeze'?['VOLATILITY_SQUEEZE']:[])]).includes(signal.strategy_mode)||!Number.isFinite(signal.atr)||signal.atr<=0||!Number.isFinite(signal.sma20)||signal.sma20<=0||!Number.isFinite(signal.pullbackLow)||signal.pullbackLow<=0)throw new Error('Invalid frozen hybrid decision');
     const c=d.candles15m[i]!,costs=scenarioCosts(scenario,d.symbol),slip=comparisonSlippage(costs),fill=c.open*(1+slip);
     if((cooldowns.get(d.symbol)??0)>c.timestamp){reject('cooldown');continue;}
     const quote=d.quoteVolumesUsdt?.[i-1]??d.candles15m[i-1]!.volume*d.candles15m[i-1]!.close;
@@ -147,7 +147,7 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
      if(cash<=dayStartEquity*.97||cash<=peak*.9){reject('portfolio_risk_halt');continue;}
      const lastLosses=trades.slice(-3);
      if(lastLosses.length===3&&lastLosses.every(t=>t.netPnlUsdt<0)&&c.timestamp<lastLosses[2]!.exitTimestamp+interval+3600000){reject('loss_cooldown');continue;}
-     let plannedStop=evolution==='horizon'?Math.min(fill-1.5*signal.atr,signal.pullbackLow-.25*signal.atr):signal.strategy_mode==='TREND_PULLBACK'?Math.max(fill*.989,signal.pullbackLow-1.5*signal.atr):fill*.988;
+    let plannedStop=evolution==='channel'?fill-2*signal.atr:evolution==='horizon'?Math.min(fill-1.5*signal.atr,signal.pullbackLow-.25*signal.atr):signal.strategy_mode==='TREND_PULLBACK'?Math.max(fill*.989,signal.pullbackLow-1.5*signal.atr):fill*.988;
      if(signal.strategy_mode==='BASELINE'){
       const rates=initialExitRates(d.candles15m.slice(Math.max(0,i-100),i),d.candles15m[i-1]!.close,baseline.exitPolicy!,baseline);
       plannedStop=c.open*(1+costs.spreadRate/2)*(1-rates.stopLossRate);
@@ -167,6 +167,7 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
      stop=ask*(1-rates.stopLossRate);target=ask*(1+rates.takeProfitRate);
     }else if(signal.strategy_mode==='TREND_PULLBACK'){
      stop=evolution==='horizon'?Math.min(fill-1.5*signal.atr,signal.pullbackLow-.25*signal.atr):Math.max(fill*(1-.011),signal.pullbackLow-1.5*signal.atr);target=evolution==='horizon'?fill+3*signal.atr:netActivationPrice(cost,quantity,costs.feeRate,slip,.028);
+    }else if(signal.strategy_mode==='CHANNEL_BREAKOUT'){stop=fill-2*signal.atr;target=fill+6*signal.atr;
     }else if(signal.strategy_mode==='VOLATILITY_SQUEEZE'){stop=fill*.988;target=netActivationPrice(cost,quantity,costs.feeRate,slip,.03);
     }else{stop=fill*(1-.012);target=Math.min(signal.sma20,netActivationPrice(cost,quantity,costs.feeRate,slip,.014));}
     if((evolution==='roi'||evolution==='full')&&signal.strategy_mode!=='BASELINE')target=Math.min(target,netActivationPrice(cost,quantity,costs.feeRate,slip,evolutionNetRoi(0)));
@@ -176,6 +177,11 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
      const ref=d.candles15m[i-1]!.close,df=ref*(1+slip),dc=costs.entryFeeCurrency==='quote'?1+costs.feeRate:1,dq=(costs.entryFeeCurrency==='base'?1-costs.feeRate:1)/df;
      if(!horizonQuoteGate({cost:dc,quantity:dq,fill:df,referencePrice:ref,stop:Math.min(df-1.5*signal.atr,signal.pullbackLow-.25*signal.atr),target:df+3*signal.atr,fee:costs.feeRate,slippage:slip})){reject('horizon_net_margin_decision');continue;}
      if(!horizonQuoteGate({cost,quantity,fill,referencePrice:c.open,stop,target,fee:costs.feeRate,slippage:slip})){reject('horizon_net_margin_open');continue;}
+    }
+    if(evolution==='channel'){
+     const ref=d.candles15m[i-1]!.close,df=ref*(1+slip),dc=costs.entryFeeCurrency==='quote'?1+costs.feeRate:1,dq=(costs.entryFeeCurrency==='base'?1-costs.feeRate:1)/df;
+     if(!channelQuoteGate({cost:dc,quantity:dq,fill:df,referencePrice:ref,stop:df-2*signal.atr,target:df+6*signal.atr,fee:costs.feeRate,slippage:slip})){reject('channel_net_margin_decision');continue;}
+     if(!channelQuoteGate({cost,quantity,fill,referencePrice:c.open,stop,target,fee:costs.feeRate,slippage:slip})){reject('channel_net_margin_open');continue;}
     }
     if((evolution==='full'||evolution==='squeeze')&&signal.strategy_mode!=='BASELINE'){
      const ref=d.candles15m[i-1]!.close,decisionFill=ref*(1+slip),decisionCost=costs.entryFeeCurrency==='quote'?1+costs.feeRate:1,decisionQuantity=(costs.entryFeeCurrency==='base'?1-costs.feeRate:1)/decisionFill;
@@ -212,7 +218,7 @@ export function replayHybridDecisions(instruments:HybridInstrument[],decisions:R
  const blockSize=interval===3600000?720:960;
  const blocks=[0,1,2].map(b=>{const from=start+b*blockSize,to=Math.min(clock.length,from+blockSize),blockTrades=trades.filter(t=>t.exitTimestamp>=(clock[from]?.timestamp??Infinity)&&t.exitTimestamp<(clock[to-1]?.timestamp??-Infinity)+interval),begin=marks[b*blockSize-1]??plan.bankUsdt,end=to>from?marks[to-start-1]!:begin;return {name:interval===3600000?`D${b*30+1}-D${b*30+30}`:`D${b*10+1}-D${b*10+10}`,complete:to-from===blockSize,candles:Math.max(0,to-from),netReturnUsdt:end-begin,...closedMetrics(blockTrades)};});
  return {status:'offline_research_only',...(riskLimits?{allocationMode:'risk_preserving_ceiling',riskLimits,dailyLossHaltRate:.03,drawdownHaltRate:.1}:{}),...closedMetrics(trades),netReturnUsdt,netReturnPercent:100*netReturnUsdt/plan.bankUsdt,finalEquityUsdt:equity,maxDrawdownUsdt,maxDrawdownPercent,recoveryFactor:maxDrawdownUsdt>0?netReturnUsdt/maxDrawdownUsdt:null,feesUsdt,peakExposureRate,peakConcurrentPositions:entries.length?1:0,
-  byMode:([...(['BASELINE','TREND_PULLBACK','MEAN_REVERSION'] as const),...(evolution==='squeeze'?['VOLATILITY_SQUEEZE' as const]:[])]).map(strategy_mode=>({strategy_mode,...closedMetrics(trades.filter(t=>t.strategy_mode===strategy_mode))})),blocks,entries,closedTradeLedger:trades,rejected,
+  byMode:([...(['BASELINE','TREND_PULLBACK','MEAN_REVERSION'] as const),...(evolution==='squeeze'?['VOLATILITY_SQUEEZE' as const]:[]),...(evolution==='channel'?['CHANNEL_BREAKOUT' as const]:[])]).map(strategy_mode=>({strategy_mode,...closedMetrics(trades.filter(t=>t.strategy_mode===strategy_mode))})),blocks,entries,closedTradeLedger:trades,rejected,
   openPosition:active?{symbol:active.d.symbol,strategy_mode:active.mode,entryTimestamp:active.d.candles15m[active.entryIndex]!.timestamp,stopPrice:active.trader.exportState().position!.stopLossPrice,targetPrice:active.trader.exportState().position!.takeProfitPrice}:null,
   configurationPromoted:false,realMoneyApproved:false};
 }

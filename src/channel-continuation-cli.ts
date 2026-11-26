@@ -1,0 +1,21 @@
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { join } from 'node:path';
+import { runChannelContinuation } from './channel-continuation.js';
+const [sourcePath,outDir,...extra]=process.argv.slice(2);
+if(!sourcePath||!outDir||extra.length)throw new Error('Usage: strategy:channel-continuation -- <frozen1h-source.json> <NEW-output-directory>; offline only');
+const root=new URL('../',import.meta.url),json=async(p:string)=>JSON.parse(await readFile(new URL(p,root),'utf8'));
+const bytes=await readFile(new URL('examples/channel-continuation.plan.json',root)),hash=createHash('sha256').update(bytes).digest('hex');
+if(hash!=='a27d84b0518336e85e0f141bae019b066dbee0d25c0ca8cc250ccee0e13b44c6')throw new Error('Frozen channel protocol changed');
+// This manifest is created only after the protocol/code commit has been published, before the first historical replay.
+const frozen=await json('examples/channel-continuation.freeze.json');
+if(frozen.protocolFileSha256!==hash||!/^[a-f0-9]{40}$/.test(frozen.protocolFrozenCommit)||frozen.historicalReplayPerformedBeforeFreeze!==false)throw new Error('Published pre-replay freeze required');
+const protocol=JSON.parse(bytes.toString()),costBytes=await readFile(new URL(protocol.costProtocolFile,root));
+if(createHash('sha256').update(costBytes).digest('hex')!==protocol.costProtocolFileSha256)throw new Error('Archived cost protocol changed');
+const data=JSON.parse(await readFile(sourcePath,'utf8'));
+const report=runChannelContinuation(data,protocol,await json('examples/hybrid-research.plan.json'),await json('examples/pullback-reference.study.json'),await json('examples/hybrid-shadow.profile.json'),JSON.parse(costBytes.toString()).scenarios);
+const attribution={protocol:report.protocol,protocolFileSha256:hash,protocolFrozenCommit:frozen.protocolFrozenCommit,sourceDatasetSha256:report.sourceDatasetSha256,runs:report.runs.map(({name,scenario,entries,closedTradeLedger,admissions})=>({name,scenario,entries,closedTradeLedger,admissions}))};
+await mkdir(outDir,{recursive:false});
+await writeFile(join(outDir,'summary.json'),JSON.stringify({...report,protocolFileSha256:hash,protocolFrozenCommit:frozen.protocolFrozenCommit,runs:report.runs.map(({entries,closedTradeLedger,admissions,...r})=>r)},null,2)+'\n',{flag:'wx'});
+await writeFile(join(outDir,'ledgers.json'),JSON.stringify(attribution,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({status:report.status,funnel:report.funnel,runs:report.runs.map(r=>({name:r.name,scenario:r.scenario,trades:r.closedTrades,net:r.netReturnUsdt,pf:r.profitFactor,ev:r.expectancyUsdt,drawdown:r.maxDrawdownPercent,fees:r.feesUsdt,blocks:r.blocks.map(b=>b.netReturnUsdt),rejected:r.rejected})),checks:report.checks,ordersSent:0,realMoneyApproved:false}));

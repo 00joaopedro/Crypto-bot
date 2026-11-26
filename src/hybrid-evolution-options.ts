@@ -4,7 +4,7 @@ import { researchAdx,type HybridFeatures,type HybridDecision } from './hybrid-re
 import { netRewardRisk } from './hybrid-economic-options.js';
 import type { Candle } from './types.js';
 
-export const evolutionReplaySchema=z.enum(['roi','full','squeeze','horizon','horizon_reference']);
+export const evolutionReplaySchema=z.enum(['roi','full','squeeze','horizon','horizon_reference','channel']);
 export type EvolutionReplay=z.infer<typeof evolutionReplaySchema>;
 export type EvolutionChange='reference'|'transition'|'regime'|'roi'|'full'|'squeeze';
 export function closedHourRegime(hours:readonly Candle[],decisionClose:number){
@@ -37,4 +37,10 @@ export function squeezeDecision(history:readonly Candle[],f:HybridFeatures,regim
 export function horizonQuoteGate(q:{cost:number;quantity:number;fill:number;referencePrice:number;stop:number;target:number;fee:number;slippage:number}){
  const rr=netRewardRisk(q),gain=q.quantity*q.target*(1-q.fee)*(1-q.slippage)-q.cost,cost=q.cost-q.quantity*q.referencePrice*(1-q.fee)*(1-q.slippage);
  return q.stop>0&&q.stop<q.fill&&rr!==null&&rr>=1&&Number.isFinite(cost)&&cost>=0&&gain>=cost;
+}
+
+/** One predeclared offline channel hypothesis; this is projected payoff, not expected statistical profit. */
+export function channelQuoteGate(q:{cost:number;quantity:number;fill:number;referencePrice:number;stop:number;target:number;fee:number;slippage:number}){
+ const rr=netRewardRisk(q),gain=q.quantity*q.target*(1-q.fee)*(1-q.slippage)-q.cost,cost=q.cost-q.quantity*q.referencePrice*(1-q.fee)*(1-q.slippage);
+ return q.stop>0&&q.stop<q.fill&&q.target>q.fill&&rr!==null&&rr>=1.5&&Number.isFinite(cost)&&cost>=0&&gain>=2*cost;
 }
