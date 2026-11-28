@@ -49,7 +49,8 @@
     "strategy:opportunities": "node dist/opportunity-diagnosis-cli.js",
     "strategy:channel-continuation": "node dist/channel-continuation-cli.js",
     "strategy:maker-pullback": "node dist/maker-pullback-cli.js",
-    "strategy:compression-retest": "node dist/compression-retest-cli.js"
+    "strategy:compression-retest": "node dist/compression-retest-cli.js",
+    "strategy:swing-v2": "node dist/swing-v2-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

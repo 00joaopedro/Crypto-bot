@@ -14,7 +14,7 @@ export function parseMakerMinutePage(raw:unknown,hour:number){
  const candles=[...all.values()].sort((a,b)=>a.timestamp-b.timestamp);validateMakerBars(candles,60000);
  if(candles.length!==60||candles[0]!.timestamp!==hour||candles.at(-1)!.timestamp!==hour+3540000)throw new Error('Missing minute coverage');return candles;
 }
-export async function collectMakerMinutes(signals:MakerSignal[],rules:Record<string,{minimumQuantity:number;quantityStep:number;priceTick:number}>,transport:typeof fetch=fetch,pause:(ms:number)=>Promise<void>=ms=>new Promise(r=>setTimeout(r,ms))){
+export async function collectMakerMinutes(signals:Array<Pick<MakerSignal,'symbol'|'entryHour'>>,rules:Record<string,{minimumQuantity:number;quantityStep:number;priceTick:number}>,transport:typeof fetch=fetch,pause:(ms:number)=>Promise<void>=ms=>new Promise(r=>setTimeout(r,ms))){
  const read=async(path:string,query:Record<string,string>)=>{
   if(!['/api/v5/public/instruments','/api/v5/market/history-candles'].includes(path))throw new Error('Public route required');
   for(let attempt=0;;attempt++)try{
