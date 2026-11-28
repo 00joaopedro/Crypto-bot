@@ -61,22 +61,22 @@ it.each([6, 10])('uses the 10-position limit independently when %i positions rem
   expect(result).toEqual(count === 6 ? { allowed: true } : { allowed: false, reason: 'demo_max_concurrent_positions' });
 });
 
-it('admits 10 USDT against the explicit bot allocation while keeping full-account loss limits', async () => {
+it('admits 10 USDT against the bot allocation and uses attributed equity for loss limits', async () => {
   const observeDemoRisk = vi.fn(persistence.observeDemoRisk);
   const store = { ...persistence, observeDemoRisk, readDemoEntryRevision: async () => '0:0' };
   const getAccountSnapshot = async () => ({
     ...await executor.getAccountSnapshot(),
-    equityUsdt: 84_488.05, quoteFree: 5000, totalUsdt: 5000, freeBrlValueUsdt: 4672.90,
+    updatedAt: new Date().toISOString(), equityUsdt: 84_488.05, quoteFree: 5000, totalUsdt: 5000, freeBrlValueUsdt: 4672.90,
   });
   const account = { ...executor, getAccountSnapshot };
-  const options = { ...input, maxExposure: 0.1 };
+  const options = { ...input, maxExposure: 0.1, inspectAccounting: async () => ({ status: 'confirmed' as const, realizedPnlUsdt: 0, positions: {}, confirmedThrough: Date.now() }) };
   await expect(inspectDemoEntry(store, account, options)).resolves.toMatchObject({
     reason: 'demo_max_exposure', exposure: { scope: 'account', exposureUsdt: expect.closeTo(74_815.15) },
   });
   await expect(inspectDemoEntry(store, account, { ...options, botBudgetUsdt: 5000 })).resolves.toEqual({
     allowed: true, entryRevision: '0:0', exposurePositions: [],
   });
-  expect(observeDemoRisk).toHaveBeenLastCalledWith('1:1', 84_488.05, expect.any(Number));
+  expect(observeDemoRisk).toHaveBeenLastCalledWith('1:1:bot-equity-v1', 5000, expect.any(Number), { budgetUsdt: 5000, baselineAt: 1000 });
   await expect(inspectDemoEntry({
     ...store, observeDemoRisk: async () => ({ day: '2026-11-17', dayStartEquity: 100_000, peakEquity: 100_000, equity: 84_488.05, observedAt: Date.now() }),
   }, account, { ...options, botBudgetUsdt: 5000 })).resolves.toMatchObject({ reason: 'demo_daily_loss_limit' });

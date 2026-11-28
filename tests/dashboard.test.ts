@@ -9,6 +9,95 @@ describe("dashboard authentication", () => {
 
   afterEach(async () => stopDashboard(server));
 
+  networkTest("confirms the cookie without waiting for exchange diagnostics and serves a fast snapshot", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const inspectDemoPositions = vi.fn(async () => { await gate; return { status: 'safe' as const, positions: [] }; });
+    const inspectDemoAccounting = vi.fn(async () => { await gate; return { status: 'confirmed' }; });
+    const persistence = { getDashboardData: async () => ({ paused: true }), latestDemoDecision: async () => null, latestDemoReconciliation: async () => null } as unknown as PostgresPersistence;
+    server = await startDashboard({ port: 0, host: '127.0.0.1', password: 'password', sessionSecret: 's'.repeat(32), persistence, supportedSymbols: [], onSettingsChanged() {}, inspectDemoPositions, inspectDemoAccounting });
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    try {
+      expect((await fetch(`${base}/api/session`)).status).toBe(401);
+      expect((await fetch(`${base}/api/login`, { method: 'POST', headers: { 'sec-fetch-site': 'cross-site' }, body: JSON.stringify({ password: 'password' }) })).status).toBe(403);
+      const login = await fetch(`${base}/api/login`, { method: 'POST', body: JSON.stringify({ password: 'password' }) });
+      const headers = { cookie: login.headers.get('set-cookie')!.split(';')[0]! };
+      expect(login.headers.get('set-cookie')).toContain('SameSite=Lax');
+      const session = await fetch(`${base}/api/session`, { headers, signal: AbortSignal.timeout(1500) });
+      expect(await session.json()).toMatchObject({ authenticated: true });
+      expect(inspectDemoPositions).not.toHaveBeenCalled();
+      const snapshot = await fetch(`${base}/api/dashboard?fast=1`, { headers, signal: AbortSignal.timeout(1500) });
+      expect(snapshot.status).toBe(200);
+      expect(await snapshot.json()).toMatchObject({ paused: true, diagnostics: { positions: { refreshing: true }, accounting: { refreshing: true } } });
+      await fetch(`${base}/api/dashboard?fast=1`, { headers, signal: AbortSignal.timeout(1500) });
+      expect(inspectDemoPositions).toHaveBeenCalledTimes(1);expect(inspectDemoAccounting).toHaveBeenCalledTimes(1);
+    } finally { release(); }
+  });
+
+  networkTest("acknowledges resume immediately, preserves safety blockers and lets a pause cancel pending checks", async () => {
+    let paused = true, release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const persistence = { setPaused: vi.fn(async (value: boolean) => { paused = value; return true; }), readControlState: async () => ({ paused, pauseReason: null }) } as unknown as PostgresPersistence;
+    const onResume = vi.fn(async (signal?: AbortSignal) => { await gate; if (signal?.aborted) return { status: 'blocked' as const, reason: 'resume_cancelled' }; paused = false; return { status: 'resumed' as const }; });
+    server = await startDashboard({ port: 0, host: '127.0.0.1', password: 'password', sessionSecret: 's'.repeat(32), persistence, supportedSymbols: [], onSettingsChanged() {}, onResume });
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const login = await fetch(`${base}/api/login`, { method: 'POST', body: JSON.stringify({ password: 'password' }) });
+    const headers = { cookie: login.headers.get('set-cookie')!.split(';')[0]!, origin: base };
+    const send = (value: boolean) => fetch(`${base}/api/control?async=1`, { method: 'POST', headers, body: JSON.stringify({ paused: value }), signal: AbortSignal.timeout(1500) });
+    try {
+      const pending = await send(false);expect(pending.status).toBe(202);expect(await pending.json()).toMatchObject({ paused: true, job: { status: 'pending' } });
+      expect((await send(false)).status).toBe(202);expect(onResume).toHaveBeenCalledTimes(1);
+      expect(await (await fetch(`${base}/api/control-status`, { headers })).json()).toMatchObject({ paused: true, job: { status: 'pending' } });
+      expect((await send(true)).status).toBe(200);expect(paused).toBe(true);
+      release();await vi.waitFor(async () => expect(await (await fetch(`${base}/api/control-status`, { headers })).json()).toMatchObject({ paused: true, job: { status: 'cancelled' } }));
+      onResume.mockImplementationOnce(async () => ({ status: 'blocked', reason: 'pending_demo_order' }));
+      expect((await send(false)).status).toBe(202);
+      await vi.waitFor(async () => expect(await (await fetch(`${base}/api/control-status`, { headers })).json()).toMatchObject({ paused: true, job: { status: 'blocked', reason: 'pending_demo_order' } }));
+      expect((await send(false)).status).toBe(202);
+      await vi.waitFor(async () => expect(await (await fetch(`${base}/api/control-status`, { headers })).json()).toMatchObject({ paused: false, job: { status: 'completed' } }));
+    } finally { release(); }
+  });
+
+  networkTest("reports resume phase and exact attribution, and a manual pause clears the previous blocker", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    let paused = true;
+    const persistence = { setPaused: async (value: boolean) => { paused = value; return true; }, readControlState: async () => ({ paused, pauseReason: null }) } as unknown as PostgresPersistence;
+    server = await startDashboard({ port: 0, host: '127.0.0.1', password: 'password', sessionSecret: 's'.repeat(32), persistence, supportedSymbols: [], onSettingsChanged() {},
+      onResume: async (_signal, progress) => { progress?.('checking_accounting'); await gate; return { status: 'blocked', reason: 'demo_bot_risk_attribution_unconfirmed', attributionReason: 'position_balance_missing', balanceEvidence: { asset: 'SOL', expected: .5, actual: null, source: 'bot_position' } }; } });
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const login = await fetch(`${base}/api/login`, { method: 'POST', body: JSON.stringify({ password: 'password' }) });
+    const headers = { cookie: login.headers.get('set-cookie')!.split(';')[0]!, origin: base };
+    try {
+      expect((await fetch(`${base}/api/control?async=1`, { method: 'POST', headers, body: JSON.stringify({ paused: false }) })).status).toBe(202);
+      const status = async () => (await fetch(`${base}/api/control-status`, { headers })).json();
+      expect(await status()).toMatchObject({ paused: true, job: { phase: 'checking_accounting', status: 'pending' } });
+      release();await vi.waitFor(async () => expect(await status()).toMatchObject({ paused: true, job: { status: 'blocked', attributionReason: 'position_balance_missing', balanceEvidence: { asset: 'SOL', expected: .5, actual: null } } }));
+      await fetch(`${base}/api/control?async=1`, { method: 'POST', headers, body: JSON.stringify({ paused: true }) });
+      expect(await status()).toMatchObject({ paused: true, job: null });
+    } finally { release(); }
+  });
+
+  networkTest("ends an overlong check safely and never reports its late result as a successful resume", async () => {
+    let release!: () => void, paused = true;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const setPaused = vi.fn(async (value: boolean) => { paused = value; return true; });
+    const persistence = { setPaused, readControlState: async () => ({ paused, pauseReason: null }) } as unknown as PostgresPersistence;
+    server = await startDashboard({ port: 0, host: '127.0.0.1', password: 'password', sessionSecret: 's'.repeat(32), persistence, supportedSymbols: [], onSettingsChanged() {}, resumeCheckTimeoutMs: 100,
+      onResume: async signal => { await gate; if (!signal?.aborted) { paused = false; return { status: 'resumed' }; } return { status: 'blocked', reason: 'resume_cancelled' }; } });
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const login = await fetch(`${base}/api/login`, { method: 'POST', body: JSON.stringify({ password: 'password' }) });
+    const headers = { cookie: login.headers.get('set-cookie')!.split(';')[0]!, origin: base };
+    try {
+      expect((await fetch(`${base}/api/control?async=1`, { method: 'POST', headers, body: JSON.stringify({ paused: false }) })).status).toBe(202);
+      const status = async () => (await fetch(`${base}/api/control-status`, { headers })).json();
+      await vi.waitFor(async () => expect(await status()).toMatchObject({ paused: true, job: { status: 'failed', phase: 'timeout', reason: 'resume_check_timeout' } }));
+      expect(setPaused).toHaveBeenCalledWith(true, 'dashboard');
+      release();await new Promise(resolve => setTimeout(resolve, 5));
+      expect(await status()).toMatchObject({ paused: true, job: { status: 'failed', reason: 'resume_check_timeout' } });
+    } finally { release(); }
+  });
+
   networkTest("exports complete UTF-8 JSON and TXT with matching byte length", async () => {
     const content = JSON.stringify({ generatedAt: "2026-11-02T17:48:40Z", scope: { hours: 24 }, records: [{ details: "Proteção e ação" }] }, null, 2);
     const persistence = { getDiagnosticLogs: vi.fn(async () => content) } as unknown as PostgresPersistence;
@@ -25,6 +114,38 @@ describe("dashboard authentication", () => {
       expect(Number(response.headers.get("content-length"))).toBe(Buffer.byteLength(content));
       expect(await response.text()).toBe(content);
     }
+  });
+
+  networkTest("protects manual account terms, rejects cross-site reads and never leaks raw reader errors", async () => {
+    const readAccountTerms = vi.fn(async ():Promise<unknown> => ({status:'read_only_account_terms_snapshot',environment:'real',ordersSent:0}));
+    server=await startDashboard({port:0,host:'127.0.0.1',password:'password',sessionSecret:'s'.repeat(32),persistence:{} as PostgresPersistence,supportedSymbols:[],onSettingsChanged(){},readAccountTerms});
+    const base=`http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    expect((await fetch(base+'/api/account-terms-readonly')).status).toBe(401);expect(readAccountTerms).not.toHaveBeenCalled();
+    const login=await fetch(base+'/api/login',{method:'POST',body:JSON.stringify({password:'password'})});const cookie=login.headers.get('set-cookie')!.split(';')[0]!;
+    expect((await fetch(base+'/api/account-terms-readonly',{headers:{cookie,'sec-fetch-site':'cross-site'}})).status).toBe(403);expect(readAccountTerms).not.toHaveBeenCalled();
+    const response=await fetch(base+'/api/account-terms-readonly',{headers:{cookie}});expect(response.headers.get('cache-control')).toBe('no-store');expect(await response.json()).toMatchObject({environment:'real',ordersSent:0});
+    readAccountTerms.mockRejectedValueOnce(new Error('PRIVATE_READ_SECRET'));
+    const failed=await(await fetch(base+'/api/account-terms-readonly',{headers:{cookie}})).json();expect(failed).toMatchObject({status:'unavailable',ordersSent:0});expect(JSON.stringify(failed)).not.toContain('PRIVATE_READ_SECRET');
+  });
+
+  networkTest("protects runtime fidelity and includes it in diagnostic exports without relabeling records", async () => {
+    const content = { generatedAt: "2026-11-19T00:00:00Z", records: [{ section: "paper_trades", trade: { type: "CLOSED" } }] };
+    const getExecutionFidelity = vi.fn(async () => ({ status: "equivalence_not_established", snapshot: { configurationHash: "a".repeat(64) } }));
+    server = await startDashboard({ port: 0, host: "127.0.0.1", password: "password", sessionSecret: "s".repeat(32),
+      persistence: { getDiagnosticLogs: async () => JSON.stringify(content) } as unknown as PostgresPersistence,
+      supportedSymbols: [], onSettingsChanged: () => undefined, getExecutionFidelity });
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    expect((await fetch(`${base}/api/execution-fidelity`)).status).toBe(401);
+    expect(getExecutionFidelity).not.toHaveBeenCalled();
+    const login = await fetch(`${base}/api/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "password" }) });
+    const headers = { cookie: login.headers.get("set-cookie")!.split(";")[0]! };
+    expect(await (await fetch(`${base}/api/execution-fidelity`, { headers })).json()).toHaveProperty("status", "equivalence_not_established");
+    const response = await fetch(`${base}/api/logs`, { headers });
+    const text = await response.text();
+    expect(Number(response.headers.get("content-length"))).toBe(Buffer.byteLength(text));
+    const parsed = JSON.parse(text);
+    expect(parsed.records).toEqual(content.records);
+    expect(parsed.executionFidelity.snapshot.configurationHash).toBe("a".repeat(64));
   });
 
   networkTest("starts a Demo cycle only for an authenticated same-origin request with the current marker", async () => {

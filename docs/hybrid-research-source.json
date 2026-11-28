@@ -1,0 +1,311 @@
+{
+  "protocol": "hybrid-public-source-v1",
+  "complete": true,
+  "capturedAtUtc": "2026-11-22T23:11:45.710Z",
+  "collection": {
+    "protocol": "hybrid-public-collection-v1",
+    "planSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+    "endExclusiveUtc": "2026-11-22T23:00:00Z",
+    "days": 30,
+    "marketData": "OKX_public_spot",
+    "minimumNotionalPolicy": "unknown_not_enforced_research_limitation"
+  },
+  "collectionSha256": "c08aaac7be038a6945bb88f573c656aec9bc50a5f7fba9e2d1d9f2c6fe635571",
+  "planSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "datasetSha256": "968783685746c751248ceb4c6bc97beefe997b8d46ded0f5cbc6905317620334",
+  "evaluationStartUtc": "2026-10-23T23:00:00.000Z",
+  "warmupStartUtc": "2026-10-13T13:00:00.000Z",
+  "requests": 308,
+  "assets": [
+    {
+      "symbol": "BTC/USDT",
+      "sha256": "420ba6e6dab54bba8b6a85e04ac69eb822944e0de7783b40b07602a806bd8c6c",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "ETH/USDT",
+      "sha256": "db98d122c039c0b6ee55dba5cb25673ae1f5deb79968d4ac6d415d76709de07a",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "SOL/USDT",
+      "sha256": "e919fbf012b244dc27289f233f41be81279fc511ac925bfe15b946e13938eb65",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "XRP/USDT",
+      "sha256": "59db9fa34cd1ca2b53903038713e40abca7a7fcacffc56a7e6b73288ac0d3a08",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "sha256": "a8d858c110c81c0ab695add17d2f699a30107b201fd837a7ccf9834c17859847",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "SUI/USDT",
+      "sha256": "5f78e720e2e6b734859f86626e71085f8019eda81b99bc67c7150035ec166729",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "sha256": "7930f1a0a89ce4a87168f97b7ae5c9c9f8b94fdecd7283f7480e6cf3e944783a",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "AVAX/USDT",
+      "sha256": "a59bc699b9ed85edcea8b491b718afd4ea94922287e08c018ce690013f62c31e",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "LINK/USDT",
+      "sha256": "3963dd4c23d458d784e2ec19deb528b68bca61f57196a8c4500eeb1028eea7f2",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "DOT/USDT",
+      "sha256": "eb8fb2dafa1f67022bab0d1f54ae339f525aa4a9643e4e4e6cd6f6ea12c328ba",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "AAVE/USDT",
+      "sha256": "a55c46440e1c3b7b363301e579db90e68e80ccd71e4f8a979836e97d4c5286b7",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "LTC/USDT",
+      "sha256": "041ca14769941b95395d1fa251b02ca8b4966468e0c2334d9440f51fc730b1dd",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "UNI/USDT",
+      "sha256": "7dba24fd6e84cbc74ac89c62441545ee9b7ebfd6b26ad72502ad2a3a94a43ed7",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "ATOM/USDT",
+      "sha256": "d3507455eefb4d62fc9fd44d344317a59f94e9bd7620e096b1ba2304d1328523",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "APT/USDT",
+      "sha256": "8f07fbf9ce95cec06392ffcf896a2db3d3ebca318ab8885c5e113765d835d4c2",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "OP/USDT",
+      "sha256": "9b3d4b50e22866ef1a68fbc68386c6279e712737fec6e0c163d680829741234b",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "FIL/USDT",
+      "sha256": "4dda80dbf84ed88eb5db5d93017a2c96166eda0147134cc2aefeff105761424f",
+      "candles15m": 3880,
+      "candles1h": 970
+    },
+    {
+      "symbol": "INJ/USDT",
+      "sha256": "574a298f6658b05f79f5887e5e2dda3f895860456308fce6791c1ad0cd3c440a",
+      "candles15m": 3880,
+      "candles1h": 970
+    }
+  ],
+  "skipped": [
+    {
+      "symbol": "ARB/USDT",
+      "reason": "missing_from_demo_public_instrument_list"
+    },
+    {
+      "symbol": "TON/USDT",
+      "reason": "missing_from_public_spot_list"
+    }
+  ],
+  "terms": [
+    {
+      "symbol": "BTC/USDT",
+      "minimumQuantity": 0.00001,
+      "quantityStep": 1e-8,
+      "priceTick": 0.1,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "ETH/USDT",
+      "minimumQuantity": 0.0001,
+      "quantityStep": 0.000001,
+      "priceTick": 0.01,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "SOL/USDT",
+      "minimumQuantity": 0.01,
+      "quantityStep": 0.000001,
+      "priceTick": 0.01,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "XRP/USDT",
+      "minimumQuantity": 1,
+      "quantityStep": 0.000001,
+      "priceTick": 0.0001,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "minimumQuantity": 10,
+      "quantityStep": 0.000001,
+      "priceTick": 0.00001,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "SUI/USDT",
+      "minimumQuantity": 1,
+      "quantityStep": 0.0001,
+      "priceTick": 0.0001,
+      "listTime": 1683114000000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "minimumQuantity": 1,
+      "quantityStep": 1e-8,
+      "priceTick": 0.001,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "AVAX/USDT",
+      "minimumQuantity": 0.1,
+      "quantityStep": 0.000001,
+      "priceTick": 0.001,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "LINK/USDT",
+      "minimumQuantity": 0.1,
+      "quantityStep": 0.000001,
+      "priceTick": 0.001,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "DOT/USDT",
+      "minimumQuantity": 1,
+      "quantityStep": 0.000001,
+      "priceTick": 0.0001,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "AAVE/USDT",
+      "minimumQuantity": 0.01,
+      "quantityStep": 0.000001,
+      "priceTick": 0.01,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "LTC/USDT",
+      "minimumQuantity": 0.01,
+      "quantityStep": 0.000001,
+      "priceTick": 0.01,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "UNI/USDT",
+      "minimumQuantity": 0.1,
+      "quantityStep": 0.000001,
+      "priceTick": 0.001,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "ATOM/USDT",
+      "minimumQuantity": 0.1,
+      "quantityStep": 0.000001,
+      "priceTick": 0.001,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "APT/USDT",
+      "minimumQuantity": 1,
+      "quantityStep": 0.0001,
+      "priceTick": 0.0001,
+      "listTime": 1666086764000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "OP/USDT",
+      "minimumQuantity": 10,
+      "quantityStep": 0.0001,
+      "priceTick": 0.00001,
+      "listTime": 1654009041000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "FIL/USDT",
+      "minimumQuantity": 1,
+      "quantityStep": 0.000001,
+      "priceTick": 0.0001,
+      "listTime": 1611907686000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    },
+    {
+      "symbol": "INJ/USDT",
+      "minimumQuantity": 0.1,
+      "quantityStep": 0.0001,
+      "priceTick": 0.001,
+      "listTime": 1701338400000,
+      "minimumNotionalUsdt": null,
+      "minimumNotionalStatus": "unknown_not_enforced_in_research"
+    }
+  ],
+  "demoPublicListObserved": true,
+  "accountAvailabilityVerified": false,
+  "feesQueried": false,
+  "limitations": [
+    "Current public instrument rules are applied retrospectively; historical rule changes and delisted assets remain unknown.",
+    "Matching pagination overlaps are deduplicated; conflicting duplicates and any missing closed interval fail collection.",
+    "minimumNotionalUsdt=0 is a replay placeholder for an unknown quote minimum, not a verified exchange minimum. Account permission, balance and fees are not queried."
+  ]
+}

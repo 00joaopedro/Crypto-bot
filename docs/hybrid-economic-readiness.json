@@ -1,0 +1,145 @@
+{
+  "protocol": "hybrid-economic-readiness-v1",
+  "status": "blocked_no_eligible_candidate",
+  "evidence": {
+    "reportFileSha256": "c7e3fbe9dd4f9372d6ae36a5b992f36cd73ec54a730cfbf5c12387626a4237a9",
+    "ledgerFileSha256": "e921a24b6ef6fa652131b048590ff38df8be822cd8c117a620088f3e17529682",
+    "experimentFileSha256": "c7213dc6faf2dc2c89e83a9bd70a9293f29e9baed469e93e02b63d254ef1c8c8",
+    "developmentDatasetSha256": "fb88541a351e706edcc838fffdd42ed9a11ba25ace8d4a883d8090ed6eaadfc4"
+  },
+  "matrixCases": 12,
+  "candidates": [
+    {
+      "name": "A_VOLUME_OFF",
+      "eligibleForFutureIndependentProtocol": false,
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "blocks": false
+        }
+      ]
+    },
+    {
+      "name": "A_TOUCH_1_ATR",
+      "eligibleForFutureIndependentProtocol": false,
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "blocks": false
+        }
+      ]
+    },
+    {
+      "name": "B_NET_RR_1_5",
+      "eligibleForFutureIndependentProtocol": false,
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "blocks": false
+        }
+      ]
+    },
+    {
+      "name": "B_ATR_OFF",
+      "eligibleForFutureIndependentProtocol": false,
+      "checks": [
+        {
+          "scenario": "account-conditioned",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "blocks": false
+        },
+        {
+          "scenario": "account-cost-stress",
+          "sample": false,
+          "ev": false,
+          "pf": false,
+          "net": false,
+          "blocks": false
+        }
+      ]
+    }
+  ],
+  "eligibleForFutureIndependentProtocol": [],
+  "blockers": [
+    "no_eligible_development_candidate",
+    "independent_validation_not_performed",
+    "hybrid_native_demo_adapter_and_protection_not_validated",
+    "demo_balance_minima_and_access_require_confirmation",
+    "intended_real_spendable_balance_and_minimum_notional_unknown"
+  ],
+  "independentDataCollected": false,
+  "holdoutExecuted": false,
+  "configurationPromoted": false,
+  "demoIntegrationApproved": false,
+  "realMoneyApproved": false,
+  "ordersSent": 0,
+  "paidAiCalls": false,
+  "ongoingPaper48h": {
+    "classification": "experimental_observation_not_financial_approval",
+    "recommendedAction": "finish_existing_frozen_window_if_healthy_then_archive",
+    "restartNow": false,
+    "updateRunningCommit": false,
+    "automaticNewSession": false,
+    "knownInterruption": "missing-confirmed-candle failure/recovery observed in supplied logs; not uninterrupted operation",
+    "completionEvidence": "completed checkpoint with full duration and reconciled ledger; elapsed clock alone is insufficient"
+  },
+  "nextVersion": {
+    "separateSessionDirectoryRequired": true,
+    "freezeBeforeStart": [
+      "code",
+      "strategy",
+      "costs",
+      "universe",
+      "risk",
+      "criteria"
+    ],
+    "oldCheckpointMigrationApproved": false,
+    "rerun48hAutomatically": false
+  },
+  "limitations": [
+    "Hash bindings identify the archived evidence, not authenticity of exchange fills or executable real-market profits.",
+    "Reconciles matrix, ledger, PF, EV, fees and aggregate blocks; does not reconstruct candles or prove each intra-block mark. Prior replay reproduction remains the source of those marks.",
+    "Favorable synthetic evidence only permits considering a future protocol. Independent validation and native Demo integration are still required.",
+    "Read-only fee quotes for19pairs were supplied earlier, but this assessment does not requery an account or certify spendable balance/minimum notional.",
+    "No command starts/stops a worker, sends orders, deploys a branch or approves money. Latest live health is separate from this deterministic report."
+  ]
+}

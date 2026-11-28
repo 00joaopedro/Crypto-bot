@@ -1,3 +1,5 @@
+import { advanceResearchTrailing, researchTrailingSchema, type ResearchTrailing } from "./research-trailing.js";
+import { Precise } from 'ccxt';
 import type { StrategyId } from "./strategy-id.js";
 import { positionSize, positionSizingSchema, type PositionSizingLimits } from "./position-sizing.js";
 import { advanceExitStop, exitPolicySchema, type ExitPolicy } from "./exit-policy.js";
@@ -6,31 +8,39 @@ import type { Candle } from "./types.js";
 
 export type PaperTraderOptions = {
   strategyId?: StrategyId;
+  configurationHash?: string;
   initialBalanceUsdt: number;
   tradeSizeUsdt: number;
   riskSizing?: PositionSizingLimits;
   feeRate: number;
+  /** Offline fee-in-base model; absent retains historical quote-fee behavior. */
+  entryFeeCurrency?: "base" | "quote";
   slippageRate: number;
   stopLossRate: number;
   takeProfitRate: number;
   /** Offline execution constraints; omitted by the operational bot. */
   exitPolicy?: ExitPolicy;
+  researchTrailing?: ResearchTrailing;
   executionConstraints?: { minimumNotionalUsdt: number; minimumQuantity: number; quantityStep: number };
 };
-export type DynamicExitRates = { stopLossRate: number; takeProfitRate: number; trailingStopRate?: number };
+export type DynamicExitRates = { stopLossRate: number; takeProfitRate: number; trailingStopRate?: number; referencePrice?: number };
 
 export type PaperPosition = {
   strategyId?: StrategyId;
+  configurationHash?: string;
   entryTimestamp: number;
   entryPrice: number;
   quantity: number;
   entryNotional: number;
   entryFee: number;
+  entryFeeCurrency?: "base";
   stopLossPrice: number;
   takeProfitPrice: number;
   trailingStopPrice?: number;
   trailingStopRate?: number;
   exitPolicy?: ExitPolicy;
+  researchTrailing?: ResearchTrailing;
+  researchTrailingActivated?: boolean;
   highWatermark?: number;
   entryAtOpen?: boolean;
 };
@@ -51,18 +61,21 @@ export type PaperTraderState = {
 
 export type PaperTradeOpened = {
   strategyId?: StrategyId;
+  configurationHash?: string;
   type: "OPENED";
   timestamp: number;
   entryPrice: number;
   quantity: number;
   notionalUsdt: number;
   feeUsdt: number;
+  entryFeeCurrency?: "base";
   stopLossPrice: number;
   takeProfitPrice: number;
 };
 
 export type PaperTradeClosed = {
   strategyId?: StrategyId;
+  configurationHash?: string;
   type: "CLOSED";
   entryTimestamp: number;
   exitTimestamp: number;
@@ -122,6 +135,7 @@ export class PaperTrader {
     assertPositive(options.initialBalanceUsdt, "initialBalanceUsdt");
     assertPositive(options.tradeSizeUsdt, "tradeSizeUsdt");
     assertRate(options.feeRate, "feeRate");
+    if (options.entryFeeCurrency !== undefined && !["base", "quote"].includes(options.entryFeeCurrency)) throw new Error("Invalid entry fee currency");
     assertRate(options.slippageRate, "slippageRate");
     assertRate(options.stopLossRate, "stopLossRate");
     assertRate(options.takeProfitRate, "takeProfitRate");
@@ -135,6 +149,10 @@ export class PaperTrader {
     this.peakEquityUsdt = options.initialBalanceUsdt;
     if (options.riskSizing) positionSizingSchema.parse(options.riskSizing);
     if (options.exitPolicy) exitPolicySchema.parse(options.exitPolicy);
+    if (options.researchTrailing) {
+      researchTrailingSchema.parse(options.researchTrailing);
+      if (options.exitPolicy?.mode !== "trailing_atr" || options.exitPolicy.breakeven) throw new Error("Research trailing requires explicit managed trailing without breakeven");
+    }
     if (restoredState) this.restoreState(restoredState);
   }
 
@@ -211,13 +229,21 @@ export class PaperTrader {
   advanceManagedExit(candles: Candle[]): void {
     const position = this.position;
     if (!position?.exitPolicy || (!position.entryAtOpen && candles.at(-1)?.timestamp === position.entryTimestamp)) return;
-    const next = advanceExitStop({ stop: position.stopLossPrice, highWatermark: position.highWatermark ?? position.entryPrice, entryPrice: position.entryPrice, quantity: position.quantity, costUsdt: position.entryNotional + position.entryFee, candles, policy: { ...position.exitPolicy, exitFeeRate: this.options.feeRate, exitSlippageRate: this.options.slippageRate } });
+    const costUsdt = position.entryNotional + (position.entryFeeCurrency === "base" ? 0 : position.entryFee);
+    const next = position.researchTrailing ? advanceResearchTrailing({
+      stop: position.stopLossPrice, highWatermark: position.highWatermark ?? position.entryPrice,
+      costUsdt, quantity: position.quantity, activated: position.researchTrailingActivated === true,
+      candles, atrPeriod: position.exitPolicy.atrPeriod, feeRate: this.options.feeRate,
+      slippageRate: this.options.slippageRate, research: position.researchTrailing,
+    }) : advanceExitStop({ stop: position.stopLossPrice, highWatermark: position.highWatermark ?? position.entryPrice, entryPrice: position.entryPrice, quantity: position.quantity, costUsdt, candles, policy: { ...position.exitPolicy, exitFeeRate: this.options.feeRate, exitSlippageRate: this.options.slippageRate } });
+    if ("activated" in next) position.researchTrailingActivated = next.activated === true;
     position.stopLossPrice = next.stop;
     position.highWatermark = next.highWatermark;
   }
 
   private tryOpenPosition(candle: Candle, exitRates: DynamicExitRates | undefined, entryReferencePrice: number, entryAtOpen: boolean, plannedSize?: number): PaperTradeOpened | undefined {
-    const affordableNotional = this.cashUsdt / (1 + this.options.feeRate);
+    const baseFee = this.options.entryFeeCurrency === "base";
+    const affordableNotional = baseFee ? this.cashUsdt : this.cashUsdt / (1 + this.options.feeRate);
     let entryNotional = Math.min(this.options.tradeSizeUsdt, plannedSize ?? (this.options.riskSizing ? 0 : this.tradeSizeUsdt), affordableNotional);
     if (!Number.isFinite(entryNotional) || entryNotional <= 0) return undefined;
 
@@ -231,38 +257,52 @@ export class PaperTrader {
       if (quantity <= 0 || quantity < constraints.minimumQuantity || entryNotional < constraints.minimumNotionalUsdt) return undefined;
     }
     const entryFee = entryNotional * this.options.feeRate;
+    if (baseFee) {
+      quantity = Number(new Precise(String(quantity)).mul(new Precise("1").sub(new Precise(String(this.options.feeRate)))).toString());
+      if (constraints) {
+        const sellable = quantizeQuantityDown(quantity * entryPrice, entryPrice, constraints.quantityStep);
+        if (sellable.quantity < constraints.minimumQuantity || sellable.notional < constraints.minimumNotionalUsdt) return undefined;
+      }
+    }
+    const exitReference = exitRates?.referencePrice ?? entryPrice;
+    if (!Number.isFinite(exitReference) || exitReference <= 0) throw new Error("Invalid exit reference");
     const stopLossRate = exitRates?.stopLossRate ?? this.options.stopLossRate;
     const takeProfitRate = exitRates?.takeProfitRate ?? this.options.takeProfitRate;
     assertRate(stopLossRate, "stopLossRate");
     assertRate(takeProfitRate, "takeProfitRate");
     const position: PaperPosition = {
       ...(this.options.strategyId ? { strategyId: this.options.strategyId } : {}),
+      ...(this.options.configurationHash ? { configurationHash: this.options.configurationHash } : {}),
       entryTimestamp: candle.timestamp,
       entryPrice,
       quantity,
       entryNotional,
       entryFee,
-      stopLossPrice: entryPrice * (1 - stopLossRate),
-      takeProfitPrice: entryPrice * (1 + takeProfitRate),
+      ...(baseFee ? { entryFeeCurrency: "base" as const } : {}),
+      stopLossPrice: exitReference * (1 - stopLossRate),
+      takeProfitPrice: exitReference * (1 + takeProfitRate),
       ...(this.options.exitPolicy ? { exitPolicy: { ...this.options.exitPolicy }, highWatermark: entryPrice, entryAtOpen } : {}),
+      ...(this.options.researchTrailing ? { researchTrailing: { ...this.options.researchTrailing }, researchTrailingActivated: false } : {}),
       ...(!this.options.exitPolicy && exitRates?.trailingStopRate ? {
         trailingStopPrice: entryPrice * (1 - exitRates.trailingStopRate),
         trailingStopRate: exitRates.trailingStopRate,
       } : {}),
     };
 
-    this.cashUsdt -= entryNotional + entryFee;
+    this.cashUsdt -= entryNotional + (baseFee ? 0 : entryFee);
     this.totalFeesUsdt += entryFee;
     this.position = position;
 
     return {
       type: "OPENED",
       ...(position.strategyId ? { strategyId: position.strategyId } : {}),
+      ...(position.configurationHash ? { configurationHash: position.configurationHash } : {}),
       timestamp: candle.timestamp,
       entryPrice,
       quantity,
       notionalUsdt: entryNotional,
       feeUsdt: entryFee,
+      ...(baseFee ? { entryFeeCurrency: "base" as const } : {}),
       stopLossPrice: position.stopLossPrice,
       takeProfitPrice: position.takeProfitPrice,
     };
@@ -274,7 +314,7 @@ export class PaperTrader {
 
 
     const stopTouched = candle.low <= position.stopLossPrice;
-    const takeProfitTouched = position.exitPolicy?.mode !== "trailing_atr" && candle.high >= position.takeProfitPrice;
+    const takeProfitTouched = (position.exitPolicy?.mode !== "trailing_atr" || position.researchTrailing?.retainFixedTarget === true) && candle.high >= position.takeProfitPrice;
     const trailingTouched = position.trailingStopPrice !== undefined && candle.low <= position.trailingStopPrice;
     if (!stopTouched && !takeProfitTouched && !trailingTouched && !signalContrary) {
       if (position.trailingStopPrice !== undefined) {
@@ -302,7 +342,7 @@ export class PaperTrader {
     const exitFee = grossProceeds * this.options.feeRate;
     const netProceeds = grossProceeds - exitFee;
     const netPnl =
-      netProceeds - position.entryNotional - position.entryFee;
+      netProceeds - position.entryNotional - (position.entryFeeCurrency === "base" ? 0 : position.entryFee);
 
     this.cashUsdt += netProceeds;
     this.realizedPnlUsdt += netPnl;
@@ -315,6 +355,7 @@ export class PaperTrader {
     return {
       type: "CLOSED",
       ...(position.strategyId ? { strategyId: position.strategyId } : {}),
+      ...(position.configurationHash ? { configurationHash: position.configurationHash } : {}),
       entryTimestamp: position.entryTimestamp,
       exitTimestamp: candle.timestamp,
       entryPrice: position.entryPrice,
@@ -325,7 +366,7 @@ export class PaperTrader {
       feesUsdt: position.entryFee + exitFee,
       netPnlUsdt: netPnl,
       netPnlPercent:
-        (netPnl / (position.entryNotional + position.entryFee)) * 100,
+        (netPnl / (position.entryNotional + (position.entryFeeCurrency === "base" ? 0 : position.entryFee))) * 100,
     };
   }
 
@@ -339,7 +380,7 @@ export class PaperTrader {
       ? positionMarketValue -
         estimatedExitFee -
         this.position.entryNotional -
-        this.position.entryFee
+        (this.position.entryFeeCurrency === "base" ? 0 : this.position.entryFee)
       : 0;
 
     this.peakEquityUsdt = Math.max(this.peakEquityUsdt, equity);
@@ -420,7 +461,12 @@ function assertPaperTraderState(state: PaperTraderState): void {
   }
 
   if (state.position) {
+    if (state.position.entryFeeCurrency !== undefined && state.position.entryFeeCurrency !== "base") throw new Error("Invalid restored entry fee currency");
     if (state.position.exitPolicy) exitPolicySchema.parse(state.position.exitPolicy);
+    if (state.position.researchTrailing) {
+      researchTrailingSchema.parse(state.position.researchTrailing);
+      if (state.position.exitPolicy?.mode !== "trailing_atr" || state.position.exitPolicy.breakeven || typeof state.position.researchTrailingActivated !== "boolean") throw new Error("Invalid restored research trailing state");
+    }
     if (state.position.entryAtOpen !== undefined && typeof state.position.entryAtOpen !== "boolean") throw new Error("Invalid entry reference type");
     if (state.position.highWatermark !== undefined && (!Number.isFinite(state.position.highWatermark) || state.position.highWatermark <= 0)) throw new Error("Invalid exit high watermark");
     const positionFields = [
@@ -434,7 +480,7 @@ function assertPaperTraderState(state: PaperTraderState): void {
     ] as const;
     for (const field of positionFields) {
       const value = state.position[field];
-      const minimum = field === "entryTimestamp" ? 0 : Number.MIN_VALUE;
+      const minimum = field === "entryTimestamp" || field === "entryFee" ? 0 : Number.MIN_VALUE;
       if (
         typeof value !== "number" ||
         !Number.isFinite(value) ||

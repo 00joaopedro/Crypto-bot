@@ -1,0 +1,954 @@
+{
+  "protocol": "channel-continuation-development-v1",
+  "protocolFileSha256": "a27d84b0518336e85e0f141bae019b066dbee0d25c0ca8cc250ccee0e13b44c6",
+  "protocolFrozenCommit": "40f262e3521a0a35043ff3656b1c3d262af95b47",
+  "sourceDatasetSha256": "c86e45083ffbee12859819abe1e9584a5a72b397fe10863c5df458b755ec6dde",
+  "runs": [
+    {
+      "name": "HORIZON_ATR_CORE",
+      "scenario": "account-conditioned",
+      "entries": [],
+      "closedTradeLedger": [],
+      "admissions": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1787713200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1787713200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1787724000000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788174000000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788181200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788199200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788382800000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788400800000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788433200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788908400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788915600000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1789603200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1789934400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1790276400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1790276400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1790636400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1790809200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1791007200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        }
+      ]
+    },
+    {
+      "name": "HORIZON_ATR_CORE",
+      "scenario": "account-cost-stress",
+      "entries": [],
+      "closedTradeLedger": [],
+      "admissions": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1787713200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1787713200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1787724000000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788174000000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788181200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788199200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788382800000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788400800000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788433200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788908400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1788915600000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1789603200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1789934400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1790276400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1790276400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1790636400000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1790809200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "TREND_PULLBACK",
+          "timestamp": 1791007200000,
+          "outcome": "rejected",
+          "reason": "horizon_net_margin_decision"
+        }
+      ]
+    },
+    {
+      "name": "CHANNEL_4H",
+      "scenario": "account-conditioned",
+      "entries": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1787626800000,
+          "entryTimestamp": 1787630400000,
+          "stopPrice": 78231.4253252893,
+          "targetPrice": 87813.76818243213,
+          "notionalUsdt": 2.549426089071362,
+          "estimatedInitialLossUsdt": 0.09979447693515509
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1787828400000,
+          "entryTimestamp": 1787832000000,
+          "stopPrice": 99.04338401892858,
+          "targetPrice": 119.31766973321429,
+          "notionalUsdt": 1.6899452608238201,
+          "estimatedInitialLossUsdt": 0.09790086644613094
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1788447600000,
+          "entryTimestamp": 1788451200000,
+          "stopPrice": 79348.83891910002,
+          "targetPrice": 87958.43891910001,
+          "notionalUsdt": 2.5200183073785722,
+          "estimatedInitialLossUsdt": 0.09040179259122993
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1788663600000,
+          "entryTimestamp": 1788667200000,
+          "stopPrice": 103.09983019928572,
+          "targetPrice": 115.36268734214288,
+          "notionalUsdt": 1.6711518357383852,
+          "estimatedInitialLossUsdt": 0.06403319529746421
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1789138800000,
+          "entryTimestamp": 1789142400000,
+          "stopPrice": 2467.2049976967855,
+          "targetPrice": 2853.5478548396427,
+          "notionalUsdt": 1.6639001720766424,
+          "estimatedInitialLossUsdt": 0.07824918467229947
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1789714800000,
+          "entryTimestamp": 1789718400000,
+          "stopPrice": 102.52380077857143,
+          "targetPrice": 116.36951506428571,
+          "notionalUsdt": 1.65686709042855,
+          "estimatedInitialLossUsdt": 0.06969252469690401
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1789988400000,
+          "entryTimestamp": 1789992000000,
+          "stopPrice": 83270.04081010357,
+          "targetPrice": 90323.92652438929,
+          "notionalUsdt": 2.506787940796139,
+          "estimatedInitialLossUsdt": 0.07584969665591901
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1790334000000,
+          "entryTimestamp": 1790337600000,
+          "stopPrice": 116.06872099464285,
+          "targetPrice": 136.04014956607142,
+          "notionalUsdt": 1.6637492683436623,
+          "estimatedInitialLossUsdt": 0.08412275442082295
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1792580400000,
+          "entryTimestamp": 1792584000000,
+          "stopPrice": 82123.87544018571,
+          "targetPrice": 88217.93258304284,
+          "notionalUsdt": 2.482654527064712,
+          "estimatedInitialLossUsdt": 0.06891166970651108
+        }
+      ],
+      "closedTradeLedger": [
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1787630400000,
+          "exitTimestamp": 1787662800000,
+          "entryPrice": 80627.01103957501,
+          "exitPrice": 78094.46165740104,
+          "quantity": 0.00003149352,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 2.459469490096593,
+          "feesUsdt": 0.02003558231667182,
+          "netPnlUsdt": -0.09979447693515509,
+          "netPnlPercent": -3.9143898841760736,
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 10,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1787832000000,
+          "exitTimestamp": 1788285600000,
+          "entryPrice": 104.11195544750001,
+          "exitPrice": 98.86998381435744,
+          "quantity": 0.016167072,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 1.5984381469655515,
+          "feesUsdt": 0.013153533631157486,
+          "netPnlUsdt": -0.09790086644613072,
+          "netPnlPercent": -5.793138317297075,
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 127,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1788451200000,
+          "exitTimestamp": 1788523200000,
+          "entryPrice": 81501.23891910001,
+          "exitPrice": 79209.9189393624,
+          "quantity": 0.00003079632,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 2.439374010830665,
+          "feesUsdt": 0.01983756927283695,
+          "netPnlUsdt": -0.09040179259122993,
+          "netPnlPercent": -3.587346660400639,
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 21,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1788667200000,
+          "exitTimestamp": 1788793200000,
+          "entryPrice": 106.16554448500001,
+          "exitPrice": 102.91932817156432,
+          "quantity": 0.015678036,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 1.6135729321695995,
+          "feesUsdt": 0.013138899071631939,
+          "netPnlUsdt": -0.06403319529746421,
+          "netPnlPercent": -3.8316802775237746,
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 36,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1789142400000,
+          "exitTimestamp": 1789304400000,
+          "entryPrice": 2563.7907119825,
+          "exitPrice": 2462.885538547068,
+          "quantity": 0.000646404,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 1.592019063658979,
+          "feesUsdt": 0.013023676942942486,
+          "netPnlUsdt": -0.07824918467229924,
+          "netPnlPercent": -4.702757171702181,
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 46,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1789718400000,
+          "exitTimestamp": 1789977600000,
+          "entryPrice": 105.98522935,
+          "exitPrice": 116.1657811357869,
+          "quantity": 0.015570468,
+          "reason": "TAKE_PROFIT",
+          "grossProceedsUsdt": 1.8087555778697737,
+          "feesUsdt": 0.013862490673193294,
+          "netPnlUsdt": 0.14465346512974464,
+          "netPnlPercent": 8.730541270653754,
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 73,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1789992000000,
+          "exitTimestamp": 1790236800000,
+          "entryPrice": 85033.512238675,
+          "exitPrice": 83124.25578615528,
+          "quantity": 0.00002936208,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 2.4407010483335543,
+          "feesUsdt": 0.019789955956518772,
+          "netPnlUsdt": -0.07584969665591901,
+          "netPnlPercent": -3.025772360777739,
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 69,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1790337600000,
+          "exitTimestamp": 1791378000000,
+          "entryPrice": 121.06157813749999,
+          "exitPrice": 115.86551368136148,
+          "quantity": 0.013688028,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 1.585970395504859,
+          "feesUsdt": 0.012998878655394085,
+          "netPnlUsdt": -0.08412275442082273,
+          "netPnlPercent": -5.05621586265644,
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 290,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1792584000000,
+          "exitTimestamp": 1792656000000,
+          "entryPrice": 83647.3897259,
+          "exitPrice": 81980.09706525881,
+          "quantity": 0.00002956128,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 2.423436603773294,
+          "feesUsdt": 0.019624364523352027,
+          "netPnlUsdt": -0.06891166970651108,
+          "netPnlPercent": -2.7757252954556915,
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 21,
+          "exitTimeProxy": null
+        }
+      ],
+      "admissions": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1787630400000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1787832000000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1788451200000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1788451200000,
+          "outcome": "rejected",
+          "reason": "portfolio_priority"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1788451200000,
+          "outcome": "rejected",
+          "reason": "portfolio_priority"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1788667200000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789142400000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789718400000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789747200000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789747200000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789747200000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789992000000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789992000000,
+          "outcome": "rejected",
+          "reason": "portfolio_priority"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789992000000,
+          "outcome": "rejected",
+          "reason": "portfolio_priority"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1790337600000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1790496000000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1790683200000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1790928000000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1791734400000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1792584000000,
+          "outcome": "accepted",
+          "reason": "entry"
+        }
+      ]
+    },
+    {
+      "name": "CHANNEL_4H",
+      "scenario": "account-cost-stress",
+      "entries": [
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1787828400000,
+          "entryTimestamp": 1787832000000,
+          "stopPrice": 99.22549536142859,
+          "targetPrice": 119.4997810757143,
+          "notionalUsdt": 1.6999932886770004,
+          "estimatedInitialLossUsdt": 0.11396759001277812
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1788447600000,
+          "entryTimestamp": 1788451200000,
+          "stopPrice": 2440.778094241429,
+          "targetPrice": 2780.492379955714,
+          "notionalUsdt": 1.68717205266756,
+          "estimatedInitialLossUsdt": 0.08833538698758447
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1789138800000,
+          "entryTimestamp": 1789142400000,
+          "stopPrice": 2471.6895486442854,
+          "targetPrice": 2858.0324057871426,
+          "notionalUsdt": 1.67965202195622,
+          "estimatedInitialLossUsdt": 0.094499670027554
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1789743600000,
+          "entryTimestamp": 1789747200000,
+          "stopPrice": 107.30082205142857,
+          "targetPrice": 124.2951077657143,
+          "notionalUsdt": 1.67022906857604,
+          "estimatedInitialLossUsdt": 0.09475516566057629
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "decisionTimestamp": 1790492400000,
+          "entryTimestamp": 1790496000000,
+          "stopPrice": 120.02632602142859,
+          "targetPrice": 138.2606117357143,
+          "notionalUsdt": 1.68575824739595,
+          "estimatedInitialLossUsdt": 0.09316178547102272
+        }
+      ],
+      "closedTradeLedger": [
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1787832000000,
+          "exitTimestamp": 1788285600000,
+          "entryPrice": 104.29406679000002,
+          "exitPrice": 98.8779084511775,
+          "quantity": 0.0161696,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 1.5988162284921597,
+          "feesUsdt": 0.02639047613735328,
+          "netPnlUsdt": -0.11396759001277812,
+          "netPnlPercent": -6.7040023494135115,
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 127,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1788451200000,
+          "exitTimestamp": 1788523200000,
+          "entryPrice": 2525.70666567,
+          "exitPrice": 2432.228048577301,
+          "quantity": 0.000662656,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 1.6117305097580397,
+          "feesUsdt": 0.026391220499404795,
+          "netPnlUsdt": -0.0883353869875847,
+          "netPnlPercent": -5.235707102184336,
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 21,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1789142400000,
+          "exitTimestamp": 1789290000000,
+          "entryPrice": 2568.27526293,
+          "exitPrice": 2463.0312201553843,
+          "quantity": 0.000648768,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 1.5979358386377682,
+          "feesUsdt": 0.026220702884751906,
+          "netPnlUsdt": -0.094499670027554,
+          "netPnlPercent": -5.6261457011491105,
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 42,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1789747200000,
+          "exitTimestamp": 1790492400000,
+          "entryPrice": 111.54939348,
+          "exitPrice": 123.859702003211,
+          "quantity": 0.014853216,
+          "reason": "TAKE_PROFIT",
+          "grossProceedsUsdt": 1.8397149075493258,
+          "feesUsdt": 0.028079551809002925,
+          "netPnlUsdt": 0.15476811971289117,
+          "netPnlPercent": 9.266281052385187,
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 208,
+          "exitTimeProxy": null
+        },
+        {
+          "type": "CLOSED",
+          "entryTimestamp": 1790496000000,
+          "exitTimestamp": 1790560800000,
+          "entryPrice": 124.58489745000001,
+          "exitPrice": 119.60587380137552,
+          "quantity": 0.013422752,
+          "reason": "STOP_LOSS",
+          "grossProceedsUsdt": 1.605439981779161,
+          "feesUsdt": 0.02632958583340089,
+          "netPnlUsdt": -0.0931617854710225,
+          "netPnlPercent": -5.526402472889145,
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "holdingCandles": 19,
+          "exitTimeProxy": null
+        }
+      ],
+      "admissions": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1787630400000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1787832000000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1788451200000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1788451200000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1788451200000,
+          "outcome": "rejected",
+          "reason": "portfolio_priority"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1788667200000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789142400000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789718400000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789747200000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789747200000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789747200000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789992000000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789992000000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1789992000000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1790337600000,
+          "outcome": "rejected",
+          "reason": "position_occupied"
+        },
+        {
+          "symbol": "SOL/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1790496000000,
+          "outcome": "accepted",
+          "reason": "entry"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1790683200000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1790928000000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1791734400000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy_mode": "CHANNEL_BREAKOUT",
+          "timestamp": 1792584000000,
+          "outcome": "rejected",
+          "reason": "channel_net_margin_decision"
+        }
+      ]
+    }
+  ]
+}

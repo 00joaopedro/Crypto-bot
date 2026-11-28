@@ -263,5 +263,12 @@ export const migrations: readonly Migration[] = [
     CREATE INDEX demo_closed_trades_recent_idx ON demo_closed_trades
       (account_id, closed_at DESC, buy_order_id DESC);
   ` },
+  { version: 19, name: "demo_symbol_restrictions", sql: `
+    CREATE TABLE demo_symbol_restrictions (
+      account_id TEXT NOT NULL, symbol TEXT NOT NULL, code TEXT NOT NULL,
+      client_order_id TEXT NOT NULL, rejected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      released_at TIMESTAMPTZ, PRIMARY KEY (account_id, symbol)
+    );
+  ` },
 ] as const;
 

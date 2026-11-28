@@ -1,3 +1,4 @@
+import { inspectDemoAccounting } from '../src/demo-diagnostic.js';
 import { TREND_STRATEGY_ID } from "../src/strategy-id.js";
 import type { Order } from "ccxt";
 import { reconcilePendingDemoOrders } from "../src/demo-pending-reconciliation.js";
@@ -116,6 +117,44 @@ integration("PostgresPersistence", () => {
       await db.end();await persistence.close();
     }
   });
+  it('shares twenty account inspections and fully retries a checkpoint won by another database client', async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const other = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const now = Date.now(); const baselineAt = new Date(now - 120_000);
+    const identity = { uid: 'checkpoint-test', mainUid: 'checkpoint-test' };
+    const baseline = { observedAt: baselineAt, balances: { USDT: 5000 }, status: 'UNVERIFIED',
+      evidence: { startedAt: now-121_000, accountIdentity: identity } };
+    let competed = false; let inspections = 0;
+    const store = { demoOrderJournal: async () => { inspections++; return []; }, getDemoBaselineCandidate: async () => baseline,
+      getDemoAccountingCheckpoint: persistence.getDemoAccountingCheckpoint.bind(persistence),
+      saveDemoAccountingCheckpoint: async (input: Parameters<PostgresPersistence['saveDemoAccountingCheckpoint']>[0]) => {
+        if (!competed) {
+          competed = true;
+          expect(await other.saveDemoAccountingCheckpoint(input)).toBe(true);
+        }
+        return persistence.saveDemoAccountingCheckpoint(input);
+      } };
+    const executor = { inspectAccountIdentity: async () => ({ status: 'confirmed' as const, identity }),
+      collectOrderEvidence: async () => { throw new Error('no orders expected'); },
+      collectFillHistory: async () => { throw new Error('no fills expected'); },
+      collectAccountCoverage: async () => ({ status: 'covered' as const, billCount: 0 }),
+      collectAccountBalances: async () => ({ status: 'collected' as const, startedAt: Date.now()-1,
+        endedAt: Date.now(), balances: { USDT: 5000 } }),
+    };
+    try {
+      await persistence.initialize();
+      const results = await Promise.all(Array.from({ length: 20 }, () => inspectDemoAccounting(store,executor)));
+      expect(results.every(r => r.status === 'confirmed' && r.realizedPnlUsdt === 0)).toBe(true);
+      expect(inspections).toBe(2); // first loses its lease; one complete fresh inspection wins
+      expect((await db.query('SELECT 1 FROM demo_accounting_checkpoints WHERE baseline_at=$1',[baselineAt])).rowCount).toBe(2);
+      expect((await persistence.getDemoAccountingCheckpoint(baselineAt))?.realizedPnlOffset).toBe(0);
+    } finally {
+      await db.query('DELETE FROM demo_accounting_checkpoints WHERE baseline_at=$1',[baselineAt]);
+      await persistence.close(); await other.close(); await db.end();
+    }
+  });
+
   it("restores Demo equity risk and appends safe checkpoints without replacing older evidence", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const db = new Pool({ connectionString: databaseUrl });
@@ -128,13 +167,26 @@ integration("PostgresPersistence", () => {
       const restored = await persistence.observeDemoRisk(key, 90, now + 1);
       expect(restored.peakEquity).toBe(100);
       expect(restored.dayStartEquity).toBe(100);
+      const basis = { budgetUsdt: 5000, baselineAt: baselineAt.getTime() };
+      await persistence.observeDemoRisk(`${key}:bot-equity-v1`, 4999.91, now, basis);
+      const reopened = new PostgresPersistence(databaseUrl!);
+      try {
+        const botRisk = await reopened.observeDemoRisk(`${key}:bot-equity-v1`, 4849, now + 1, basis);
+        expect(botRisk).toMatchObject({ dayStartEquity: 5000, peakEquity: 5000, equity: 4849, basis });
+        await expect(reopened.observeDemoRisk(`${key}:bot-equity-v1`, 6000, now + 2, { ...basis, budgetUsdt: 6000 })).rejects.toThrow(/basis changed/);
+        // The failed basis change rolls back, and the legacy account state is untouched.
+        const retained = await reopened.observeDemoRisk(`${key}:bot-equity-v1`, 4849, now + 3, basis);
+        expect(retained.dayStartEquity).toBe(5000);
+        const legacy = await reopened.observeDemoRisk(key, 90, now + 3);
+        expect(legacy.peakEquity).toBe(100);
+      } finally { await reopened.close(); }
       const input = { baselineAt, observedAt: now + 1000, balances: { USDT: 90 }, evidence: { test: true }, realizedPnl: -10 };
       await persistence.saveDemoAccountingCheckpoint(input);
       await persistence.saveDemoAccountingCheckpoint({ ...input, observedAt: now + 2000 });
       expect((await persistence.getDemoAccountingCheckpoint(baselineAt))?.realizedPnlOffset).toBe(-10);
       expect((await db.query("SELECT 1 FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt])).rowCount).toBe(2);
     } finally {
-      await db.query("DELETE FROM demo_risk_state WHERE account_id = $1", [key]);
+      await db.query("DELETE FROM demo_risk_state WHERE account_id = ANY($1::text[])", [[key, `${key}:bot-equity-v1`]]);
       await db.query("DELETE FROM demo_accounting_checkpoints WHERE baseline_at = $1", [baselineAt]);
       await db.end(); await persistence.close();
     }
@@ -164,6 +216,37 @@ integration("PostgresPersistence", () => {
       await verification.end(); await persistence.close();
     }
   });
+  it('atomically resolves the exact regional rejection and restores its account-specific restriction after restart', async () => {
+    const store = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const at = Date.now(); const id = `HYPE${at}`; const failed = `FAILED:HYPE/USDT:${at}`; const account = `test:${at}`;
+    const error = (client: string) => 'okx '+JSON.stringify({ code: '1', data: [{ clOrdId: client, ordId: '', sCode: '51155', sMsg: "You can't trade this pair or borrow this crypto due to local compliance restrictions. " }] });
+    try {
+      await store.initialize();
+      await db.query("INSERT INTO demo_orders (client_order_id,symbol,candle_timestamp,status,result) VALUES ($1,'HYPE/USDT',$2,'PENDING','{}'),($3,'HYPE/USDT',$2,'FAILED',$4::jsonb)", [id,at,failed,JSON.stringify({ error: error('wrong') })]);
+      expect(await store.confirmMissingPermissionRejectedOrder(id,account)).toBe(false);
+      await db.query("UPDATE demo_orders SET result=$2::jsonb WHERE client_order_id=$1",[failed,JSON.stringify({ error: error(id) })]);
+      expect(await store.confirmMissingPermissionRejectedOrder(id)).toBe(false);
+      expect(await store.confirmMissingPermissionRejectedOrder(id,account)).toBe(true);
+      const restarted = new PostgresPersistence(databaseUrl!);
+      try {
+        expect(await restarted.demoSymbolRestrictions(account)).toMatchObject([{ symbol: 'HYPE/USDT', client_order_id: id }]);
+        expect(await restarted.demoSymbolRestrictions('another-account')).toEqual([]);
+        await restarted.releaseDemoSymbolRestriction(account,'HYPE/USDT',id);
+        expect(await restarted.demoSymbolRestrictions(account)).toHaveLength(1);
+        expect(await restarted.confirmMissingPermissionRejectedOrder(id,account)).toBe(false);
+      } finally { await restarted.close(); }
+      const rows = (await db.query("SELECT status,result FROM demo_orders WHERE client_order_id=ANY($1::text[])",[[id,failed]])).rows;
+      expect(rows).toHaveLength(2); expect(rows.every(r => r.status==='REJECTED_CONFIRMED' && r.result.reconciliation.code==='51155')).toBe(true);
+      expect(rows.some(r => r.result.error===error(id))).toBe(true);
+    } finally {
+      await db.query("DELETE FROM demo_symbol_restrictions WHERE account_id=$1",[account]);
+      await db.query("DELETE FROM audit_events WHERE event_type='DEMO_REJECTION_RECONCILED' AND details->>'clientOrderId'=$1",[id]);
+      await db.query("DELETE FROM demo_orders WHERE client_order_id=ANY($1::text[])",[[id,failed]]);
+      await store.close(); await db.end();
+    }
+  });
+
   it("replaces only an idle identity-less baseline while retaining its audit row", async () => {
     const persistence = new PostgresPersistence(databaseUrl!);
     const verification = new Pool({ connectionString: databaseUrl });
@@ -391,6 +474,12 @@ integration("PostgresPersistence", () => {
     await persistence.setPaused(true, "system:demo_execution_safety", "demo_balance_unconfirmed");
     await expect(persistence.setPaused(false, "system:auto_resume", undefined, timedPause.revision)).resolves.toBe(false);
     await expect(persistence.readControlState()).resolves.toMatchObject({ paused: true, updatedBy: "dashboard", pauseReason: null });
+    const manualPause = await persistence.readControlState();
+    await persistence.setPaused(true, "dashboard");
+    const newerManualPause = await persistence.readControlState();
+    expect(newerManualPause.revision).not.toBe(manualPause.revision);
+    await expect(persistence.setPaused(false, "dashboard", undefined, manualPause.revision)).resolves.toBe(false);
+    await expect(persistence.isPaused()).resolves.toBe(true);
     await persistence.setPaused(false, "dashboard");
     await persistence.recordCycle({ ...checkpoint, candle: { ...candle, timestamp: candle.timestamp + 2_700_000 },
       riskState: { consecutiveLosses: 3, stopLossCooldownUntil: candle.timestamp + 3_600_000 } });
@@ -654,6 +743,33 @@ integration("pair cooldown history", () => {
       await db.end();
       await persistence.close();
       await restarted.close();
+    }
+  });
+});
+
+integration("configuration provenance", () => {
+  it("retains the opening configuration hash across Paper recovery and persisted closure", async () => {
+    const persistence = new PostgresPersistence(databaseUrl!);
+    const db = new Pool({ connectionString: databaseUrl });
+    const symbol = `FIDELITY${Date.now()}/USDT`;
+    try {
+      await persistence.initialize();
+      const configuration = { initialBalanceUsdt: 100, tradeSizeUsdt: 10, feeRate: .001, slippageRate: 0, stopLossRate: .01, takeProfitRate: .02 };
+      const candle: Candle = { timestamp: Date.now(), open: 100, high: 100, low: 100, close: 100, volume: 1 };
+      const trader = new PaperTrader({ ...configuration, configurationHash: "a".repeat(64) });
+      const opened = trader.processCandle(candle, true);
+      await persistence.recordCycle({ symbol, candle, replayed: false, paperResult: opened, paperState: trader.exportState() });
+      const state = await persistence.loadRecoveryState(symbol);
+      expect(state?.paperState.position?.configurationHash).toBe("a".repeat(64));
+      const restored = new PaperTrader({ ...configuration, configurationHash: "b".repeat(64) }, state!.paperState);
+      const next = { ...candle, timestamp: candle.timestamp + 900000, low: 90 };
+      await persistence.recordCycle({ symbol, candle: next, replayed: false, paperResult: restored.processCandle(next, false), paperState: restored.exportState() });
+      const rows = await db.query("SELECT trade->>'configurationHash' AS hash FROM paper_trades WHERE symbol = $1", [symbol]);
+      expect(rows.rows).toHaveLength(2);
+      expect(rows.rows.every(row => row.hash === "a".repeat(64))).toBe(true);
+    } finally {
+      for (const table of ["paper_trades", "portfolio_snapshots", "paper_trader_state"]) await db.query(`DELETE FROM ${table} WHERE symbol = $1`, [symbol]);
+      await db.end(); await persistence.close();
     }
   });
 });

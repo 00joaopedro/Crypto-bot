@@ -86,3 +86,21 @@ it("uses OKX instrument categories without blacklisting valid X-prefixed cryptos
   expect(marketEntryBlock({ ...market, symbol: "XRP/USDT", info: { instCategory: "1" } })).toBeUndefined();
   expect(marketEntryBlock({ ...market, info: { instCategory: "3" } }, { excludeTokenizedAssets: false })).toBeUndefined();
 });
+
+it("screens entries with pair-specific standard costs without leaking future candles into calibration", () => {
+  const input = datasets();
+  const pairCosts = { 'BTC/USDT': { feeRate: .004, slippageRate: .001, spreadRate: .0015, entryFeeCurrency: 'base' as const }, 'ETH/USDT': { feeRate: .04, slippageRate: .001, spreadRate: .0015, entryFeeCurrency: 'base' as const } };
+  const filtered = universeStudySchema.parse({ ...study, parameters: { ...study.parameters, exitPolicy: { mode: 'fixed' } }, scenarios: [
+    { ...study.scenarios[0]!, symbolCosts: pairCosts },
+    { ...study.scenarios[1]!, symbolCosts: { ...pairCosts, 'ETH/USDT': { ...pairCosts['ETH/USDT'], feeRate: .08 } } },
+  ] });
+  const first = compareUniverseSizes(input, filtered, 'trend', { minimumTargetCostMultiple: 2.5 });
+  expect(first.entryScreenDiagnostics!.evaluatedQualityBuySignals).toBeGreaterThan(0);
+  expect(first.entryScreenDiagnostics!.rejectedQualityBuySignals).toBeGreaterThan(0);
+  expect(first.results[0]!.scenarios[0]!.result.perSymbol.find(p => p.symbol === 'ETH/USDT')!.closedTrades).toBe(0);
+  expect(first.results[0]!.scenarios[0]!.result.perSymbol.find(p => p.symbol === 'BTC/USDT')!.openPosition).not.toBeNull();
+  expect(first.results[0]!.scenarios[0]!.result.perSymbol.find(p => p.symbol === 'ETH/USDT')!.openPosition).toBeNull();
+  for (const asset of input) for (let i = filtered.warmupCandles + 960; i < asset.candles.length; i++) asset.candles[i] = { ...asset.candles[i]!, high: 100, low: 90 };
+  expect(compareUniverseSizes(input, filtered, 'trend', { minimumTargetCostMultiple: 2.5 }).calibration).toEqual(first.calibration);
+  expect(() => compareUniverseSizes(input, study, 'trend', { minimumTargetCostMultiple: 2 })).toThrow(/fixed/);
+});

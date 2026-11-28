@@ -1,0 +1,1540 @@
+{
+  "endExclusiveUtc": "2026-08-31T00:00:00Z",
+  "days": 30,
+  "warmupCandles": 672,
+  "candleLimit": 100,
+  "sizes": [
+    10,
+    30
+  ],
+  "fixedSymbols": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT",
+    "XRP/USDT",
+    "ADA/USDT",
+    "DOGE/USDT",
+    "SUI/USDT",
+    "NEAR/USDT"
+  ],
+  "minDailyQuoteVolumeUsdt": 1000000,
+  "initialBalanceUsdt": 5000,
+  "tradeSizeUsdt": 10,
+  "portfolio": {
+    "maxConcurrentPositions": 30,
+    "maxExposureRate": 0.1,
+    "maxAltExposureRate": 0.1
+  },
+  "parameters": {
+    "exitPolicy": {
+      "mode": "fixed",
+      "breakeven": false,
+      "atrPeriod": 14,
+      "stopMultiplier": 1.5,
+      "targetMultiplier": 3,
+      "minStopRate": 0.005,
+      "maxStopRate": 0.03,
+      "trailingMultiplier": 2,
+      "activationRate": 0.02,
+      "exitFeeRate": 0.001,
+      "exitSlippageRate": 0.001
+    },
+    "pairCooldown": {
+      "hours": 6,
+      "minLosses": 3
+    },
+    "btcRegimeFilter": false,
+    "stopLossRate": 0.01,
+    "takeProfitRate": 0.02,
+    "maxBuyRsi": 70,
+    "minimumSignalScore": 4,
+    "executionDelayCandles": 1
+  },
+  "scenarios": [
+    {
+      "name": "account-conditioned",
+      "feeRate": 0.004,
+      "slippageRate": 0.001,
+      "spreadRate": 0.0015,
+      "assumedDepthUsdt": 1000,
+      "maxParticipationRate": 0.001,
+      "symbolCosts": {
+        "1INCH/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "2Z/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "A/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AAVE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ACE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ACH/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ACT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ADA/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AEVO/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AGLD/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AI/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AIXBT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ALGO/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ALLO/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ANIME/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "APE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "API3/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "APT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AR/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ARB/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ARG/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ARKM/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ASP/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ASTER/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ASTR/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ATH/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ATOM/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AUCTION/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AUDF/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AUDM/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AVAX/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AVNT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AXS/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BABY/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BABYDOGE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BANANA/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BAND/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BARD/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BASED/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BAT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BCH/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BERA/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BETH/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BICO/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BIGTIME/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BIO/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BLUR/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BNB/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BNT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BOME/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BONK/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BREV/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BRL1/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "BTC/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CARDS/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CAT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CATI/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CC/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CELO/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CELR/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CETUS/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CFG/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CFX/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CHIP/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CHZ/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CITY/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "COMP/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CORE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CRO/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CRV/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CSPR/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CTC/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CVC/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "CVX/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DASH/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DATA/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DEGEN/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DGB/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DOGE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DOGS/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DOOD/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DOT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DYDX/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "EDGE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "EGLD/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "EIGEN/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ENA/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ENJ/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ENS/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ETC/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ETH/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ETHFI/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ETHW/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "FET/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "FIL/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "FLOKI/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "FLOW/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "FLR/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "FLUID/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "FOGO/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "G/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "GALA/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "GALFT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "GAS/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "GLM/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "GMT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "GMX/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "GOAT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "HYPE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "LINK/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "LIT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "LTC/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "NEAR/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "SOL/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "SUI/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "TRX/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "UNI/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "WLD/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "XRP/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ZEC/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        }
+      }
+    },
+    {
+      "name": "account-cost-stress",
+      "feeRate": 0.008,
+      "slippageRate": 0.002,
+      "spreadRate": 0.003,
+      "assumedDepthUsdt": 500,
+      "maxParticipationRate": 0.0005,
+      "symbolCosts": {
+        "1INCH/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "2Z/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "A/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AAVE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ACE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ACH/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ACT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ADA/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AEVO/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AGLD/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AI/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AIXBT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ALGO/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ALLO/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ANIME/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "APE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "API3/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "APT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AR/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ARB/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ARG/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ARKM/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ASP/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ASTER/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ASTR/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ATH/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ATOM/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AUCTION/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AUDF/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AUDM/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AVAX/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AVNT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AXS/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BABY/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BABYDOGE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BANANA/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BAND/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BARD/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BASED/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BAT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BCH/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BERA/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BETH/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BICO/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BIGTIME/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BIO/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BLUR/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BNB/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BNT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BOME/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BONK/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BREV/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BRL1/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "BTC/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CARDS/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CAT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CATI/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CC/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CELO/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CELR/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CETUS/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CFG/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CFX/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CHIP/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CHZ/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CITY/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "COMP/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CORE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CRO/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CRV/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CSPR/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CTC/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CVC/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "CVX/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DASH/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DATA/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DEGEN/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DGB/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DOGE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DOGS/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DOOD/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DOT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DYDX/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "EDGE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "EGLD/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "EIGEN/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ENA/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ENJ/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ENS/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ETC/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ETH/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ETHFI/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ETHW/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "FET/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "FIL/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "FLOKI/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "FLOW/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "FLR/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "FLUID/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "FOGO/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "G/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "GALA/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "GALFT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "GAS/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "GLM/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "GMT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "GMX/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "GOAT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "HYPE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "LINK/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "LIT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "LTC/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "NEAR/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "SOL/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "SUI/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "TRX/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "UNI/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "WLD/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "XRP/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ZEC/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        }
+      }
+    }
+  ],
+  "collection": {
+    "maximumSymbols": 120,
+    "preferredSymbols": [
+      "BTC/USDT",
+      "ETH/USDT",
+      "SOL/USDT",
+      "XRP/USDT",
+      "ADA/USDT",
+      "DOGE/USDT",
+      "SUI/USDT",
+      "NEAR/USDT",
+      "AVAX/USDT",
+      "LINK/USDT",
+      "DOT/USDT",
+      "ATOM/USDT",
+      "UNI/USDT",
+      "AAVE/USDT",
+      "LTC/USDT",
+      "WLD/USDT",
+      "ZEC/USDT",
+      "HYPE/USDT",
+      "LIT/USDT",
+      "TRX/USDT"
+    ]
+  }
+}

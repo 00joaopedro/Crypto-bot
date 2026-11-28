@@ -1,0 +1,98 @@
+name: Compression retest (frozen public minute research)
+on:
+  pull_request:
+    paths:
+      - 'src/compression-*.ts'
+      - 'src/maker-pullback.ts'
+      - 'examples/compression-*.json'
+      - 'tests/compression-*.test.ts'
+      - 'docs/compression-*.json'
+      - 'scripts/compression-retest-diagnosis.mjs'
+      - '.github/workflows/compression-retest.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: compression-retest-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  research:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/cache@v4
+        with:
+          path: .trend-horizon-source
+          key: trend-horizon-v1-${{ hashFiles('examples/trend-horizon.plan.json') }}
+      - uses: actions/download-artifact@v4
+        if: hashFiles('.trend-horizon-source/normalized-data.json') == ''
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 45722652141
+          name: okx-hybrid-research
+          path: .maker-hour-source-artifact
+      - name: Restore exact known1h source without new history collection
+        if: hashFiles('.trend-horizon-source/normalized-data.json') == ''
+        run: |
+          mkdir -p .trend-horizon-source
+          cp .maker-hour-source-artifact/.trend-horizon-source/normalized-data.json .trend-horizon-source/normalized-data.json
+      - uses: actions/cache@v4
+        with:
+          path: .compression-minute-source
+          key: compression-minutes-v1-${{ hashFiles('examples/compression-retest.plan.json') }}
+      - uses: actions/download-artifact@v4
+        if: hashFiles('.compression-minute-source/minutes.json') == '' && hashFiles('docs/compression-retest-results.json') != ''
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 46170768079
+          name: compression-retest-research
+          path: .compression-frozen-artifact
+      - name: Restore and verify exact minute source before replay instead of silently recollecting
+        if: hashFiles('docs/compression-retest-results.json') != ''
+        run: |
+          if [ ! -f .compression-minute-source/minutes.json ]; then
+            mkdir -p .compression-minute-source
+            cp .compression-frozen-artifact/.compression-minute-source/minutes.json .compression-minute-source/minutes.json
+          fi
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {semanticHash} from './dist/cost-experiments.js';
+          const expected=JSON.parse(fs.readFileSync('docs/compression-retest-results.json','utf8'));
+          const micro=JSON.parse(fs.readFileSync('.compression-minute-source/minutes.json','utf8'));
+          if(semanticHash(micro)!==expected.minuteSourceSha256)throw new Error('Frozen compression minute source changed');
+          JS
+      - name: Collect only requested public confirmed entry-hour minutes and evaluate frozen hypothesis
+        run: |
+          mkdir -p .compression-minute-source
+          npm run strategy:compression-retest -- --collect .trend-horizon-source/normalized-data.json .compression-minute-source/minutes.json .compression-retest-results
+      - name: Reconcile fills, expiry, costs, owned excursions and trailing feasibility without retuning
+        run: node scripts/compression-retest-diagnosis.mjs .trend-horizon-source/normalized-data.json .compression-minute-source/minutes.json .compression-retest-results .compression-retest-results/diagnosis.json
+      - name: Reproduce same minute source and ledger without network access
+        run: |
+          npm run strategy:compression-retest -- --replay .trend-horizon-source/normalized-data.json .compression-minute-source/minutes.json .compression-retest-reproduction
+          diff -u .compression-retest-results/summary.json .compression-retest-reproduction/summary.json
+          diff -u .compression-retest-results/ledgers.json .compression-retest-reproduction/ledgers.json
+          if [ -f docs/compression-retest-results.json ]; then
+            diff -u docs/compression-retest-results.json .compression-retest-results/summary.json
+            diff -u docs/compression-retest-ledgers.json .compression-retest-results/ledgers.json
+            diff -u docs/compression-retest-diagnosis.json .compression-retest-results/diagnosis.json
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compression-retest-research
+          path: |
+            .compression-minute-source/
+            .compression-retest-results/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error

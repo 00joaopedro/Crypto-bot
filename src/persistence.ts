@@ -8,7 +8,7 @@ import { DEFAULT_DEMO_ORDERS_PER_INTERVAL, MAX_DEMO_ORDERS_PER_INTERVAL } from "
 import type { PauseControl } from "./auto-resume.js";
 import { demoExitStateSchema, type DemoExitState } from "./demo-exit-state.js";
 import type { ExitPolicy } from "./exit-policy.js";
-import { advanceDemoRisk, type DemoRiskState } from "./demo-risk.js";
+import { advanceDemoRisk, type DemoRiskState, type DemoRiskBasis } from "./demo-risk.js";
 import { createHash, randomUUID } from "node:crypto";
 
 import { Pool, type PoolClient } from "pg";
@@ -21,7 +21,7 @@ import type {
 } from "./paper-trader.js";
 import { classifyDemoOrder, normalizedOrderFees, type DemoBuyResult } from "./okx-demo.js";
 import { readDemoAccountIdentity } from "./okx-demo-identity.js";
-import { isExplicitDemoPermissionRejection } from "./demo-rejection.js";
+import { explicitDemoRejection } from "./demo-rejection.js";
 import type { AiDecision, Candle, QuantSignal } from "./types.js";
 import { buildStatisticalReport, type StatisticalTrade } from "./analytics.js";
 
@@ -283,9 +283,10 @@ export class PostgresPersistence implements BotPersistence {
 
   private async writePause(client: PoolClient, paused: boolean, actor: string, reason?: string, expectedRevision?: string): Promise<boolean> {
     const pauseReason = paused ? reason ?? (actor.startsWith("system:") ? actor.slice(7) : null) : null;
+    // Reaffirming a manual pause must fence an already-running resume, even if the value is unchanged.
     const updated = await client.query(
       `UPDATE bot_control SET paused = $1, updated_at = NOW(), updated_by = $2, pause_reason = $3
-       WHERE id = 1 AND (paused IS DISTINCT FROM $1 OR pause_reason IS DISTINCT FROM $3)
+       WHERE id = 1 AND (paused IS DISTINCT FROM $1 OR pause_reason IS DISTINCT FROM $3 OR ($1 AND $2 = 'dashboard'))
          AND ($4::text IS NULL OR xmin::text = $4)
          AND NOT ($1 AND paused AND $2 LIKE 'system:%' AND
            (updated_by IS NOT DISTINCT FROM 'dashboard' OR $2 IN ('system:demo_execution_safety', 'system:demo_exit_supervision', 'system:demo_position_uncertain')))`,
@@ -512,6 +513,13 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows;
   }
 
+  async demoSymbolRestrictions(accountId: string): Promise<Array<{ symbol: string; rejected_at: Date; client_order_id: string }>> {
+    return (await this.pool.query("SELECT symbol,rejected_at,client_order_id FROM demo_symbol_restrictions WHERE account_id=$1 AND released_at IS NULL", [accountId])).rows;
+  }
+  async releaseDemoSymbolRestriction(accountId: string, symbol: string, clientOrderId: string): Promise<void> {
+    await this.pool.query("UPDATE demo_symbol_restrictions SET released_at=NOW() WHERE account_id=$1 AND symbol=$2 AND client_order_id=$3 AND rejected_at <= NOW()-INTERVAL '6 hours'", [accountId,symbol,clientOrderId]);
+  }
+
   async pendingDemoOrders(): Promise<Array<{ client_order_id: string; symbol: string }>> {
     const result = await this.pool.query<{ client_order_id: string; symbol: string }>(
       `SELECT client_order_id, symbol FROM demo_orders WHERE status = 'PENDING' ORDER BY created_at LIMIT 100`,
@@ -521,7 +529,7 @@ export class PostgresPersistence implements BotPersistence {
 
   /** Caller must have confirmed the account identity and received OrderNotFound
    * from OKX for this exact client ID. Keep both original rows for audit. */
-  async confirmMissingPermissionRejectedOrder(clientOrderId: string): Promise<boolean> {
+  async confirmMissingPermissionRejectedOrder(clientOrderId: string, accountId?: string): Promise<boolean> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
@@ -531,9 +539,14 @@ export class PostgresPersistence implements BotPersistence {
       if (!row) { await client.query("ROLLBACK"); return false; }
       const failureId = `FAILED:${row.symbol}:${row.candle_timestamp}`;
       const failure = await client.query<{ result: unknown }>("SELECT result FROM demo_orders WHERE client_order_id = $1 AND symbol = $2 AND candle_timestamp = $3 AND status = 'FAILED' FOR UPDATE", [failureId, row.symbol, row.candle_timestamp]);
-      if (failure.rows.length !== 1 || !isExplicitDemoPermissionRejection(failure.rows[0]!.result)) { await client.query("ROLLBACK"); return false; }
-      await client.query("UPDATE demo_orders SET status = 'REJECTED_CONFIRMED', result = result || $2::jsonb, updated_at = NOW() WHERE client_order_id IN ($1, $3)", [clientOrderId, JSON.stringify({ reconciliation: { method: "okx_50123_and_order_not_found", confirmedAt: new Date().toISOString() } }), failureId]);
-      await client.query("INSERT INTO audit_events (event_type, actor, details) VALUES ('DEMO_REJECTION_RECONCILED', 'system', $1::jsonb)", [JSON.stringify({ clientOrderId, failureId, symbol: row.symbol, method: "okx_50123_and_order_not_found" })]);
+      const rejection = failure.rows.length === 1 ? explicitDemoRejection(failure.rows[0]!.result, clientOrderId) : null;
+      if (!rejection || (rejection.code === '51155' && !accountId)) { await client.query("ROLLBACK"); return false; }
+      if (rejection.code === '51155') await client.query(`INSERT INTO demo_symbol_restrictions (account_id,symbol,code,client_order_id)
+        VALUES ($1,$2,$3,$4) ON CONFLICT (account_id,symbol) DO UPDATE SET code=EXCLUDED.code,
+        client_order_id=EXCLUDED.client_order_id,rejected_at=NOW(),released_at=NULL`, [accountId,row.symbol,rejection.code,clientOrderId]);
+      await client.query("UPDATE demo_orders SET status = 'REJECTED_CONFIRMED', result = result || $2::jsonb, updated_at = NOW() WHERE client_order_id IN ($1, $3)", [clientOrderId, JSON.stringify({ reconciliation: { method: rejection.method, code: rejection.code, clientOrderId, confirmedAt: new Date().toISOString() } }), failureId]);
+      await client.query("INSERT INTO audit_events (event_type, actor, details) VALUES ('DEMO_REJECTION_RECONCILED', 'system', $1::jsonb)", [JSON.stringify({ clientOrderId, failureId, symbol: row.symbol, method: rejection.method, code: rejection.code })]);
+      await client.query("INSERT INTO operational_events (event_type,severity,symbol,details) VALUES ('DEMO_REJECTION_RECONCILED','INFO',$1,$2::jsonb)", [row.symbol,JSON.stringify({ clientOrderId, code: rejection.code, method: rejection.method })]);
       await client.query("COMMIT");
       return true;
     } catch (error) { await client.query("ROLLBACK"); throw error; }
@@ -695,13 +708,13 @@ export class PostgresPersistence implements BotPersistence {
     return result.rows[0] ?? null;
   }
 
-  async observeDemoRisk(accountId: string, equity: number, observedAt: number): Promise<DemoRiskState> {
+  async observeDemoRisk(accountId: string, equity: number, observedAt: number, basis?: DemoRiskBasis): Promise<DemoRiskState> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`demo-risk:${accountId}`]);
       const result = await client.query<{ state: DemoRiskState }>("SELECT state FROM demo_risk_state WHERE account_id = $1 FOR UPDATE", [accountId]);
-      const state = advanceDemoRisk(result.rows[0]?.state ?? null, equity, observedAt);
+      const state = advanceDemoRisk(result.rows[0]?.state ?? null, equity, observedAt, basis);
       await client.query("INSERT INTO demo_risk_state (account_id, state) VALUES ($1, $2::jsonb) ON CONFLICT (account_id) DO UPDATE SET state = EXCLUDED.state, updated_at = NOW()", [accountId, JSON.stringify(state)]);
       await client.query("COMMIT");
       return state;

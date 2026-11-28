@@ -61,6 +61,15 @@ function exchangeMock(overrides: Record<string, unknown> = {}): Exchange {
 }
 
 describe("OkxDemoExecutor", () => {
+  it("records the exact pre-submit Demo quote without additional book reads",async()=>{
+    const exchange=exchangeMock();const executor=new OkxDemoExecutor(credentials,enabledOptions,exchange);
+    executor.setIntentJournal(async()=>true);await executor.initialize();
+    const result=await executor.executeApprovedBuy({candleTimestamp:1790197200000});
+    expect(result).toMatchObject({entryExecutionEvidence:{venue:'okx-demo',reference:'best_ask',bestBid:99.99,bestAsk:100,spreadRate:expect.any(Number),receivedAtUtc:expect.any(String)}});
+    expect(exchange.fetchOrderBook).toHaveBeenCalledTimes(1);
+    await executor.close();
+  });
+
   it.each([
     { minimum: 0.01, reserved: true, expected: "PLACED" },
     { minimum: 0.06, reserved: true, expected: "SKIPPED" },
@@ -624,4 +633,33 @@ it("reports an exchange cancellation with a partial fill as pending", async () =
     status: "PENDING", confirmed: false, orderStatus: "canceled", filled: 0.04,
   });
   expect(reserve).toHaveBeenCalledTimes(1);
+});
+
+
+it("reads account terms without sending orders or substituting Paper fees", async () => {
+  const exchange = exchangeMock({ market: vi.fn(() => ({ symbol: "BTC/USDT", base: "BTC", quote: "USDT", spot: true, active: true, info: { minSz: "0.0001", lotSz: "0.00001" } })) });
+  const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+  expect(await executor.inspectTradingTerms("BTC/USDT")).toEqual({ status: "unavailable", reason: "not_initialized" });
+  await executor.initialize();
+  expect(await executor.inspectTradingTerms("BTC/USDT")).toMatchObject({ status: "confirmed", symbol: "BTC/USDT", takerFeeRate: .001, minimumQuantity: .0001, quantityStep: .00001 });
+  vi.mocked(exchange.fetchTradingFee).mockRejectedValueOnce(new Error("sensitive"));
+  expect(await executor.inspectTradingTerms("BTC/USDT")).toEqual({ status: "unavailable", reason: "query_failed" });
+  expect(exchange.createMarketBuyOrderWithCost).not.toHaveBeenCalled();
+});
+
+
+it('reads account-specific Spot availability without placing orders or trusting the public market alone', async () => {
+  const market = { id: 'BTC-USDT', symbol: 'BTC/USDT', base: 'BTC', quote: 'USDT', spot: true, active: true, limits: { cost: { min: 1 }, amount: { min: .01 } } };
+  const privateGetAccountInstruments = vi.fn(async () => ({ code: '0', data: [{ instType: 'SPOT', instId: 'BTC-USDT', state: 'live', tradeQuoteCcyList: ['USDT'] }] }));
+  const createMarketBuyOrderWithCost = vi.fn();
+  const exchange = exchangeMock({ markets: { 'BTC/USDT': market }, market: () => market, privateGetAccountInstruments, createMarketBuyOrderWithCost });
+  const executor = new OkxDemoExecutor(credentials, enabledOptions, exchange);
+  await executor.initialize();
+  expect(await executor.availableAccountSymbols()).toEqual(['BTC/USDT']);
+  expect(privateGetAccountInstruments).toHaveBeenCalledWith({ instType: 'SPOT' });
+  privateGetAccountInstruments.mockResolvedValueOnce({ code: '0', data: [] });
+  expect(await executor.availableAccountSymbols()).toEqual([]);
+  privateGetAccountInstruments.mockRejectedValueOnce(new Error('timeout'));
+  await expect(executor.availableAccountSymbols()).rejects.toThrow();
+  expect(createMarketBuyOrderWithCost).not.toHaveBeenCalled();
 });

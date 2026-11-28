@@ -1,0 +1,3796 @@
+{
+  "schemaVersion": 1,
+  "status": "retrospective_diagnosis_only",
+  "provenance": {
+    "baseCodeCommit": "c158caa04b5b7e557937e7b716576298c592d9b2",
+    "sourceWorkflowRun": 44574679437,
+    "sourceArtifactId": 14557315647,
+    "sourceZipSha256": "ecacf7320da8a0d7fe0e09842028869479f306a6f42539270dc0c986836ed75d",
+    "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+    "inputReportSha256": "d195e84407c420f2c596d12593cc523aab902f7b389db9c82e1fae57d1a32e7f",
+    "diagnosticSourceSha256": "694ad967a67c5dd4f8ad852107d9eacb39cf2c0c162edfe228c426a63649e19a",
+    "datasetHashes": [
+      {
+        "symbol": "1INCH/USDT",
+        "sha256": "c6cb02e8be0677f97368dbf5e69329586c79a4bebe6297e4ed54c2450f09d74a",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "2Z/USDT",
+        "sha256": "57c499304e5ee484046dcfd3f7eecfd426a98b40feb9a68189cfb7b1c6665e28",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "A/USDT",
+        "sha256": "4d79e56f1c7aafc1430614c4fe52d8ed0034d34b22a25070b93e14db80b716b8",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AAVE/USDT",
+        "sha256": "3b616011d683934735a75d04f1bbce309d74570fd7a2813863f3c2a90ad2387b",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.01,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ACE/USDT",
+        "sha256": "ba1fcbde779ee7696ffdecdfa0f81bb9d330da8927e73a33fa74eba0581f1de1",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ACH/USDT",
+        "sha256": "609d6e954ed78cc2f06afe71bbe61f33dea5bdaa0e00307d19167ad17898ce1a",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ACT/USDT",
+        "sha256": "a79cf96697626bd0983b650ad53f98d0b610893a3ffc5de31ca9621e3844644f",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ADA/USDT",
+        "sha256": "c176489c9c9b6c5242c765f992e74be16d16196eb663b7f3ef8a215b4f0c34af",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AEVO/USDT",
+        "sha256": "4ed561cddde33eef67474cf7bec8e647d02ddef642fb9c88a7a80b594f99654f",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AGLD/USDT",
+        "sha256": "78b11c6c4591cce973ee7438cfe65c2e36bfcc818299dafcfd9a377ecad9dcc2",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AI/USDT",
+        "sha256": "f48cec49dd658e2fe6888a789bc096074bedabd0488cdfc78b07fb9f3c889988",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AIXBT/USDT",
+        "sha256": "967870b2c8c3213245c4fd294f9d7034e954ad5658da1fee2b8080f2b8c9b6b6",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ALGO/USDT",
+        "sha256": "511e642d0a33f48df8e93b7a03f8741be58c09d57ca25b8e8194a878ef01790d",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ALLO/USDT",
+        "sha256": "eaf97fef4f004a4bc9762e214416fe3a6b0f81ee8753791ca8615ed8e011146d",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ANIME/USDT",
+        "sha256": "e3b3f298c2e10c5da24da400e6c4f83818d56480b2be567b9e7d4ca777441c13",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "APE/USDT",
+        "sha256": "9fe18b268d333e719d93a37849ae932dde8076ca56c2bbf9f22385266c240f32",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "API3/USDT",
+        "sha256": "781be9188d46dbcbd3d8ebe87bbd9ccbf77396a55a72d25f11f888d6abc90cfc",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "APT/USDT",
+        "sha256": "cf48ee9bed351cbd0cfda2b0e67ce42b572878b781cb07e06e34b98cc1f96626",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AR/USDT",
+        "sha256": "838021b0df1b0f39f52de6fbd6b954e8e9970306b8995250a10d609d2f668baf",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ARB/USDT",
+        "sha256": "fcf0aaae3401a2acb147aa720212bcf4da6c3f69cf021a5612674dcb360492d0",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ARG/USDT",
+        "sha256": "101491538b818dea6f8e608c35524e34337dff4c17a01a6d7142e9edd8105fb4",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ARKM/USDT",
+        "sha256": "5272c3c0627f31a236ea271e9238b7b035fe0b7cf5a92917f66305e5af342fdb",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ASP/USDT",
+        "sha256": "70d0a3a5868225ea5cb49c60a4ebd6229c2cf02007a1156ea5cead77011a28b4",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ASTER/USDT",
+        "sha256": "0c8a21e9e26d52f2b2631fe66a2a68fe9d5d8ce359bec443520bf8edf468dbd2",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ASTR/USDT",
+        "sha256": "4c6943936db0fd6e5a7bf8d039481e74aca7bd1936f1c05e7862ed772a0e08b6",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ATH/USDT",
+        "sha256": "2d697d3824b212e5495cdd0832e3fe8866a380d651353e8b2233031d41a62352",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ATOM/USDT",
+        "sha256": "f5e85a26db2a11c16bc699215aca7d31ca63e6b7c9e5e4a0d2396bd577127cfc",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AUCTION/USDT",
+        "sha256": "600293d4aaeee3775f9cd03ac73bbaad6e3894b91360987f7562d31446fe6dc5",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AUDF/USDT",
+        "sha256": "a1dccb53ae4d65ab0dd133f0c8a8834cf3cb7c5db973df6c34e4caab5f705746",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AUDM/USDT",
+        "sha256": "55d838fd66144ad5f4edc59c688d09cdf932de011b500045b36dd303c7151874",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AVAX/USDT",
+        "sha256": "477e0ecb5ac4d3b02a2eb27f677d29ba8f92030bdb5faff14796eb1836451789",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AVNT/USDT",
+        "sha256": "e65280d11b3bb34e9a243fa384cfebeefb52af1a26e4b1dff71293a8a702c2e7",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "AXS/USDT",
+        "sha256": "c66b59f032906269e9ad6b1e744375dc8eaf478265b67fc34b8b713d3e31ef74",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BABY/USDT",
+        "sha256": "c4170fc06c6fccd41661e92e732fa0f038286a62b1cc62cdd5fabde36f3fbd29",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BABYDOGE/USDT",
+        "sha256": "7d491c4c0bfdcc1be73b2939953996d2e1207c630f3902658b5699e3e8ab03de",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1000000000,
+          "quantityStep": 1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BANANA/USDT",
+        "sha256": "9052dd86b96343bdef6f4c0beafc752f0b2c0888aae1e862684648f6aaed8a4e",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BAND/USDT",
+        "sha256": "25729e18984f3c4cec9c051efb40e4ef9844f6722eee7cc4e5f0b4f062db01d7",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BARD/USDT",
+        "sha256": "b0ff2609ef1aef836787a2b62b8d69b626a9888374453142db4ba64a8907e8ae",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BASED/USDT",
+        "sha256": "4910011a9e7219f8a92f80296c4fe711bd87d7c306ce8348bad5cbecd0eb765a",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BAT/USDT",
+        "sha256": "d2962c759347823a0a68547e5a500999fa0b946813ee2544bc401945fb10c9dc",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BCH/USDT",
+        "sha256": "10f81c6a7a9de259550d1645d8b7374221dfbc8fc1b5384969fb116e65365a0f",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.01,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BERA/USDT",
+        "sha256": "9c2009e970df094cc3e3bf42a7b0a08865b21ecbbc63037b97ef1dc74b076a4d",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BETH/USDT",
+        "sha256": "2ee6d86b6a65303009c235e55ee6e5543723934ce8f3daf06514c778da40bc62",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.001,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BICO/USDT",
+        "sha256": "4e0df53af946c87bf02246296c95888fbdbd8f6cf40f5443afa48f1e4442c36e",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BIGTIME/USDT",
+        "sha256": "ab15c65fb5b34dd307eeafdedb6072d5fd0937b78cbad76b53451f7d83ce5173",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BIO/USDT",
+        "sha256": "629abb7a90b41aaae6041102fab30b6b6528a5a6175c25a722fad7eeaece180b",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BLUR/USDT",
+        "sha256": "718e83b8378131b4026b1ac88e43991b78db1cc76d9d4896b06e77980dc7fd4c",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BNB/USDT",
+        "sha256": "0c024e2f802cc52807c64968de4cd6f72bbd236aa6168ea3f4b2956055d2b6b4",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.001,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BNT/USDT",
+        "sha256": "52dc05936a1150eb5dfdc979fce471b5db8499c303135ffe7f6d3b5f4c77366c",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BOME/USDT",
+        "sha256": "d98e3fbac3e01eac3459f12ca7e7b551ed5d7d0c1a81cc665667beb09f8e76b5",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1000,
+          "quantityStep": 1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BONK/USDT",
+        "sha256": "9845ef76066ac749772042df98740a306af447f5ea566cb7a014764a9eb8b753",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100000,
+          "quantityStep": 1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BREV/USDT",
+        "sha256": "658281bb152f83ac364138e807c6990de27f10c68670bf3be69ced86b5a56ed8",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BRL1/USDT",
+        "sha256": "37dc68636ff88cde7e3b32ae24bd04676b5633c1fdc4a40516db756c8f31571b",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "BTC/USDT",
+        "sha256": "b36a2eccf67cb6c690badfebbd91609001a2c9de9909de75d03081898226a328",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1e-05,
+          "quantityStep": 1e-08
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CARDS/USDT",
+        "sha256": "fec2b9a1b19370c6b089aa2f6def4afb5f938f2d6d153dca0a9cab5687055bf3",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CAT/USDT",
+        "sha256": "aa285f0afebe0452191553efda7e11ce26412fef1d41ca183b1d5c8ad15af2cd",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100000,
+          "quantityStep": 1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CATI/USDT",
+        "sha256": "d1e8168726d347f6b6b4ce17e53c9aed377c23d02b5b315602f32d2d9fc1690e",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CC/USDT",
+        "sha256": "4185209f7e5269a71f0d31d16151c786721c23d59ca96dff52bdc7a64268a102",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CELO/USDT",
+        "sha256": "f6b217b8ac454ae03c09a30cb0692456f5ff81ba4f6d596a15a6460cae6065d1",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CELR/USDT",
+        "sha256": "f353177e0693974d50ad7fa045380a332df846437e7ca598d85c5932b961c8c6",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CETUS/USDT",
+        "sha256": "b0d770dd5f2f54c3aec4b030dd6f5bec7b185fa5c44d2faa3d67b27698f05584",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CFG/USDT",
+        "sha256": "892703df8f2ffdc57fa80486de60ce20481fd16704e2faed8ca430cd6babdc9a",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CFX/USDT",
+        "sha256": "02d102077ebe8d47cb3ed42077374a48efe7c2ce218813eb96a666b900c24fd6",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CHIP/USDT",
+        "sha256": "a5bf24862faea1efc03d9b96222611440b9e95781ec93d8ce8fd29196d436e7e",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CHZ/USDT",
+        "sha256": "81a0c289988f3b32add361def2a7836a7beacf11dfa5154f9617677e38765108",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CITY/USDT",
+        "sha256": "f2b57e92179f41c6d299901ddecaccf06b1710915c542824b7a9a8bafbab09f0",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "COMP/USDT",
+        "sha256": "c95600c15609fc7da8c822bf7f240376a1c88948a2ed0e0930e66e50365b7e64",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CORE/USDT",
+        "sha256": "7e5629be373f11ba07e6dfe97077a27050ccd59f3f3f102fa1abf924cdfa5d89",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CRO/USDT",
+        "sha256": "03705118bbb9ed119727c23ca291ebb664fb23ff60d9f9affa07fc3944dee2fe",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CRV/USDT",
+        "sha256": "467be15446f8f931047f4cbfd0bd4341669aec610c16c787c0b383f03f2ddc2b",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CSPR/USDT",
+        "sha256": "84859bb8c6249cfc3540a63d44869078def59085f703e2ba6d992aaef958337c",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CTC/USDT",
+        "sha256": "c2ccd0b1c3bb22003fe60976970da42eeeeb50e8f55b0429c92ab0489ef468b8",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CVC/USDT",
+        "sha256": "862f3dd4b72dbb4c3f2233aa63b6be43d59f399e07c5c5592360c3bc5f095df0",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "CVX/USDT",
+        "sha256": "557ff33acda8d3f6f11434304877b4b83f0190a37e8d5c16c140242f8e6ebb6f",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "DASH/USDT",
+        "sha256": "f58b2faee6daffa48be18267d131682f1840f9ab582fb2469fba9a976908cac6",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "DATA/USDT",
+        "sha256": "b8f26f3f097468b5f79cefdcc65f587a262a26572262a9229d34e7fecd3acf61",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "DEGEN/USDT",
+        "sha256": "33a84c17cf9b780fbc65aace20b3c7ad668daba237d0f2405e252ecd49aec498",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1000,
+          "quantityStep": 1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "DGB/USDT",
+        "sha256": "4d1478d380e5650a5c931364b90d4813570ad9e9230c3628f16dd4018497533b",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "DOGE/USDT",
+        "sha256": "8dab3201a5df0926b0724ba801335e4fd81b8a51d17478a552e83522184833f4",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "DOGS/USDT",
+        "sha256": "bab554b37fd4a98fdc75dab75ce6b8187114c345802b6a3bffcdeaaef51076f6",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10000,
+          "quantityStep": 1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "DOOD/USDT",
+        "sha256": "481ba5faba577cc7c2163b28a170c202548c67e1424f3103ad725cde96990cc8",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "DOT/USDT",
+        "sha256": "aadfdfc2377955482d6d165d33e3a07210675467baf3348dd0e1bc5816a9ef84",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "DYDX/USDT",
+        "sha256": "443d3695ce692b27e1241127a533c5a357f5a7c2f12721c297e9938c4b70f284",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "EDGE/USDT",
+        "sha256": "55c8b88ffb6f7fc54abf60a52de630faa8d7195b33bdd2307cba8109f84ecf7e",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "EGLD/USDT",
+        "sha256": "873c47bdca5dc54d2ed32b2059688cb7fb8dda1e2ac887355fb0fc18019829ac",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "EIGEN/USDT",
+        "sha256": "dfcc65ecb3bf2949e7ad34c664eaa53845fb4a5e998faccf82d6e6b926c08acd",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ENA/USDT",
+        "sha256": "9e89e0b25beb201acc86b35cdb7253297d01995dc86dfe3e6c90bc10ed849c44",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ENJ/USDT",
+        "sha256": "12a92ba8bb058f27d2e3a88b2163a6d820d0f3cdab38b9adf311c2e93370fc7d",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ENS/USDT",
+        "sha256": "aacef206df362811366e15893b2f5a45ce6867881f1a5d3f6573587b0bbb86a0",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ETC/USDT",
+        "sha256": "bf855130a833871e966a8983da1b3014c32b3b7ad93e7b62c73cde62d87d1889",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ETH/USDT",
+        "sha256": "0998351a0950587571383579e8fe1d4d151e78ab67a3039dcd30017075e4ef3d",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.0001,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ETHFI/USDT",
+        "sha256": "123fc3fb683f058c68001ceb260e57306e1ff09341635530d7e768136e4caf50",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ETHW/USDT",
+        "sha256": "8f782bd82c809b664bf76af7e042b5121765d259d55ca66ca74f2852f3b1a8aa",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "FET/USDT",
+        "sha256": "70118e4ca9fe4db8457934f35d3958698f28da67672cf03eb568efc3b823650b",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "FIL/USDT",
+        "sha256": "aefd0bc1b6ae8fc669cc0af55cf4d2fbe70c005aa80c8cae147fe54c001bf087",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "FLOKI/USDT",
+        "sha256": "ea5408d945b2083a8ad399c83ce1ae88b5b00a828b441b382ea9bc21bab46b51",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10000,
+          "quantityStep": 1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "FLOW/USDT",
+        "sha256": "36c60ea7d3b3d7a563d9b75d45d740c1c3989ecd2b8ffb3b7aebb5f6e7de2d7d",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "FLR/USDT",
+        "sha256": "7995904a430f5cc9ac73de5f61667223b9d6265e7edf4aa0b7510566cb1e6983",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.01
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "FLUID/USDT",
+        "sha256": "a78c1a411ed89020fe75fed350bea41cef784c9f345049cf61515ea76ae2fd7d",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "FOGO/USDT",
+        "sha256": "3151a747e2d4a607518ed548b20d511b18712f955c23914b89401a75ca3b861d",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "G/USDT",
+        "sha256": "7dd781a50f8521a31b9947820a861978e9f65a2a8e103b78c1e261d8f0b6ea03",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.1
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "GALA/USDT",
+        "sha256": "4454e33b7a7a5f942cb7fdb516e4e199eb6559a030b1a43ab4ec13305c8b40d2",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "GALFT/USDT",
+        "sha256": "ffcffc0bc2bb364cfccb0ad2b4422b31a2b0cd785508a17fb2a911689b1dccfe",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "GAS/USDT",
+        "sha256": "b9847a2435b44e69c9d57ee7f20dc5cff56c6ff3ec9229f11081143d6ca2ca88",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "GLM/USDT",
+        "sha256": "0387d7fc0a11d96705a3e3c1546e068cc983d06ff03248b403f9735a86eea48e",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "GMT/USDT",
+        "sha256": "c26270049dccc99da53a49e5bfea1bf2f6c697913c70584b3c1a3abdb33e8621",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 100,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "GMX/USDT",
+        "sha256": "2db993798ca2d1c49199d6214bf7d3ab406f7993e27ed2577b376f46d9dc3ac8",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "GOAT/USDT",
+        "sha256": "e3b6feb3bb3bd7b709f5ca1094be8c8b01b6e962687d8804e1cab2b745d22f6b",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 10,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "HYPE/USDT",
+        "sha256": "e6b84ef62b9cc2ace80b7d4cc2fee6bbf344c8587674044637520000287e4cdf",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.01,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "LINK/USDT",
+        "sha256": "bbb1ec94d5a6b86bdcde9455bc885c8b6b88d6a06ee1f85780389c4857f35ad8",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "LIT/USDT",
+        "sha256": "6637ca19d343c414165542d626adc803ac4087d6eea9809cd1faee3bb9b9742c",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "LTC/USDT",
+        "sha256": "a71425b50ba825c343f5ac3fb7ff1e91ebd415692303a8083137d684c1c7b004",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.01,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "NEAR/USDT",
+        "sha256": "53dc26c349f5d94be8ba2dac7d2a59b9a143f0c6c8f7662f53bb5663b6021a73",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-08
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "SOL/USDT",
+        "sha256": "db14ae037a22ff493ab0b2eaeb92604fcf0de685e6fb54c36fbf729f4d8ffe74",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.01,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "SUI/USDT",
+        "sha256": "75ab34fb8e899b82a9f0d55a0911bc3c5838e66e5c64e9636336f3d770677fc4",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.0001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "TRX/USDT",
+        "sha256": "cd2933b329f5b709a929724106229e89a67e58249cf160605bea89590e940072",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "UNI/USDT",
+        "sha256": "da7a376b93feaf5455be7ab34b7024f7187032ef5b801cb2d8732f6fce41021f",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "WLD/USDT",
+        "sha256": "6fcd060e71a76581e17117a498b2fba7a1cb3b4bb657c7f422930a4db4fa0f79",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 0.001
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "XRP/USDT",
+        "sha256": "83a5a98f65ecc3c7dc50f0fc00e1d796fbafc9ce98fb931f3b1193348ca8adb3",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 1,
+          "quantityStep": 1e-06
+        },
+        "candleCount": 3552
+      },
+      {
+        "symbol": "ZEC/USDT",
+        "sha256": "e607f6a54426d8f01d9f034ea2aa746047a60ace7164ca8bfab2f17db7ecb0d0",
+        "constraints": {
+          "minimumNotionalUsdt": 0,
+          "minimumQuantity": 0.001,
+          "quantityStep": 1e-05
+        },
+        "candleCount": 3552
+      }
+    ]
+  },
+  "unchangedOriginalMetricsVerified": {
+    "runs": 15,
+    "metrics": [
+      "closedTrades",
+      "realizedPnlUsdt",
+      "netReturnUsdt",
+      "profitFactor",
+      "maxDrawdownUsdt",
+      "cashUsdt",
+      "openPositions"
+    ]
+  },
+  "runs": [
+    {
+      "universeSize": 15,
+      "scenario": "standard",
+      "summary": {
+        "closedTrades": 41,
+        "realizedPnlUsdt": -1.1722991777964467,
+        "beforeFeesPnlUsdt": -0.35270377299366623,
+        "feesUsdt": 0.8195954048027791,
+        "profitFactor": 0.5336151026115357,
+        "beforeFeesProfitFactor": 0.8267363618430242,
+        "expectancyUsdt": -0.028592662873084065,
+        "winRatePercent": 41.46341463414634,
+        "averageWinUsdt": 0.07889930418291236,
+        "averageLossUsdt": 0.10473280620441487,
+        "breakEvenWinRatePercent": 57.03403722993027,
+        "feeTurnedLosses": 0,
+        "meanNetReturnBps": -28.593834544549576,
+        "meanHoldingMinutes": 313.9024390243902,
+        "top3TradesProfitSharePercent": 37.01088147607193,
+        "realizedPnlWithoutTop3Usdt": -1.6687217530583602
+      },
+      "bySymbol": [
+        {
+          "key": "BTC/USDT",
+          "closedTrades": 32,
+          "realizedPnlUsdt": -0.8589497242370683,
+          "beforeFeesPnlUsdt": -0.21919270864177526,
+          "feesUsdt": 0.6397570155952942,
+          "profitFactor": 0.5192828938282387,
+          "beforeFeesProfitFactor": 0.8443490518868505,
+          "expectancyUsdt": -0.026842178882408384,
+          "winRatePercent": 40.625,
+          "averageWinUsdt": 0.07137380204062536,
+          "averageLossUsdt": 0.09404258688237883,
+          "breakEvenWinRatePercent": 56.852037149808965,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -26.843437302098252,
+          "meanHoldingMinutes": 380.625,
+          "top3TradesProfitSharePercent": 47.02148963813276,
+          "realizedPnlWithoutTop3Usdt": -1.2952430483384307
+        },
+        {
+          "key": "DOGE/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.040423191447057506,
+          "beforeFeesPnlUsdt": 0.06048367511592141,
+          "feesUsdt": 0.020060483668863427,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.040423191447057506,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.040423191447057506,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 40.42319145969479,
+          "meanHoldingMinutes": 210,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ETH/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.1720153733900297,
+          "beforeFeesPnlUsdt": -0.15216830234245796,
+          "feesUsdt": 0.019847071047571316,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.1720153733900297,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.1720153733900297,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -172.02191581428457,
+          "meanHoldingMinutes": 135,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.1720153733900297
+        },
+        {
+          "key": "FIL/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.18578027036478106,
+          "beforeFeesPnlUsdt": 0.20598625531358333,
+          "feesUsdt": 0.020205984948801804,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.18578027036478106,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.18578027036478106,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 185.78028250098743,
+          "meanHoldingMinutes": 90,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "HYPE/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.18495412340974343,
+          "beforeFeesPnlUsdt": -0.145112365475086,
+          "feesUsdt": 0.039841757934653256,
+          "profitFactor": 0.28438673570812084,
+          "beforeFeesProfitFactor": 0.3920680520498316,
+          "expectancyUsdt": -0.09247706170487172,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.07350129188047076,
+          "averageLossUsdt": 0.2584554152902142,
+          "breakEvenWinRatePercent": 77.85816936583902,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -92.48826293379128,
+          "meanHoldingMinutes": 67.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.2584554152902142
+        },
+        {
+          "key": "LINK/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.08825367550652005,
+          "beforeFeesPnlUsdt": -0.06832201360620566,
+          "feesUsdt": 0.019931661900313518,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.08825367550652005,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.08825367550652005,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -88.2537464893626,
+          "meanHoldingMinutes": 0,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.08825367550652005
+        },
+        {
+          "key": "TRX/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.07989253414077424,
+          "beforeFeesPnlUsdt": -0.05995248684584552,
+          "feesUsdt": 0.019940047294929847,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.07989253414077424,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.07989253414077424,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -79.89253501249891,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.07989253414077424
+        },
+        {
+          "key": "ZEC/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.01443720892414957,
+          "beforeFeesPnlUsdt": 0.025574173488199486,
+          "feesUsdt": 0.040011382412351304,
+          "profitFactor": 0.8873511722331717,
+          "beforeFeesProfitFactor": 1.2361978025452447,
+          "expectancyUsdt": -0.007218604462074785,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.11372399088907115,
+          "averageLossUsdt": 0.12816119981322072,
+          "breakEvenWinRatePercent": 52.98431021804858,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -7.207986718171121,
+          "meanHoldingMinutes": 37.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.12816119981322072
+        }
+      ],
+      "byExitReason": [
+        {
+          "key": "STOP_LOSS",
+          "closedTrades": 24,
+          "realizedPnlUsdt": -2.513587348905957,
+          "beforeFeesPnlUsdt": -2.0356479682951045,
+          "feesUsdt": 0.4779393806108503,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.10473280620441487,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.10473280620441487,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -104.73966750145236,
+          "meanHoldingMinutes": 300.625,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -2.513587348905957
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "closedTrades": 17,
+          "realizedPnlUsdt": 1.3412881711095102,
+          "beforeFeesPnlUsdt": 1.6829441953014386,
+          "feesUsdt": 0.3416560241919284,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.07889930418291236,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.07889930418291236,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 78.90616492401904,
+          "meanHoldingMinutes": 332.6470588235294,
+          "top3TradesProfitSharePercent": 37.01088147607193,
+          "realizedPnlWithoutTop3Usdt": 0.8448655958475965
+        }
+      ],
+      "byEntryRsi": [
+        {
+          "key": "45to55",
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.44689945495706107,
+          "beforeFeesPnlUsdt": -0.3272301163942464,
+          "feesUsdt": 0.11966933856281925,
+          "profitFactor": 0.1108850108514312,
+          "beforeFeesProfitFactor": 0.18809526386941663,
+          "expectancyUsdt": -0.07448324249284351,
+          "winRatePercent": 16.666666666666664,
+          "averageWinUsdt": 0.055734580472956104,
+          "averageLossUsdt": 0.10052680708600344,
+          "breakEvenWinRatePercent": 64.33246796050194,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -74.48553322176679,
+          "meanHoldingMinutes": 462.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5026340354300172
+        },
+        {
+          "key": "above55to63",
+          "closedTrades": 12,
+          "realizedPnlUsdt": -0.3011325327060004,
+          "beforeFeesPnlUsdt": -0.06121271531730838,
+          "feesUsdt": 0.23991981738868967,
+          "profitFactor": 0.6189730283759874,
+          "beforeFeesProfitFactor": 0.9087733918648256,
+          "expectancyUsdt": -0.025094377725500033,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.081530936824551,
+          "averageLossUsdt": 0.13171969227555105,
+          "breakEvenWinRatePercent": 61.767551557243216,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -25.096490933401324,
+          "meanHoldingMinutes": 141.25,
+          "top3TradesProfitSharePercent": 72.9217739013347,
+          "realizedPnlWithoutTop3Usdt": -0.657855365171035
+        },
+        {
+          "key": "above63to70",
+          "closedTrades": 23,
+          "realizedPnlUsdt": -0.4242671901333851,
+          "beforeFeesPnlUsdt": 0.03573905871788864,
+          "feesUsdt": 0.46000624885126973,
+          "profitFactor": 0.6524209656593587,
+          "beforeFeesProfitFactor": 1.0371657924400397,
+          "expectancyUsdt": -0.018446399571016743,
+          "winRatePercent": 43.47826086956522,
+          "averageWinUsdt": 0.0796367969689248,
+          "averageLossUsdt": 0.0938950122940487,
+          "breakEvenWinRatePercent": 54.10824257111177,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -18.44678807804853,
+          "meanHoldingMinutes": 365.2173913043478,
+          "top3TradesProfitSharePercent": 56.830016022273135,
+          "realizedPnlWithoutTop3Usdt": -0.876843234904036
+        }
+      ],
+      "byBtcEntryState": [
+        {
+          "key": "allowed",
+          "closedTrades": 41,
+          "realizedPnlUsdt": -1.1722991777964467,
+          "beforeFeesPnlUsdt": -0.35270377299366623,
+          "feesUsdt": 0.8195954048027791,
+          "profitFactor": 0.5336151026115357,
+          "beforeFeesProfitFactor": 0.8267363618430242,
+          "expectancyUsdt": -0.028592662873084065,
+          "winRatePercent": 41.46341463414634,
+          "averageWinUsdt": 0.07889930418291236,
+          "averageLossUsdt": 0.10473280620441487,
+          "breakEvenWinRatePercent": 57.03403722993027,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -28.593834544549576,
+          "meanHoldingMinutes": 313.9024390243902,
+          "top3TradesProfitSharePercent": 37.01088147607193,
+          "realizedPnlWithoutTop3Usdt": -1.6687217530583602
+        }
+      ],
+      "assumedCosts": {
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001
+      }
+    },
+    {
+      "universeSize": 15,
+      "scenario": "stress",
+      "summary": {
+        "closedTrades": 33,
+        "realizedPnlUsdt": -2.0130777386419987,
+        "beforeFeesPnlUsdt": -0.6945106891793581,
+        "feesUsdt": 1.3185670494626445,
+        "profitFactor": 0.20459887637914526,
+        "beforeFeesProfitFactor": 0.5954543860685493,
+        "expectancyUsdt": -0.061002355716424206,
+        "winRatePercent": 30.303030303030305,
+        "averageWinUsdt": 0.051781853351561526,
+        "averageLossUsdt": 0.11003896835467887,
+        "breakEvenWinRatePercent": 68.00050030300604,
+        "feeTurnedLosses": 3,
+        "meanNetReturnBps": -61.00449974012366,
+        "meanHoldingMinutes": 307.27272727272725,
+        "top3TradesProfitSharePercent": 65.2127971508026,
+        "realizedPnlWithoutTop3Usdt": -2.3507616885127978
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015
+      }
+    },
+    {
+      "universeSize": 15,
+      "scenario": "fixed-cost-stress",
+      "summary": {
+        "closedTrades": 38,
+        "realizedPnlUsdt": -2.3922995480361213,
+        "beforeFeesPnlUsdt": -0.8740987822423568,
+        "feesUsdt": 1.5182007657937733,
+        "profitFactor": 0.19151518342695445,
+        "beforeFeesProfitFactor": 0.5529540328370663,
+        "expectancyUsdt": -0.06295525126410846,
+        "winRatePercent": 31.57894736842105,
+        "averageWinUsdt": 0.04722431365464442,
+        "averageLossUsdt": 0.1138073581496867,
+        "breakEvenWinRatePercent": 70.67389717469588,
+        "feeTurnedLosses": 1,
+        "meanNetReturnBps": -62.95758664948676,
+        "meanHoldingMinutes": 268.8157894736842,
+        "top3TradesProfitSharePercent": 62.27958351624851,
+        "realizedPnlWithoutTop3Usdt": -2.7452328183863544
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015
+      }
+    },
+    {
+      "universeSize": 30,
+      "scenario": "standard",
+      "summary": {
+        "closedTrades": 57,
+        "realizedPnlUsdt": -0.6042502709652,
+        "beforeFeesPnlUsdt": 0.5362064137385634,
+        "feesUsdt": 1.1404566847037543,
+        "profitFactor": 0.8494682995520817,
+        "beforeFeesProfitFactor": 1.1587569516480443,
+        "expectancyUsdt": -0.010600881946757896,
+        "winRatePercent": 43.859649122807014,
+        "averageWinUsdt": 0.13639424749826273,
+        "averageLossUsdt": 0.12544082682568025,
+        "breakEvenWinRatePercent": 47.90833586736533,
+        "feeTurnedLosses": 0,
+        "meanNetReturnBps": -10.603108429433973,
+        "meanHoldingMinutes": 258.94736842105266,
+        "top3TradesProfitSharePercent": 33.471000298202355,
+        "realizedPnlWithoutTop3Usdt": -1.7455632456370593
+      },
+      "bySymbol": [
+        {
+          "key": "AAVE/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.07244060284959483,
+          "beforeFeesPnlUsdt": 0.11255282817049225,
+          "feesUsdt": 0.040112225320896186,
+          "profitFactor": 1.906733438186847,
+          "beforeFeesProfitFactor": 2.8773834394296993,
+          "expectancyUsdt": 0.036220301424797416,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.15233244294148662,
+          "averageLossUsdt": 0.07989184009189179,
+          "breakEvenWinRatePercent": 34.40287942687228,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 36.22053871014503,
+          "meanHoldingMinutes": 7.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.07989184009189179
+        },
+        {
+          "key": "ADA/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.6542541839917748,
+          "beforeFeesPnlUsdt": 0.694949107493671,
+          "feesUsdt": 0.04069492350189477,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.3271270919958874,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.3271270919958874,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 327.1273293405511,
+          "meanHoldingMinutes": 37.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ARB/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.3144185067720846,
+          "beforeFeesPnlUsdt": 0.33475325843892584,
+          "feesUsdt": 0.020334751666842274,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.3144185067720846,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.3144185067720846,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 314.4185317934588,
+          "meanHoldingMinutes": 540,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ASTER/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.18157257661392676,
+          "beforeFeesPnlUsdt": 0.20177315638782048,
+          "feesUsdt": 0.02020057977389352,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.18157257661392676,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.18157257661392676,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 181.58341153715594,
+          "meanHoldingMinutes": 0,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "BNB/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.14027945828220648,
+          "beforeFeesPnlUsdt": 0.16043883306200823,
+          "feesUsdt": 0.02015937477980001,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.14027945828220648,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.14027945828220648,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 140.28692192005073,
+          "meanHoldingMinutes": 75,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "BONK/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.17225363226094667,
+          "beforeFeesPnlUsdt": 0.2124660899164217,
+          "feesUsdt": 0.04021245765547581,
+          "profitFactor": 1.692689646553665,
+          "beforeFeesProfitFactor": 1.9281946623923214,
+          "expectancyUsdt": 0.08612681613047334,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.42092723828055334,
+          "averageLossUsdt": 0.24867360601960667,
+          "breakEvenWinRatePercent": 37.137588480717994,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 86.12684556857297,
+          "meanHoldingMinutes": 270,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.24867360601960667
+        },
+        {
+          "key": "BTC/USDT",
+          "closedTrades": 32,
+          "realizedPnlUsdt": -0.8589497242370683,
+          "beforeFeesPnlUsdt": -0.21919270864177526,
+          "feesUsdt": 0.6397570155952942,
+          "profitFactor": 0.5192828938282387,
+          "beforeFeesProfitFactor": 0.8443490518868505,
+          "expectancyUsdt": -0.026842178882408384,
+          "winRatePercent": 40.625,
+          "averageWinUsdt": 0.07137380204062536,
+          "averageLossUsdt": 0.09404258688237883,
+          "breakEvenWinRatePercent": 56.852037149808965,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -26.843437302098252,
+          "meanHoldingMinutes": 380.625,
+          "top3TradesProfitSharePercent": 47.02148963813276,
+          "realizedPnlWithoutTop3Usdt": -1.2952430483384307
+        },
+        {
+          "key": "CRV/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.2425716278245693,
+          "beforeFeesPnlUsdt": -0.2227944228738741,
+          "feesUsdt": 0.019777204950693912,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.2425716278245693,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.2425716278245693,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -242.5716354223036,
+          "meanHoldingMinutes": 0,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.2425716278245693
+        },
+        {
+          "key": "DOGE/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.040423191447057506,
+          "beforeFeesPnlUsdt": 0.06048367511592141,
+          "feesUsdt": 0.020060483668863427,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.040423191447057506,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.040423191447057506,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 40.42319145969479,
+          "meanHoldingMinutes": 210,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ETH/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.029790864823088473,
+          "beforeFeesPnlUsdt": 0.06985215191635646,
+          "feesUsdt": 0.040061287093264716,
+          "profitFactor": 1.2741305545334083,
+          "beforeFeesProfitFactor": 1.7869114868894134,
+          "expectancyUsdt": 0.014895432411544236,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.1384648682511079,
+          "averageLossUsdt": 0.10867400342801943,
+          "breakEvenWinRatePercent": 43.97284922831414,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 14.895968379331876,
+          "meanHoldingMinutes": 75,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.10867400342801943
+        },
+        {
+          "key": "FIL/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.25209901157869874,
+          "beforeFeesPnlUsdt": 0.2723713824530385,
+          "feesUsdt": 0.020272370874339057,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.25209901157869874,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.25209901157869874,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 252.09901798345052,
+          "meanHoldingMinutes": 210,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "HYPE/USDT",
+          "closedTrades": 4,
+          "realizedPnlUsdt": -0.31552715617260835,
+          "beforeFeesPnlUsdt": -0.2357875414533861,
+          "feesUsdt": 0.07973961471921831,
+          "profitFactor": 0.1889355193644919,
+          "beforeFeesProfitFactor": 0.28413333788380635,
+          "expectancyUsdt": -0.07888178904315209,
+          "winRatePercent": 25,
+          "averageWinUsdt": 0.07350129188047076,
+          "averageLossUsdt": 0.12967614935102637,
+          "breakEvenWinRatePercent": 63.82408822802107,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -78.89768815206514,
+          "meanHoldingMinutes": 15,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.3890284480530791
+        },
+        {
+          "key": "LIT/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.5427118837875285,
+          "beforeFeesPnlUsdt": -0.5032207309206465,
+          "feesUsdt": 0.03949115286688166,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.2713559418937643,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.2713559418937643,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -271.3876615857503,
+          "meanHoldingMinutes": 240,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.5427118837875285
+        },
+        {
+          "key": "NEAR/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.21238790062052654,
+          "beforeFeesPnlUsdt": -0.19258048110351814,
+          "feesUsdt": 0.019807419517008346,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.21238790062052654,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.21238790062052654,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -212.3879006405774,
+          "meanHoldingMinutes": 90,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.21238790062052654
+        },
+        {
+          "key": "SUI/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.19530426387735322,
+          "beforeFeesPnlUsdt": -0.17547987086524663,
+          "feesUsdt": 0.01982439301210675,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.19530426387735322,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.19530426387735322,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -195.30550521012196,
+          "meanHoldingMinutes": 15,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.19530426387735322
+        },
+        {
+          "key": "TRX/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.07989253414077424,
+          "beforeFeesPnlUsdt": -0.05995248684584552,
+          "feesUsdt": 0.019940047294929847,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.07989253414077424,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.07989253414077424,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -79.89253501249891,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.07989253414077424
+        },
+        {
+          "key": "ZEC/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.01443720892414957,
+          "beforeFeesPnlUsdt": 0.025574173488199486,
+          "feesUsdt": 0.040011382412351304,
+          "profitFactor": 0.8873511722331717,
+          "beforeFeesProfitFactor": 1.2361978025452447,
+          "expectancyUsdt": -0.007218604462074785,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.11372399088907115,
+          "averageLossUsdt": 0.12816119981322072,
+          "breakEvenWinRatePercent": 52.98431021804858,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -7.207986718171121,
+          "meanHoldingMinutes": 37.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.12816119981322072
+        }
+      ],
+      "byExitReason": [
+        {
+          "key": "STOP_LOSS",
+          "closedTrades": 32,
+          "realizedPnlUsdt": -4.014106458421768,
+          "beforeFeesPnlUsdt": -3.377530295034288,
+          "feesUsdt": 0.6365761633874751,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.12544082682568025,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.12544082682568025,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -125.44989833530904,
+          "meanHoldingMinutes": 252.65625,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -4.014106458421768
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "closedTrades": 25,
+          "realizedPnlUsdt": 3.409856187456568,
+          "beforeFeesPnlUsdt": 3.913736708772851,
+          "feesUsdt": 0.5038805213162793,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.13639424749826273,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.13639424749826273,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 136.40078265008611,
+          "meanHoldingMinutes": 267,
+          "top3TradesProfitSharePercent": 33.471000298202355,
+          "realizedPnlWithoutTop3Usdt": 2.2685432127847087
+        }
+      ],
+      "byEntryRsi": [
+        {
+          "key": "45to55",
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.44689945495706107,
+          "beforeFeesPnlUsdt": -0.3272301163942464,
+          "feesUsdt": 0.11966933856281925,
+          "profitFactor": 0.1108850108514312,
+          "beforeFeesProfitFactor": 0.18809526386941663,
+          "expectancyUsdt": -0.07448324249284351,
+          "winRatePercent": 16.666666666666664,
+          "averageWinUsdt": 0.055734580472956104,
+          "averageLossUsdt": 0.10052680708600344,
+          "breakEvenWinRatePercent": 64.33246796050194,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -74.48553322176679,
+          "meanHoldingMinutes": 462.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5026340354300172
+        },
+        {
+          "key": "above55to63",
+          "closedTrades": 20,
+          "realizedPnlUsdt": -0.4774880379136217,
+          "beforeFeesPnlUsdt": -0.07759177435921383,
+          "feesUsdt": 0.39989626355440006,
+          "profitFactor": 0.7099166501747401,
+          "beforeFeesProfitFactor": 0.9463957927607382,
+          "expectancyUsdt": -0.023874401895681085,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.11685493447946602,
+          "averageLossUsdt": 0.1646037382708282,
+          "breakEvenWinRatePercent": 58.48238274642262,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -23.873410846733883,
+          "meanHoldingMinutes": 129,
+          "top3TradesProfitSharePercent": 47.76776617785535,
+          "realizedPnlWithoutTop3Usdt": -1.0356779566079957
+        },
+        {
+          "key": "above63to70",
+          "closedTrades": 31,
+          "realizedPnlUsdt": 0.320137221905483,
+          "beforeFeesPnlUsdt": 0.9410283044920236,
+          "feesUsdt": 0.6208910825865349,
+          "profitFactor": 1.1716153149223762,
+          "beforeFeesProfitFactor": 1.6162610875605472,
+          "expectancyUsdt": 0.010327007158241386,
+          "winRatePercent": 45.16129032258064,
+          "averageWinUsdt": 0.15611230444206797,
+          "averageLossUsdt": 0.10973147295785109,
+          "breakEvenWinRatePercent": 41.27667535839208,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 10.32271728346909,
+          "meanHoldingMinutes": 303.38709677419354,
+          "top3TradesProfitSharePercent": 52.220326658464344,
+          "realizedPnlWithoutTop3Usdt": -0.8211757527663763
+        }
+      ],
+      "byBtcEntryState": [
+        {
+          "key": "allowed",
+          "closedTrades": 57,
+          "realizedPnlUsdt": -0.6042502709652,
+          "beforeFeesPnlUsdt": 0.5362064137385634,
+          "feesUsdt": 1.1404566847037543,
+          "profitFactor": 0.8494682995520817,
+          "beforeFeesProfitFactor": 1.1587569516480443,
+          "expectancyUsdt": -0.010600881946757896,
+          "winRatePercent": 43.859649122807014,
+          "averageWinUsdt": 0.13639424749826273,
+          "averageLossUsdt": 0.12544082682568025,
+          "breakEvenWinRatePercent": 47.90833586736533,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -10.603108429433973,
+          "meanHoldingMinutes": 258.94736842105266,
+          "top3TradesProfitSharePercent": 33.471000298202355,
+          "realizedPnlWithoutTop3Usdt": -1.7455632456370593
+        }
+      ],
+      "assumedCosts": {
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001
+      }
+    },
+    {
+      "universeSize": 30,
+      "scenario": "stress",
+      "summary": {
+        "closedTrades": 33,
+        "realizedPnlUsdt": -2.0130777386419987,
+        "beforeFeesPnlUsdt": -0.6945106891793581,
+        "feesUsdt": 1.3185670494626445,
+        "profitFactor": 0.20459887637914526,
+        "beforeFeesProfitFactor": 0.5954543860685493,
+        "expectancyUsdt": -0.061002355716424206,
+        "winRatePercent": 30.303030303030305,
+        "averageWinUsdt": 0.051781853351561526,
+        "averageLossUsdt": 0.11003896835467887,
+        "breakEvenWinRatePercent": 68.00050030300604,
+        "feeTurnedLosses": 3,
+        "meanNetReturnBps": -61.00449974012366,
+        "meanHoldingMinutes": 307.27272727272725,
+        "top3TradesProfitSharePercent": 65.2127971508026,
+        "realizedPnlWithoutTop3Usdt": -2.3507616885127978
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015
+      }
+    },
+    {
+      "universeSize": 30,
+      "scenario": "fixed-cost-stress",
+      "summary": {
+        "closedTrades": 38,
+        "realizedPnlUsdt": -2.3922995480361213,
+        "beforeFeesPnlUsdt": -0.8740987822423568,
+        "feesUsdt": 1.5182007657937733,
+        "profitFactor": 0.19151518342695445,
+        "beforeFeesProfitFactor": 0.5529540328370663,
+        "expectancyUsdt": -0.06295525126410846,
+        "winRatePercent": 31.57894736842105,
+        "averageWinUsdt": 0.04722431365464442,
+        "averageLossUsdt": 0.1138073581496867,
+        "breakEvenWinRatePercent": 70.67389717469588,
+        "feeTurnedLosses": 1,
+        "meanNetReturnBps": -62.95758664948676,
+        "meanHoldingMinutes": 268.8157894736842,
+        "top3TradesProfitSharePercent": 62.27958351624851,
+        "realizedPnlWithoutTop3Usdt": -2.7452328183863544
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015
+      }
+    },
+    {
+      "universeSize": 50,
+      "scenario": "standard",
+      "summary": {
+        "closedTrades": 56,
+        "realizedPnlUsdt": -0.5921846264430761,
+        "beforeFeesPnlUsdt": 0.5282640038648561,
+        "feesUsdt": 1.1204486303079246,
+        "profitFactor": 0.843621590208108,
+        "beforeFeesProfitFactor": 1.1676991100975376,
+        "expectancyUsdt": -0.010574725472197788,
+        "winRatePercent": 42.857142857142854,
+        "averageWinUsdt": 0.13311186865073577,
+        "averageLossUsdt": 0.11833967106439795,
+        "breakEvenWinRatePercent": 47.06261540432939,
+        "feeTurnedLosses": 0,
+        "meanNetReturnBps": -10.577344312439509,
+        "meanHoldingMinutes": 262.23214285714283,
+        "top3TradesProfitSharePercent": 33.137328184627904,
+        "realizedPnlWithoutTop3Usdt": -1.6508178288627193
+      },
+      "bySymbol": [
+        {
+          "key": "AAVE/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.07244060284959483,
+          "beforeFeesPnlUsdt": 0.11255282817049225,
+          "feesUsdt": 0.040112225320896186,
+          "profitFactor": 1.906733438186847,
+          "beforeFeesProfitFactor": 2.8773834394296993,
+          "expectancyUsdt": 0.036220301424797416,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.15233244294148662,
+          "averageLossUsdt": 0.07989184009189179,
+          "breakEvenWinRatePercent": 34.40287942687228,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 36.22053871014503,
+          "meanHoldingMinutes": 7.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.07989184009189179
+        },
+        {
+          "key": "ACE/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.26796176263512034,
+          "beforeFeesPnlUsdt": -0.24820999291831902,
+          "feesUsdt": 0.019751769716800358,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.26796176263512034,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.26796176263512034,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -267.96203448637357,
+          "meanHoldingMinutes": 255,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.26796176263512034
+        },
+        {
+          "key": "ADA/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.3361758541148627,
+          "beforeFeesPnlUsdt": 0.3565323481547319,
+          "feesUsdt": 0.02035649403986891,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.3361758541148627,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.3361758541148627,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 336.1764980321314,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ALGO/USDT",
+          "closedTrades": 3,
+          "realizedPnlUsdt": 0.6507551287618729,
+          "beforeFeesPnlUsdt": 0.711466595201962,
+          "feesUsdt": 0.06071146644008822,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.21691837625395763,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.21691837625395763,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 216.91837682664496,
+          "meanHoldingMinutes": 265,
+          "top3TradesProfitSharePercent": 100.00000000000003,
+          "realizedPnlWithoutTop3Usdt": -1.1102230246251565e-16
+        },
+        {
+          "key": "ARB/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.11329051724179283,
+          "beforeFeesPnlUsdt": -0.09338391977016318,
+          "feesUsdt": 0.019906597471628935,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.11329051724179283,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.11329051724179283,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -113.29062265079196,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.11329051724179283
+        },
+        {
+          "key": "ASTER/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.2708739204269731,
+          "beforeFeesPnlUsdt": 0.2911640225985113,
+          "feesUsdt": 0.02029010217153706,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.2708739204269731,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.2708739204269731,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 270.88830257855454,
+          "meanHoldingMinutes": 210,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "AVAX/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.2118453597723746,
+          "beforeFeesPnlUsdt": 0.23207743679274473,
+          "feesUsdt": 0.020232077020370387,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.2118453597723746,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.2118453597723746,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 211.84536418323194,
+          "meanHoldingMinutes": 255,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "BASED/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.11851187325200208,
+          "beforeFeesPnlUsdt": -0.09861052120060804,
+          "feesUsdt": 0.01990135205139379,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.11851187325200208,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.11851187325200208,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -118.51209503201454,
+          "meanHoldingMinutes": 0,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.11851187325200208
+        },
+        {
+          "key": "BCH/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.27454877054442894,
+          "beforeFeesPnlUsdt": -0.2548039448493672,
+          "feesUsdt": 0.01974482569506188,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.27454877054442894,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.27454877054442894,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -274.55385473392926,
+          "meanHoldingMinutes": 90,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.27454877054442894
+        },
+        {
+          "key": "BTC/USDT",
+          "closedTrades": 32,
+          "realizedPnlUsdt": -0.8589497242370683,
+          "beforeFeesPnlUsdt": -0.21919270864177526,
+          "feesUsdt": 0.6397570155952942,
+          "profitFactor": 0.5192828938282387,
+          "beforeFeesProfitFactor": 0.8443490518868505,
+          "expectancyUsdt": -0.026842178882408384,
+          "winRatePercent": 40.625,
+          "averageWinUsdt": 0.07137380204062536,
+          "averageLossUsdt": 0.09404258688237883,
+          "breakEvenWinRatePercent": 56.852037149808965,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -26.843437302098252,
+          "meanHoldingMinutes": 380.625,
+          "top3TradesProfitSharePercent": 47.02148963813276,
+          "realizedPnlWithoutTop3Usdt": -1.2952430483384307
+        },
+        {
+          "key": "CHIP/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.41719424085535883,
+          "beforeFeesPnlUsdt": 0.4376312731399529,
+          "feesUsdt": 0.0204370322845941,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.41719424085535883,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.41719424085535883,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 417.2067359581634,
+          "meanHoldingMinutes": 150,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "DOGE/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.040423191447057506,
+          "beforeFeesPnlUsdt": 0.06048367511592141,
+          "feesUsdt": 0.020060483668863427,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.040423191447057506,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.040423191447057506,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 40.42319145969479,
+          "meanHoldingMinutes": 210,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ENS/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.21421006656030023,
+          "beforeFeesPnlUsdt": -0.1944044758249155,
+          "feesUsdt": 0.019805590735383634,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.21421006656030023,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.21421006656030023,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -214.21011785067927,
+          "meanHoldingMinutes": 60,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.21421006656030023
+        },
+        {
+          "key": "HYPE/USDT",
+          "closedTrades": 5,
+          "realizedPnlUsdt": -0.4338621575019243,
+          "beforeFeesPnlUsdt": -0.334235564358241,
+          "feesUsdt": 0.09962659314367746,
+          "profitFactor": 0.14486911102867706,
+          "beforeFeesProfitFactor": 0.218750086209609,
+          "expectancyUsdt": -0.08677243150038486,
+          "winRatePercent": 20,
+          "averageWinUsdt": 0.07350129188047076,
+          "averageLossUsdt": 0.12684086234559877,
+          "breakEvenWinRatePercent": 63.31211862804936,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -86.8024089768774,
+          "meanHoldingMinutes": 36,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5073634493823951
+        },
+        {
+          "key": "NEAR/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.21622830963361134,
+          "beforeFeesPnlUsdt": -0.19642473438842512,
+          "feesUsdt": 0.019803575245184918,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.21622830963361134,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.21622830963361134,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -216.22830985445245,
+          "meanHoldingMinutes": 75,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.21622830963361134
+        },
+        {
+          "key": "TRX/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.07989253414077424,
+          "beforeFeesPnlUsdt": -0.05995248684584552,
+          "feesUsdt": 0.019940047294929847,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.07989253414077424,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.07989253414077424,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -79.89253501249891,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.07989253414077424
+        },
+        {
+          "key": "ZEC/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.01443720892414957,
+          "beforeFeesPnlUsdt": 0.025574173488199486,
+          "feesUsdt": 0.040011382412351304,
+          "profitFactor": 0.8873511722331717,
+          "beforeFeesProfitFactor": 1.2361978025452447,
+          "expectancyUsdt": -0.007218604462074785,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.11372399088907115,
+          "averageLossUsdt": 0.12816119981322072,
+          "breakEvenWinRatePercent": 52.98431021804858,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -7.207986718171121,
+          "meanHoldingMinutes": 37.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.12816119981322072
+        }
+      ],
+      "byExitReason": [
+        {
+          "key": "STOP_LOSS",
+          "closedTrades": 32,
+          "realizedPnlUsdt": -3.7868694740607345,
+          "beforeFeesPnlUsdt": -3.150070406203147,
+          "feesUsdt": 0.6367990678575817,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.11833967106439795,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.11833967106439795,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -118.34879519902357,
+          "meanHoldingMinutes": 239.0625,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -3.7868694740607345
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "closedTrades": 24,
+          "realizedPnlUsdt": 3.1946848476176584,
+          "beforeFeesPnlUsdt": 3.6783344100680035,
+          "feesUsdt": 0.4836495624503429,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.13311186865073577,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.13311186865073577,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 133.11792353633922,
+          "meanHoldingMinutes": 293.125,
+          "top3TradesProfitSharePercent": 33.137328184627904,
+          "realizedPnlWithoutTop3Usdt": 2.136051645198015
+        }
+      ],
+      "byEntryRsi": [
+        {
+          "key": "45to55",
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.44689945495706107,
+          "beforeFeesPnlUsdt": -0.3272301163942464,
+          "feesUsdt": 0.11966933856281925,
+          "profitFactor": 0.1108850108514312,
+          "beforeFeesProfitFactor": 0.18809526386941663,
+          "expectancyUsdt": -0.07448324249284351,
+          "winRatePercent": 16.666666666666664,
+          "averageWinUsdt": 0.055734580472956104,
+          "averageLossUsdt": 0.10052680708600344,
+          "breakEvenWinRatePercent": 64.33246796050194,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -74.48553322176679,
+          "meanHoldingMinutes": 462.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5026340354300172
+        },
+        {
+          "key": "above55to63",
+          "closedTrades": 17,
+          "realizedPnlUsdt": -0.042941178092497756,
+          "beforeFeesPnlUsdt": 0.2973342010282244,
+          "feesUsdt": 0.34027537912071704,
+          "profitFactor": 0.9633799975268444,
+          "beforeFeesProfitFactor": 1.29333373783626,
+          "expectancyUsdt": -0.002525951652499868,
+          "winRatePercent": 52.94117647058824,
+          "averageWinUsdt": 0.12551935569722128,
+          "averageLossUsdt": 0.14657692242093615,
+          "breakEvenWinRatePercent": 53.86950657123114,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -2.5256217290551244,
+          "meanHoldingMinutes": 127.05882352941177,
+          "top3TradesProfitSharePercent": 57.16043245368818,
+          "realizedPnlWithoutTop3Usdt": -0.6886678368590307
+        },
+        {
+          "key": "above63to70",
+          "closedTrades": 33,
+          "realizedPnlUsdt": -0.10234399339351885,
+          "beforeFeesPnlUsdt": 0.5581599192308786,
+          "feesUsdt": 0.6605039126243883,
+          "profitFactor": 0.951532950757615,
+          "beforeFeesProfitFactor": 1.3220043570268918,
+          "expectancyUsdt": -0.003101333133136935,
+          "winRatePercent": 42.42424242424242,
+          "averageWinUsdt": 0.14351971899069357,
+          "averageLossUsdt": 0.11113789785595941,
+          "breakEvenWinRatePercent": 43.64208666999473,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -3.1055306900628628,
+          "meanHoldingMinutes": 295.45454545454544,
+          "top3TradesProfitSharePercent": 52.687294712855525,
+          "realizedPnlWithoutTop3Usdt": -1.160977195813162
+        }
+      ],
+      "byBtcEntryState": [
+        {
+          "key": "allowed",
+          "closedTrades": 56,
+          "realizedPnlUsdt": -0.5921846264430761,
+          "beforeFeesPnlUsdt": 0.5282640038648561,
+          "feesUsdt": 1.1204486303079246,
+          "profitFactor": 0.843621590208108,
+          "beforeFeesProfitFactor": 1.1676991100975376,
+          "expectancyUsdt": -0.010574725472197788,
+          "winRatePercent": 42.857142857142854,
+          "averageWinUsdt": 0.13311186865073577,
+          "averageLossUsdt": 0.11833967106439795,
+          "breakEvenWinRatePercent": 47.06261540432939,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -10.577344312439509,
+          "meanHoldingMinutes": 262.23214285714283,
+          "top3TradesProfitSharePercent": 33.137328184627904,
+          "realizedPnlWithoutTop3Usdt": -1.6508178288627193
+        }
+      ],
+      "assumedCosts": {
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001
+      }
+    },
+    {
+      "universeSize": 50,
+      "scenario": "stress",
+      "summary": {
+        "closedTrades": 33,
+        "realizedPnlUsdt": -2.0130777386419987,
+        "beforeFeesPnlUsdt": -0.6945106891793581,
+        "feesUsdt": 1.3185670494626445,
+        "profitFactor": 0.20459887637914526,
+        "beforeFeesProfitFactor": 0.5954543860685493,
+        "expectancyUsdt": -0.061002355716424206,
+        "winRatePercent": 30.303030303030305,
+        "averageWinUsdt": 0.051781853351561526,
+        "averageLossUsdt": 0.11003896835467887,
+        "breakEvenWinRatePercent": 68.00050030300604,
+        "feeTurnedLosses": 3,
+        "meanNetReturnBps": -61.00449974012366,
+        "meanHoldingMinutes": 307.27272727272725,
+        "top3TradesProfitSharePercent": 65.2127971508026,
+        "realizedPnlWithoutTop3Usdt": -2.3507616885127978
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015
+      }
+    },
+    {
+      "universeSize": 50,
+      "scenario": "fixed-cost-stress",
+      "summary": {
+        "closedTrades": 38,
+        "realizedPnlUsdt": -2.3922995480361213,
+        "beforeFeesPnlUsdt": -0.8740987822423568,
+        "feesUsdt": 1.5182007657937733,
+        "profitFactor": 0.19151518342695445,
+        "beforeFeesProfitFactor": 0.5529540328370663,
+        "expectancyUsdt": -0.06295525126410846,
+        "winRatePercent": 31.57894736842105,
+        "averageWinUsdt": 0.04722431365464442,
+        "averageLossUsdt": 0.1138073581496867,
+        "breakEvenWinRatePercent": 70.67389717469588,
+        "feeTurnedLosses": 1,
+        "meanNetReturnBps": -62.95758664948676,
+        "meanHoldingMinutes": 268.8157894736842,
+        "top3TradesProfitSharePercent": 62.27958351624851,
+        "realizedPnlWithoutTop3Usdt": -2.7452328183863544
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015
+      }
+    },
+    {
+      "universeSize": 100,
+      "scenario": "standard",
+      "summary": {
+        "closedTrades": 56,
+        "realizedPnlUsdt": -0.5921846264430761,
+        "beforeFeesPnlUsdt": 0.5282640038648561,
+        "feesUsdt": 1.1204486303079246,
+        "profitFactor": 0.843621590208108,
+        "beforeFeesProfitFactor": 1.1676991100975376,
+        "expectancyUsdt": -0.010574725472197788,
+        "winRatePercent": 42.857142857142854,
+        "averageWinUsdt": 0.13311186865073577,
+        "averageLossUsdt": 0.11833967106439795,
+        "breakEvenWinRatePercent": 47.06261540432939,
+        "feeTurnedLosses": 0,
+        "meanNetReturnBps": -10.577344312439509,
+        "meanHoldingMinutes": 262.23214285714283,
+        "top3TradesProfitSharePercent": 33.137328184627904,
+        "realizedPnlWithoutTop3Usdt": -1.6508178288627193
+      },
+      "bySymbol": [
+        {
+          "key": "AAVE/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.07244060284959483,
+          "beforeFeesPnlUsdt": 0.11255282817049225,
+          "feesUsdt": 0.040112225320896186,
+          "profitFactor": 1.906733438186847,
+          "beforeFeesProfitFactor": 2.8773834394296993,
+          "expectancyUsdt": 0.036220301424797416,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.15233244294148662,
+          "averageLossUsdt": 0.07989184009189179,
+          "breakEvenWinRatePercent": 34.40287942687228,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 36.22053871014503,
+          "meanHoldingMinutes": 7.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.07989184009189179
+        },
+        {
+          "key": "ACE/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.26796176263512034,
+          "beforeFeesPnlUsdt": -0.24820999291831902,
+          "feesUsdt": 0.019751769716800358,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.26796176263512034,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.26796176263512034,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -267.96203448637357,
+          "meanHoldingMinutes": 255,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.26796176263512034
+        },
+        {
+          "key": "ADA/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.3361758541148627,
+          "beforeFeesPnlUsdt": 0.3565323481547319,
+          "feesUsdt": 0.02035649403986891,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.3361758541148627,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.3361758541148627,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 336.1764980321314,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ALGO/USDT",
+          "closedTrades": 3,
+          "realizedPnlUsdt": 0.6507551287618729,
+          "beforeFeesPnlUsdt": 0.711466595201962,
+          "feesUsdt": 0.06071146644008822,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.21691837625395763,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.21691837625395763,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 216.91837682664496,
+          "meanHoldingMinutes": 265,
+          "top3TradesProfitSharePercent": 100.00000000000003,
+          "realizedPnlWithoutTop3Usdt": -1.1102230246251565e-16
+        },
+        {
+          "key": "ARB/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.11329051724179283,
+          "beforeFeesPnlUsdt": -0.09338391977016318,
+          "feesUsdt": 0.019906597471628935,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.11329051724179283,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.11329051724179283,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -113.29062265079196,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.11329051724179283
+        },
+        {
+          "key": "ASTER/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.2708739204269731,
+          "beforeFeesPnlUsdt": 0.2911640225985113,
+          "feesUsdt": 0.02029010217153706,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.2708739204269731,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.2708739204269731,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 270.88830257855454,
+          "meanHoldingMinutes": 210,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "AVAX/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.2118453597723746,
+          "beforeFeesPnlUsdt": 0.23207743679274473,
+          "feesUsdt": 0.020232077020370387,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.2118453597723746,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.2118453597723746,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 211.84536418323194,
+          "meanHoldingMinutes": 255,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "BASED/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.11851187325200208,
+          "beforeFeesPnlUsdt": -0.09861052120060804,
+          "feesUsdt": 0.01990135205139379,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.11851187325200208,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.11851187325200208,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -118.51209503201454,
+          "meanHoldingMinutes": 0,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.11851187325200208
+        },
+        {
+          "key": "BCH/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.27454877054442894,
+          "beforeFeesPnlUsdt": -0.2548039448493672,
+          "feesUsdt": 0.01974482569506188,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.27454877054442894,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.27454877054442894,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -274.55385473392926,
+          "meanHoldingMinutes": 90,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.27454877054442894
+        },
+        {
+          "key": "BTC/USDT",
+          "closedTrades": 32,
+          "realizedPnlUsdt": -0.8589497242370683,
+          "beforeFeesPnlUsdt": -0.21919270864177526,
+          "feesUsdt": 0.6397570155952942,
+          "profitFactor": 0.5192828938282387,
+          "beforeFeesProfitFactor": 0.8443490518868505,
+          "expectancyUsdt": -0.026842178882408384,
+          "winRatePercent": 40.625,
+          "averageWinUsdt": 0.07137380204062536,
+          "averageLossUsdt": 0.09404258688237883,
+          "breakEvenWinRatePercent": 56.852037149808965,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -26.843437302098252,
+          "meanHoldingMinutes": 380.625,
+          "top3TradesProfitSharePercent": 47.02148963813276,
+          "realizedPnlWithoutTop3Usdt": -1.2952430483384307
+        },
+        {
+          "key": "CHIP/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.41719424085535883,
+          "beforeFeesPnlUsdt": 0.4376312731399529,
+          "feesUsdt": 0.0204370322845941,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.41719424085535883,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.41719424085535883,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 417.2067359581634,
+          "meanHoldingMinutes": 150,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "DOGE/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.040423191447057506,
+          "beforeFeesPnlUsdt": 0.06048367511592141,
+          "feesUsdt": 0.020060483668863427,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.040423191447057506,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.040423191447057506,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 40.42319145969479,
+          "meanHoldingMinutes": 210,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ENS/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.21421006656030023,
+          "beforeFeesPnlUsdt": -0.1944044758249155,
+          "feesUsdt": 0.019805590735383634,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.21421006656030023,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.21421006656030023,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -214.21011785067927,
+          "meanHoldingMinutes": 60,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.21421006656030023
+        },
+        {
+          "key": "HYPE/USDT",
+          "closedTrades": 5,
+          "realizedPnlUsdt": -0.4338621575019243,
+          "beforeFeesPnlUsdt": -0.334235564358241,
+          "feesUsdt": 0.09962659314367746,
+          "profitFactor": 0.14486911102867706,
+          "beforeFeesProfitFactor": 0.218750086209609,
+          "expectancyUsdt": -0.08677243150038486,
+          "winRatePercent": 20,
+          "averageWinUsdt": 0.07350129188047076,
+          "averageLossUsdt": 0.12684086234559877,
+          "breakEvenWinRatePercent": 63.31211862804936,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -86.8024089768774,
+          "meanHoldingMinutes": 36,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5073634493823951
+        },
+        {
+          "key": "NEAR/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.21622830963361134,
+          "beforeFeesPnlUsdt": -0.19642473438842512,
+          "feesUsdt": 0.019803575245184918,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.21622830963361134,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.21622830963361134,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -216.22830985445245,
+          "meanHoldingMinutes": 75,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.21622830963361134
+        },
+        {
+          "key": "TRX/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.07989253414077424,
+          "beforeFeesPnlUsdt": -0.05995248684584552,
+          "feesUsdt": 0.019940047294929847,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.07989253414077424,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.07989253414077424,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -79.89253501249891,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.07989253414077424
+        },
+        {
+          "key": "ZEC/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.01443720892414957,
+          "beforeFeesPnlUsdt": 0.025574173488199486,
+          "feesUsdt": 0.040011382412351304,
+          "profitFactor": 0.8873511722331717,
+          "beforeFeesProfitFactor": 1.2361978025452447,
+          "expectancyUsdt": -0.007218604462074785,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.11372399088907115,
+          "averageLossUsdt": 0.12816119981322072,
+          "breakEvenWinRatePercent": 52.98431021804858,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -7.207986718171121,
+          "meanHoldingMinutes": 37.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.12816119981322072
+        }
+      ],
+      "byExitReason": [
+        {
+          "key": "STOP_LOSS",
+          "closedTrades": 32,
+          "realizedPnlUsdt": -3.7868694740607345,
+          "beforeFeesPnlUsdt": -3.150070406203147,
+          "feesUsdt": 0.6367990678575817,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.11833967106439795,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.11833967106439795,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -118.34879519902357,
+          "meanHoldingMinutes": 239.0625,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -3.7868694740607345
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "closedTrades": 24,
+          "realizedPnlUsdt": 3.1946848476176584,
+          "beforeFeesPnlUsdt": 3.6783344100680035,
+          "feesUsdt": 0.4836495624503429,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.13311186865073577,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.13311186865073577,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 133.11792353633922,
+          "meanHoldingMinutes": 293.125,
+          "top3TradesProfitSharePercent": 33.137328184627904,
+          "realizedPnlWithoutTop3Usdt": 2.136051645198015
+        }
+      ],
+      "byEntryRsi": [
+        {
+          "key": "45to55",
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.44689945495706107,
+          "beforeFeesPnlUsdt": -0.3272301163942464,
+          "feesUsdt": 0.11966933856281925,
+          "profitFactor": 0.1108850108514312,
+          "beforeFeesProfitFactor": 0.18809526386941663,
+          "expectancyUsdt": -0.07448324249284351,
+          "winRatePercent": 16.666666666666664,
+          "averageWinUsdt": 0.055734580472956104,
+          "averageLossUsdt": 0.10052680708600344,
+          "breakEvenWinRatePercent": 64.33246796050194,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -74.48553322176679,
+          "meanHoldingMinutes": 462.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5026340354300172
+        },
+        {
+          "key": "above55to63",
+          "closedTrades": 17,
+          "realizedPnlUsdt": -0.042941178092497756,
+          "beforeFeesPnlUsdt": 0.2973342010282244,
+          "feesUsdt": 0.34027537912071704,
+          "profitFactor": 0.9633799975268444,
+          "beforeFeesProfitFactor": 1.29333373783626,
+          "expectancyUsdt": -0.002525951652499868,
+          "winRatePercent": 52.94117647058824,
+          "averageWinUsdt": 0.12551935569722128,
+          "averageLossUsdt": 0.14657692242093615,
+          "breakEvenWinRatePercent": 53.86950657123114,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -2.5256217290551244,
+          "meanHoldingMinutes": 127.05882352941177,
+          "top3TradesProfitSharePercent": 57.16043245368818,
+          "realizedPnlWithoutTop3Usdt": -0.6886678368590307
+        },
+        {
+          "key": "above63to70",
+          "closedTrades": 33,
+          "realizedPnlUsdt": -0.10234399339351885,
+          "beforeFeesPnlUsdt": 0.5581599192308786,
+          "feesUsdt": 0.6605039126243883,
+          "profitFactor": 0.951532950757615,
+          "beforeFeesProfitFactor": 1.3220043570268918,
+          "expectancyUsdt": -0.003101333133136935,
+          "winRatePercent": 42.42424242424242,
+          "averageWinUsdt": 0.14351971899069357,
+          "averageLossUsdt": 0.11113789785595941,
+          "breakEvenWinRatePercent": 43.64208666999473,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -3.1055306900628628,
+          "meanHoldingMinutes": 295.45454545454544,
+          "top3TradesProfitSharePercent": 52.687294712855525,
+          "realizedPnlWithoutTop3Usdt": -1.160977195813162
+        }
+      ],
+      "byBtcEntryState": [
+        {
+          "key": "allowed",
+          "closedTrades": 56,
+          "realizedPnlUsdt": -0.5921846264430761,
+          "beforeFeesPnlUsdt": 0.5282640038648561,
+          "feesUsdt": 1.1204486303079246,
+          "profitFactor": 0.843621590208108,
+          "beforeFeesProfitFactor": 1.1676991100975376,
+          "expectancyUsdt": -0.010574725472197788,
+          "winRatePercent": 42.857142857142854,
+          "averageWinUsdt": 0.13311186865073577,
+          "averageLossUsdt": 0.11833967106439795,
+          "breakEvenWinRatePercent": 47.06261540432939,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -10.577344312439509,
+          "meanHoldingMinutes": 262.23214285714283,
+          "top3TradesProfitSharePercent": 33.137328184627904,
+          "realizedPnlWithoutTop3Usdt": -1.6508178288627193
+        }
+      ],
+      "assumedCosts": {
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001
+      }
+    },
+    {
+      "universeSize": 100,
+      "scenario": "stress",
+      "summary": {
+        "closedTrades": 33,
+        "realizedPnlUsdt": -2.0130777386419987,
+        "beforeFeesPnlUsdt": -0.6945106891793581,
+        "feesUsdt": 1.3185670494626445,
+        "profitFactor": 0.20459887637914526,
+        "beforeFeesProfitFactor": 0.5954543860685493,
+        "expectancyUsdt": -0.061002355716424206,
+        "winRatePercent": 30.303030303030305,
+        "averageWinUsdt": 0.051781853351561526,
+        "averageLossUsdt": 0.11003896835467887,
+        "breakEvenWinRatePercent": 68.00050030300604,
+        "feeTurnedLosses": 3,
+        "meanNetReturnBps": -61.00449974012366,
+        "meanHoldingMinutes": 307.27272727272725,
+        "top3TradesProfitSharePercent": 65.2127971508026,
+        "realizedPnlWithoutTop3Usdt": -2.3507616885127978
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015
+      }
+    },
+    {
+      "universeSize": 100,
+      "scenario": "fixed-cost-stress",
+      "summary": {
+        "closedTrades": 38,
+        "realizedPnlUsdt": -2.3922995480361213,
+        "beforeFeesPnlUsdt": -0.8740987822423568,
+        "feesUsdt": 1.5182007657937733,
+        "profitFactor": 0.19151518342695445,
+        "beforeFeesProfitFactor": 0.5529540328370663,
+        "expectancyUsdt": -0.06295525126410846,
+        "winRatePercent": 31.57894736842105,
+        "averageWinUsdt": 0.04722431365464442,
+        "averageLossUsdt": 0.1138073581496867,
+        "breakEvenWinRatePercent": 70.67389717469588,
+        "feeTurnedLosses": 1,
+        "meanNetReturnBps": -62.95758664948676,
+        "meanHoldingMinutes": 268.8157894736842,
+        "top3TradesProfitSharePercent": 62.27958351624851,
+        "realizedPnlWithoutTop3Usdt": -2.7452328183863544
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015
+      }
+    },
+    {
+      "universeSize": 0,
+      "scenario": "standard",
+      "summary": {
+        "closedTrades": 56,
+        "realizedPnlUsdt": -0.5921846264430761,
+        "beforeFeesPnlUsdt": 0.5282640038648561,
+        "feesUsdt": 1.1204486303079246,
+        "profitFactor": 0.843621590208108,
+        "beforeFeesProfitFactor": 1.1676991100975376,
+        "expectancyUsdt": -0.010574725472197788,
+        "winRatePercent": 42.857142857142854,
+        "averageWinUsdt": 0.13311186865073577,
+        "averageLossUsdt": 0.11833967106439795,
+        "breakEvenWinRatePercent": 47.06261540432939,
+        "feeTurnedLosses": 0,
+        "meanNetReturnBps": -10.577344312439509,
+        "meanHoldingMinutes": 262.23214285714283,
+        "top3TradesProfitSharePercent": 33.137328184627904,
+        "realizedPnlWithoutTop3Usdt": -1.6508178288627193
+      },
+      "bySymbol": [
+        {
+          "key": "AAVE/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.07244060284959483,
+          "beforeFeesPnlUsdt": 0.11255282817049225,
+          "feesUsdt": 0.040112225320896186,
+          "profitFactor": 1.906733438186847,
+          "beforeFeesProfitFactor": 2.8773834394296993,
+          "expectancyUsdt": 0.036220301424797416,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.15233244294148662,
+          "averageLossUsdt": 0.07989184009189179,
+          "breakEvenWinRatePercent": 34.40287942687228,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 36.22053871014503,
+          "meanHoldingMinutes": 7.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.07989184009189179
+        },
+        {
+          "key": "ACE/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.26796176263512034,
+          "beforeFeesPnlUsdt": -0.24820999291831902,
+          "feesUsdt": 0.019751769716800358,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.26796176263512034,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.26796176263512034,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -267.96203448637357,
+          "meanHoldingMinutes": 255,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.26796176263512034
+        },
+        {
+          "key": "ADA/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.3361758541148627,
+          "beforeFeesPnlUsdt": 0.3565323481547319,
+          "feesUsdt": 0.02035649403986891,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.3361758541148627,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.3361758541148627,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 336.1764980321314,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ALGO/USDT",
+          "closedTrades": 3,
+          "realizedPnlUsdt": 0.6507551287618729,
+          "beforeFeesPnlUsdt": 0.711466595201962,
+          "feesUsdt": 0.06071146644008822,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.21691837625395763,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.21691837625395763,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 216.91837682664496,
+          "meanHoldingMinutes": 265,
+          "top3TradesProfitSharePercent": 100.00000000000003,
+          "realizedPnlWithoutTop3Usdt": -1.1102230246251565e-16
+        },
+        {
+          "key": "ARB/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.11329051724179283,
+          "beforeFeesPnlUsdt": -0.09338391977016318,
+          "feesUsdt": 0.019906597471628935,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.11329051724179283,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.11329051724179283,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -113.29062265079196,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.11329051724179283
+        },
+        {
+          "key": "ASTER/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.2708739204269731,
+          "beforeFeesPnlUsdt": 0.2911640225985113,
+          "feesUsdt": 0.02029010217153706,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.2708739204269731,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.2708739204269731,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 270.88830257855454,
+          "meanHoldingMinutes": 210,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "AVAX/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.2118453597723746,
+          "beforeFeesPnlUsdt": 0.23207743679274473,
+          "feesUsdt": 0.020232077020370387,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.2118453597723746,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.2118453597723746,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 211.84536418323194,
+          "meanHoldingMinutes": 255,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "BASED/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.11851187325200208,
+          "beforeFeesPnlUsdt": -0.09861052120060804,
+          "feesUsdt": 0.01990135205139379,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.11851187325200208,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.11851187325200208,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -118.51209503201454,
+          "meanHoldingMinutes": 0,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.11851187325200208
+        },
+        {
+          "key": "BCH/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.27454877054442894,
+          "beforeFeesPnlUsdt": -0.2548039448493672,
+          "feesUsdt": 0.01974482569506188,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.27454877054442894,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.27454877054442894,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -274.55385473392926,
+          "meanHoldingMinutes": 90,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.27454877054442894
+        },
+        {
+          "key": "BTC/USDT",
+          "closedTrades": 32,
+          "realizedPnlUsdt": -0.8589497242370683,
+          "beforeFeesPnlUsdt": -0.21919270864177526,
+          "feesUsdt": 0.6397570155952942,
+          "profitFactor": 0.5192828938282387,
+          "beforeFeesProfitFactor": 0.8443490518868505,
+          "expectancyUsdt": -0.026842178882408384,
+          "winRatePercent": 40.625,
+          "averageWinUsdt": 0.07137380204062536,
+          "averageLossUsdt": 0.09404258688237883,
+          "breakEvenWinRatePercent": 56.852037149808965,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -26.843437302098252,
+          "meanHoldingMinutes": 380.625,
+          "top3TradesProfitSharePercent": 47.02148963813276,
+          "realizedPnlWithoutTop3Usdt": -1.2952430483384307
+        },
+        {
+          "key": "CHIP/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.41719424085535883,
+          "beforeFeesPnlUsdt": 0.4376312731399529,
+          "feesUsdt": 0.0204370322845941,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.41719424085535883,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.41719424085535883,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 417.2067359581634,
+          "meanHoldingMinutes": 150,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "DOGE/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.040423191447057506,
+          "beforeFeesPnlUsdt": 0.06048367511592141,
+          "feesUsdt": 0.020060483668863427,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.040423191447057506,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.040423191447057506,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 40.42319145969479,
+          "meanHoldingMinutes": 210,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0
+        },
+        {
+          "key": "ENS/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.21421006656030023,
+          "beforeFeesPnlUsdt": -0.1944044758249155,
+          "feesUsdt": 0.019805590735383634,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.21421006656030023,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.21421006656030023,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -214.21011785067927,
+          "meanHoldingMinutes": 60,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.21421006656030023
+        },
+        {
+          "key": "HYPE/USDT",
+          "closedTrades": 5,
+          "realizedPnlUsdt": -0.4338621575019243,
+          "beforeFeesPnlUsdt": -0.334235564358241,
+          "feesUsdt": 0.09962659314367746,
+          "profitFactor": 0.14486911102867706,
+          "beforeFeesProfitFactor": 0.218750086209609,
+          "expectancyUsdt": -0.08677243150038486,
+          "winRatePercent": 20,
+          "averageWinUsdt": 0.07350129188047076,
+          "averageLossUsdt": 0.12684086234559877,
+          "breakEvenWinRatePercent": 63.31211862804936,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -86.8024089768774,
+          "meanHoldingMinutes": 36,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5073634493823951
+        },
+        {
+          "key": "NEAR/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.21622830963361134,
+          "beforeFeesPnlUsdt": -0.19642473438842512,
+          "feesUsdt": 0.019803575245184918,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.21622830963361134,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.21622830963361134,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -216.22830985445245,
+          "meanHoldingMinutes": 75,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.21622830963361134
+        },
+        {
+          "key": "TRX/USDT",
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.07989253414077424,
+          "beforeFeesPnlUsdt": -0.05995248684584552,
+          "feesUsdt": 0.019940047294929847,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.07989253414077424,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.07989253414077424,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -79.89253501249891,
+          "meanHoldingMinutes": 45,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.07989253414077424
+        },
+        {
+          "key": "ZEC/USDT",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.01443720892414957,
+          "beforeFeesPnlUsdt": 0.025574173488199486,
+          "feesUsdt": 0.040011382412351304,
+          "profitFactor": 0.8873511722331717,
+          "beforeFeesProfitFactor": 1.2361978025452447,
+          "expectancyUsdt": -0.007218604462074785,
+          "winRatePercent": 50,
+          "averageWinUsdt": 0.11372399088907115,
+          "averageLossUsdt": 0.12816119981322072,
+          "breakEvenWinRatePercent": 52.98431021804858,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -7.207986718171121,
+          "meanHoldingMinutes": 37.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.12816119981322072
+        }
+      ],
+      "byExitReason": [
+        {
+          "key": "STOP_LOSS",
+          "closedTrades": 32,
+          "realizedPnlUsdt": -3.7868694740607345,
+          "beforeFeesPnlUsdt": -3.150070406203147,
+          "feesUsdt": 0.6367990678575817,
+          "profitFactor": 0,
+          "beforeFeesProfitFactor": 0,
+          "expectancyUsdt": -0.11833967106439795,
+          "winRatePercent": 0,
+          "averageWinUsdt": null,
+          "averageLossUsdt": 0.11833967106439795,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -118.34879519902357,
+          "meanHoldingMinutes": 239.0625,
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -3.7868694740607345
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "closedTrades": 24,
+          "realizedPnlUsdt": 3.1946848476176584,
+          "beforeFeesPnlUsdt": 3.6783344100680035,
+          "feesUsdt": 0.4836495624503429,
+          "profitFactor": null,
+          "beforeFeesProfitFactor": null,
+          "expectancyUsdt": 0.13311186865073577,
+          "winRatePercent": 100,
+          "averageWinUsdt": 0.13311186865073577,
+          "averageLossUsdt": null,
+          "breakEvenWinRatePercent": null,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": 133.11792353633922,
+          "meanHoldingMinutes": 293.125,
+          "top3TradesProfitSharePercent": 33.137328184627904,
+          "realizedPnlWithoutTop3Usdt": 2.136051645198015
+        }
+      ],
+      "byEntryRsi": [
+        {
+          "key": "45to55",
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.44689945495706107,
+          "beforeFeesPnlUsdt": -0.3272301163942464,
+          "feesUsdt": 0.11966933856281925,
+          "profitFactor": 0.1108850108514312,
+          "beforeFeesProfitFactor": 0.18809526386941663,
+          "expectancyUsdt": -0.07448324249284351,
+          "winRatePercent": 16.666666666666664,
+          "averageWinUsdt": 0.055734580472956104,
+          "averageLossUsdt": 0.10052680708600344,
+          "breakEvenWinRatePercent": 64.33246796050194,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -74.48553322176679,
+          "meanHoldingMinutes": 462.5,
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5026340354300172
+        },
+        {
+          "key": "above55to63",
+          "closedTrades": 17,
+          "realizedPnlUsdt": -0.042941178092497756,
+          "beforeFeesPnlUsdt": 0.2973342010282244,
+          "feesUsdt": 0.34027537912071704,
+          "profitFactor": 0.9633799975268444,
+          "beforeFeesProfitFactor": 1.29333373783626,
+          "expectancyUsdt": -0.002525951652499868,
+          "winRatePercent": 52.94117647058824,
+          "averageWinUsdt": 0.12551935569722128,
+          "averageLossUsdt": 0.14657692242093615,
+          "breakEvenWinRatePercent": 53.86950657123114,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -2.5256217290551244,
+          "meanHoldingMinutes": 127.05882352941177,
+          "top3TradesProfitSharePercent": 57.16043245368818,
+          "realizedPnlWithoutTop3Usdt": -0.6886678368590307
+        },
+        {
+          "key": "above63to70",
+          "closedTrades": 33,
+          "realizedPnlUsdt": -0.10234399339351885,
+          "beforeFeesPnlUsdt": 0.5581599192308786,
+          "feesUsdt": 0.6605039126243883,
+          "profitFactor": 0.951532950757615,
+          "beforeFeesProfitFactor": 1.3220043570268918,
+          "expectancyUsdt": -0.003101333133136935,
+          "winRatePercent": 42.42424242424242,
+          "averageWinUsdt": 0.14351971899069357,
+          "averageLossUsdt": 0.11113789785595941,
+          "breakEvenWinRatePercent": 43.64208666999473,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -3.1055306900628628,
+          "meanHoldingMinutes": 295.45454545454544,
+          "top3TradesProfitSharePercent": 52.687294712855525,
+          "realizedPnlWithoutTop3Usdt": -1.160977195813162
+        }
+      ],
+      "byBtcEntryState": [
+        {
+          "key": "allowed",
+          "closedTrades": 56,
+          "realizedPnlUsdt": -0.5921846264430761,
+          "beforeFeesPnlUsdt": 0.5282640038648561,
+          "feesUsdt": 1.1204486303079246,
+          "profitFactor": 0.843621590208108,
+          "beforeFeesProfitFactor": 1.1676991100975376,
+          "expectancyUsdt": -0.010574725472197788,
+          "winRatePercent": 42.857142857142854,
+          "averageWinUsdt": 0.13311186865073577,
+          "averageLossUsdt": 0.11833967106439795,
+          "breakEvenWinRatePercent": 47.06261540432939,
+          "feeTurnedLosses": 0,
+          "meanNetReturnBps": -10.577344312439509,
+          "meanHoldingMinutes": 262.23214285714283,
+          "top3TradesProfitSharePercent": 33.137328184627904,
+          "realizedPnlWithoutTop3Usdt": -1.6508178288627193
+        }
+      ],
+      "assumedCosts": {
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001
+      }
+    },
+    {
+      "universeSize": 0,
+      "scenario": "stress",
+      "summary": {
+        "closedTrades": 33,
+        "realizedPnlUsdt": -2.0130777386419987,
+        "beforeFeesPnlUsdt": -0.6945106891793581,
+        "feesUsdt": 1.3185670494626445,
+        "profitFactor": 0.20459887637914526,
+        "beforeFeesProfitFactor": 0.5954543860685493,
+        "expectancyUsdt": -0.061002355716424206,
+        "winRatePercent": 30.303030303030305,
+        "averageWinUsdt": 0.051781853351561526,
+        "averageLossUsdt": 0.11003896835467887,
+        "breakEvenWinRatePercent": 68.00050030300604,
+        "feeTurnedLosses": 3,
+        "meanNetReturnBps": -61.00449974012366,
+        "meanHoldingMinutes": 307.27272727272725,
+        "top3TradesProfitSharePercent": 65.2127971508026,
+        "realizedPnlWithoutTop3Usdt": -2.3507616885127978
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015
+      }
+    },
+    {
+      "universeSize": 0,
+      "scenario": "fixed-cost-stress",
+      "summary": {
+        "closedTrades": 38,
+        "realizedPnlUsdt": -2.3922995480361213,
+        "beforeFeesPnlUsdt": -0.8740987822423568,
+        "feesUsdt": 1.5182007657937733,
+        "profitFactor": 0.19151518342695445,
+        "beforeFeesProfitFactor": 0.5529540328370663,
+        "expectancyUsdt": -0.06295525126410846,
+        "winRatePercent": 31.57894736842105,
+        "averageWinUsdt": 0.04722431365464442,
+        "averageLossUsdt": 0.1138073581496867,
+        "breakEvenWinRatePercent": 70.67389717469588,
+        "feeTurnedLosses": 1,
+        "meanNetReturnBps": -62.95758664948676,
+        "meanHoldingMinutes": 268.8157894736842,
+        "top3TradesProfitSharePercent": 62.27958351624851,
+        "realizedPnlWithoutTop3Usdt": -2.7452328183863544
+      },
+      "assumedCosts": {
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015
+      }
+    }
+  ],
+  "limitations": [
+    "Each scenario/universe/variant is diagnosed separately. Repeated trades across runs are not pooled as independent observations.",
+    "This reuses already inspected historical data for explanation, not a new independent holdout or a parameter search. Costs and fills remain simulated.",
+    "Complete closed-trade ledgers are required. Older aggregate-only reports must be reproduced from their frozen datasets; top winners alone cannot reconstruct losses.",
+    "Standard-scenario groups retained for all universe sizes; other scenarios retain totals. No pooling across scenarios/universe sizes.",
+    "Current account fees, live settings and Paper/Demo equivalence remain unverified; these are the historical manifest assumptions.",
+    "Input report hash includes runtime-dependent duration; frozen dataset and manifest hashes identify the reusable market source."
+  ],
+  "study": {
+    "endExclusiveUtc": "2026-08-31T00:00:00Z",
+    "days": 30,
+    "warmupCandles": 672,
+    "candleLimit": 100,
+    "sizes": [
+      15,
+      30,
+      50,
+      100,
+      0
+    ],
+    "fixedSymbols": [
+      "BTC/USDT"
+    ],
+    "minDailyQuoteVolumeUsdt": 1000000,
+    "initialBalanceUsdt": 100,
+    "tradeSizeUsdt": 10,
+    "portfolio": {
+      "maxConcurrentPositions": 10,
+      "maxExposureRate": 0.25,
+      "maxAltExposureRate": 0.1
+    },
+    "parameters": {
+      "exitPolicy": {
+        "mode": "fixed",
+        "breakeven": false,
+        "atrPeriod": 14,
+        "stopMultiplier": 1.5,
+        "targetMultiplier": 3,
+        "minStopRate": 0.005,
+        "maxStopRate": 0.03,
+        "trailingMultiplier": 2,
+        "activationRate": 0.02,
+        "exitFeeRate": 0.001,
+        "exitSlippageRate": 0.001
+      },
+      "pairCooldown": {
+        "hours": 6,
+        "minLosses": 3
+      },
+      "btcRegimeFilter": true,
+      "stopLossRate": 0.01,
+      "takeProfitRate": 0.02,
+      "maxBuyRsi": 70,
+      "minimumSignalScore": 5,
+      "executionDelayCandles": 1
+    },
+    "scenarios": [
+      {
+        "name": "standard",
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001,
+        "assumedDepthUsdt": 1000,
+        "maxParticipationRate": 0.001
+      },
+      {
+        "name": "stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      {
+        "name": "fixed-cost-stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      }
+    ],
+    "collection": {
+      "maximumSymbols": 120,
+      "preferredSymbols": [
+        "BTC/USDT",
+        "ETH/USDT",
+        "SOL/USDT",
+        "XRP/USDT",
+        "ADA/USDT",
+        "DOGE/USDT",
+        "SUI/USDT",
+        "NEAR/USDT",
+        "AVAX/USDT",
+        "LINK/USDT",
+        "DOT/USDT",
+        "ATOM/USDT",
+        "UNI/USDT",
+        "AAVE/USDT",
+        "LTC/USDT",
+        "WLD/USDT",
+        "ZEC/USDT",
+        "HYPE/USDT",
+        "LIT/USDT",
+        "TRX/USDT"
+      ]
+    }
+  }
+}

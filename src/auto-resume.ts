@@ -1,3 +1,4 @@
+import type { DemoBalanceEvidence } from './demo-ledger.js';
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import type { PublicMarketData } from "./market-data.js";
 import type { PostgresPersistence } from "./persistence.js";
@@ -11,10 +12,11 @@ export type PauseControl = {
 };
 
 const recheckableDemoReasons = new Set([
-  "demo_balance_unconfirmed", "demo_equity_risk_unconfirmed", "demo_account_identity_unconfirmed",
+  "demo_accounting_checkpoint_busy", "demo_order_not_confirmed", "demo_bot_risk_attribution_unconfirmed", "demo_balance_unconfirmed", "demo_equity_risk_unconfirmed", "demo_account_identity_unconfirmed",
   "demo_trading_permission_unconfirmed", "demo_resume_check_failed", "pending_demo_order",
   "unresolved_demo_failure", "demo_position_without_live_protection", "demo_safety_check_failed",
   "protection_audit_failed", "protection_account_unconfirmed", "exit_supervision_failed",
+  "partial_exit_without_live_coverage", "demo_exit_not_reconciled",
   "exit_fills_incomplete", "protective_order_unconfirmed", "exit_protection_not_live",
   "exit_candles_invalid", "exit_candles_stale", "exit_candle_gap",
 ]);
@@ -26,7 +28,7 @@ export function autoResumeAt(control: PauseControl, cooldownMinutes: number, dem
   if (control.updatedBy === "system:consecutive_losses" && control.pauseReason === "consecutive_losses") {
     return updatedAt + cooldownMinutes * 60_000;
   }
-  const fromDemo = demo && ["system:demo_execution_safety", "system:demo_exit_supervision", "system:demo_position_uncertain"].includes(control.updatedBy);
+  const fromDemo = demo && ["system:demo_execution_safety", "system:demo_exit_supervision", "system:demo_position_uncertain", "system:demo_order_not_confirmed"].includes(control.updatedBy);
   if ((fromDemo && control.pauseReason === "demo_daily_loss_limit") ||
       (control.updatedBy === "system:risk_limit" && control.pauseReason === "paper_daily_loss_limit")) {
     return (Math.floor(updatedAt / 86_400_000) + 1) * 86_400_000;
@@ -37,14 +39,14 @@ export function autoResumeAt(control: PauseControl, cooldownMinutes: number, dem
 export function describeAutoResume(
   control: PauseControl,
   options: { enabled: boolean; cooldownMinutes: number; demo: boolean },
-  lastCheck?: { revision: string; checkedAt: number; reason: string },
+  lastCheck?: { revision: string; checkedAt: number; reason: string; attributionReason?: string; balanceEvidence?: DemoBalanceEvidence },
 ) {
   const eligibleAt = options.enabled ? autoResumeAt(control, options.cooldownMinutes, options.demo) : null;
   const check = eligibleAt !== null && lastCheck?.revision === control.revision ? lastCheck : undefined;
   return {
     enabled: options.enabled,
     eligibleAt,
-    ...(check ? { checkedAt: check.checkedAt, reason: check.reason } : {}),
+    ...(check ? { checkedAt: check.checkedAt, reason: check.reason, ...(check.attributionReason ? { attributionReason: check.attributionReason } : {}), ...(check.balanceEvidence ? { balanceEvidence: check.balanceEvidence } : {}) } : {}),
   };
 }
 

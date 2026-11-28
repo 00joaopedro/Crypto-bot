@@ -145,3 +145,28 @@ describe("TradingBot candle replay", () => {
     expect(recordCycle).toHaveBeenCalledTimes(2);
   });
 });
+
+
+it('recovers a distant Paper history gap before replay and never fabricates a new entry in recovered candles', async () => {
+  vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  const full = Array.from({ length: 400 }, (_, i) => candle(i, 100, i === 100 ? 80 : 99, 101));
+  const paper = new PaperTrader({ initialBalanceUsdt: 1000, tradeSizeUsdt: 10, feeRate: .001, slippageRate: 0, stopLossRate: .1, takeProfitRate: .2 });
+  paper.processCandle(full[83]!, true);
+  const recordCycle = vi.fn(async () => undefined);
+  const recordOperationalEvent = vi.fn(async () => undefined);
+  const fetchRecoveryCandles = vi.fn(async () => full);
+  const market = { active: 'okx', fetchClosedCandles: async () => full.slice(-100), fetchRecoveryCandles } as unknown as PublicMarketData;
+  const persistence = { isPaused: async () => false, recordCycle, recordOperationalEvent } as unknown as BotPersistence;
+  try {
+    const executeApprovedBuy = vi.fn();
+    const bot = new TradingBot(market, { demoExecutor: { executeApprovedBuy } as never, symbol: 'BTC/USDT', candleLimit: 100, minimumConfidence: .8,
+      aiFailureMode: 'quantitative', paperTrader: paper, persistence, initialLastProcessedCandle: full[83]!.timestamp });
+    await bot.reconcilePaperOnly();
+    expect(executeApprovedBuy).not.toHaveBeenCalled();
+    expect(fetchRecoveryCandles).toHaveBeenCalledWith('BTC/USDT',full[83]!.timestamp,full[399]!.timestamp);
+    const cycles = recordCycle.mock.calls.map(call => (call as unknown as [ { candle: Candle; paperResult: { events: Array<{ type: string }> } } ])[0]);
+    expect(cycles.some(c => c.candle.timestamp === full[100]!.timestamp && c.paperResult.events.some(e => e.type === 'CLOSED'))).toBe(true);
+    expect(cycles.filter(c => c.candle.timestamp < full[399]!.timestamp).every(c => c.paperResult.events.every(e => e.type !== 'OPENED'))).toBe(true);
+    expect(recordOperationalEvent).toHaveBeenCalledWith(expect.objectContaining({ eventType: 'PAPER_HISTORY_RECOVERED' }));
+  } finally { vi.restoreAllMocks(); }
+});

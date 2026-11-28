@@ -1,0 +1,9 @@
+{
+  "protocol": "hybrid-demo-readiness-v1",
+  "developmentReportFileSha256": "cc226c557f29127ac32a720d0c195c9b70fb2ebf348dd45af83bcabcd2a476ed",
+  "developmentDatasetSha256": "fb88541a351e706edcc838fffdd42ed9a11ba25ace8d4a883d8090ed6eaadfc4",
+  "strategyPlanSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "costScenarios": ["account-conditioned", "account-cost-stress"],
+  "minimumClosedTradesPerCase": 30,
+  "policyPurpose": "conservative_triage_not_independent_validation"
+}

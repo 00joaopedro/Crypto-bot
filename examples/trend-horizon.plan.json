@@ -1,0 +1,325 @@
+{
+  "protocol": "trend-horizon-development-v1",
+  "developmentOnly": true,
+  "frozenBeforeReplay": true,
+  "window": {
+    "evaluationStartUtc": "2026-08-24T00:00:00Z",
+    "endExclusiveUtc": "2026-11-22T00:00:00Z",
+    "days": 90,
+    "warmupHours": 1000
+  },
+  "universe": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT",
+    "XRP/USDT",
+    "DOGE/USDT",
+    "SUI/USDT",
+    "NEAR/USDT",
+    "AVAX/USDT",
+    "LINK/USDT",
+    "DOT/USDT",
+    "AAVE/USDT",
+    "LTC/USDT",
+    "UNI/USDT",
+    "ATOM/USDT",
+    "APT/USDT",
+    "OP/USDT",
+    "FIL/USDT",
+    "INJ/USDT"
+  ],
+  "entry": "closed1h original A filters: ATR14>=0.70%, previous low touch EMA21 or UTC VWAP within0.25ATR, previous RSI14 40..50, previous volumeRatio<1.1; current green/aboveEMA21/RSI<=58; quality>=3; false->true",
+  "macro": "only completed UTC4h candles, EMA50>EMA200, at least250bars; no extra ADX gate",
+  "entryExecution": "next1h open, one shared position, no same-bar reuse",
+  "cases": [
+    "HORIZON_REFERENCE",
+    "HORIZON_ATR"
+  ],
+  "referenceExit": "original A closer initial stop1.1% vs pullbackLow-1.5ATR; net target2.8%, original close-activated trailing",
+  "candidateExit": "fixed stop=min(entry-1.5ATR,pullbackLow-0.25ATR), target=entry+3ATR, ATR frozen at signal; no trailing/time stop",
+  "candidateFeeGate": "net reward/net stop loss>=1 and net gain>=modeled roundtrip cost; both signal-close unit quote and quantized next-open quote",
+  "bankUsdt": 17,
+  "lotCeilingUsdt": 10,
+  "riskLimits": {
+    "riskPerTrade": 0.01,
+    "maxExposure": 0.25,
+    "maxAltExposure": 0.1,
+    "maxSymbolExposure": 0.15
+  },
+  "scenarios": [
+    {
+      "name": "account-conditioned",
+      "feeRate": 0.004,
+      "slippageRate": 0.001,
+      "spreadRate": 0.0015,
+      "assumedDepthUsdt": 1000,
+      "maxParticipationRate": 0.001,
+      "symbolCosts": {
+        "BTC/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ETH/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "SOL/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "XRP/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DOGE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "SUI/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "NEAR/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AVAX/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "LINK/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "DOT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "AAVE/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "LTC/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "UNI/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ATOM/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "APT/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "ARB/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "OP/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "FIL/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "INJ/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        },
+        "TON/USDT": {
+          "feeRate": 0.004,
+          "slippageRate": 0.001,
+          "spreadRate": 0.0015,
+          "entryFeeCurrency": "base"
+        }
+      }
+    },
+    {
+      "name": "account-cost-stress",
+      "feeRate": 0.008,
+      "slippageRate": 0.002,
+      "spreadRate": 0.003,
+      "assumedDepthUsdt": 500,
+      "maxParticipationRate": 0.0005,
+      "symbolCosts": {
+        "BTC/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ETH/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "SOL/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "XRP/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DOGE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "SUI/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "NEAR/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AVAX/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "LINK/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "DOT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "AAVE/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "LTC/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "UNI/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ATOM/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "APT/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "ARB/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "OP/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "FIL/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "INJ/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        },
+        "TON/USDT": {
+          "feeRate": 0.008,
+          "slippageRate": 0.002,
+          "spreadRate": 0.003,
+          "entryFeeCurrency": "base"
+        }
+      }
+    }
+  ],
+  "criteria": {
+    "minimumClosedTradesEachScenario": 30,
+    "profitFactorGreaterThan": 1.25,
+    "positiveNetExpectancy": true,
+    "positiveNetMarkedReturn": true,
+    "allThree30DayBlocksPositive": true,
+    "maxDrawdownPercent": 10,
+    "positiveRealizedWithoutTop3": true
+  },
+  "comparison": "same90day 1h/4h signals for both exits. Not a controlled timeframe comparison with prior30day15m results.",
+  "dataPolicy": "public OKX1H only; derive UTC4h from four validated contiguous hours. All18pairs required; incomplete history fails instead of post-outcome exclusion. Current instrument minima are modeled historical constraints, not verified historical minima; quote minimum remains unknown.",
+  "independentValidation": "not executed or collected; development includes previously consulted dates; future protocol requires new frozen window",
+  "realMoneyApproved": false,
+  "configurationPromoted": false
+}

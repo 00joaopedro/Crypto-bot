@@ -1,0 +1,2211 @@
+{
+  "status": "descriptive_economic_diagnosis_only",
+  "studySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+  "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+  "datasetHashes": [
+    {
+      "symbol": "BTC/USDT",
+      "sha256": "b36a2eccf67cb6c690badfebbd91609001a2c9de9909de75d03081898226a328"
+    },
+    {
+      "symbol": "ETH/USDT",
+      "sha256": "0998351a0950587571383579e8fe1d4d151e78ab67a3039dcd30017075e4ef3d"
+    },
+    {
+      "symbol": "SOL/USDT",
+      "sha256": "db14ae037a22ff493ab0b2eaeb92604fcf0de685e6fb54c36fbf729f4d8ffe74"
+    },
+    {
+      "symbol": "XRP/USDT",
+      "sha256": "83a5a98f65ecc3c7dc50f0fc00e1d796fbafc9ce98fb931f3b1193348ca8adb3"
+    },
+    {
+      "symbol": "ADA/USDT",
+      "sha256": "c176489c9c9b6c5242c765f992e74be16d16196eb663b7f3ef8a215b4f0c34af"
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "sha256": "8dab3201a5df0926b0724ba801335e4fd81b8a51d17478a552e83522184833f4"
+    },
+    {
+      "symbol": "SUI/USDT",
+      "sha256": "75ab34fb8e899b82a9f0d55a0911bc3c5838e66e5c64e9636336f3d770677fc4"
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "sha256": "53dc26c349f5d94be8ba2dac7d2a59b9a143f0c6c8f7662f53bb5663b6021a73"
+    },
+    {
+      "symbol": "AVAX/USDT",
+      "sha256": "477e0ecb5ac4d3b02a2eb27f677d29ba8f92030bdb5faff14796eb1836451789"
+    },
+    {
+      "symbol": "LINK/USDT",
+      "sha256": "bbb1ec94d5a6b86bdcde9455bc885c8b6b88d6a06ee1f85780389c4857f35ad8"
+    },
+    {
+      "symbol": "DOT/USDT",
+      "sha256": "aadfdfc2377955482d6d165d33e3a07210675467baf3348dd0e1bc5816a9ef84"
+    },
+    {
+      "symbol": "ATOM/USDT",
+      "sha256": "f5e85a26db2a11c16bc699215aca7d31ca63e6b7c9e5e4a0d2396bd577127cfc"
+    },
+    {
+      "symbol": "UNI/USDT",
+      "sha256": "da7a376b93feaf5455be7ab34b7024f7187032ef5b801cb2d8732f6fce41021f"
+    },
+    {
+      "symbol": "AAVE/USDT",
+      "sha256": "3b616011d683934735a75d04f1bbce309d74570fd7a2813863f3c2a90ad2387b"
+    },
+    {
+      "symbol": "LTC/USDT",
+      "sha256": "a71425b50ba825c343f5ac3fb7ff1e91ebd415692303a8083137d684c1c7b004"
+    },
+    {
+      "symbol": "WLD/USDT",
+      "sha256": "6fcd060e71a76581e17117a498b2fba7a1cb3b4bb657c7f422930a4db4fa0f79"
+    },
+    {
+      "symbol": "ZEC/USDT",
+      "sha256": "e607f6a54426d8f01d9f034ea2aa746047a60ace7164ca8bfab2f17db7ecb0d0"
+    },
+    {
+      "symbol": "HYPE/USDT",
+      "sha256": "e6b84ef62b9cc2ace80b7d4cc2fee6bbf344c8587674044637520000287e4cdf"
+    },
+    {
+      "symbol": "LIT/USDT",
+      "sha256": "6637ca19d343c414165542d626adc803ac4087d6eea9809cd1faee3bb9b9742c"
+    },
+    {
+      "symbol": "TRX/USDT",
+      "sha256": "cd2933b329f5b709a929724106229e89a67e58249cf160605bea89590e940072"
+    },
+    {
+      "symbol": "1INCH/USDT",
+      "sha256": "c6cb02e8be0677f97368dbf5e69329586c79a4bebe6297e4ed54c2450f09d74a"
+    },
+    {
+      "symbol": "2Z/USDT",
+      "sha256": "57c499304e5ee484046dcfd3f7eecfd426a98b40feb9a68189cfb7b1c6665e28"
+    },
+    {
+      "symbol": "A/USDT",
+      "sha256": "4d79e56f1c7aafc1430614c4fe52d8ed0034d34b22a25070b93e14db80b716b8"
+    },
+    {
+      "symbol": "ACE/USDT",
+      "sha256": "ba1fcbde779ee7696ffdecdfa0f81bb9d330da8927e73a33fa74eba0581f1de1"
+    },
+    {
+      "symbol": "ACH/USDT",
+      "sha256": "609d6e954ed78cc2f06afe71bbe61f33dea5bdaa0e00307d19167ad17898ce1a"
+    },
+    {
+      "symbol": "ACT/USDT",
+      "sha256": "a79cf96697626bd0983b650ad53f98d0b610893a3ffc5de31ca9621e3844644f"
+    },
+    {
+      "symbol": "AEVO/USDT",
+      "sha256": "4ed561cddde33eef67474cf7bec8e647d02ddef642fb9c88a7a80b594f99654f"
+    },
+    {
+      "symbol": "AGLD/USDT",
+      "sha256": "78b11c6c4591cce973ee7438cfe65c2e36bfcc818299dafcfd9a377ecad9dcc2"
+    },
+    {
+      "symbol": "AI/USDT",
+      "sha256": "f48cec49dd658e2fe6888a789bc096074bedabd0488cdfc78b07fb9f3c889988"
+    },
+    {
+      "symbol": "AIXBT/USDT",
+      "sha256": "967870b2c8c3213245c4fd294f9d7034e954ad5658da1fee2b8080f2b8c9b6b6"
+    },
+    {
+      "symbol": "ALGO/USDT",
+      "sha256": "511e642d0a33f48df8e93b7a03f8741be58c09d57ca25b8e8194a878ef01790d"
+    },
+    {
+      "symbol": "ALLO/USDT",
+      "sha256": "eaf97fef4f004a4bc9762e214416fe3a6b0f81ee8753791ca8615ed8e011146d"
+    },
+    {
+      "symbol": "ANIME/USDT",
+      "sha256": "e3b3f298c2e10c5da24da400e6c4f83818d56480b2be567b9e7d4ca777441c13"
+    },
+    {
+      "symbol": "APE/USDT",
+      "sha256": "9fe18b268d333e719d93a37849ae932dde8076ca56c2bbf9f22385266c240f32"
+    },
+    {
+      "symbol": "API3/USDT",
+      "sha256": "781be9188d46dbcbd3d8ebe87bbd9ccbf77396a55a72d25f11f888d6abc90cfc"
+    },
+    {
+      "symbol": "APT/USDT",
+      "sha256": "cf48ee9bed351cbd0cfda2b0e67ce42b572878b781cb07e06e34b98cc1f96626"
+    },
+    {
+      "symbol": "AR/USDT",
+      "sha256": "838021b0df1b0f39f52de6fbd6b954e8e9970306b8995250a10d609d2f668baf"
+    },
+    {
+      "symbol": "ARB/USDT",
+      "sha256": "fcf0aaae3401a2acb147aa720212bcf4da6c3f69cf021a5612674dcb360492d0"
+    },
+    {
+      "symbol": "ARG/USDT",
+      "sha256": "101491538b818dea6f8e608c35524e34337dff4c17a01a6d7142e9edd8105fb4"
+    },
+    {
+      "symbol": "ARKM/USDT",
+      "sha256": "5272c3c0627f31a236ea271e9238b7b035fe0b7cf5a92917f66305e5af342fdb"
+    },
+    {
+      "symbol": "ASP/USDT",
+      "sha256": "70d0a3a5868225ea5cb49c60a4ebd6229c2cf02007a1156ea5cead77011a28b4"
+    },
+    {
+      "symbol": "ASTER/USDT",
+      "sha256": "0c8a21e9e26d52f2b2631fe66a2a68fe9d5d8ce359bec443520bf8edf468dbd2"
+    },
+    {
+      "symbol": "ASTR/USDT",
+      "sha256": "4c6943936db0fd6e5a7bf8d039481e74aca7bd1936f1c05e7862ed772a0e08b6"
+    },
+    {
+      "symbol": "ATH/USDT",
+      "sha256": "2d697d3824b212e5495cdd0832e3fe8866a380d651353e8b2233031d41a62352"
+    },
+    {
+      "symbol": "AUCTION/USDT",
+      "sha256": "600293d4aaeee3775f9cd03ac73bbaad6e3894b91360987f7562d31446fe6dc5"
+    },
+    {
+      "symbol": "AUDF/USDT",
+      "sha256": "a1dccb53ae4d65ab0dd133f0c8a8834cf3cb7c5db973df6c34e4caab5f705746"
+    },
+    {
+      "symbol": "AUDM/USDT",
+      "sha256": "55d838fd66144ad5f4edc59c688d09cdf932de011b500045b36dd303c7151874"
+    },
+    {
+      "symbol": "AVNT/USDT",
+      "sha256": "e65280d11b3bb34e9a243fa384cfebeefb52af1a26e4b1dff71293a8a702c2e7"
+    },
+    {
+      "symbol": "AXS/USDT",
+      "sha256": "c66b59f032906269e9ad6b1e744375dc8eaf478265b67fc34b8b713d3e31ef74"
+    },
+    {
+      "symbol": "BABY/USDT",
+      "sha256": "c4170fc06c6fccd41661e92e732fa0f038286a62b1cc62cdd5fabde36f3fbd29"
+    },
+    {
+      "symbol": "BABYDOGE/USDT",
+      "sha256": "7d491c4c0bfdcc1be73b2939953996d2e1207c630f3902658b5699e3e8ab03de"
+    },
+    {
+      "symbol": "BANANA/USDT",
+      "sha256": "9052dd86b96343bdef6f4c0beafc752f0b2c0888aae1e862684648f6aaed8a4e"
+    },
+    {
+      "symbol": "BAND/USDT",
+      "sha256": "25729e18984f3c4cec9c051efb40e4ef9844f6722eee7cc4e5f0b4f062db01d7"
+    },
+    {
+      "symbol": "BARD/USDT",
+      "sha256": "b0ff2609ef1aef836787a2b62b8d69b626a9888374453142db4ba64a8907e8ae"
+    },
+    {
+      "symbol": "BASED/USDT",
+      "sha256": "4910011a9e7219f8a92f80296c4fe711bd87d7c306ce8348bad5cbecd0eb765a"
+    },
+    {
+      "symbol": "BAT/USDT",
+      "sha256": "d2962c759347823a0a68547e5a500999fa0b946813ee2544bc401945fb10c9dc"
+    },
+    {
+      "symbol": "BCH/USDT",
+      "sha256": "10f81c6a7a9de259550d1645d8b7374221dfbc8fc1b5384969fb116e65365a0f"
+    },
+    {
+      "symbol": "BERA/USDT",
+      "sha256": "9c2009e970df094cc3e3bf42a7b0a08865b21ecbbc63037b97ef1dc74b076a4d"
+    },
+    {
+      "symbol": "BETH/USDT",
+      "sha256": "2ee6d86b6a65303009c235e55ee6e5543723934ce8f3daf06514c778da40bc62"
+    },
+    {
+      "symbol": "BICO/USDT",
+      "sha256": "4e0df53af946c87bf02246296c95888fbdbd8f6cf40f5443afa48f1e4442c36e"
+    },
+    {
+      "symbol": "BIGTIME/USDT",
+      "sha256": "ab15c65fb5b34dd307eeafdedb6072d5fd0937b78cbad76b53451f7d83ce5173"
+    },
+    {
+      "symbol": "BIO/USDT",
+      "sha256": "629abb7a90b41aaae6041102fab30b6b6528a5a6175c25a722fad7eeaece180b"
+    },
+    {
+      "symbol": "BLUR/USDT",
+      "sha256": "718e83b8378131b4026b1ac88e43991b78db1cc76d9d4896b06e77980dc7fd4c"
+    },
+    {
+      "symbol": "BNB/USDT",
+      "sha256": "0c024e2f802cc52807c64968de4cd6f72bbd236aa6168ea3f4b2956055d2b6b4"
+    },
+    {
+      "symbol": "BNT/USDT",
+      "sha256": "52dc05936a1150eb5dfdc979fce471b5db8499c303135ffe7f6d3b5f4c77366c"
+    },
+    {
+      "symbol": "BOME/USDT",
+      "sha256": "d98e3fbac3e01eac3459f12ca7e7b551ed5d7d0c1a81cc665667beb09f8e76b5"
+    },
+    {
+      "symbol": "BONK/USDT",
+      "sha256": "9845ef76066ac749772042df98740a306af447f5ea566cb7a014764a9eb8b753"
+    },
+    {
+      "symbol": "BREV/USDT",
+      "sha256": "658281bb152f83ac364138e807c6990de27f10c68670bf3be69ced86b5a56ed8"
+    },
+    {
+      "symbol": "BRL1/USDT",
+      "sha256": "37dc68636ff88cde7e3b32ae24bd04676b5633c1fdc4a40516db756c8f31571b"
+    },
+    {
+      "symbol": "CARDS/USDT",
+      "sha256": "fec2b9a1b19370c6b089aa2f6def4afb5f938f2d6d153dca0a9cab5687055bf3"
+    },
+    {
+      "symbol": "CAT/USDT",
+      "sha256": "aa285f0afebe0452191553efda7e11ce26412fef1d41ca183b1d5c8ad15af2cd"
+    },
+    {
+      "symbol": "CATI/USDT",
+      "sha256": "d1e8168726d347f6b6b4ce17e53c9aed377c23d02b5b315602f32d2d9fc1690e"
+    },
+    {
+      "symbol": "CC/USDT",
+      "sha256": "4185209f7e5269a71f0d31d16151c786721c23d59ca96dff52bdc7a64268a102"
+    },
+    {
+      "symbol": "CELO/USDT",
+      "sha256": "f6b217b8ac454ae03c09a30cb0692456f5ff81ba4f6d596a15a6460cae6065d1"
+    },
+    {
+      "symbol": "CELR/USDT",
+      "sha256": "f353177e0693974d50ad7fa045380a332df846437e7ca598d85c5932b961c8c6"
+    },
+    {
+      "symbol": "CETUS/USDT",
+      "sha256": "b0d770dd5f2f54c3aec4b030dd6f5bec7b185fa5c44d2faa3d67b27698f05584"
+    },
+    {
+      "symbol": "CFG/USDT",
+      "sha256": "892703df8f2ffdc57fa80486de60ce20481fd16704e2faed8ca430cd6babdc9a"
+    },
+    {
+      "symbol": "CFX/USDT",
+      "sha256": "02d102077ebe8d47cb3ed42077374a48efe7c2ce218813eb96a666b900c24fd6"
+    },
+    {
+      "symbol": "CHIP/USDT",
+      "sha256": "a5bf24862faea1efc03d9b96222611440b9e95781ec93d8ce8fd29196d436e7e"
+    },
+    {
+      "symbol": "CHZ/USDT",
+      "sha256": "81a0c289988f3b32add361def2a7836a7beacf11dfa5154f9617677e38765108"
+    },
+    {
+      "symbol": "CITY/USDT",
+      "sha256": "f2b57e92179f41c6d299901ddecaccf06b1710915c542824b7a9a8bafbab09f0"
+    },
+    {
+      "symbol": "COMP/USDT",
+      "sha256": "c95600c15609fc7da8c822bf7f240376a1c88948a2ed0e0930e66e50365b7e64"
+    },
+    {
+      "symbol": "CORE/USDT",
+      "sha256": "7e5629be373f11ba07e6dfe97077a27050ccd59f3f3f102fa1abf924cdfa5d89"
+    },
+    {
+      "symbol": "CRO/USDT",
+      "sha256": "03705118bbb9ed119727c23ca291ebb664fb23ff60d9f9affa07fc3944dee2fe"
+    },
+    {
+      "symbol": "CRV/USDT",
+      "sha256": "467be15446f8f931047f4cbfd0bd4341669aec610c16c787c0b383f03f2ddc2b"
+    },
+    {
+      "symbol": "CSPR/USDT",
+      "sha256": "84859bb8c6249cfc3540a63d44869078def59085f703e2ba6d992aaef958337c"
+    },
+    {
+      "symbol": "CTC/USDT",
+      "sha256": "c2ccd0b1c3bb22003fe60976970da42eeeeb50e8f55b0429c92ab0489ef468b8"
+    },
+    {
+      "symbol": "CVC/USDT",
+      "sha256": "862f3dd4b72dbb4c3f2233aa63b6be43d59f399e07c5c5592360c3bc5f095df0"
+    },
+    {
+      "symbol": "CVX/USDT",
+      "sha256": "557ff33acda8d3f6f11434304877b4b83f0190a37e8d5c16c140242f8e6ebb6f"
+    },
+    {
+      "symbol": "DASH/USDT",
+      "sha256": "f58b2faee6daffa48be18267d131682f1840f9ab582fb2469fba9a976908cac6"
+    },
+    {
+      "symbol": "DATA/USDT",
+      "sha256": "b8f26f3f097468b5f79cefdcc65f587a262a26572262a9229d34e7fecd3acf61"
+    },
+    {
+      "symbol": "DEGEN/USDT",
+      "sha256": "33a84c17cf9b780fbc65aace20b3c7ad668daba237d0f2405e252ecd49aec498"
+    },
+    {
+      "symbol": "DGB/USDT",
+      "sha256": "4d1478d380e5650a5c931364b90d4813570ad9e9230c3628f16dd4018497533b"
+    },
+    {
+      "symbol": "DOGS/USDT",
+      "sha256": "bab554b37fd4a98fdc75dab75ce6b8187114c345802b6a3bffcdeaaef51076f6"
+    },
+    {
+      "symbol": "DOOD/USDT",
+      "sha256": "481ba5faba577cc7c2163b28a170c202548c67e1424f3103ad725cde96990cc8"
+    },
+    {
+      "symbol": "DYDX/USDT",
+      "sha256": "443d3695ce692b27e1241127a533c5a357f5a7c2f12721c297e9938c4b70f284"
+    },
+    {
+      "symbol": "EDGE/USDT",
+      "sha256": "55c8b88ffb6f7fc54abf60a52de630faa8d7195b33bdd2307cba8109f84ecf7e"
+    },
+    {
+      "symbol": "EGLD/USDT",
+      "sha256": "873c47bdca5dc54d2ed32b2059688cb7fb8dda1e2ac887355fb0fc18019829ac"
+    },
+    {
+      "symbol": "EIGEN/USDT",
+      "sha256": "dfcc65ecb3bf2949e7ad34c664eaa53845fb4a5e998faccf82d6e6b926c08acd"
+    },
+    {
+      "symbol": "ENA/USDT",
+      "sha256": "9e89e0b25beb201acc86b35cdb7253297d01995dc86dfe3e6c90bc10ed849c44"
+    },
+    {
+      "symbol": "ENJ/USDT",
+      "sha256": "12a92ba8bb058f27d2e3a88b2163a6d820d0f3cdab38b9adf311c2e93370fc7d"
+    },
+    {
+      "symbol": "ENS/USDT",
+      "sha256": "aacef206df362811366e15893b2f5a45ce6867881f1a5d3f6573587b0bbb86a0"
+    },
+    {
+      "symbol": "ETC/USDT",
+      "sha256": "bf855130a833871e966a8983da1b3014c32b3b7ad93e7b62c73cde62d87d1889"
+    },
+    {
+      "symbol": "ETHFI/USDT",
+      "sha256": "123fc3fb683f058c68001ceb260e57306e1ff09341635530d7e768136e4caf50"
+    },
+    {
+      "symbol": "ETHW/USDT",
+      "sha256": "8f782bd82c809b664bf76af7e042b5121765d259d55ca66ca74f2852f3b1a8aa"
+    },
+    {
+      "symbol": "FET/USDT",
+      "sha256": "70118e4ca9fe4db8457934f35d3958698f28da67672cf03eb568efc3b823650b"
+    },
+    {
+      "symbol": "FIL/USDT",
+      "sha256": "aefd0bc1b6ae8fc669cc0af55cf4d2fbe70c005aa80c8cae147fe54c001bf087"
+    },
+    {
+      "symbol": "FLOKI/USDT",
+      "sha256": "ea5408d945b2083a8ad399c83ce1ae88b5b00a828b441b382ea9bc21bab46b51"
+    },
+    {
+      "symbol": "FLOW/USDT",
+      "sha256": "36c60ea7d3b3d7a563d9b75d45d740c1c3989ecd2b8ffb3b7aebb5f6e7de2d7d"
+    },
+    {
+      "symbol": "FLR/USDT",
+      "sha256": "7995904a430f5cc9ac73de5f61667223b9d6265e7edf4aa0b7510566cb1e6983"
+    },
+    {
+      "symbol": "FLUID/USDT",
+      "sha256": "a78c1a411ed89020fe75fed350bea41cef784c9f345049cf61515ea76ae2fd7d"
+    },
+    {
+      "symbol": "FOGO/USDT",
+      "sha256": "3151a747e2d4a607518ed548b20d511b18712f955c23914b89401a75ca3b861d"
+    },
+    {
+      "symbol": "G/USDT",
+      "sha256": "7dd781a50f8521a31b9947820a861978e9f65a2a8e103b78c1e261d8f0b6ea03"
+    },
+    {
+      "symbol": "GALA/USDT",
+      "sha256": "4454e33b7a7a5f942cb7fdb516e4e199eb6559a030b1a43ab4ec13305c8b40d2"
+    },
+    {
+      "symbol": "GALFT/USDT",
+      "sha256": "ffcffc0bc2bb364cfccb0ad2b4422b31a2b0cd785508a17fb2a911689b1dccfe"
+    },
+    {
+      "symbol": "GAS/USDT",
+      "sha256": "b9847a2435b44e69c9d57ee7f20dc5cff56c6ff3ec9229f11081143d6ca2ca88"
+    },
+    {
+      "symbol": "GLM/USDT",
+      "sha256": "0387d7fc0a11d96705a3e3c1546e068cc983d06ff03248b403f9735a86eea48e"
+    },
+    {
+      "symbol": "GMT/USDT",
+      "sha256": "c26270049dccc99da53a49e5bfea1bf2f6c697913c70584b3c1a3abdb33e8621"
+    },
+    {
+      "symbol": "GMX/USDT",
+      "sha256": "2db993798ca2d1c49199d6214bf7d3ab406f7993e27ed2577b376f46d9dc3ac8"
+    },
+    {
+      "symbol": "GOAT/USDT",
+      "sha256": "e3b6feb3bb3bd7b709f5ca1094be8c8b01b6e962687d8804e1cab2b745d22f6b"
+    }
+  ],
+  "diagnosticHashes": [
+    "7a150792fd18336ebab49b993c3d6b3ddda2ddc4e612979e75c50eb86ccc96e5",
+    "bc7ad3e43799bfde0ef1438867321378274ac5aba873ef22545ba0f8203cd716",
+    "de3dbf3bcff23cb024fcda5948d4266c67070d3e4972d728a121ab898de5ac20"
+  ],
+  "coverage": {
+    "symbols": 120,
+    "feeEvidenced": 7,
+    "feesAssumed": 113,
+    "measuredBuyQuoteSymbols": 0
+  },
+  "previousCoverage": {
+    "symbols": 120,
+    "feeEvidenced": 6,
+    "feesAssumed": 114,
+    "measuredBuyQuoteSymbols": 0
+  },
+  "baselineReproduced": true,
+  "feesUnverifiedSymbols": [
+    "1INCH/USDT",
+    "2Z/USDT",
+    "A/USDT",
+    "AAVE/USDT",
+    "ACE/USDT",
+    "ACH/USDT",
+    "ACT/USDT",
+    "AEVO/USDT",
+    "AGLD/USDT",
+    "AI/USDT",
+    "AIXBT/USDT",
+    "ALGO/USDT",
+    "ALLO/USDT",
+    "ANIME/USDT",
+    "APE/USDT",
+    "API3/USDT",
+    "APT/USDT",
+    "AR/USDT",
+    "ARB/USDT",
+    "ARG/USDT",
+    "ARKM/USDT",
+    "ASP/USDT",
+    "ASTER/USDT",
+    "ASTR/USDT",
+    "ATH/USDT",
+    "ATOM/USDT",
+    "AUCTION/USDT",
+    "AUDF/USDT",
+    "AUDM/USDT",
+    "AVAX/USDT",
+    "AVNT/USDT",
+    "AXS/USDT",
+    "BABY/USDT",
+    "BABYDOGE/USDT",
+    "BANANA/USDT",
+    "BAND/USDT",
+    "BARD/USDT",
+    "BASED/USDT",
+    "BAT/USDT",
+    "BCH/USDT",
+    "BERA/USDT",
+    "BETH/USDT",
+    "BICO/USDT",
+    "BIGTIME/USDT",
+    "BIO/USDT",
+    "BLUR/USDT",
+    "BNB/USDT",
+    "BNT/USDT",
+    "BOME/USDT",
+    "BONK/USDT",
+    "BREV/USDT",
+    "BRL1/USDT",
+    "CARDS/USDT",
+    "CAT/USDT",
+    "CATI/USDT",
+    "CC/USDT",
+    "CELO/USDT",
+    "CELR/USDT",
+    "CETUS/USDT",
+    "CFG/USDT",
+    "CFX/USDT",
+    "CHIP/USDT",
+    "CHZ/USDT",
+    "CITY/USDT",
+    "COMP/USDT",
+    "CORE/USDT",
+    "CRO/USDT",
+    "CRV/USDT",
+    "CSPR/USDT",
+    "CTC/USDT",
+    "CVC/USDT",
+    "CVX/USDT",
+    "DASH/USDT",
+    "DATA/USDT",
+    "DEGEN/USDT",
+    "DGB/USDT",
+    "DOGS/USDT",
+    "DOOD/USDT",
+    "DOT/USDT",
+    "DYDX/USDT",
+    "EDGE/USDT",
+    "EGLD/USDT",
+    "EIGEN/USDT",
+    "ENA/USDT",
+    "ENJ/USDT",
+    "ENS/USDT",
+    "ETC/USDT",
+    "ETHFI/USDT",
+    "ETHW/USDT",
+    "FET/USDT",
+    "FIL/USDT",
+    "FLOKI/USDT",
+    "FLOW/USDT",
+    "FLR/USDT",
+    "FLUID/USDT",
+    "FOGO/USDT",
+    "G/USDT",
+    "GALA/USDT",
+    "GALFT/USDT",
+    "GAS/USDT",
+    "GLM/USDT",
+    "GMT/USDT",
+    "GMX/USDT",
+    "GOAT/USDT",
+    "HYPE/USDT",
+    "LINK/USDT",
+    "LIT/USDT",
+    "LTC/USDT",
+    "SUI/USDT",
+    "TRX/USDT",
+    "WLD/USDT",
+    "XRP/USDT",
+    "ZEC/USDT"
+  ],
+  "feeEvidence": [
+    {
+      "symbol": "ADA/USDT",
+      "feeRate": 0.004,
+      "feeEvidence": "evidenced_maximum",
+      "feeObservations": 2,
+      "earliestEvidenceUtc": "2026-11-21T15:34:46.747Z",
+      "latestEvidenceUtc": "2026-11-21T15:34:46.747Z",
+      "entryFeeCurrency": "base",
+      "entryFeeCurrencyEvidence": "terminal_buy_fee",
+      "quoteSamples": 0
+    },
+    {
+      "symbol": "BTC/USDT",
+      "feeRate": 0.004,
+      "feeEvidence": "evidenced_maximum",
+      "feeObservations": 2,
+      "earliestEvidenceUtc": "2026-11-22T12:10:13.397Z",
+      "latestEvidenceUtc": "2026-11-22T12:50:12.500Z",
+      "entryFeeCurrency": "base",
+      "entryFeeCurrencyEvidence": "declared_base_assumption",
+      "quoteSamples": 0
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "feeRate": 0.004,
+      "feeEvidence": "evidenced_maximum",
+      "feeObservations": 2,
+      "earliestEvidenceUtc": "2026-11-21T15:32:01.495Z",
+      "latestEvidenceUtc": "2026-11-21T15:32:01.495Z",
+      "entryFeeCurrency": "base",
+      "entryFeeCurrencyEvidence": "terminal_buy_fee",
+      "quoteSamples": 0
+    },
+    {
+      "symbol": "ETH/USDT",
+      "feeRate": 0.004,
+      "feeEvidence": "evidenced_maximum",
+      "feeObservations": 2,
+      "earliestEvidenceUtc": "2026-11-21T15:37:38.998Z",
+      "latestEvidenceUtc": "2026-11-21T15:37:38.998Z",
+      "entryFeeCurrency": "base",
+      "entryFeeCurrencyEvidence": "terminal_buy_fee",
+      "quoteSamples": 0
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "feeRate": 0.004,
+      "feeEvidence": "evidenced_maximum",
+      "feeObservations": 3,
+      "earliestEvidenceUtc": "2026-11-19T05:01:27.441Z",
+      "latestEvidenceUtc": "2026-11-21T15:47:09.359Z",
+      "entryFeeCurrency": "base",
+      "entryFeeCurrencyEvidence": "terminal_buy_fee",
+      "quoteSamples": 0
+    },
+    {
+      "symbol": "SOL/USDT",
+      "feeRate": 0.004,
+      "feeEvidence": "evidenced_maximum",
+      "feeObservations": 1,
+      "earliestEvidenceUtc": "2026-11-17T21:31:31.894Z",
+      "latestEvidenceUtc": "2026-11-17T21:31:31.894Z",
+      "entryFeeCurrency": "base",
+      "entryFeeCurrencyEvidence": "terminal_buy_fee",
+      "quoteSamples": 0
+    },
+    {
+      "symbol": "UNI/USDT",
+      "feeRate": 0.004,
+      "feeEvidence": "evidenced_maximum",
+      "feeObservations": 2,
+      "earliestEvidenceUtc": "2026-11-21T17:32:41.188Z",
+      "latestEvidenceUtc": "2026-11-21T17:32:41.188Z",
+      "entryFeeCurrency": "base",
+      "entryFeeCurrencyEvidence": "terminal_buy_fee",
+      "quoteSamples": 0
+    }
+  ],
+  "runs": [
+    {
+      "size": 10,
+      "scenario": "account-conditioned",
+      "markedPnlUsdt": -38.182602844553,
+      "feeEvidenceCoverage": {
+        "closedTradesWithPairFeeEvidence": 217,
+        "closedTradesWithAssumedPairFee": 230
+      },
+      "status": "descriptive_economic_diagnosis_only",
+      "accounting": {
+        "closedTrades": 447,
+        "realizedPnlUsdt": -38.18260284456067,
+        "beforeFeesPnlUsdt": -2.5070058544510836,
+        "feesUsdt": 35.675596990109554,
+        "profitFactor": 0.3981977220700746,
+        "beforeFeesProfitFactor": 0.9378287102973464,
+        "expectancyUsdt": -0.08541969316456526,
+        "winRatePercent": 29.977628635346754,
+        "losses": 313,
+        "averageWinUsdt": 0.18854094339718103,
+        "averageLossUsdt": 0.20270635546256527,
+        "breakEvenWinRatePercent": 51.81028880028923,
+        "flatTrades": 0,
+        "feeTurnedLosses": 36,
+        "averageEntryNotionalUsdt": 9.959203225655253,
+        "meanNetReturnBps": -85.77152484303033,
+        "meanHoldingMinutes": 194.93288590604027,
+        "topWinningTradePnLsUsdt": [
+          1.5568927475359704,
+          1.128737562563309,
+          1.1165313638597212
+        ],
+        "top3TradesProfitSharePercent": 15.049431884228357,
+        "realizedPnlWithoutTop3Usdt": -41.98476451851967,
+        "top3ProfitConcentrationWarning": false
+      },
+      "trades": 447,
+      "breakEvenMarketMoveRate": {
+        "samples": 447,
+        "mean": 0.009816192986043151,
+        "median": 0.009816192986043193
+      },
+      "atrRate": {
+        "samples": 447,
+        "mean": 0.009519963201324554,
+        "median": 0.006048920057845726
+      },
+      "extensionFromEma21Atr": {
+        "samples": 447,
+        "mean": 1.3049167723876987,
+        "median": 1.4291108065000306
+      },
+      "ownedExcursionCoverage": 405,
+      "ownedFavorableMoveRate": {
+        "samples": 405,
+        "mean": 0.011629798801258907,
+        "median": 0.006040291009553833
+      },
+      "ownedAdverseMoveRate": {
+        "samples": 405,
+        "mean": 0.008315292367475767,
+        "median": 0.006130261347385035
+      },
+      "ownedHighReachedEstimatedBreakEven": 154,
+      "horizons": [
+        {
+          "bars": 1,
+          "completeSamples": 447,
+          "missingSamples": 0,
+          "includesExitOrLater": 42,
+          "favorableMoveRate": {
+            "samples": 447,
+            "mean": 0.004144077498581143,
+            "median": 0.0010658732122144077
+          },
+          "adverseMoveRate": {
+            "samples": 447,
+            "mean": 0.008824442948399631,
+            "median": 0.004558576432248995
+          },
+          "meanCloseMoveRate": -0.002334776379384395,
+          "highReachedEstimatedBreakEven": 53
+        },
+        {
+          "bars": 4,
+          "completeSamples": 447,
+          "missingSamples": 0,
+          "includesExitOrLater": 161,
+          "favorableMoveRate": {
+            "samples": 447,
+            "mean": 0.009263851109640309,
+            "median": 0.004076230428383232
+          },
+          "adverseMoveRate": {
+            "samples": 447,
+            "mean": 0.01358367257554303,
+            "median": 0.006953978622633583
+          },
+          "meanCloseMoveRate": -0.0012965101476440203,
+          "highReachedEstimatedBreakEven": 130
+        },
+        {
+          "bars": 8,
+          "completeSamples": 447,
+          "missingSamples": 0,
+          "includesExitOrLater": 245,
+          "favorableMoveRate": {
+            "samples": 447,
+            "mean": 0.014407580817533013,
+            "median": 0.007427226797646069
+          },
+          "adverseMoveRate": {
+            "samples": 447,
+            "mean": 0.017278792532002783,
+            "median": 0.008811837491963903
+          },
+          "meanCloseMoveRate": -0.0009282374829461115,
+          "highReachedEstimatedBreakEven": 188
+        }
+      ],
+      "byExitReason": [
+        {
+          "key": "STOP_LOSS",
+          "accounting": {
+            "closedTrades": 277,
+            "realizedPnlUsdt": -62.27672611779941,
+            "beforeFeesPnlUsdt": -40.32417320665794,
+            "feesUsdt": 21.952552911141485,
+            "profitFactor": 0,
+            "beforeFeesProfitFactor": 0,
+            "expectancyUsdt": -0.2248257260570376,
+            "winRatePercent": 0,
+            "losses": 277,
+            "averageWinUsdt": null,
+            "averageLossUsdt": 0.2248257260570376,
+            "breakEvenWinRatePercent": null,
+            "flatTrades": 0,
+            "feeTurnedLosses": 0,
+            "averageEntryNotionalUsdt": 9.95917566430346,
+            "meanNetReturnBps": -225.748389620428,
+            "meanHoldingMinutes": 167.43682310469313,
+            "topWinningTradePnLsUsdt": [],
+            "top3TradesProfitSharePercent": null,
+            "realizedPnlWithoutTop3Usdt": -62.27672611779941,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 277
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "accounting": {
+            "closedTrades": 170,
+            "realizedPnlUsdt": 24.094123273238758,
+            "beforeFeesPnlUsdt": 37.81716735220682,
+            "feesUsdt": 13.723044078968083,
+            "profitFactor": 21.58687804573602,
+            "beforeFeesProfitFactor": null,
+            "expectancyUsdt": 0.14173013690140446,
+            "winRatePercent": 78.82352941176471,
+            "losses": 36,
+            "averageWinUsdt": 0.18854094339718103,
+            "averageLossUsdt": 0.03251008727731946,
+            "breakEvenWinRatePercent": 14.707050755710267,
+            "flatTrades": 0,
+            "feeTurnedLosses": 36,
+            "averageEntryNotionalUsdt": 9.959248134446105,
+            "meanNetReturnBps": 142.30842541190586,
+            "meanHoldingMinutes": 239.73529411764707,
+            "topWinningTradePnLsUsdt": [
+              1.5568927475359704,
+              1.128737562563309,
+              1.1165313638597212
+            ],
+            "top3TradesProfitSharePercent": 15.049431884228357,
+            "realizedPnlWithoutTop3Usdt": 20.29196159927976,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 170
+        }
+      ],
+      "byBtcEntryState": [
+        {
+          "key": "allowed",
+          "accounting": {
+            "closedTrades": 362,
+            "realizedPnlUsdt": -24.14064599807807,
+            "beforeFeesPnlUsdt": 4.778423637858457,
+            "feesUsdt": 28.919069635936534,
+            "profitFactor": 0.4834331830160809,
+            "beforeFeesProfitFactor": 1.1646703793422089,
+            "expectancyUsdt": -0.06668686739800572,
+            "winRatePercent": 33.97790055248619,
+            "losses": 239,
+            "averageWinUsdt": 0.18367655642107591,
+            "averageLossUsdt": 0.19553498927979251,
+            "breakEvenWinRatePercent": 51.56356432091216,
+            "flatTrades": 0,
+            "feeTurnedLosses": 24,
+            "averageEntryNotionalUsdt": 9.959268024176659,
+            "meanNetReturnBps": -66.96114793810682,
+            "meanHoldingMinutes": 185.38674033149172,
+            "topWinningTradePnLsUsdt": [
+              1.128737562563309,
+              1.1165313638597212,
+              0.6188578488477567
+            ],
+            "top3TradesProfitSharePercent": 12.677493520406063,
+            "realizedPnlWithoutTop3Usdt": -27.004772773348858,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 362
+        },
+        {
+          "key": "btc_regime_downtrend",
+          "accounting": {
+            "closedTrades": 80,
+            "realizedPnlUsdt": -13.29435767461938,
+            "beforeFeesPnlUsdt": -6.935618646104793,
+            "feesUsdt": 6.358739028514599,
+            "profitFactor": 0.16736596067746798,
+            "beforeFeesProfitFactor": 0.36535021262179185,
+            "expectancyUsdt": -0.16617947093274227,
+            "winRatePercent": 13.750000000000002,
+            "losses": 69,
+            "averageWinUsdt": 0.24293363412999322,
+            "averageLossUsdt": 0.23140040072535226,
+            "breakEvenWinRatePercent": 48.78427094018689,
+            "flatTrades": 0,
+            "feeTurnedLosses": 11,
+            "averageEntryNotionalUsdt": 9.958879598394633,
+            "meanNetReturnBps": -166.86640244676562,
+            "meanHoldingMinutes": 235.875,
+            "topWinningTradePnLsUsdt": [
+              1.5568927475359704,
+              0.5934784023538526,
+              0.2682228147979657
+            ],
+            "top3TradesProfitSharePercent": 90.50709647323998,
+            "realizedPnlWithoutTop3Usdt": -15.71295163930717,
+            "top3ProfitConcentrationWarning": true
+          },
+          "trades": 80
+        },
+        {
+          "key": "btc_regime_recovering",
+          "accounting": {
+            "closedTrades": 5,
+            "realizedPnlUsdt": -0.7475991718631967,
+            "beforeFeesPnlUsdt": -0.34981084620474656,
+            "feesUsdt": 0.39778832565844935,
+            "profitFactor": 0,
+            "beforeFeesProfitFactor": 0.07408270783723146,
+            "expectancyUsdt": -0.14951983437263933,
+            "winRatePercent": 0,
+            "losses": 5,
+            "averageWinUsdt": null,
+            "averageLossUsdt": 0.14951983437263933,
+            "breakEvenWinRatePercent": null,
+            "flatTrades": 0,
+            "feeTurnedLosses": 1,
+            "averageEntryNotionalUsdt": 9.959689848875131,
+            "meanNetReturnBps": -150.12477109972312,
+            "meanHoldingMinutes": 231,
+            "topWinningTradePnLsUsdt": [],
+            "top3TradesProfitSharePercent": null,
+            "realizedPnlWithoutTop3Usdt": -0.7475991718631967,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 5
+        }
+      ],
+      "byEntryRsi": [
+        {
+          "key": "above58to63",
+          "accounting": {
+            "closedTrades": 118,
+            "realizedPnlUsdt": -5.6334383757552615,
+            "beforeFeesPnlUsdt": 3.8021376675752534,
+            "feesUsdt": 9.435576043330517,
+            "profitFactor": 0.6243370512515016,
+            "beforeFeesProfitFactor": 1.4119340085190288,
+            "expectancyUsdt": -0.04774100318436662,
+            "winRatePercent": 34.74576271186441,
+            "losses": 77,
+            "averageWinUsdt": 0.22835495356541302,
+            "averageLossUsdt": 0.19475313599918434,
+            "breakEvenWinRatePercent": 46.0291686220409,
+            "flatTrades": 0,
+            "feeTurnedLosses": 7,
+            "averageEntryNotionalUsdt": 9.959204449884483,
+            "meanNetReturnBps": -47.935508923851856,
+            "meanHoldingMinutes": 156.22881355932202,
+            "topWinningTradePnLsUsdt": [
+              1.5568927475359704,
+              1.1165313638597212,
+              0.6019114775959622
+            ],
+            "top3TradesProfitSharePercent": 34.983359296806995,
+            "realizedPnlWithoutTop3Usdt": -8.908773964746915,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 118
+        },
+        {
+          "key": "above63",
+          "accounting": {
+            "closedTrades": 217,
+            "realizedPnlUsdt": -20.066341873722706,
+            "beforeFeesPnlUsdt": -2.7534627895243147,
+            "feesUsdt": 17.31287908419841,
+            "profitFactor": 0.3316056635897995,
+            "beforeFeesProfitFactor": 0.8519673974603178,
+            "expectancyUsdt": -0.09247162153789265,
+            "winRatePercent": 27.64976958525346,
+            "losses": 157,
+            "averageWinUsdt": 0.16592282555318513,
+            "averageLossUsdt": 0.19122109176378227,
+            "breakEvenWinRatePercent": 53.54174675585261,
+            "flatTrades": 0,
+            "feeTurnedLosses": 23,
+            "averageEntryNotionalUsdt": 9.959202600832471,
+            "meanNetReturnBps": -92.8532248314852,
+            "meanHoldingMinutes": 177.5115207373272,
+            "topWinningTradePnLsUsdt": [
+              0.6188578488477567,
+              0.614824245300353,
+              0.5045686784284289
+            ],
+            "top3TradesProfitSharePercent": 17.460434459828207,
+            "realizedPnlWithoutTop3Usdt": -21.804592646299245,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 217
+        },
+        {
+          "key": "atMost58",
+          "accounting": {
+            "closedTrades": 112,
+            "realizedPnlUsdt": -12.48282259508268,
+            "beforeFeesPnlUsdt": -3.55568073250202,
+            "feesUsdt": 8.927141862580653,
+            "profitFactor": 0.32266748674833157,
+            "beforeFeesProfitFactor": 0.7154049388838547,
+            "expectancyUsdt": -0.11145377317038108,
+            "winRatePercent": 29.464285714285715,
+            "losses": 79,
+            "averageWinUsdt": 0.18019890260149177,
+            "averageLossUsdt": 0.2332833719105305,
+            "breakEvenWinRatePercent": 56.41919528130768,
+            "flatTrades": 0,
+            "feeTurnedLosses": 6,
+            "averageEntryNotionalUsdt": 9.959203146436414,
+            "meanNetReturnBps": -111.91367645881901,
+            "meanHoldingMinutes": 269.4642857142857,
+            "topWinningTradePnLsUsdt": [
+              1.128737562563309,
+              0.5934784023538526,
+              0.5247165949977219
+            ],
+            "top3TradesProfitSharePercent": 37.78539406676858,
+            "realizedPnlWithoutTop3Usdt": -14.729755154997564,
+            "top3ProfitConcentrationWarning": true
+          },
+          "trades": 112
+        }
+      ],
+      "limitations": [
+        "Frozen next-open simulation, not exchange observations. Complete held candles exclude the exit candle because intrabar order is unknown; same-bar exits have unknown owned excursion, not zero.",
+        "Forward 1/4/8-bar windows are ex-post research, can include time after exit, overlap across trades and are not independent samples or achievable P&L. Missing windows are not zero-filled.",
+        "A high crossing estimated break-even does not prove an executable profitable exit. Exit spread/slippage and fees are scenario assumptions; entry slippage is already in the recorded fill.",
+        "Before-fees P&L includes spread/slippage in fills. BTC filter state is not a general regime label; entry ATR14 and EMA21 use only the exact preceding decision and runtime window.",
+        "No parameter selection, entry/exit rule, order, deployment or real-money approval is produced."
+      ]
+    },
+    {
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "markedPnlUsdt": -82.70929605400124,
+      "feeEvidenceCoverage": {
+        "closedTradesWithPairFeeEvidence": 191,
+        "closedTradesWithAssumedPairFee": 214
+      },
+      "status": "descriptive_economic_diagnosis_only",
+      "accounting": {
+        "closedTrades": 405,
+        "realizedPnlUsdt": -82.70929605398999,
+        "beforeFeesPnlUsdt": -18.319934753719394,
+        "feesUsdt": 64.38936130027054,
+        "profitFactor": 0.1310135883130167,
+        "beforeFeesProfitFactor": 0.6014279605111831,
+        "expectancyUsdt": -0.2042204840839259,
+        "winRatePercent": 14.074074074074074,
+        "losses": 348,
+        "averageWinUsdt": 0.21876751066394912,
+        "averageLossUsdt": 0.2735030004650434,
+        "breakEvenWinRatePercent": 55.55949305957427,
+        "flatTrades": 0,
+        "feeTurnedLosses": 72,
+        "averageEntryNotionalUsdt": 9.919250057649409,
+        "meanNetReturnBps": -205.88488462657932,
+        "meanHoldingMinutes": 164.85185185185185,
+        "topWinningTradePnLsUsdt": [
+          1.4327069494987477,
+          1.009153624882586,
+          0.9970784698297344
+        ],
+        "top3TradesProfitSharePercent": 27.578255907571435,
+        "realizedPnlWithoutTop3Usdt": -86.14823509820106,
+        "top3ProfitConcentrationWarning": false
+      },
+      "trades": 405,
+      "breakEvenMarketMoveRate": {
+        "samples": 405,
+        "mean": 0.019766310062609108,
+        "median": 0.019766310062609316
+      },
+      "atrRate": {
+        "samples": 405,
+        "mean": 0.009776175367337247,
+        "median": 0.005872418822445682
+      },
+      "extensionFromEma21Atr": {
+        "samples": 405,
+        "mean": 1.31666517487257,
+        "median": 1.4793132962343176
+      },
+      "ownedExcursionCoverage": 345,
+      "ownedFavorableMoveRate": {
+        "samples": 345,
+        "mean": 0.010535871709118022,
+        "median": 0.004014742971148122
+      },
+      "ownedAdverseMoveRate": {
+        "samples": 345,
+        "mean": 0.009581424831785085,
+        "median": 0.007078733800008674
+      },
+      "ownedHighReachedEstimatedBreakEven": 61,
+      "horizons": [
+        {
+          "bars": 1,
+          "completeSamples": 405,
+          "missingSamples": 0,
+          "includesExitOrLater": 60,
+          "favorableMoveRate": {
+            "samples": 405,
+            "mean": 0.003550697442225263,
+            "median": 0
+          },
+          "adverseMoveRate": {
+            "samples": 405,
+            "mean": 0.010644932608475866,
+            "median": 0.005930953591027688
+          },
+          "meanCloseMoveRate": -0.004069009815643494,
+          "highReachedEstimatedBreakEven": 17
+        },
+        {
+          "bars": 4,
+          "completeSamples": 405,
+          "missingSamples": 0,
+          "includesExitOrLater": 161,
+          "favorableMoveRate": {
+            "samples": 405,
+            "mean": 0.008433883017558354,
+            "median": 0.002192200675410927
+          },
+          "adverseMoveRate": {
+            "samples": 405,
+            "mean": 0.015367917549672067,
+            "median": 0.008237309563029038
+          },
+          "meanCloseMoveRate": -0.0030475520245269224,
+          "highReachedEstimatedBreakEven": 52
+        },
+        {
+          "bars": 8,
+          "completeSamples": 405,
+          "missingSamples": 0,
+          "includesExitOrLater": 240,
+          "favorableMoveRate": {
+            "samples": 405,
+            "mean": 0.013550804797769532,
+            "median": 0.004333813917138718
+          },
+          "adverseMoveRate": {
+            "samples": 405,
+            "mean": 0.019330945791736446,
+            "median": 0.010298997405329025
+          },
+          "meanCloseMoveRate": -0.002766483456925448,
+          "highReachedEstimatedBreakEven": 88
+        }
+      ],
+      "byExitReason": [
+        {
+          "key": "STOP_LOSS",
+          "accounting": {
+            "closedTrades": 268,
+            "realizedPnlUsdt": -88.26686891249514,
+            "beforeFeesPnlUsdt": -45.92914182138876,
+            "feesUsdt": 42.33772709110637,
+            "profitFactor": 0,
+            "beforeFeesProfitFactor": 0,
+            "expectancyUsdt": -0.32935398847945946,
+            "winRatePercent": 0,
+            "losses": 268,
+            "averageWinUsdt": null,
+            "averageLossUsdt": 0.32935398847945946,
+            "breakEvenWinRatePercent": null,
+            "flatTrades": 0,
+            "feeTurnedLosses": 0,
+            "averageEntryNotionalUsdt": 9.919228908140042,
+            "meanNetReturnBps": -332.0371911150087,
+            "meanHoldingMinutes": 142.27611940298507,
+            "topWinningTradePnLsUsdt": [],
+            "top3TradesProfitSharePercent": null,
+            "realizedPnlWithoutTop3Usdt": -88.26686891249514,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 268
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "accounting": {
+            "closedTrades": 137,
+            "realizedPnlUsdt": 5.5575728585052,
+            "beforeFeesPnlUsdt": 27.609207067669367,
+            "feesUsdt": 22.05163420916416,
+            "profitFactor": 1.804026613624407,
+            "beforeFeesProfitFactor": 794.7847026850128,
+            "expectancyUsdt": 0.0405662252445635,
+            "winRatePercent": 41.605839416058394,
+            "losses": 80,
+            "averageWinUsdt": 0.21876751066394912,
+            "averageLossUsdt": 0.08640219061674874,
+            "breakEvenWinRatePercent": 28.312833893452353,
+            "flatTrades": 0,
+            "feeTurnedLosses": 72,
+            "averageEntryNotionalUsdt": 9.919291430412258,
+            "meanNetReturnBps": 40.894809817939546,
+            "meanHoldingMinutes": 209.01459854014598,
+            "topWinningTradePnLsUsdt": [
+              1.4327069494987477,
+              1.009153624882586,
+              0.9970784698297344
+            ],
+            "top3TradesProfitSharePercent": 27.578255907571435,
+            "realizedPnlWithoutTop3Usdt": 2.1186338142941317,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 137
+        }
+      ],
+      "byBtcEntryState": [
+        {
+          "key": "allowed",
+          "accounting": {
+            "closedTrades": 319,
+            "realizedPnlUsdt": -57.79395613756179,
+            "beforeFeesPnlUsdt": -7.0176080437644925,
+            "feesUsdt": 50.7763480937973,
+            "profitFactor": 0.1584207511442399,
+            "beforeFeesProfitFactor": 0.7803370843763346,
+            "expectancyUsdt": -0.18117227629329716,
+            "winRatePercent": 17.24137931034483,
+            "losses": 264,
+            "averageWinUsdt": 0.19780478093813786,
+            "averageLossUsdt": 0.26012582988317945,
+            "breakEvenWinRatePercent": 56.80463889859495,
+            "flatTrades": 0,
+            "feeTurnedLosses": 60,
+            "averageEntryNotionalUsdt": 9.91934608466826,
+            "meanNetReturnBps": -182.64748427684063,
+            "meanHoldingMinutes": 163.35423197492162,
+            "topWinningTradePnLsUsdt": [
+              1.009153624882586,
+              0.9970784698297344,
+              0.504756230626084
+            ],
+            "top3TradesProfitSharePercent": 23.080500365786953,
+            "realizedPnlWithoutTop3Usdt": -60.304944462900195,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 319
+        },
+        {
+          "key": "btc_regime_downtrend",
+          "accounting": {
+            "closedTrades": 81,
+            "realizedPnlUsdt": -23.52953114576914,
+            "beforeFeesPnlUsdt": -10.708498910084561,
+            "feesUsdt": 12.8210322356846,
+            "profitFactor": 0.06331545079928279,
+            "beforeFeesProfitFactor": 0.2022233140544207,
+            "expectancyUsdt": -0.2904880388366561,
+            "winRatePercent": 2.4691358024691357,
+            "losses": 79,
+            "averageWinUsdt": 0.7952425781237586,
+            "averageLossUsdt": 0.31797488989894507,
+            "breakEvenWinRatePercent": 28.563591484396294,
+            "flatTrades": 0,
+            "feeTurnedLosses": 12,
+            "averageEntryNotionalUsdt": 9.91887815548425,
+            "meanNetReturnBps": -292.86083457436524,
+            "meanHoldingMinutes": 168.14814814814815,
+            "topWinningTradePnLsUsdt": [
+              1.4327069494987477,
+              0.15777820674876963
+            ],
+            "top3TradesProfitSharePercent": 100,
+            "realizedPnlWithoutTop3Usdt": -25.12001630201666,
+            "top3ProfitConcentrationWarning": true
+          },
+          "trades": 81
+        },
+        {
+          "key": "btc_regime_recovering",
+          "accounting": {
+            "closedTrades": 5,
+            "realizedPnlUsdt": -1.3858087706589615,
+            "beforeFeesPnlUsdt": -0.5938277998703205,
+            "feesUsdt": 0.7919809707886458,
+            "profitFactor": 0,
+            "beforeFeesProfitFactor": 0,
+            "expectancyUsdt": -0.2771617541317923,
+            "winRatePercent": 0,
+            "losses": 5,
+            "averageWinUsdt": null,
+            "averageLossUsdt": 0.2771617541317923,
+            "breakEvenWinRatePercent": null,
+            "flatTrades": 0,
+            "feeTurnedLosses": 0,
+            "averageEntryNotionalUsdt": 9.919148348922032,
+            "meanNetReturnBps": -279.4206377857721,
+            "meanHoldingMinutes": 207,
+            "topWinningTradePnLsUsdt": [],
+            "top3TradesProfitSharePercent": null,
+            "realizedPnlWithoutTop3Usdt": -1.3858087706589615,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 5
+        }
+      ],
+      "byEntryRsi": [
+        {
+          "key": "above58to63",
+          "accounting": {
+            "closedTrades": 109,
+            "realizedPnlUsdt": -19.657610679496976,
+            "beforeFeesPnlUsdt": -2.3072820415649837,
+            "feesUsdt": 17.350328637931977,
+            "profitFactor": 0.19571637602246603,
+            "beforeFeesProfitFactor": 0.7945950917978065,
+            "expectancyUsdt": -0.18034505210547686,
+            "winRatePercent": 12.844036697247708,
+            "losses": 95,
+            "averageWinUsdt": 0.3416808456933756,
+            "averageLossUsdt": 0.25727518441267616,
+            "breakEvenWinRatePercent": 42.953935093887075,
+            "flatTrades": 0,
+            "feeTurnedLosses": 22,
+            "averageEntryNotionalUsdt": 9.919170143366113,
+            "meanNetReturnBps": -181.8182139573211,
+            "meanHoldingMinutes": 148.76146788990826,
+            "topWinningTradePnLsUsdt": [
+              1.4327069494987477,
+              0.9970784698297344,
+              0.4879981864616525
+            ],
+            "top3TradesProfitSharePercent": 60.996429072973335,
+            "realizedPnlWithoutTop3Usdt": -22.57539428528711,
+            "top3ProfitConcentrationWarning": true
+          },
+          "trades": 109
+        },
+        {
+          "key": "above63",
+          "accounting": {
+            "closedTrades": 198,
+            "realizedPnlUsdt": -39.32997306489456,
+            "beforeFeesPnlUsdt": -7.841789521037957,
+            "feesUsdt": 31.48818354385663,
+            "profitFactor": 0.10648496215311085,
+            "beforeFeesProfitFactor": 0.6143489756050704,
+            "expectancyUsdt": -0.19863622760047758,
+            "winRatePercent": 15.151515151515152,
+            "losses": 168,
+            "averageWinUsdt": 0.15623876920192067,
+            "averageLossUsdt": 0.262006762743763,
+            "breakEvenWinRatePercent": 62.644246676086205,
+            "flatTrades": 0,
+            "feeTurnedLosses": 36,
+            "averageEntryNotionalUsdt": 9.919257369485743,
+            "meanNetReturnBps": -200.25284528616473,
+            "meanHoldingMinutes": 151.13636363636363,
+            "topWinningTradePnLsUsdt": [
+              0.504756230626084,
+              0.5007679393032038,
+              0.39153145236948816
+            ],
+            "top3TradesProfitSharePercent": 29.805995644466492,
+            "realizedPnlWithoutTop3Usdt": -40.72702868719334,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 198
+        },
+        {
+          "key": "atMost58",
+          "accounting": {
+            "closedTrades": 98,
+            "realizedPnlUsdt": -23.72171230959843,
+            "beforeFeesPnlUsdt": -8.170863191116439,
+            "feesUsdt": 15.550849118481967,
+            "profitFactor": 0.11223679919992614,
+            "beforeFeesProfitFactor": 0.43246762568658637,
+            "expectancyUsdt": -0.24205828887345338,
+            "winRatePercent": 13.26530612244898,
+            "losses": 85,
+            "averageWinUsdt": 0.23069639939078618,
+            "averageLossUsdt": 0.31436194707857235,
+            "breakEvenWinRatePercent": 57.67491666073309,
+            "flatTrades": 0,
+            "feeTurnedLosses": 14,
+            "averageEntryNotionalUsdt": 9.919324169009467,
+            "meanNetReturnBps": -244.0319345485303,
+            "meanHoldingMinutes": 210.4591836734694,
+            "topWinningTradePnLsUsdt": [
+              1.009153624882586,
+              0.4116230805104131,
+              0.26716884450256906
+            ],
+            "top3TradesProfitSharePercent": 56.282614604936896,
+            "realizedPnlWithoutTop3Usdt": -25.409657859493997,
+            "top3ProfitConcentrationWarning": true
+          },
+          "trades": 98
+        }
+      ],
+      "limitations": [
+        "Frozen next-open simulation, not exchange observations. Complete held candles exclude the exit candle because intrabar order is unknown; same-bar exits have unknown owned excursion, not zero.",
+        "Forward 1/4/8-bar windows are ex-post research, can include time after exit, overlap across trades and are not independent samples or achievable P&L. Missing windows are not zero-filled.",
+        "A high crossing estimated break-even does not prove an executable profitable exit. Exit spread/slippage and fees are scenario assumptions; entry slippage is already in the recorded fill.",
+        "Before-fees P&L includes spread/slippage in fills. BTC filter state is not a general regime label; entry ATR14 and EMA21 use only the exact preceding decision and runtime window.",
+        "No parameter selection, entry/exit rule, order, deployment or real-money approval is produced."
+      ]
+    },
+    {
+      "size": 30,
+      "scenario": "account-conditioned",
+      "markedPnlUsdt": -97.5024003960516,
+      "feeEvidenceCoverage": {
+        "closedTradesWithPairFeeEvidence": 247,
+        "closedTradesWithAssumedPairFee": 831
+      },
+      "status": "descriptive_economic_diagnosis_only",
+      "accounting": {
+        "closedTrades": 1078,
+        "realizedPnlUsdt": -97.50240039605754,
+        "beforeFeesPnlUsdt": -11.484831523847552,
+        "feesUsdt": 86.01756887221009,
+        "profitFactor": 0.40785512595305484,
+        "beforeFeesProfitFactor": 0.8941082469128333,
+        "expectancyUsdt": -0.09044749572918138,
+        "winRatePercent": 30.333951762523192,
+        "losses": 751,
+        "averageWinUsdt": 0.2053740208061121,
+        "averageLossUsdt": 0.2192539350195156,
+        "breakEvenWinRatePercent": 51.63436180107548,
+        "flatTrades": 0,
+        "feeTurnedLosses": 73,
+        "averageEntryNotionalUsdt": 9.959535741881743,
+        "meanNetReturnBps": -90.81628471349698,
+        "meanHoldingMinutes": 179.51298701298703,
+        "topWinningTradePnLsUsdt": [
+          1.5568927475359704,
+          1.128737562563309,
+          1.114090748227369
+        ],
+        "top3TradesProfitSharePercent": 5.657941558909967,
+        "realizedPnlWithoutTop3Usdt": -101.30212145438419,
+        "top3ProfitConcentrationWarning": false
+      },
+      "trades": 1078,
+      "breakEvenMarketMoveRate": {
+        "samples": 1078,
+        "mean": 0.009816192986043195,
+        "median": 0.009816192986043193
+      },
+      "atrRate": {
+        "samples": 1078,
+        "mean": 0.010025794612464601,
+        "median": 0.0072915546956179135
+      },
+      "extensionFromEma21Atr": {
+        "samples": 1078,
+        "mean": 1.2799228032697683,
+        "median": 1.3825108160139894
+      },
+      "ownedExcursionCoverage": 985,
+      "ownedFavorableMoveRate": {
+        "samples": 985,
+        "mean": 0.01363371061061995,
+        "median": 0.007864894017976853
+      },
+      "ownedAdverseMoveRate": {
+        "samples": 985,
+        "mean": 0.009108789136291035,
+        "median": 0.007118763381504745
+      },
+      "ownedHighReachedEstimatedBreakEven": 446,
+      "horizons": [
+        {
+          "bars": 1,
+          "completeSamples": 1078,
+          "missingSamples": 0,
+          "includesExitOrLater": 93,
+          "favorableMoveRate": {
+            "samples": 1078,
+            "mean": 0.004548910640260258,
+            "median": 0.0012565663234480606
+          },
+          "adverseMoveRate": {
+            "samples": 1078,
+            "mean": 0.008109398072844751,
+            "median": 0.004747011344937047
+          },
+          "meanCloseMoveRate": -0.00156675229677583,
+          "highReachedEstimatedBreakEven": 151
+        },
+        {
+          "bars": 4,
+          "completeSamples": 1078,
+          "missingSamples": 0,
+          "includesExitOrLater": 382,
+          "favorableMoveRate": {
+            "samples": 1078,
+            "mean": 0.011077395445393505,
+            "median": 0.004956079858694062
+          },
+          "adverseMoveRate": {
+            "samples": 1078,
+            "mean": 0.013419134120161096,
+            "median": 0.007536876402433723
+          },
+          "meanCloseMoveRate": -0.0008953545347098758,
+          "highReachedEstimatedBreakEven": 358
+        },
+        {
+          "bars": 8,
+          "completeSamples": 1078,
+          "missingSamples": 0,
+          "includesExitOrLater": 612,
+          "favorableMoveRate": {
+            "samples": 1078,
+            "mean": 0.015820244969962496,
+            "median": 0.00800631056205714
+          },
+          "adverseMoveRate": {
+            "samples": 1078,
+            "mean": 0.01742416092396557,
+            "median": 0.009454473909944028
+          },
+          "meanCloseMoveRate": -0.0008016443888844454,
+          "highReachedEstimatedBreakEven": 475
+        }
+      ],
+      "byExitReason": [
+        {
+          "key": "STOP_LOSS",
+          "accounting": {
+            "closedTrades": 678,
+            "realizedPnlUsdt": -162.15326687067082,
+            "beforeFeesPnlUsdt": -108.45822445109255,
+            "feesUsdt": 53.695042419578215,
+            "profitFactor": 0,
+            "beforeFeesProfitFactor": 0,
+            "expectancyUsdt": -0.23916411042871802,
+            "winRatePercent": 0,
+            "losses": 678,
+            "averageWinUsdt": null,
+            "averageLossUsdt": 0.23916411042871802,
+            "breakEvenWinRatePercent": null,
+            "flatTrades": 0,
+            "feeTurnedLosses": 0,
+            "averageEntryNotionalUsdt": 9.959513388154104,
+            "meanNetReturnBps": -240.13692072322286,
+            "meanHoldingMinutes": 154.0929203539823,
+            "topWinningTradePnLsUsdt": [],
+            "top3TradesProfitSharePercent": null,
+            "realizedPnlWithoutTop3Usdt": -162.15326687067082,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 678
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "accounting": {
+            "closedTrades": 400,
+            "realizedPnlUsdt": 64.6508664746132,
+            "beforeFeesPnlUsdt": 96.97339292724494,
+            "feesUsdt": 32.32252645263174,
+            "profitFactor": 26.79391869608935,
+            "beforeFeesProfitFactor": null,
+            "expectancyUsdt": 0.161627166186533,
+            "winRatePercent": 81.75,
+            "losses": 73,
+            "averageWinUsdt": 0.2053740208061121,
+            "averageLossUsdt": 0.03433477162993791,
+            "breakEvenWinRatePercent": 14.323534519117734,
+            "flatTrades": 0,
+            "feeTurnedLosses": 73,
+            "averageEntryNotionalUsdt": 9.959573631450109,
+            "meanNetReturnBps": 162.28219332298855,
+            "meanHoldingMinutes": 222.6,
+            "topWinningTradePnLsUsdt": [
+              1.5568927475359704,
+              1.128737562563309,
+              1.114090748227369
+            ],
+            "top3TradesProfitSharePercent": 5.657941558909967,
+            "realizedPnlWithoutTop3Usdt": 60.85114541628655,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 400
+        }
+      ],
+      "byBtcEntryState": [
+        {
+          "key": "allowed",
+          "accounting": {
+            "closedTrades": 844,
+            "realizedPnlUsdt": -63.56978202756664,
+            "beforeFeesPnlUsdt": 3.8274809064419664,
+            "feesUsdt": 67.39726293400845,
+            "profitFactor": 0.4698449959285457,
+            "beforeFeesProfitFactor": 1.0491320316159007,
+            "expectancyUsdt": -0.07531964695209317,
+            "winRatePercent": 34.00473933649289,
+            "losses": 557,
+            "averageWinUsdt": 0.1963001205553845,
+            "averageLossUsdt": 0.21527453613458167,
+            "breakEvenWinRatePercent": 52.30510009190026,
+            "flatTrades": 0,
+            "feeTurnedLosses": 47,
+            "averageEntryNotionalUsdt": 9.95955554449261,
+            "meanNetReturnBps": -75.62643383922551,
+            "meanHoldingMinutes": 174.2239336492891,
+            "topWinningTradePnLsUsdt": [
+              1.128737562563309,
+              1.114090748227369,
+              1.0241910841119797
+            ],
+            "top3TradesProfitSharePercent": 5.7989484709309504,
+            "realizedPnlWithoutTop3Usdt": -66.83680142246929,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 844
+        },
+        {
+          "key": "btc_regime_downtrend",
+          "accounting": {
+            "closedTrades": 218,
+            "realizedPnlUsdt": -32.338846008287945,
+            "beforeFeesPnlUsdt": -14.994654996310128,
+            "feesUsdt": 17.34419101197783,
+            "profitFactor": 0.2390901143230916,
+            "beforeFeesProfitFactor": 0.4875119988027424,
+            "expectancyUsdt": -0.14834333031324745,
+            "winRatePercent": 17.431192660550458,
+            "losses": 180,
+            "averageWinUsdt": 0.2674048715519776,
+            "averageLossUsdt": 0.23611239515146162,
+            "breakEvenWinRatePercent": 46.89261138894105,
+            "flatTrades": 0,
+            "feeTurnedLosses": 22,
+            "averageEntryNotionalUsdt": 9.959456156254719,
+            "meanNetReturnBps": -148.94942674435205,
+            "meanHoldingMinutes": 200.57339449541286,
+            "topWinningTradePnLsUsdt": [
+              1.5568927475359704,
+              0.9635594855314729,
+              0.9452036849860921
+            ],
+            "top3TradesProfitSharePercent": 34.10613688464425,
+            "realizedPnlWithoutTop3Usdt": -35.80450192634148,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 218
+        },
+        {
+          "key": "btc_regime_recovering",
+          "accounting": {
+            "closedTrades": 16,
+            "realizedPnlUsdt": -1.593772360203051,
+            "beforeFeesPnlUsdt": -0.3176574339793833,
+            "feesUsdt": 1.2761149262236737,
+            "profitFactor": 0.2921467034131845,
+            "beforeFeesProfitFactor": 0.7552205865093439,
+            "expectancyUsdt": -0.09961077251269068,
+            "winRatePercent": 12.5,
+            "losses": 14,
+            "averageWinUsdt": 0.3288925426140654,
+            "averageLossUsdt": 0.160825531816513,
+            "breakEvenWinRatePercent": 32.840432120769385,
+            "flatTrades": 0,
+            "feeTurnedLosses": 4,
+            "averageEntryNotionalUsdt": 9.959575508327223,
+            "meanNetReturnBps": -100.01685816092906,
+            "meanHoldingMinutes": 171.5625,
+            "topWinningTradePnLsUsdt": [
+              0.6264496096185468,
+              0.03133547560958405
+            ],
+            "top3TradesProfitSharePercent": 100,
+            "realizedPnlWithoutTop3Usdt": -2.2515574454311817,
+            "top3ProfitConcentrationWarning": true
+          },
+          "trades": 16
+        }
+      ],
+      "byEntryRsi": [
+        {
+          "key": "above58to63",
+          "accounting": {
+            "closedTrades": 286,
+            "realizedPnlUsdt": -23.5070545096519,
+            "beforeFeesPnlUsdt": -0.6766367531564292,
+            "feesUsdt": 22.830417756495468,
+            "profitFactor": 0.4553934864582921,
+            "beforeFeesProfitFactor": 0.9760987268045676,
+            "expectancyUsdt": -0.08219249828549616,
+            "winRatePercent": 31.818181818181817,
+            "losses": 195,
+            "averageWinUsdt": 0.21600350851840192,
+            "averageLossUsdt": 0.22135063479398193,
+            "breakEvenWinRatePercent": 50.61130394639485,
+            "flatTrades": 0,
+            "feeTurnedLosses": 14,
+            "averageEntryNotionalUsdt": 9.95951334762798,
+            "meanNetReturnBps": -82.52663171759828,
+            "meanHoldingMinutes": 169.93006993006992,
+            "topWinningTradePnLsUsdt": [
+              1.5568927475359704,
+              0.837730382802194,
+              0.7855823315503887
+            ],
+            "top3TradesProfitSharePercent": 16.17904866810477,
+            "realizedPnlWithoutTop3Usdt": -26.687259971540456,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 286
+        },
+        {
+          "key": "above63",
+          "accounting": {
+            "closedTrades": 505,
+            "realizedPnlUsdt": -43.36554476822392,
+            "beforeFeesPnlUsdt": -3.06047632162943,
+            "feesUsdt": 40.305068446594525,
+            "profitFactor": 0.40532426953695516,
+            "beforeFeesProfitFactor": 0.9345068657513803,
+            "expectancyUsdt": -0.08587236587767112,
+            "winRatePercent": 29.306930693069305,
+            "losses": 357,
+            "averageWinUsdt": 0.1997126089269268,
+            "averageLossUsdt": 0.2042661369451235,
+            "breakEvenWinRatePercent": 50.563585097573295,
+            "flatTrades": 0,
+            "feeTurnedLosses": 47,
+            "averageEntryNotionalUsdt": 9.959533202661138,
+            "meanNetReturnBps": -86.22277073431935,
+            "meanHoldingMinutes": 155.58415841584159,
+            "topWinningTradePnLsUsdt": [
+              1.114090748227369,
+              1.0241910841119797,
+              0.9670104233621455
+            ],
+            "top3TradesProfitSharePercent": 10.50594879469655,
+            "realizedPnlWithoutTop3Usdt": -46.47083702392541,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 505
+        },
+        {
+          "key": "atMost58",
+          "accounting": {
+            "closedTrades": 287,
+            "realizedPnlUsdt": -30.62980111818176,
+            "beforeFeesPnlUsdt": -7.747718449061685,
+            "feesUsdt": 22.882082669120052,
+            "profitFactor": 0.369411010265363,
+            "beforeFeesProfitFactor": 0.768163180483347,
+            "expectancyUsdt": -0.10672404570795038,
+            "winRatePercent": 30.66202090592334,
+            "losses": 199,
+            "averageWinUsdt": 0.20390362962771544,
+            "averageLossUsdt": 0.24408703781618452,
+            "breakEvenWinRatePercent": 54.48484880474671,
+            "flatTrades": 0,
+            "feeTurnedLosses": 12,
+            "averageEntryNotionalUsdt": 9.959562526073329,
+            "meanNetReturnBps": -107.15971787137848,
+            "meanHoldingMinutes": 231.16724738675958,
+            "topWinningTradePnLsUsdt": [
+              1.128737562563309,
+              0.9452036849860921,
+              0.8886827266270103
+            ],
+            "top3TradesProfitSharePercent": 16.51082993775011,
+            "realizedPnlWithoutTop3Usdt": -33.59242509235817,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 287
+        }
+      ],
+      "limitations": [
+        "Frozen next-open simulation, not exchange observations. Complete held candles exclude the exit candle because intrabar order is unknown; same-bar exits have unknown owned excursion, not zero.",
+        "Forward 1/4/8-bar windows are ex-post research, can include time after exit, overlap across trades and are not independent samples or achievable P&L. Missing windows are not zero-filled.",
+        "A high crossing estimated break-even does not prove an executable profitable exit. Exit spread/slippage and fees are scenario assumptions; entry slippage is already in the recorded fill.",
+        "Before-fees P&L includes spread/slippage in fills. BTC filter state is not a general regime label; entry ATR14 and EMA21 use only the exact preceding decision and runtime window.",
+        "No parameter selection, entry/exit rule, order, deployment or real-money approval is produced."
+      ]
+    },
+    {
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "markedPnlUsdt": -195.2272125877762,
+      "feeEvidenceCoverage": {
+        "closedTradesWithPairFeeEvidence": 217,
+        "closedTradesWithAssumedPairFee": 730
+      },
+      "status": "descriptive_economic_diagnosis_only",
+      "accounting": {
+        "closedTrades": 947,
+        "realizedPnlUsdt": -195.22721258776434,
+        "beforeFeesPnlUsdt": -44.677662320493724,
+        "feesUsdt": 150.54955026727086,
+        "profitFactor": 0.15266618868569157,
+        "beforeFeesProfitFactor": 0.6185431750673301,
+        "expectancyUsdt": -0.2061533395858124,
+        "winRatePercent": 17.212249208025344,
+        "losses": 784,
+        "averageWinUsdt": 0.21579485015470998,
+        "averageLossUsdt": 0.29387981270788527,
+        "breakEvenWinRatePercent": 57.660275097315015,
+        "flatTrades": 0,
+        "feeTurnedLosses": 138,
+        "averageEntryNotionalUsdt": 9.91954325971442,
+        "meanNetReturnBps": -207.82663787587407,
+        "meanHoldingMinutes": 162.30728616684266,
+        "topWinningTradePnLsUsdt": [
+          1.4327069494987477,
+          1.009153624882586,
+          0.9946640803600157
+        ],
+        "top3TradesProfitSharePercent": 9.769914957125453,
+        "realizedPnlWithoutTop3Usdt": -198.6637372425057,
+        "top3ProfitConcentrationWarning": false
+      },
+      "trades": 947,
+      "breakEvenMarketMoveRate": {
+        "samples": 947,
+        "mean": 0.01976631006260935,
+        "median": 0.019766310062609316
+      },
+      "atrRate": {
+        "samples": 947,
+        "mean": 0.010362692973157698,
+        "median": 0.007269971369224724
+      },
+      "extensionFromEma21Atr": {
+        "samples": 947,
+        "mean": 1.287013705932455,
+        "median": 1.3825108160139894
+      },
+      "ownedExcursionCoverage": 837,
+      "ownedFavorableMoveRate": {
+        "samples": 837,
+        "mean": 0.012944658163186955,
+        "median": 0.006256441567811688
+      },
+      "ownedAdverseMoveRate": {
+        "samples": 837,
+        "mean": 0.010557959102508549,
+        "median": 0.007958776754464991
+      },
+      "ownedHighReachedEstimatedBreakEven": 193,
+      "horizons": [
+        {
+          "bars": 1,
+          "completeSamples": 947,
+          "missingSamples": 0,
+          "includesExitOrLater": 110,
+          "favorableMoveRate": {
+            "samples": 947,
+            "mean": 0.003920666101951354,
+            "median": 0
+          },
+          "adverseMoveRate": {
+            "samples": 947,
+            "mean": 0.010053543927981759,
+            "median": 0.0064311944529484855
+          },
+          "meanCloseMoveRate": -0.0032553167383500854,
+          "highReachedEstimatedBreakEven": 43
+        },
+        {
+          "bars": 4,
+          "completeSamples": 947,
+          "missingSamples": 0,
+          "includesExitOrLater": 376,
+          "favorableMoveRate": {
+            "samples": 947,
+            "mean": 0.010284089979826137,
+            "median": 0.0032659227121751844
+          },
+          "adverseMoveRate": {
+            "samples": 947,
+            "mean": 0.0155423209275131,
+            "median": 0.009164478611960791
+          },
+          "meanCloseMoveRate": -0.002706623109636794,
+          "highReachedEstimatedBreakEven": 149
+        },
+        {
+          "bars": 8,
+          "completeSamples": 947,
+          "missingSamples": 0,
+          "includesExitOrLater": 579,
+          "favorableMoveRate": {
+            "samples": 947,
+            "mean": 0.01513042298353701,
+            "median": 0.006185096141199109
+          },
+          "adverseMoveRate": {
+            "samples": 947,
+            "mean": 0.019726697890263045,
+            "median": 0.011167583658149405
+          },
+          "meanCloseMoveRate": -0.002572152412027592,
+          "highReachedEstimatedBreakEven": 232
+        }
+      ],
+      "byExitReason": [
+        {
+          "key": "STOP_LOSS",
+          "accounting": {
+            "closedTrades": 627,
+            "realizedPnlUsdt": -216.01407821422595,
+            "beforeFeesPnlUsdt": -117.03649232176247,
+            "feesUsdt": 98.97758589246345,
+            "profitFactor": 0,
+            "beforeFeesProfitFactor": 0,
+            "expectancyUsdt": -0.3445200609477288,
+            "winRatePercent": 0,
+            "losses": 627,
+            "averageWinUsdt": null,
+            "averageLossUsdt": 0.3445200609477288,
+            "breakEvenWinRatePercent": null,
+            "flatTrades": 0,
+            "feeTurnedLosses": 0,
+            "averageEntryNotionalUsdt": 9.919519266098431,
+            "meanNetReturnBps": -347.3159683192899,
+            "meanHoldingMinutes": 138.61244019138755,
+            "topWinningTradePnLsUsdt": [],
+            "top3TradesProfitSharePercent": null,
+            "realizedPnlWithoutTop3Usdt": -216.01407821422595,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 627
+        },
+        {
+          "key": "TAKE_PROFIT",
+          "accounting": {
+            "closedTrades": 320,
+            "realizedPnlUsdt": 20.78686562646156,
+            "beforeFeesPnlUsdt": 72.35883000126884,
+            "feesUsdt": 51.57196437480726,
+            "profitFactor": 2.4447669137062578,
+            "beforeFeesProfitFactor": 830.0423451026397,
+            "expectancyUsdt": 0.06495895508269237,
+            "winRatePercent": 50.9375,
+            "losses": 157,
+            "averageWinUsdt": 0.21579485015470998,
+            "averageLossUsdt": 0.09164136910035775,
+            "breakEvenWinRatePercent": 29.808253992457058,
+            "flatTrades": 0,
+            "feeTurnedLosses": 138,
+            "averageEntryNotionalUsdt": 9.919590272205758,
+            "meanNetReturnBps": 65.48526896169302,
+            "meanHoldingMinutes": 208.734375,
+            "topWinningTradePnLsUsdt": [
+              1.4327069494987477,
+              1.009153624882586,
+              0.9946640803600157
+            ],
+            "top3TradesProfitSharePercent": 9.769914957125453,
+            "realizedPnlWithoutTop3Usdt": 17.350340971720208,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 320
+        }
+      ],
+      "byBtcEntryState": [
+        {
+          "key": "allowed",
+          "accounting": {
+            "closedTrades": 725,
+            "realizedPnlUsdt": -137.78923041859198,
+            "beforeFeesPnlUsdt": -22.43762182040212,
+            "feesUsdt": 115.35160859818967,
+            "profitFactor": 0.16792493997868366,
+            "beforeFeesProfitFactor": 0.7280069945172919,
+            "expectancyUsdt": -0.19005411092219585,
+            "winRatePercent": 19.724137931034484,
+            "losses": 582,
+            "averageWinUsdt": 0.19446073987400833,
+            "averageLossUsdt": 0.28453112752676146,
+            "breakEvenWinRatePercent": 59.40207901039285,
+            "flatTrades": 0,
+            "feeTurnedLosses": 108,
+            "averageEntryNotionalUsdt": 9.919580104570953,
+            "meanNetReturnBps": -191.5960874641277,
+            "meanHoldingMinutes": 161.75172413793103,
+            "topWinningTradePnLsUsdt": [
+              1.009153624882586,
+              0.9946640803600157,
+              0.9057297980940398
+            ],
+            "top3TradesProfitSharePercent": 10.463030249962907,
+            "realizedPnlWithoutTop3Usdt": -140.69877792192864,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 725
+        },
+        {
+          "key": "btc_regime_downtrend",
+          "accounting": {
+            "closedTrades": 207,
+            "realizedPnlUsdt": -54.157174178824896,
+            "beforeFeesPnlUsdt": -21.342304668513012,
+            "feesUsdt": 32.81486951031195,
+            "profitFactor": 0.11234605643628279,
+            "beforeFeesProfitFactor": 0.3525276522068254,
+            "expectancyUsdt": -0.26162886076727004,
+            "winRatePercent": 9.178743961352657,
+            "losses": 188,
+            "averageWinUsdt": 0.360758473196072,
+            "averageLossUsdt": 0.3245297083486716,
+            "breakEvenWinRatePercent": 47.35667666369678,
+            "flatTrades": 0,
+            "feeTurnedLosses": 28,
+            "averageEntryNotionalUsdt": 9.91942500802691,
+            "meanNetReturnBps": -263.7544147155677,
+            "meanHoldingMinutes": 162.6086956521739,
+            "topWinningTradePnLsUsdt": [
+              1.4327069494987477,
+              0.8457503547342942,
+              0.8275918731720964
+            ],
+            "top3TradesProfitSharePercent": 45.3146037144242,
+            "realizedPnlWithoutTop3Usdt": -57.263223356230036,
+            "top3ProfitConcentrationWarning": true
+          },
+          "trades": 207
+        },
+        {
+          "key": "btc_regime_recovering",
+          "accounting": {
+            "closedTrades": 15,
+            "realizedPnlUsdt": -3.280807990347725,
+            "beforeFeesPnlUsdt": -0.8977358315785872,
+            "feesUsdt": 2.383072158769147,
+            "profitFactor": 0.1350524886386071,
+            "beforeFeesProfitFactor": 0.46175626095779665,
+            "expectancyUsdt": -0.21872053268984834,
+            "winRatePercent": 6.666666666666667,
+            "losses": 14,
+            "averageWinUsdt": 0.5122637825091783,
+            "averageLossUsdt": 0.2709336980612074,
+            "breakEvenWinRatePercent": 34.593280083573845,
+            "flatTrades": 0,
+            "feeTurnedLosses": 2,
+            "averageEntryNotionalUsdt": 9.919394298269754,
+            "meanNetReturnBps": -220.49992072247397,
+            "meanHoldingMinutes": 185,
+            "topWinningTradePnLsUsdt": [
+              0.5122637825091783
+            ],
+            "top3TradesProfitSharePercent": 100,
+            "realizedPnlWithoutTop3Usdt": -3.7930717728569032,
+            "top3ProfitConcentrationWarning": true
+          },
+          "trades": 15
+        }
+      ],
+      "byEntryRsi": [
+        {
+          "key": "above58to63",
+          "accounting": {
+            "closedTrades": 259,
+            "realizedPnlUsdt": -51.51667215205381,
+            "beforeFeesPnlUsdt": -10.327116433902654,
+            "feesUsdt": 41.189555718151226,
+            "profitFactor": 0.1697321744206169,
+            "beforeFeesProfitFactor": 0.6668775272130214,
+            "expectancyUsdt": -0.19890607008514985,
+            "winRatePercent": 16.602316602316602,
+            "losses": 216,
+            "averageWinUsdt": 0.2449205983533872,
+            "averageLossUsdt": 0.28726045315393267,
+            "breakEvenWinRatePercent": 53.97795587428605,
+            "flatTrades": 0,
+            "feeTurnedLosses": 37,
+            "averageEntryNotionalUsdt": 9.919503125539187,
+            "meanNetReturnBps": -200.52195429778584,
+            "meanHoldingMinutes": 163.14671814671814,
+            "topWinningTradePnLsUsdt": [
+              1.4327069494987477,
+              0.7212736750965654,
+              0.6696856579460704
+            ],
+            "top3TradesProfitSharePercent": 26.811406706908524,
+            "realizedPnlWithoutTop3Usdt": -54.34033843459519,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 259
+        },
+        {
+          "key": "above63",
+          "accounting": {
+            "closedTrades": 441,
+            "realizedPnlUsdt": -86.08905933606107,
+            "beforeFeesPnlUsdt": -15.942071659984823,
+            "feesUsdt": 70.1469876760763,
+            "profitFactor": 0.15295946848939804,
+            "beforeFeesProfitFactor": 0.6785647051424106,
+            "expectancyUsdt": -0.19521328647632896,
+            "winRatePercent": 18.140589569160998,
+            "losses": 361,
+            "averageWinUsdt": 0.19432565899934348,
+            "averageLossUsdt": 0.28153770652633947,
+            "breakEvenWinRatePercent": 59.163559736380776,
+            "flatTrades": 0,
+            "feeTurnedLosses": 70,
+            "averageEntryNotionalUsdt": 9.919543260252079,
+            "meanNetReturnBps": -196.79667901295605,
+            "meanHoldingMinutes": 140.20408163265307,
+            "topWinningTradePnLsUsdt": [
+              0.9946640803600157,
+              0.9057297980940398,
+              0.8491643495138419
+            ],
+            "top3TradesProfitSharePercent": 17.686536109837576,
+            "realizedPnlWithoutTop3Usdt": -88.83861756402897,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 441
+        },
+        {
+          "key": "atMost58",
+          "accounting": {
+            "closedTrades": 247,
+            "realizedPnlUsdt": -57.621481099649614,
+            "beforeFeesPnlUsdt": -18.408474226606238,
+            "feesUsdt": 39.2130068730434,
+            "profitFactor": 0.13634801923087922,
+            "beforeFeesProfitFactor": 0.4960212921371657,
+            "expectancyUsdt": -0.23328534858157737,
+            "winRatePercent": 16.194331983805668,
+            "losses": 207,
+            "averageWinUsdt": 0.22742305315186498,
+            "averageLossUsdt": 0.3223111266943199,
+            "breakEvenWinRatePercent": 58.63035963754377,
+            "flatTrades": 0,
+            "feeTurnedLosses": 31,
+            "averageEntryNotionalUsdt": 9.91958534276819,
+            "meanNetReturnBps": -235.1793702858794,
+            "meanHoldingMinutes": 200.8906882591093,
+            "topWinningTradePnLsUsdt": [
+              1.009153624882586,
+              0.8275918731720964,
+              0.7716781854487618
+            ],
+            "top3TradesProfitSharePercent": 28.67369476569326,
+            "realizedPnlWithoutTop3Usdt": -60.22990478315306,
+            "top3ProfitConcentrationWarning": false
+          },
+          "trades": 247
+        }
+      ],
+      "limitations": [
+        "Frozen next-open simulation, not exchange observations. Complete held candles exclude the exit candle because intrabar order is unknown; same-bar exits have unknown owned excursion, not zero.",
+        "Forward 1/4/8-bar windows are ex-post research, can include time after exit, overlap across trades and are not independent samples or achievable P&L. Missing windows are not zero-filled.",
+        "A high crossing estimated break-even does not prove an executable profitable exit. Exit spread/slippage and fees are scenario assumptions; entry slippage is already in the recorded fill.",
+        "Before-fees P&L includes spread/slippage in fills. BTC filter state is not a general regime label; entry ATR14 and EMA21 use only the exact preceding decision and runtime window.",
+        "No parameter selection, entry/exit rule, order, deployment or real-money approval is produced."
+      ]
+    }
+  ],
+  "limitations": [
+    "Exported evidence is not independently authenticated. Fees observed now are not reconstructed historical fees; this is an account-conditioned counterfactual replay of development data.",
+    "Unknown symbols use the explicitly declared fallback; principal-pair fees are never labeled observed for another pair. Maximum evidenced rate is conservative, not a guarantee of future fees.",
+    "Historical spread/depth and sell slippage are unknown. Buy best-ask-to-fill changes include latency and market movement; legacy referencePrice is not treated as measured slippage.",
+    "Base entry fee and quote exit fee are modeled. Partial fills, exit lot-rounding/dust, trigger-price precision, actual scheduling and full live risk controls remain outside the proxy.",
+    "Public live candles and the OKX Demo book are distinct venues; this reference does not establish real-versus-demo market equivalence or authorize real funds."
+  ],
+  "holdoutExecuted": false,
+  "configurationPromoted": false,
+  "realMoneyApproved": false
+}

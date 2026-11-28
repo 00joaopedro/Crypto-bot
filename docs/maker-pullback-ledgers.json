@@ -1,0 +1,19 @@
+{
+  "protocol": "maker-pullback-development-v1",
+  "protocolFrozenCommit": "23f0627759ba3476604d81901fb137ff20ae90a5",
+  "minuteSourceSha256": "44b9ef6de474a1ad83861d141538d10afced695a25f4088fc7f4dc5d0d60890b",
+  "runs": [
+    {
+      "scenario": "maker-taker-reference",
+      "orders": [],
+      "events": [],
+      "closedTradeLedger": []
+    },
+    {
+      "scenario": "maker-taker-adverse",
+      "orders": [],
+      "events": [],
+      "closedTradeLedger": []
+    }
+  ]
+}

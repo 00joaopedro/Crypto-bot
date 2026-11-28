@@ -1,0 +1,1253 @@
+{
+  "status": "cost_aware_development_experiments_only",
+  "protocol": {
+    "protocol": "cost-aware-trend-development-v1",
+    "referenceStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+    "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+    "sizes": [
+      10,
+      30
+    ],
+    "minimumClosedTradesPerRun": 30,
+    "variants": [
+      {
+        "name": "reference",
+        "maxBuyRsi": 70,
+        "minimumTargetCostMultiple": null
+      },
+      {
+        "name": "rsi-63",
+        "maxBuyRsi": 63,
+        "minimumTargetCostMultiple": null
+      },
+      {
+        "name": "cost-buffer-1.5",
+        "maxBuyRsi": 70,
+        "minimumTargetCostMultiple": 1.5
+      },
+      {
+        "name": "cost-buffer-2",
+        "maxBuyRsi": 70,
+        "minimumTargetCostMultiple": 2
+      },
+      {
+        "name": "cost-buffer-2.5",
+        "maxBuyRsi": 70,
+        "minimumTargetCostMultiple": 2.5
+      }
+    ]
+  },
+  "protocolSha256": "d5eedf0b93da9365f42208449759df859da629fae9e9b241b8e86d097c0b35b3",
+  "referenceStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+  "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+  "datasetHashes": [
+    {
+      "symbol": "BTC/USDT",
+      "sha256": "b36a2eccf67cb6c690badfebbd91609001a2c9de9909de75d03081898226a328"
+    },
+    {
+      "symbol": "ETH/USDT",
+      "sha256": "0998351a0950587571383579e8fe1d4d151e78ab67a3039dcd30017075e4ef3d"
+    },
+    {
+      "symbol": "SOL/USDT",
+      "sha256": "db14ae037a22ff493ab0b2eaeb92604fcf0de685e6fb54c36fbf729f4d8ffe74"
+    },
+    {
+      "symbol": "XRP/USDT",
+      "sha256": "83a5a98f65ecc3c7dc50f0fc00e1d796fbafc9ce98fb931f3b1193348ca8adb3"
+    },
+    {
+      "symbol": "ADA/USDT",
+      "sha256": "c176489c9c9b6c5242c765f992e74be16d16196eb663b7f3ef8a215b4f0c34af"
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "sha256": "8dab3201a5df0926b0724ba801335e4fd81b8a51d17478a552e83522184833f4"
+    },
+    {
+      "symbol": "SUI/USDT",
+      "sha256": "75ab34fb8e899b82a9f0d55a0911bc3c5838e66e5c64e9636336f3d770677fc4"
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "sha256": "53dc26c349f5d94be8ba2dac7d2a59b9a143f0c6c8f7662f53bb5663b6021a73"
+    },
+    {
+      "symbol": "AVAX/USDT",
+      "sha256": "477e0ecb5ac4d3b02a2eb27f677d29ba8f92030bdb5faff14796eb1836451789"
+    },
+    {
+      "symbol": "LINK/USDT",
+      "sha256": "bbb1ec94d5a6b86bdcde9455bc885c8b6b88d6a06ee1f85780389c4857f35ad8"
+    },
+    {
+      "symbol": "DOT/USDT",
+      "sha256": "aadfdfc2377955482d6d165d33e3a07210675467baf3348dd0e1bc5816a9ef84"
+    },
+    {
+      "symbol": "ATOM/USDT",
+      "sha256": "f5e85a26db2a11c16bc699215aca7d31ca63e6b7c9e5e4a0d2396bd577127cfc"
+    },
+    {
+      "symbol": "UNI/USDT",
+      "sha256": "da7a376b93feaf5455be7ab34b7024f7187032ef5b801cb2d8732f6fce41021f"
+    },
+    {
+      "symbol": "AAVE/USDT",
+      "sha256": "3b616011d683934735a75d04f1bbce309d74570fd7a2813863f3c2a90ad2387b"
+    },
+    {
+      "symbol": "LTC/USDT",
+      "sha256": "a71425b50ba825c343f5ac3fb7ff1e91ebd415692303a8083137d684c1c7b004"
+    },
+    {
+      "symbol": "WLD/USDT",
+      "sha256": "6fcd060e71a76581e17117a498b2fba7a1cb3b4bb657c7f422930a4db4fa0f79"
+    },
+    {
+      "symbol": "ZEC/USDT",
+      "sha256": "e607f6a54426d8f01d9f034ea2aa746047a60ace7164ca8bfab2f17db7ecb0d0"
+    },
+    {
+      "symbol": "HYPE/USDT",
+      "sha256": "e6b84ef62b9cc2ace80b7d4cc2fee6bbf344c8587674044637520000287e4cdf"
+    },
+    {
+      "symbol": "LIT/USDT",
+      "sha256": "6637ca19d343c414165542d626adc803ac4087d6eea9809cd1faee3bb9b9742c"
+    },
+    {
+      "symbol": "TRX/USDT",
+      "sha256": "cd2933b329f5b709a929724106229e89a67e58249cf160605bea89590e940072"
+    },
+    {
+      "symbol": "1INCH/USDT",
+      "sha256": "c6cb02e8be0677f97368dbf5e69329586c79a4bebe6297e4ed54c2450f09d74a"
+    },
+    {
+      "symbol": "2Z/USDT",
+      "sha256": "57c499304e5ee484046dcfd3f7eecfd426a98b40feb9a68189cfb7b1c6665e28"
+    },
+    {
+      "symbol": "A/USDT",
+      "sha256": "4d79e56f1c7aafc1430614c4fe52d8ed0034d34b22a25070b93e14db80b716b8"
+    },
+    {
+      "symbol": "ACE/USDT",
+      "sha256": "ba1fcbde779ee7696ffdecdfa0f81bb9d330da8927e73a33fa74eba0581f1de1"
+    },
+    {
+      "symbol": "ACH/USDT",
+      "sha256": "609d6e954ed78cc2f06afe71bbe61f33dea5bdaa0e00307d19167ad17898ce1a"
+    },
+    {
+      "symbol": "ACT/USDT",
+      "sha256": "a79cf96697626bd0983b650ad53f98d0b610893a3ffc5de31ca9621e3844644f"
+    },
+    {
+      "symbol": "AEVO/USDT",
+      "sha256": "4ed561cddde33eef67474cf7bec8e647d02ddef642fb9c88a7a80b594f99654f"
+    },
+    {
+      "symbol": "AGLD/USDT",
+      "sha256": "78b11c6c4591cce973ee7438cfe65c2e36bfcc818299dafcfd9a377ecad9dcc2"
+    },
+    {
+      "symbol": "AI/USDT",
+      "sha256": "f48cec49dd658e2fe6888a789bc096074bedabd0488cdfc78b07fb9f3c889988"
+    },
+    {
+      "symbol": "AIXBT/USDT",
+      "sha256": "967870b2c8c3213245c4fd294f9d7034e954ad5658da1fee2b8080f2b8c9b6b6"
+    },
+    {
+      "symbol": "ALGO/USDT",
+      "sha256": "511e642d0a33f48df8e93b7a03f8741be58c09d57ca25b8e8194a878ef01790d"
+    },
+    {
+      "symbol": "ALLO/USDT",
+      "sha256": "eaf97fef4f004a4bc9762e214416fe3a6b0f81ee8753791ca8615ed8e011146d"
+    },
+    {
+      "symbol": "ANIME/USDT",
+      "sha256": "e3b3f298c2e10c5da24da400e6c4f83818d56480b2be567b9e7d4ca777441c13"
+    },
+    {
+      "symbol": "APE/USDT",
+      "sha256": "9fe18b268d333e719d93a37849ae932dde8076ca56c2bbf9f22385266c240f32"
+    },
+    {
+      "symbol": "API3/USDT",
+      "sha256": "781be9188d46dbcbd3d8ebe87bbd9ccbf77396a55a72d25f11f888d6abc90cfc"
+    },
+    {
+      "symbol": "APT/USDT",
+      "sha256": "cf48ee9bed351cbd0cfda2b0e67ce42b572878b781cb07e06e34b98cc1f96626"
+    },
+    {
+      "symbol": "AR/USDT",
+      "sha256": "838021b0df1b0f39f52de6fbd6b954e8e9970306b8995250a10d609d2f668baf"
+    },
+    {
+      "symbol": "ARB/USDT",
+      "sha256": "fcf0aaae3401a2acb147aa720212bcf4da6c3f69cf021a5612674dcb360492d0"
+    },
+    {
+      "symbol": "ARG/USDT",
+      "sha256": "101491538b818dea6f8e608c35524e34337dff4c17a01a6d7142e9edd8105fb4"
+    },
+    {
+      "symbol": "ARKM/USDT",
+      "sha256": "5272c3c0627f31a236ea271e9238b7b035fe0b7cf5a92917f66305e5af342fdb"
+    },
+    {
+      "symbol": "ASP/USDT",
+      "sha256": "70d0a3a5868225ea5cb49c60a4ebd6229c2cf02007a1156ea5cead77011a28b4"
+    },
+    {
+      "symbol": "ASTER/USDT",
+      "sha256": "0c8a21e9e26d52f2b2631fe66a2a68fe9d5d8ce359bec443520bf8edf468dbd2"
+    },
+    {
+      "symbol": "ASTR/USDT",
+      "sha256": "4c6943936db0fd6e5a7bf8d039481e74aca7bd1936f1c05e7862ed772a0e08b6"
+    },
+    {
+      "symbol": "ATH/USDT",
+      "sha256": "2d697d3824b212e5495cdd0832e3fe8866a380d651353e8b2233031d41a62352"
+    },
+    {
+      "symbol": "AUCTION/USDT",
+      "sha256": "600293d4aaeee3775f9cd03ac73bbaad6e3894b91360987f7562d31446fe6dc5"
+    },
+    {
+      "symbol": "AUDF/USDT",
+      "sha256": "a1dccb53ae4d65ab0dd133f0c8a8834cf3cb7c5db973df6c34e4caab5f705746"
+    },
+    {
+      "symbol": "AUDM/USDT",
+      "sha256": "55d838fd66144ad5f4edc59c688d09cdf932de011b500045b36dd303c7151874"
+    },
+    {
+      "symbol": "AVNT/USDT",
+      "sha256": "e65280d11b3bb34e9a243fa384cfebeefb52af1a26e4b1dff71293a8a702c2e7"
+    },
+    {
+      "symbol": "AXS/USDT",
+      "sha256": "c66b59f032906269e9ad6b1e744375dc8eaf478265b67fc34b8b713d3e31ef74"
+    },
+    {
+      "symbol": "BABY/USDT",
+      "sha256": "c4170fc06c6fccd41661e92e732fa0f038286a62b1cc62cdd5fabde36f3fbd29"
+    },
+    {
+      "symbol": "BABYDOGE/USDT",
+      "sha256": "7d491c4c0bfdcc1be73b2939953996d2e1207c630f3902658b5699e3e8ab03de"
+    },
+    {
+      "symbol": "BANANA/USDT",
+      "sha256": "9052dd86b96343bdef6f4c0beafc752f0b2c0888aae1e862684648f6aaed8a4e"
+    },
+    {
+      "symbol": "BAND/USDT",
+      "sha256": "25729e18984f3c4cec9c051efb40e4ef9844f6722eee7cc4e5f0b4f062db01d7"
+    },
+    {
+      "symbol": "BARD/USDT",
+      "sha256": "b0ff2609ef1aef836787a2b62b8d69b626a9888374453142db4ba64a8907e8ae"
+    },
+    {
+      "symbol": "BASED/USDT",
+      "sha256": "4910011a9e7219f8a92f80296c4fe711bd87d7c306ce8348bad5cbecd0eb765a"
+    },
+    {
+      "symbol": "BAT/USDT",
+      "sha256": "d2962c759347823a0a68547e5a500999fa0b946813ee2544bc401945fb10c9dc"
+    },
+    {
+      "symbol": "BCH/USDT",
+      "sha256": "10f81c6a7a9de259550d1645d8b7374221dfbc8fc1b5384969fb116e65365a0f"
+    },
+    {
+      "symbol": "BERA/USDT",
+      "sha256": "9c2009e970df094cc3e3bf42a7b0a08865b21ecbbc63037b97ef1dc74b076a4d"
+    },
+    {
+      "symbol": "BETH/USDT",
+      "sha256": "2ee6d86b6a65303009c235e55ee6e5543723934ce8f3daf06514c778da40bc62"
+    },
+    {
+      "symbol": "BICO/USDT",
+      "sha256": "4e0df53af946c87bf02246296c95888fbdbd8f6cf40f5443afa48f1e4442c36e"
+    },
+    {
+      "symbol": "BIGTIME/USDT",
+      "sha256": "ab15c65fb5b34dd307eeafdedb6072d5fd0937b78cbad76b53451f7d83ce5173"
+    },
+    {
+      "symbol": "BIO/USDT",
+      "sha256": "629abb7a90b41aaae6041102fab30b6b6528a5a6175c25a722fad7eeaece180b"
+    },
+    {
+      "symbol": "BLUR/USDT",
+      "sha256": "718e83b8378131b4026b1ac88e43991b78db1cc76d9d4896b06e77980dc7fd4c"
+    },
+    {
+      "symbol": "BNB/USDT",
+      "sha256": "0c024e2f802cc52807c64968de4cd6f72bbd236aa6168ea3f4b2956055d2b6b4"
+    },
+    {
+      "symbol": "BNT/USDT",
+      "sha256": "52dc05936a1150eb5dfdc979fce471b5db8499c303135ffe7f6d3b5f4c77366c"
+    },
+    {
+      "symbol": "BOME/USDT",
+      "sha256": "d98e3fbac3e01eac3459f12ca7e7b551ed5d7d0c1a81cc665667beb09f8e76b5"
+    },
+    {
+      "symbol": "BONK/USDT",
+      "sha256": "9845ef76066ac749772042df98740a306af447f5ea566cb7a014764a9eb8b753"
+    },
+    {
+      "symbol": "BREV/USDT",
+      "sha256": "658281bb152f83ac364138e807c6990de27f10c68670bf3be69ced86b5a56ed8"
+    },
+    {
+      "symbol": "BRL1/USDT",
+      "sha256": "37dc68636ff88cde7e3b32ae24bd04676b5633c1fdc4a40516db756c8f31571b"
+    },
+    {
+      "symbol": "CARDS/USDT",
+      "sha256": "fec2b9a1b19370c6b089aa2f6def4afb5f938f2d6d153dca0a9cab5687055bf3"
+    },
+    {
+      "symbol": "CAT/USDT",
+      "sha256": "aa285f0afebe0452191553efda7e11ce26412fef1d41ca183b1d5c8ad15af2cd"
+    },
+    {
+      "symbol": "CATI/USDT",
+      "sha256": "d1e8168726d347f6b6b4ce17e53c9aed377c23d02b5b315602f32d2d9fc1690e"
+    },
+    {
+      "symbol": "CC/USDT",
+      "sha256": "4185209f7e5269a71f0d31d16151c786721c23d59ca96dff52bdc7a64268a102"
+    },
+    {
+      "symbol": "CELO/USDT",
+      "sha256": "f6b217b8ac454ae03c09a30cb0692456f5ff81ba4f6d596a15a6460cae6065d1"
+    },
+    {
+      "symbol": "CELR/USDT",
+      "sha256": "f353177e0693974d50ad7fa045380a332df846437e7ca598d85c5932b961c8c6"
+    },
+    {
+      "symbol": "CETUS/USDT",
+      "sha256": "b0d770dd5f2f54c3aec4b030dd6f5bec7b185fa5c44d2faa3d67b27698f05584"
+    },
+    {
+      "symbol": "CFG/USDT",
+      "sha256": "892703df8f2ffdc57fa80486de60ce20481fd16704e2faed8ca430cd6babdc9a"
+    },
+    {
+      "symbol": "CFX/USDT",
+      "sha256": "02d102077ebe8d47cb3ed42077374a48efe7c2ce218813eb96a666b900c24fd6"
+    },
+    {
+      "symbol": "CHIP/USDT",
+      "sha256": "a5bf24862faea1efc03d9b96222611440b9e95781ec93d8ce8fd29196d436e7e"
+    },
+    {
+      "symbol": "CHZ/USDT",
+      "sha256": "81a0c289988f3b32add361def2a7836a7beacf11dfa5154f9617677e38765108"
+    },
+    {
+      "symbol": "CITY/USDT",
+      "sha256": "f2b57e92179f41c6d299901ddecaccf06b1710915c542824b7a9a8bafbab09f0"
+    },
+    {
+      "symbol": "COMP/USDT",
+      "sha256": "c95600c15609fc7da8c822bf7f240376a1c88948a2ed0e0930e66e50365b7e64"
+    },
+    {
+      "symbol": "CORE/USDT",
+      "sha256": "7e5629be373f11ba07e6dfe97077a27050ccd59f3f3f102fa1abf924cdfa5d89"
+    },
+    {
+      "symbol": "CRO/USDT",
+      "sha256": "03705118bbb9ed119727c23ca291ebb664fb23ff60d9f9affa07fc3944dee2fe"
+    },
+    {
+      "symbol": "CRV/USDT",
+      "sha256": "467be15446f8f931047f4cbfd0bd4341669aec610c16c787c0b383f03f2ddc2b"
+    },
+    {
+      "symbol": "CSPR/USDT",
+      "sha256": "84859bb8c6249cfc3540a63d44869078def59085f703e2ba6d992aaef958337c"
+    },
+    {
+      "symbol": "CTC/USDT",
+      "sha256": "c2ccd0b1c3bb22003fe60976970da42eeeeb50e8f55b0429c92ab0489ef468b8"
+    },
+    {
+      "symbol": "CVC/USDT",
+      "sha256": "862f3dd4b72dbb4c3f2233aa63b6be43d59f399e07c5c5592360c3bc5f095df0"
+    },
+    {
+      "symbol": "CVX/USDT",
+      "sha256": "557ff33acda8d3f6f11434304877b4b83f0190a37e8d5c16c140242f8e6ebb6f"
+    },
+    {
+      "symbol": "DASH/USDT",
+      "sha256": "f58b2faee6daffa48be18267d131682f1840f9ab582fb2469fba9a976908cac6"
+    },
+    {
+      "symbol": "DATA/USDT",
+      "sha256": "b8f26f3f097468b5f79cefdcc65f587a262a26572262a9229d34e7fecd3acf61"
+    },
+    {
+      "symbol": "DEGEN/USDT",
+      "sha256": "33a84c17cf9b780fbc65aace20b3c7ad668daba237d0f2405e252ecd49aec498"
+    },
+    {
+      "symbol": "DGB/USDT",
+      "sha256": "4d1478d380e5650a5c931364b90d4813570ad9e9230c3628f16dd4018497533b"
+    },
+    {
+      "symbol": "DOGS/USDT",
+      "sha256": "bab554b37fd4a98fdc75dab75ce6b8187114c345802b6a3bffcdeaaef51076f6"
+    },
+    {
+      "symbol": "DOOD/USDT",
+      "sha256": "481ba5faba577cc7c2163b28a170c202548c67e1424f3103ad725cde96990cc8"
+    },
+    {
+      "symbol": "DYDX/USDT",
+      "sha256": "443d3695ce692b27e1241127a533c5a357f5a7c2f12721c297e9938c4b70f284"
+    },
+    {
+      "symbol": "EDGE/USDT",
+      "sha256": "55c8b88ffb6f7fc54abf60a52de630faa8d7195b33bdd2307cba8109f84ecf7e"
+    },
+    {
+      "symbol": "EGLD/USDT",
+      "sha256": "873c47bdca5dc54d2ed32b2059688cb7fb8dda1e2ac887355fb0fc18019829ac"
+    },
+    {
+      "symbol": "EIGEN/USDT",
+      "sha256": "dfcc65ecb3bf2949e7ad34c664eaa53845fb4a5e998faccf82d6e6b926c08acd"
+    },
+    {
+      "symbol": "ENA/USDT",
+      "sha256": "9e89e0b25beb201acc86b35cdb7253297d01995dc86dfe3e6c90bc10ed849c44"
+    },
+    {
+      "symbol": "ENJ/USDT",
+      "sha256": "12a92ba8bb058f27d2e3a88b2163a6d820d0f3cdab38b9adf311c2e93370fc7d"
+    },
+    {
+      "symbol": "ENS/USDT",
+      "sha256": "aacef206df362811366e15893b2f5a45ce6867881f1a5d3f6573587b0bbb86a0"
+    },
+    {
+      "symbol": "ETC/USDT",
+      "sha256": "bf855130a833871e966a8983da1b3014c32b3b7ad93e7b62c73cde62d87d1889"
+    },
+    {
+      "symbol": "ETHFI/USDT",
+      "sha256": "123fc3fb683f058c68001ceb260e57306e1ff09341635530d7e768136e4caf50"
+    },
+    {
+      "symbol": "ETHW/USDT",
+      "sha256": "8f782bd82c809b664bf76af7e042b5121765d259d55ca66ca74f2852f3b1a8aa"
+    },
+    {
+      "symbol": "FET/USDT",
+      "sha256": "70118e4ca9fe4db8457934f35d3958698f28da67672cf03eb568efc3b823650b"
+    },
+    {
+      "symbol": "FIL/USDT",
+      "sha256": "aefd0bc1b6ae8fc669cc0af55cf4d2fbe70c005aa80c8cae147fe54c001bf087"
+    },
+    {
+      "symbol": "FLOKI/USDT",
+      "sha256": "ea5408d945b2083a8ad399c83ce1ae88b5b00a828b441b382ea9bc21bab46b51"
+    },
+    {
+      "symbol": "FLOW/USDT",
+      "sha256": "36c60ea7d3b3d7a563d9b75d45d740c1c3989ecd2b8ffb3b7aebb5f6e7de2d7d"
+    },
+    {
+      "symbol": "FLR/USDT",
+      "sha256": "7995904a430f5cc9ac73de5f61667223b9d6265e7edf4aa0b7510566cb1e6983"
+    },
+    {
+      "symbol": "FLUID/USDT",
+      "sha256": "a78c1a411ed89020fe75fed350bea41cef784c9f345049cf61515ea76ae2fd7d"
+    },
+    {
+      "symbol": "FOGO/USDT",
+      "sha256": "3151a747e2d4a607518ed548b20d511b18712f955c23914b89401a75ca3b861d"
+    },
+    {
+      "symbol": "G/USDT",
+      "sha256": "7dd781a50f8521a31b9947820a861978e9f65a2a8e103b78c1e261d8f0b6ea03"
+    },
+    {
+      "symbol": "GALA/USDT",
+      "sha256": "4454e33b7a7a5f942cb7fdb516e4e199eb6559a030b1a43ab4ec13305c8b40d2"
+    },
+    {
+      "symbol": "GALFT/USDT",
+      "sha256": "ffcffc0bc2bb364cfccb0ad2b4422b31a2b0cd785508a17fb2a911689b1dccfe"
+    },
+    {
+      "symbol": "GAS/USDT",
+      "sha256": "b9847a2435b44e69c9d57ee7f20dc5cff56c6ff3ec9229f11081143d6ca2ca88"
+    },
+    {
+      "symbol": "GLM/USDT",
+      "sha256": "0387d7fc0a11d96705a3e3c1546e068cc983d06ff03248b403f9735a86eea48e"
+    },
+    {
+      "symbol": "GMT/USDT",
+      "sha256": "c26270049dccc99da53a49e5bfea1bf2f6c697913c70584b3c1a3abdb33e8621"
+    },
+    {
+      "symbol": "GMX/USDT",
+      "sha256": "2db993798ca2d1c49199d6214bf7d3ab406f7993e27ed2577b376f46d9dc3ac8"
+    },
+    {
+      "symbol": "GOAT/USDT",
+      "sha256": "e3b6feb3bb3bd7b709f5ca1094be8c8b01b6e962687d8804e1cab2b745d22f6b"
+    }
+  ],
+  "referenceConfigurationHash": "97bdb8e289cdc88b05b9fcc20b992dd2b44537c49f5d42876fb7988cd559015d",
+  "referenceSourceCommit": "37649535419065e1554070cdce23a9606ea5330d",
+  "feeEvidenceCoverage": {
+    "symbols": 120,
+    "feeEvidenced": 6,
+    "feesAssumed": 114,
+    "measuredBuyQuoteSymbols": 0
+  },
+  "results": [
+    {
+      "variant": "reference",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -38.182602844553,
+      "realizedPnlUsdt": -38.182602844560655,
+      "profitFactor": 0.3981977220700748,
+      "closedTrades": 447,
+      "expectancyUsdt": -0.08541969316456523,
+      "maxDrawdownUsdt": 38.182602844553,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 15.049431884228348,
+      "realizedPnlWithoutTop3Usdt": -41.984764518519654,
+      "blocks": [
+        {
+          "netReturnUsdt": -22.079927946120733,
+          "closedTrades": 198,
+          "profitFactor": 0.21961691746227102
+        },
+        {
+          "netReturnUsdt": -16.10267489843227,
+          "closedTrades": 249,
+          "profitFactor": 0.5390350740782688
+        }
+      ]
+    },
+    {
+      "variant": "reference",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -82.70929605400124,
+      "realizedPnlUsdt": -82.70929605398999,
+      "profitFactor": 0.13101358831301674,
+      "closedTrades": 405,
+      "expectancyUsdt": -0.2042204840839259,
+      "maxDrawdownUsdt": 82.70929605400124,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 27.578255907571435,
+      "realizedPnlWithoutTop3Usdt": -86.14823509820106,
+      "blocks": [
+        {
+          "netReturnUsdt": -42.346028508362906,
+          "closedTrades": 183,
+          "profitFactor": 0.07588841441938445
+        },
+        {
+          "netReturnUsdt": -40.36326754563834,
+          "closedTrades": 222,
+          "profitFactor": 0.18100543049147244
+        }
+      ]
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -97.5024003960516,
+      "realizedPnlUsdt": -97.50240039605761,
+      "profitFactor": 0.40785512595305484,
+      "closedTrades": 1078,
+      "expectancyUsdt": -0.09044749572918145,
+      "maxDrawdownUsdt": 97.5024003960516,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 5.657941558909963,
+      "realizedPnlWithoutTop3Usdt": -101.30212145438426,
+      "blocks": [
+        {
+          "netReturnUsdt": -50.99898379047772,
+          "closedTrades": 474,
+          "profitFactor": 0.28658777499800664
+        },
+        {
+          "netReturnUsdt": -46.503416605573875,
+          "closedTrades": 604,
+          "profitFactor": 0.5011186359714479
+        }
+      ]
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -195.2272125877762,
+      "realizedPnlUsdt": -195.2272125877643,
+      "profitFactor": 0.15266618868569154,
+      "closedTrades": 947,
+      "expectancyUsdt": -0.20615333958581236,
+      "maxDrawdownUsdt": 195.2272125877762,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 9.769914957125456,
+      "realizedPnlWithoutTop3Usdt": -198.66373724250568,
+      "blocks": [
+        {
+          "netReturnUsdt": -92.11808432581438,
+          "closedTrades": 412,
+          "profitFactor": 0.11420495350096944
+        },
+        {
+          "netReturnUsdt": -103.10912826196181,
+          "closedTrades": 535,
+          "profitFactor": 0.1838591892008051
+        }
+      ]
+    },
+    {
+      "variant": "rsi-63",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -29.37504841144164,
+      "realizedPnlUsdt": -29.375048411446038,
+      "profitFactor": 0.4129898975362739,
+      "closedTrades": 358,
+      "expectancyUsdt": -0.08205320785320122,
+      "maxDrawdownUsdt": 29.37504841144164,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 18.3974713870675,
+      "realizedPnlWithoutTop3Usdt": -33.17721008540504,
+      "blocks": [
+        {
+          "netReturnUsdt": -17.51843840146921,
+          "closedTrades": 163,
+          "profitFactor": 0.2506298838008938
+        },
+        {
+          "netReturnUsdt": -11.856610009972428,
+          "closedTrades": 195,
+          "profitFactor": 0.5523191703856424
+        }
+      ]
+    },
+    {
+      "variant": "rsi-63",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -65.24674792964288,
+      "realizedPnlUsdt": -65.24674792964252,
+      "profitFactor": 0.14410953170470164,
+      "closedTrades": 332,
+      "expectancyUsdt": -0.19652634918567025,
+      "maxDrawdownUsdt": 65.24674792964288,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 31.303369725074653,
+      "realizedPnlWithoutTop3Usdt": -68.68568697385359,
+      "blocks": [
+        {
+          "netReturnUsdt": -35.116051873562355,
+          "closedTrades": 156,
+          "profitFactor": 0.09632175033850623
+        },
+        {
+          "netReturnUsdt": -30.130696056080524,
+          "closedTrades": 176,
+          "profitFactor": 0.19139305443653337
+        }
+      ]
+    },
+    {
+      "variant": "rsi-63",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -82.44138193700655,
+      "realizedPnlUsdt": -82.44138193700758,
+      "profitFactor": 0.3754578639568952,
+      "closedTrades": 858,
+      "expectancyUsdt": -0.09608552673310906,
+      "maxDrawdownUsdt": 82.44138193700655,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 7.325911521496374,
+      "realizedPnlWithoutTop3Usdt": -86.07221593209294,
+      "blocks": [
+        {
+          "netReturnUsdt": -43.649827322100464,
+          "closedTrades": 379,
+          "profitFactor": 0.2585430241566923
+        },
+        {
+          "netReturnUsdt": -38.79155461490609,
+          "closedTrades": 479,
+          "profitFactor": 0.46932730046554394
+        }
+      ]
+    },
+    {
+      "variant": "rsi-63",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -161.06269489412534,
+      "realizedPnlUsdt": -161.06269489412117,
+      "profitFactor": 0.1357796319121421,
+      "closedTrades": 772,
+      "expectancyUsdt": -0.20863043380067509,
+      "maxDrawdownUsdt": 161.06269489412534,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 12.920220763470638,
+      "realizedPnlWithoutTop3Usdt": -164.33214734167458,
+      "blocks": [
+        {
+          "netReturnUsdt": -77.51188989544335,
+          "closedTrades": 337,
+          "profitFactor": 0.10512121377962799
+        },
+        {
+          "netReturnUsdt": -83.550804998682,
+          "closedTrades": 435,
+          "profitFactor": 0.161343261323246
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-1.5",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -17.73697147308576,
+      "realizedPnlUsdt": -17.73697147308468,
+      "profitFactor": 0.5887787457074601,
+      "closedTrades": 263,
+      "expectancyUsdt": -0.06744095617142463,
+      "maxDrawdownUsdt": 17.73697147308576,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 14.971818087594436,
+      "realizedPnlWithoutTop3Usdt": -21.539133147043678,
+      "blocks": [
+        {
+          "netReturnUsdt": -7.544405904311134,
+          "closedTrades": 75,
+          "profitFactor": 0.4784972029715697
+        },
+        {
+          "netReturnUsdt": -10.192565568774626,
+          "closedTrades": 188,
+          "profitFactor": 0.641165667872334
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-1.5",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -49.474311457985095,
+      "realizedPnlUsdt": -49.47431145797533,
+      "profitFactor": 0.20597361823066287,
+      "closedTrades": 256,
+      "expectancyUsdt": -0.19325902913271614,
+      "maxDrawdownUsdt": 49.474311457985095,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 26.795881795369887,
+      "realizedPnlWithoutTop3Usdt": -52.9132505021864,
+      "blocks": [
+        {
+          "netReturnUsdt": -16.852230521586534,
+          "closedTrades": 76,
+          "profitFactor": 0.19616494366362677
+        },
+        {
+          "netReturnUsdt": -32.62208093639856,
+          "closedTrades": 180,
+          "profitFactor": 0.21070442221905025
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-1.5",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -58.59114497864903,
+      "realizedPnlUsdt": -58.59114497864546,
+      "profitFactor": 0.5313557051576697,
+      "closedTrades": 713,
+      "expectancyUsdt": -0.08217551890413108,
+      "maxDrawdownUsdt": 58.59114497864903,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 5.719758827025023,
+      "realizedPnlWithoutTop3Usdt": -62.390866036972106,
+      "blocks": [
+        {
+          "netReturnUsdt": -24.68618189229892,
+          "closedTrades": 243,
+          "profitFactor": 0.4556229480553882
+        },
+        {
+          "netReturnUsdt": -33.90496308635011,
+          "closedTrades": 470,
+          "profitFactor": 0.5745073974656293
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-1.5",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -135.3694869508381,
+      "realizedPnlUsdt": -135.36948695083134,
+      "profitFactor": 0.2059218262643604,
+      "closedTrades": 669,
+      "expectancyUsdt": -0.2023460193584923,
+      "maxDrawdownUsdt": 135.3694869508381,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 9.7894785449835,
+      "realizedPnlWithoutTop3Usdt": -138.8060116055727,
+      "blocks": [
+        {
+          "netReturnUsdt": -50.935350031044436,
+          "closedTrades": 232,
+          "profitFactor": 0.19718586502119378
+        },
+        {
+          "netReturnUsdt": -84.43413691979367,
+          "closedTrades": 437,
+          "profitFactor": 0.21101052286489233
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-2",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -11.772356971623594,
+      "realizedPnlUsdt": -11.772356971617633,
+      "profitFactor": 0.6695506847897523,
+      "closedTrades": 202,
+      "expectancyUsdt": -0.05827899490899818,
+      "maxDrawdownUsdt": 12.857660690870034,
+      "recoveryFactor": -0.9155908881607763,
+      "top3TradesProfitSharePercent": 15.940008725643898,
+      "realizedPnlWithoutTop3Usdt": -15.574518645576633,
+      "blocks": [
+        {
+          "netReturnUsdt": -5.3443595625331,
+          "closedTrades": 54,
+          "profitFactor": 0.5429525429174437
+        },
+        {
+          "netReturnUsdt": -6.427997409090494,
+          "closedTrades": 148,
+          "profitFactor": 0.7265828805502585
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-2",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -37.23575950748091,
+      "realizedPnlUsdt": -37.23575950747395,
+      "profitFactor": 0.27648274848209764,
+      "closedTrades": 206,
+      "expectancyUsdt": -0.1807561141139512,
+      "maxDrawdownUsdt": 37.23575950748091,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 24.16824495550021,
+      "realizedPnlWithoutTop3Usdt": -40.67469855168502,
+      "blocks": [
+        {
+          "netReturnUsdt": -13.100109119135595,
+          "closedTrades": 57,
+          "profitFactor": 0.24141973972602943
+        },
+        {
+          "netReturnUsdt": -24.13565038834531,
+          "closedTrades": 149,
+          "profitFactor": 0.2930418113208112
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-2",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -43.38457927327909,
+      "realizedPnlUsdt": -43.384579273275165,
+      "profitFactor": 0.5852329283169805,
+      "closedTrades": 547,
+      "expectancyUsdt": -0.07931367326010084,
+      "maxDrawdownUsdt": 43.48890686491359,
+      "recoveryFactor": -0.9976010527935649,
+      "top3TradesProfitSharePercent": 6.207144306770076,
+      "realizedPnlWithoutTop3Usdt": -47.18430033160181,
+      "blocks": [
+        {
+          "netReturnUsdt": -18.558272908043364,
+          "closedTrades": 175,
+          "profitFactor": 0.4934912312830772
+        },
+        {
+          "netReturnUsdt": -24.826306365235723,
+          "closedTrades": 372,
+          "profitFactor": 0.6357165706125182
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-2",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -103.21691562106389,
+      "realizedPnlUsdt": -103.21691562106349,
+      "profitFactor": 0.26594066239740455,
+      "closedTrades": 535,
+      "expectancyUsdt": -0.19292881424497849,
+      "maxDrawdownUsdt": 103.21691562106389,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 9.189989352856282,
+      "realizedPnlWithoutTop3Usdt": -106.65344027580484,
+      "blocks": [
+        {
+          "netReturnUsdt": -38.15197659633668,
+          "closedTrades": 172,
+          "profitFactor": 0.2474923472507815
+        },
+        {
+          "netReturnUsdt": -65.06493902472721,
+          "closedTrades": 363,
+          "profitFactor": 0.2761171835959111
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-2.5",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -7.809217496263045,
+      "realizedPnlUsdt": -7.809217496264328,
+      "profitFactor": 0.7241056996862586,
+      "closedTrades": 145,
+      "expectancyUsdt": -0.053856672388029846,
+      "maxDrawdownUsdt": 9.357863164197624,
+      "recoveryFactor": -0.8345086222397904,
+      "top3TradesProfitSharePercent": 18.550850424187416,
+      "realizedPnlWithoutTop3Usdt": -11.611379170223328,
+      "blocks": [
+        {
+          "netReturnUsdt": -4.045684066431022,
+          "closedTrades": 40,
+          "profitFactor": 0.5664692823719173
+        },
+        {
+          "netReturnUsdt": -3.763533429832023,
+          "closedTrades": 105,
+          "profitFactor": 0.800652734645905
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-2.5",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -25.45694788821038,
+      "realizedPnlUsdt": -25.456947888209307,
+      "profitFactor": 0.34961153678743856,
+      "closedTrades": 147,
+      "expectancyUsdt": -0.17317651624632183,
+      "maxDrawdownUsdt": 25.943918195282095,
+      "recoveryFactor": -0.9812298858096049,
+      "top3TradesProfitSharePercent": 25.130736584023488,
+      "realizedPnlWithoutTop3Usdt": -28.895886932420375,
+      "blocks": [
+        {
+          "netReturnUsdt": -9.778713519935081,
+          "closedTrades": 43,
+          "profitFactor": 0.28763756643545774
+        },
+        {
+          "netReturnUsdt": -15.678234368275298,
+          "closedTrades": 104,
+          "profitFactor": 0.38239657498741625
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-2.5",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -33.43907055998898,
+      "realizedPnlUsdt": -33.43907055998604,
+      "profitFactor": 0.6127192406620585,
+      "closedTrades": 406,
+      "expectancyUsdt": -0.08236224275858631,
+      "maxDrawdownUsdt": 33.6453474978498,
+      "recoveryFactor": -0.993869079881728,
+      "top3TradesProfitSharePercent": 7.1822732010171375,
+      "realizedPnlWithoutTop3Usdt": -37.23879161831269,
+      "blocks": [
+        {
+          "netReturnUsdt": -14.69749710357155,
+          "closedTrades": 133,
+          "profitFactor": 0.517231996331005
+        },
+        {
+          "netReturnUsdt": -18.741573456417427,
+          "closedTrades": 273,
+          "profitFactor": 0.6677066984852881
+        }
+      ]
+    },
+    {
+      "variant": "cost-buffer-2.5",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -77.1279067403666,
+      "realizedPnlUsdt": -77.12790674037439,
+      "profitFactor": 0.31897699286291104,
+      "closedTrades": 400,
+      "expectancyUsdt": -0.19281976685093596,
+      "maxDrawdownUsdt": 77.22337886831883,
+      "recoveryFactor": -0.9987636888031662,
+      "top3TradesProfitSharePercent": 9.512843321320954,
+      "realizedPnlWithoutTop3Usdt": -80.56443139511573,
+      "blocks": [
+        {
+          "netReturnUsdt": -29.864662684968607,
+          "closedTrades": 134,
+          "profitFactor": 0.29118188909998066
+        },
+        {
+          "netReturnUsdt": -47.26324405539799,
+          "closedTrades": 266,
+          "profitFactor": 0.33548055369979163
+        }
+      ]
+    }
+  ],
+  "readiness": {
+    "status": "blocked_no_eligible_candidate",
+    "candidates": [
+      {
+        "variant": "reference",
+        "passesDevelopmentScreen": false,
+        "reasons": [
+          "10:account-conditioned:nonpositive_result",
+          "10:account-conditioned:no_positive_closed_trade_edge",
+          "10:account-conditioned:nonpositive_expectancy",
+          "10:account-conditioned:weak_development_block",
+          "10:account-conditioned:dependent_on_top_three",
+          "10:account-cost-stress:nonpositive_result",
+          "10:account-cost-stress:no_positive_closed_trade_edge",
+          "10:account-cost-stress:nonpositive_expectancy",
+          "10:account-cost-stress:weak_development_block",
+          "10:account-cost-stress:dependent_on_top_three",
+          "30:account-conditioned:nonpositive_result",
+          "30:account-conditioned:no_positive_closed_trade_edge",
+          "30:account-conditioned:nonpositive_expectancy",
+          "30:account-conditioned:weak_development_block",
+          "30:account-conditioned:dependent_on_top_three",
+          "30:account-cost-stress:nonpositive_result",
+          "30:account-cost-stress:no_positive_closed_trade_edge",
+          "30:account-cost-stress:nonpositive_expectancy",
+          "30:account-cost-stress:weak_development_block",
+          "30:account-cost-stress:dependent_on_top_three"
+        ]
+      },
+      {
+        "variant": "rsi-63",
+        "passesDevelopmentScreen": false,
+        "reasons": [
+          "10:account-conditioned:nonpositive_result",
+          "10:account-conditioned:no_positive_closed_trade_edge",
+          "10:account-conditioned:nonpositive_expectancy",
+          "10:account-conditioned:weak_development_block",
+          "10:account-conditioned:dependent_on_top_three",
+          "10:account-cost-stress:nonpositive_result",
+          "10:account-cost-stress:no_positive_closed_trade_edge",
+          "10:account-cost-stress:nonpositive_expectancy",
+          "10:account-cost-stress:weak_development_block",
+          "10:account-cost-stress:dependent_on_top_three",
+          "30:account-conditioned:nonpositive_result",
+          "30:account-conditioned:no_positive_closed_trade_edge",
+          "30:account-conditioned:nonpositive_expectancy",
+          "30:account-conditioned:weak_development_block",
+          "30:account-conditioned:dependent_on_top_three",
+          "30:account-cost-stress:nonpositive_result",
+          "30:account-cost-stress:no_positive_closed_trade_edge",
+          "30:account-cost-stress:nonpositive_expectancy",
+          "30:account-cost-stress:weak_development_block",
+          "30:account-cost-stress:dependent_on_top_three"
+        ]
+      },
+      {
+        "variant": "cost-buffer-1.5",
+        "passesDevelopmentScreen": false,
+        "reasons": [
+          "10:account-conditioned:nonpositive_result",
+          "10:account-conditioned:no_positive_closed_trade_edge",
+          "10:account-conditioned:nonpositive_expectancy",
+          "10:account-conditioned:weak_development_block",
+          "10:account-conditioned:dependent_on_top_three",
+          "10:account-cost-stress:nonpositive_result",
+          "10:account-cost-stress:no_positive_closed_trade_edge",
+          "10:account-cost-stress:nonpositive_expectancy",
+          "10:account-cost-stress:weak_development_block",
+          "10:account-cost-stress:dependent_on_top_three",
+          "30:account-conditioned:nonpositive_result",
+          "30:account-conditioned:no_positive_closed_trade_edge",
+          "30:account-conditioned:nonpositive_expectancy",
+          "30:account-conditioned:weak_development_block",
+          "30:account-conditioned:dependent_on_top_three",
+          "30:account-cost-stress:nonpositive_result",
+          "30:account-cost-stress:no_positive_closed_trade_edge",
+          "30:account-cost-stress:nonpositive_expectancy",
+          "30:account-cost-stress:weak_development_block",
+          "30:account-cost-stress:dependent_on_top_three"
+        ]
+      },
+      {
+        "variant": "cost-buffer-2",
+        "passesDevelopmentScreen": false,
+        "reasons": [
+          "10:account-conditioned:nonpositive_result",
+          "10:account-conditioned:no_positive_closed_trade_edge",
+          "10:account-conditioned:nonpositive_expectancy",
+          "10:account-conditioned:weak_development_block",
+          "10:account-conditioned:dependent_on_top_three",
+          "10:account-cost-stress:nonpositive_result",
+          "10:account-cost-stress:no_positive_closed_trade_edge",
+          "10:account-cost-stress:nonpositive_expectancy",
+          "10:account-cost-stress:weak_development_block",
+          "10:account-cost-stress:dependent_on_top_three",
+          "30:account-conditioned:nonpositive_result",
+          "30:account-conditioned:no_positive_closed_trade_edge",
+          "30:account-conditioned:nonpositive_expectancy",
+          "30:account-conditioned:weak_development_block",
+          "30:account-conditioned:dependent_on_top_three",
+          "30:account-cost-stress:nonpositive_result",
+          "30:account-cost-stress:no_positive_closed_trade_edge",
+          "30:account-cost-stress:nonpositive_expectancy",
+          "30:account-cost-stress:weak_development_block",
+          "30:account-cost-stress:dependent_on_top_three"
+        ]
+      },
+      {
+        "variant": "cost-buffer-2.5",
+        "passesDevelopmentScreen": false,
+        "reasons": [
+          "10:account-conditioned:nonpositive_result",
+          "10:account-conditioned:no_positive_closed_trade_edge",
+          "10:account-conditioned:nonpositive_expectancy",
+          "10:account-conditioned:weak_development_block",
+          "10:account-conditioned:dependent_on_top_three",
+          "10:account-cost-stress:nonpositive_result",
+          "10:account-cost-stress:no_positive_closed_trade_edge",
+          "10:account-cost-stress:nonpositive_expectancy",
+          "10:account-cost-stress:weak_development_block",
+          "10:account-cost-stress:dependent_on_top_three",
+          "30:account-conditioned:nonpositive_result",
+          "30:account-conditioned:no_positive_closed_trade_edge",
+          "30:account-conditioned:nonpositive_expectancy",
+          "30:account-conditioned:weak_development_block",
+          "30:account-conditioned:dependent_on_top_three",
+          "30:account-cost-stress:nonpositive_result",
+          "30:account-cost-stress:no_positive_closed_trade_edge",
+          "30:account-cost-stress:nonpositive_expectancy",
+          "30:account-cost-stress:weak_development_block",
+          "30:account-cost-stress:dependent_on_top_three"
+        ]
+      }
+    ],
+    "costFamilyStable": false,
+    "holdoutExecuted": false,
+    "configurationPromoted": false,
+    "realMoneyApproved": false,
+    "note": "Descriptive development screen only. A single RSI threshold does not establish local parameter stability; no automatic winner or independent validation is produced."
+  },
+  "signalScreens": [
+    {
+      "variant": "reference",
+      "studySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+      "screen": null,
+      "diagnostics": null
+    },
+    {
+      "variant": "rsi-63",
+      "studySha256": "8e5d0868d05f222f9441f9949c25265c646651c316c3bd880544d936677412f3",
+      "screen": null,
+      "diagnostics": null
+    },
+    {
+      "variant": "cost-buffer-1.5",
+      "studySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+      "screen": {
+        "minimumTargetCostMultiple": 1.5
+      },
+      "diagnostics": {
+        "evaluatedQualityBuySignals": 21752,
+        "rejectedQualityBuySignals": 11911,
+        "costScenario": "account-conditioned"
+      }
+    },
+    {
+      "variant": "cost-buffer-2",
+      "studySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+      "screen": {
+        "minimumTargetCostMultiple": 2
+      },
+      "diagnostics": {
+        "evaluatedQualityBuySignals": 21752,
+        "rejectedQualityBuySignals": 15514,
+        "costScenario": "account-conditioned"
+      }
+    },
+    {
+      "variant": "cost-buffer-2.5",
+      "studySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+      "screen": {
+        "minimumTargetCostMultiple": 2.5
+      },
+      "diagnostics": {
+        "evaluatedQualityBuySignals": 21752,
+        "rejectedQualityBuySignals": 17831,
+        "costScenario": "account-conditioned"
+      }
+    }
+  ],
+  "limitations": [
+    "These are five predeclared development alternatives on already inspected data, not a new holdout or a parameter search until profit. All attempts remain in the report.",
+    "RSI is an entry filter, not a guarantee against losing trades. Target/cost headroom is a conservative movement proxy at signal close, not expected profit or a prediction of fills.",
+    "All variants keep identical capital, lot ceilings, exits, risk limits, costs, datasets, seeds and evaluation boundaries. Filters can change actual exposure, turnover and remaining positions.",
+    "The entry cost screen uses standard costs in both scenarios. Stress doubles execution costs and reduces liquidity; it does not know future quotes or reproduce the live spread-admission gate.",
+    "Fees have partial evidence; remaining fees and historical spread/depth/slippage are assumptions inherited from the financial reference. Pool survivorship, regional eligibility and scheduling limitations remain.",
+    "D11-D20 and D21-D30 are development blocks already examined, not unseen blind tests. No automatic winner, runtime update, order, deployment or real-money approval."
+  ]
+}

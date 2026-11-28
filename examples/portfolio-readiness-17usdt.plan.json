@@ -1,0 +1,20 @@
+{
+  "protocol": "portfolio-readiness-v2",
+  "referenceStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+  "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+  "capitalScenariosUsdt": [
+    10,
+    17,
+    20,
+    50,
+    100,
+    5000
+  ],
+  "allocationPolicy": "conditional_no_fixed_split",
+  "intendedCapital": {
+    "currency": "USDT",
+    "amount": 17,
+    "fundingStatus": "planned_not_verified",
+    "spendableUsdt": null
+  }
+}

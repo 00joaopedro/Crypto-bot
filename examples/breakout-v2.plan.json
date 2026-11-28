@@ -1,0 +1,117 @@
+{
+  "protocol": "compression-breakout-v2-final-round-v1",
+  "finalRound": {
+    "hypotheses": 2,
+    "thisHypothesis": 2,
+    "parameterVariants": 1,
+    "costScenarios": 2,
+    "allowV3": false,
+    "archiveIfBothV2Fail": true,
+    "archiveNow": false,
+    "priorHypothesis1V2": "docs/swing-v2-results.json; no_go_hypothesis1_v2"
+  },
+  "window": {
+    "evaluationStartUtc": "2026-05-26T00:00:00Z",
+    "endExclusiveUtc": "2026-11-22T00:00:00Z",
+    "days": 180,
+    "warmupHours": 1000
+  },
+  "independentWindow": {
+    "evaluationStartUtc": "2025-10-01T00:00:00Z",
+    "endExclusiveUtc": "2025-12-30T00:00:00Z",
+    "days": 90,
+    "warmupHours": 1000
+  },
+  "independentPolicy": "Reserved before replay; collect only if BOTH development cost scenarios pass. Earlier historical holdout according to repository consultation record, not a chronological forward test or proof of all external human history. Same fixed strategy/cost/criteria; if failed, no tuning or extension.",
+  "universe": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT"
+  ],
+  "rules": {
+    "BTC/USDT": {
+      "minimumQuantity": 1e-05,
+      "quantityStep": 1e-08,
+      "priceTick": 0.1
+    },
+    "ETH/USDT": {
+      "minimumQuantity": 0.0001,
+      "quantityStep": 1e-06,
+      "priceTick": 0.01
+    },
+    "SOL/USDT": {
+      "minimumQuantity": 0.01,
+      "quantityStep": 1e-06,
+      "priceTick": 0.01
+    }
+  },
+  "rulesSource": "Dated real-account/public rules previously supplied 23Nov2026; missing minimum notional remains unknown. Public catalogue will be checked separately, never silently rewritten.",
+  "feeSource": "User-transcribed real Spot screenshots reported28Nov2026: maker0.10%,taker0.40% in all3pairs. Not authenticated fills/historical rates; real cash0, no deposit required for Paper.",
+  "signal": "Only complete4h UTC. Box=last8closed4h BEFORE breakout. Width<2.2*ATR14simple BEFORE breakout; that ATR is below mean of30ATR14values ending on last box candle. Breakout closes above boxhigh, volume>=1.3*mean20previous, positive body>=0.5*ATRbeforebreakout. No extra EMA/RSI/macro/absoluteATR floor. false->true4h. Entry=boxhigh*1.0015 roundedDOWN. Stop=min(boxmidpoint-oneTick,entry-1.2*ATR14includingbreakout), roundedDOWN: use the lower technical level, not the tighter one. Stop invalid rejected. Proposed gross target>=2% amplitude gate retained, no claim that target construction creates edge.",
+  "entry": "Modeled post_only at next4h open. Reject marketable proxy. Valid4hours [placedAt,placedAt+4h), no chase or taker conversion. Need ALL4entry-hour minute windows even if no fill. Only one pending/filled position, reserve retained through all4hours. Partial fills idempotent; cancel remainder on stop, target, protection or expiry. Subminimum protectable inventory blocks.",
+  "target": "Compute maker limit to deliver>=3.0RNET from actual fills/sellable inventory including maker buy/sell, dust and conservative separate reserve. Initial R is projected NET loss at original stop with taker fee/friction. Round targetUP. Stops/protected/trailing exits use TAKER; never claim maker0.2% roundtrip unless actual modeled makerTP fills.",
+  "makerBuffer": "Maker target fills EXACTLY at its resting limit (never below sell limit). Extra uncertainty reserve equal to entry-notional*effectiveFriction is debited separately pro-rata at maker exits, not represented as an OKX fee or worse maker price. Effective friction=(1+slippage)*(1+spread/2)-1. Stop fill uses this friction in taker price, with no duplicate maker reserve.",
+  "protection": "At CLOSED1m net liquidation PnL>=1.2*initialR, cancel entry remainder and raise stop to project total trade PnL>=+0.2RNET. New stop valid NEXT minute, never retroactive. At CLOSED1m net liquidation>=2R arm trailing, still below3RNET maker target. Gaps can defeat floor.",
+  "targetPosting": "After each entry fill, target is recomputed for actual inventory and posted only after that minute closes if above modeled bid; otherwise it is not counted as maker, and fixed-price posting can be retried at later closes. A new entry-fill minute cannot also receive target profit. No TP market fallback.",
+  "intrabar": "Confirmed1m for all4entry hours, and later hours where stop/target/next netR threshold might be reached; closed4h trailing uses only fully known source bars. Missing event evidence pauses replay/fetches exact public hour. Stop first; no target on newfill minute; resting maker target needs strict trade-through and participation; no same-hour portfolio reuse. No forced time-stop or end liquidation.",
+  "bankUsdt": 17,
+  "lotCeilingUsdt": 10,
+  "riskLimits": {
+    "riskPerTrade": 0.01,
+    "maxExposure": 0.25,
+    "maxAltExposure": 0.1,
+    "maxSymbolExposure": 0.15
+  },
+  "portfolioGuards": "Existing3%daily,10%drawdown new-entry halts and1h cooldown after3losses; no claim of native kill-switch validation.",
+  "scenarios": [
+    {
+      "name": "maker-target-standard",
+      "makerRate": 0.001,
+      "takerRate": 0.004,
+      "slippageRate": 0.001,
+      "spreadRate": 0.0015,
+      "penetrationTicks": 1,
+      "participationRate": 0.001
+    },
+    {
+      "name": "maker-target-adverse",
+      "makerRate": 0.002,
+      "takerRate": 0.008,
+      "slippageRate": 0.002,
+      "spreadRate": 0.003,
+      "penetrationTicks": 2,
+      "participationRate": 0.0005
+    }
+  ],
+  "criteria": {
+    "closedTradesEachScenario": 30,
+    "standardPFStrictlyAbove": 1.25,
+    "standardPositiveNetEV": true,
+    "adverseSurvival": "PF>=1, net/EV>=0, DD<10%; with>=30closedtrades, never zero-activity approval",
+    "positiveCompleteBlocksEachScenario": 2,
+    "totalBlocks": 3,
+    "maxDrawdownPercentStrictlyBelow": 10,
+    "positiveRealizedWithoutTop3EachScenario": true,
+    "completeHourlyAndNeededMinuteEvidence": true,
+    "noUnprotectableInventory": true,
+    "bothDevelopmentAndIndependentMustPass": true
+  },
+  "dataBudget": {
+    "maxMinuteWindowsPerPhase": 1200,
+    "hoursOneTimeSource": true,
+    "noSilentSourceReplacement": true
+  },
+  "limitations": [
+    "Increasing window to180days does not guarantee30trades or positive expectation.",
+    "Signals/targets/stops use closed candles; OHLC/participation does not certify queue, maker role, latency, native OCO or actual fees.",
+    "Public rules are dated/current proxies for historical precision; minimum notional/account access remain unconfirmed.",
+    "Real cash0; planned17 only. No deposit, private API, trade order, deployment, merge or active configuration change."
+  ],
+  "developmentSource": {
+    "reuseOnly": true,
+    "pathOrigin": "first H1v2 artifact15275935478/run46175882160",
+    "hoursSha256": "2448736721b5c165f789d13737cc07d675fd79d4c76afae018e059e4f8fc8310",
+    "noNewDevelopmentHourCollection": true
+  },
+  "trailing": "After arming2R, update ONLY at complete4h close. Highest HIGH of wholly owned completed4h candles (baropen>firstfillminute; exclude partially owned entry4h bar), including bars before arming. Proposedstop=max(net+0.2Rfloor,highestClosedHigh-0.8*ATR14of latestclosed4h). Technical component roundedDOWN, netfloorUP. Never lower stop. If proposal>=currentclose skip, not retrospective fill. Effective only from NEXT minute (the next4h interval). No trailing based on open4h or same-candle high before fill."
+}

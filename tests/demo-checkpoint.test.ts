@@ -1,3 +1,5 @@
+import { inspectDemoResume } from '../src/demo-resume.js';
+import { advanceDemoRisk } from '../src/demo-risk.js';
 import { expect, it, vi } from 'vitest';
 import { inspectDemoAccounting } from '../src/demo-diagnostic.js';
 it('continues a flat checkpoint without re-reading old fills and retains total P&L', async () => {
@@ -30,7 +32,7 @@ it('retains an open purchase and its fees across checkpoints and reconciles a la
   const identity = { uid: '1', mainUid: '1' };
   const buyFill = { id: 'f1', orderId: 'b1', symbol: 'BTC/USDT', side: 'buy' as const, timestamp: origin+2000, amount: 1, costUsdt: 100, fees: [{ currency: 'USDT', cost: 1 }] };
   const sellFill = { id: 'f2', orderId: 's1', symbol: 'BTC/USDT', side: 'sell' as const, timestamp: now-5000, amount: 0.5, costUsdt: 60, fees: [{ currency: 'USDT', cost: 0.6 }] };
-  const baseline = { observedAt: new Date(origin), balances: { USDT: 1000 }, evidence: { accountIdentity: identity, startedAt: origin-100 }, status: 'UNVERIFIED' };
+  const baseline = { observedAt: new Date(origin), balances: { USDT: 1000, SOL: 0 }, evidence: { accountIdentity: identity, startedAt: origin-100 }, status: 'UNVERIFIED' };
   const checkpoint = { ...baseline, observedAt: new Date(at), balances: { BTC: 1, USDT: 899 }, realizedPnlOffset: 0, evidence: { ...baseline.evidence, startedAt: at-100, ledgerCarry: { from: origin, balances: baseline.balances, pnlOffset: 0, fills: [buyFill] } } };
   const saveDemoAccountingCheckpoint = vi.fn();
   const persistence = { getDemoBaselineCandidate: async () => baseline, getDemoAccountingCheckpoint: async () => checkpoint, saveDemoAccountingCheckpoint, demoOrderJournal: async () => [{ client_order_id: 'CB1', symbol: 'BTC/USDT', status: 'PLACED', result: { orderId: 'b1' }, attached_algo_client_id: 'AP1', created_at: new Date(origin+1000) }] };
@@ -56,17 +58,27 @@ it('retains an open purchase and its fees across checkpoints and reconciles a la
   const partial={observedAt:new Date(partialCheckpoint.observedAt),balances:partialCheckpoint.balances,evidence:partialCheckpoint.evidence,status:'UNVERIFIED',realizedPnlOffset:partialCheckpoint.realizedPnl};
   const previousEvidence=await executor.collectOrderEvidence();
   const closedExecutor={...executor,
-    collectAccountBalances:async()=>({status:'collected' as const,startedAt:now+1000,endedAt:now+1100,balances:{BTC:0,USDT:1012.85}}),
+    collectAccountBalances:async()=>({status:'collected' as const,startedAt:now+1000,endedAt:now+1100,balances:{USDT:1012.85}}),
     collectFillHistory:async()=>({status:'collected' as const,fills:[closeFill],from:now-1900,to:now+1000}),
     collectOrderEvidence:async()=>({...previousEvidence,sells:[...previousEvidence.sells,{id:'s2',clientOrderId:null,symbol:'BTC/USDT',side:'sell' as const}],protections:[{...previousEvidence.protections[0]!,spawnedOrderIds:['s1','s2']}],orders:[...previousEvidence.orders,{id:'s2',symbol:'BTC/USDT',side:'sell' as const,filled:0.5,terminal:true,ownershipConfirmed:false}],protectionStates:{AP1:'effective'}}),
   };
   const closed=await inspectDemoAccounting({...persistence,getDemoAccountingCheckpoint:async()=>partial},closedExecutor);
   expect(closed.status).toBe('confirmed');
   if(closed.status==='confirmed')expect(closed.realizedPnlUsdt).toBeCloseTo(12.85);
+  const recoveryStore = { ...persistence, getDemoAccountingCheckpoint: async () => partial,
+    observeDemoRisk: vi.fn(async (_key: string, equity: number, observedAt: number) => advanceDemoRisk(null, equity, observedAt)) };
+  const recoveryExecutor = { ...closedExecutor,
+    inspectTradingPermission: async () => ({ status: 'available' as const, trading: true }),
+    inspectExitProtection: async () => ({ status: 'closed' as const }),
+    getAccountSnapshot: async () => ({ quoteCurrency: 'USDT', quoteFree: 1012.85, totalUsdt: 1012.85, equityUsdt: 1012.85, unvaluedAssets: [], updatedAt: new Date().toISOString() }),
+  };
+  expect(await inspectDemoResume(recoveryStore, recoveryExecutor, { maxDailyLoss: .03, maxDrawdown: .1, botBudgetUsdt: 1000,
+    inspectAccounting: () => inspectDemoAccounting(recoveryStore, recoveryExecutor) })).toEqual({ status: 'safe' });
+  expect(recoveryStore.observeDemoRisk).toHaveBeenCalledWith(expect.stringContaining(':bot-equity-v1'), expect.closeTo(1012.85), expect.any(Number), expect.objectContaining({ budgetUsdt: 1000 }));
   const finalCheckpoint=saveDemoAccountingCheckpoint.mock.calls.at(-1)![0];
   expect(finalCheckpoint.evidence.ledgerCarry).toBeUndefined();
   const idle=await inspectDemoAccounting({...persistence,getDemoAccountingCheckpoint:async()=>({observedAt:new Date(finalCheckpoint.observedAt),balances:finalCheckpoint.balances,evidence:finalCheckpoint.evidence,status:'UNVERIFIED',realizedPnlOffset:finalCheckpoint.realizedPnl})},{...closedExecutor,
-    collectAccountBalances:async()=>({status:'collected' as const,startedAt:now+10000,endedAt:now+10100,balances:{BTC:0,USDT:1012.85}}),
+    collectAccountBalances:async()=>({status:'collected' as const,startedAt:now+10000,endedAt:now+10100,balances:{USDT:1012.85}}),
     collectAccountCoverage:async()=>({status:'covered' as const,billCount:0}),collectFillHistory:vi.fn(),
   });
   expect(idle.status).toBe('confirmed');

@@ -1,0 +1,15 @@
+import { readFile,mkdir,writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { join } from 'node:path';
+import { runHybridEconomicStudy } from './hybrid-economic-study.js';
+const [dataPath,outDir,...extra]=process.argv.slice(2);
+if(!dataPath||!outDir||extra.length)throw new Error('Usage: strategy:hybrid-economic -- <frozen-normalized-data.json> <NEW-output-directory>; offline only');
+const root=new URL('../',import.meta.url),json=async(p:string)=>JSON.parse(await readFile(new URL(p,root),'utf8'));
+const protocolBytes=await readFile(new URL('examples/hybrid-economic-experiments.plan.json',root));
+const protocolHash=createHash('sha256').update(protocolBytes).digest('hex');
+if(protocolHash!=='c7213dc6faf2dc2c89e83a9bd70a9293f29e9baed469e93e02b63d254ef1c8c8')throw new Error('Frozen experiment protocol changed');
+const report={...runHybridEconomicStudy(JSON.parse(await readFile(dataPath,'utf8')),await json('examples/hybrid-research.plan.json'),await json('examples/pullback-reference.study.json'),await json('examples/hybrid-shadow.profile.json'),await json('docs/hybrid-research-results.json')),protocolFileSha256:protocolHash,protocolFrozenCommit:'ad43c5d47e83098ea5d87a5d58f741ea7f96b272',paidAiCalls:false,ordersSent:0,limitations:['Development data already consulted, not independent validation. No combined strategy or operational configuration is promoted.','Costs are scenario models; account quotes do not prove historical fills/spreads/slippage. Minimum notional remains unknown.','Risk-sized reference differs from the old fixed-10-USDT reference: lower total losses alone do not prove economic improvement.','Funnel counts overlap; leave-one-filter-out counts explain intersection, not causal value or independent trades.','Capital-time totals use whole held candles, not exact exchange fill times. Bars with stop and target use pessimistic stop precedence.']};
+await mkdir(outDir,{recursive:false});
+await writeFile(join(outDir,'summary.json'),JSON.stringify({...report,runs:report.runs.map(({entries,closedTradeLedger,admissions,...metrics})=>metrics)},null,2)+'\n');
+await writeFile(join(outDir,'ledgers.json'),JSON.stringify(report.runs.map(({name,scenario,entries,closedTradeLedger,admissions})=>({name,scenario,entries,closedTradeLedger,admissions})),null,2)+'\n');
+console.log(JSON.stringify({status:report.status,runs:report.runs.map(r=>({name:r.name,scenario:r.scenario,trades:r.closedTrades,net:r.netReturnUsdt,pf:r.profitFactor,ev:r.expectancyUsdt,dd:r.maxDrawdownPercent,rejected:r.rejected})),selection:report.selection,staticFeasibility:report.staticFeasibility},null,2));

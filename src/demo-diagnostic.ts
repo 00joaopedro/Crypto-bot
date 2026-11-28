@@ -5,13 +5,41 @@ import type { OkxDemoExecutor } from "./okx-demo.js";
 import type { JournaledDemoBuy } from "./demo-ownership.js";
 import { verifyDemoOwnership } from "./demo-ownership.js";
 import { reconcileDemoExecutions } from "./demo-reconciliation.js";
-import type { DemoFill } from "./demo-ledger.js";
+import type { DemoFill, DemoBalanceEvidence } from "./demo-ledger.js";
 import { sameDemoAccount } from "./okx-demo-identity.js";
 import { accountForDemoEvidence } from "./demo-accounting-evidence.js";
 
+type AccountingStore = Parameters<typeof inspectDemoAccountingOnce>[0];
+type AccountingExecutor = Parameters<typeof inspectDemoAccountingOnce>[1];
+type AccountingResult = Awaited<ReturnType<typeof inspectDemoAccountingOnce>>;
+const inFlight = new WeakMap<AccountingStore, WeakMap<AccountingExecutor, Promise<AccountingResult>>>();
+
+/** Dashboard, risk, supervision and resume share only an ongoing inspection.
+ * No completed result cache: each later inspection obtains fresh exchange evidence.
+ */
+export function inspectDemoAccounting(persistence: AccountingStore, executor: AccountingExecutor): Promise<AccountingResult> {
+  let clients = inFlight.get(persistence);
+  if (!clients) { clients = new WeakMap(); inFlight.set(persistence, clients); }
+  const existing = clients.get(executor);
+  if (existing) return existing;
+  const inspect = async (): Promise<AccountingResult> => {
+    const first = await inspectDemoAccountingOnce(persistence, executor);
+    if (first.status !== 'unavailable' || first.reason !== 'checkpoint_changed_retry') return first;
+    // Another writer may have advanced the checkpoint or journal. Read it all
+    // again, including account, balances, bills, ownership and fees. Never just
+    // overwrite the predecessor or substitute the last confirmed P&L.
+    console.log(JSON.stringify({ event: 'demo_accounting_checkpoint_retry', attempt: 1 }));
+    return inspectDemoAccountingOnce(persistence, executor);
+  };
+  let request: Promise<AccountingResult>;
+  request = inspect().finally(() => { if (clients!.get(executor) === request) clients!.delete(executor); });
+  clients.set(executor, request);
+  return request;
+}
+
 /** On-demand read-only inspection; confirms P&L only with a stable bounded balance window. */
-export async function inspectDemoAccounting(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint" | "saveDemoAccountingCheckpoint">>, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity" | "collectAccountCoverage" | "collectAccountBalances">) {
-  const unavailable = (reason: string) => ({ status: "unavailable" as const, reason });
+async function inspectDemoAccountingOnce(persistence: Pick<PostgresPersistence, "demoOrderJournal" | "getDemoBaselineCandidate"> & Partial<Pick<PostgresPersistence, "getDemoAccountingCheckpoint" | "saveDemoAccountingCheckpoint">>, executor: Pick<OkxDemoExecutor, "collectOrderEvidence" | "collectFillHistory" | "inspectAccountIdentity" | "collectAccountCoverage" | "collectAccountBalances">) {
+  const unavailable = (reason: string): { status: "unavailable"; reason: string; balanceEvidence?: DemoBalanceEvidence } => ({ status: "unavailable", reason });
   const rows = await persistence.demoOrderJournal();
   if (!rows.length && !persistence.saveDemoAccountingCheckpoint) return unavailable("journal_empty");
   if (rows.some((row) => row.status === "PENDING")) return unavailable("pending_order");
@@ -36,7 +64,7 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
   if (rows.some((row) => !Number.isSafeInteger(new Date(row.created_at).getTime()))) return unavailable("invalid_journal_date");
   const periodRows = rows.filter((row) => new Date(row.created_at).getTime() >= (originAt ?? baseline.observedAt.getTime()));
   const placed = periodRows.filter((row) => row.status === "PLACED");
-  if (!carried && !placed.length && (checkpoint || persistence.saveDemoAccountingCheckpoint) && periodRows.every(row => row.status === "REJECTED_CONFIRMED")) {
+  if (!carried && !placed.length && (checkpoint || persistence.saveDemoAccountingCheckpoint) && periodRows.every(row => ["REJECTED_CONFIRMED", "SKIPPED"].includes(row.status))) {
     const before = await executor.collectAccountBalances();
     if (before.status !== "collected") return unavailable(before.reason);
     const after = await executor.collectAccountBalances();
@@ -122,7 +150,7 @@ export async function inspectDemoAccounting(persistence: Pick<PostgresPersistenc
     buys: evidence.buys.map(withExecution), protections: evidence.protections,
     sells: evidence.sells.map(withExecution), fills: collectedFills,
   });
-  if (accounting.status !== "confirmed") return unavailable(accounting.reason);
+  if (accounting.status !== "confirmed") return { ...unavailable(accounting.reason), ...(accounting.balanceEvidence ? { balanceEvidence: accounting.balanceEvidence } : {}) };
   const totalPnl = pnlOffset + accounting.realizedPnlUsdt;
   if (originalBaseline) {
     const saved = await persistence.saveDemoAccountingCheckpoint?.({ baselineAt: originalBaseline.observedAt, previousObservedAt: baseline.observedAt.getTime(), observedAt: after.endedAt,

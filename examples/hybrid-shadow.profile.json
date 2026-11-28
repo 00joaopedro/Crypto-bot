@@ -1,0 +1,15 @@
+{
+  "protocol": "hybrid-shadow-48h-v1",
+  "durationHours": 48,
+  "environment": "paper_public_only",
+  "strategyPlanSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "variant": "hybrid",
+  "costScenario": "account-conditioned",
+  "allocationMode": "risk_preserving_ceiling",
+  "riskLimits": {
+    "riskPerTrade": 0.01,
+    "maxExposure": 0.25,
+    "maxAltExposure": 0.1,
+    "maxSymbolExposure": 0.15
+  }
+}

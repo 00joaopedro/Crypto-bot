@@ -1,3 +1,4 @@
+import { collectPaperHistory } from './paper-history.js';
 import ccxt, { type Exchange } from "ccxt";
 import { screenEntryMarkets, type MarketScreen, type MarketScreenOptions } from "./market-eligibility.js";
 import type { Candle } from "./types.js";
@@ -76,6 +77,15 @@ export class PublicMarketData {
       }
     }
     throw new Error(`Market data unavailable for ${symbol}: ${String(lastError)}`);
+  }
+
+  async fetchRecoveryCandles(symbol: string, cursor: number, through: number): Promise<Candle[]> {
+    // One provider for the whole replay; no cross-venue splice on failure.
+    const provider = this.provider;
+    const exchange = this.exchanges.get(provider)!;
+    if (!this.initializedProviders.has(provider)) await this.initializeProvider(provider, exchange);
+    if (through + FIFTEEN_MINUTES_MS > Date.now()) throw new Error('recovery_requires_closed_candles');
+    return collectPaperHistory(cursor, through, (since, limit) => exchange.fetchOHLCV(symbol, '15m', since, limit));
   }
 
   /** Bounded scanner: one attempt, fixed venue, no shared provider mutation. */

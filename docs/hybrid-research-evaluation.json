@@ -1,0 +1,102 @@
+{
+  "protocol": "hybrid-development-evaluation-v1",
+  "status": "blocked_no_eligible_candidate",
+  "codeCommit": "835abda9cfb759558750f36a58e5639ed58be1d4",
+  "initialCollectionFreezeCommit": "27eaa0c9396eefe2cf524aeed2a4df9139281f72",
+  "collectionSha256": "c08aaac7be038a6945bb88f573c656aec9bc50a5f7fba9e2d1d9f2c6fe635571",
+  "planSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "capturedObjectDatasetSha256": "968783685746c751248ceb4c6bc97beefe997b8d46ded0f5cbc6905317620334",
+  "schemaParsedReplayDatasetSha256": "fb88541a351e706edcc838fffdd42ed9a11ba25ace8d4a883d8090ed6eaadfc4",
+  "canonicalSortedKeysDatasetSha256": "e1c7bcc5353acdd1d83df6328825d89e73b93e0bdc5116d06cf8780f0ccc8d2c",
+  "hashRepresentationNote": "Source hashes the captured object field order; replay hashes the strict-schema parsed field order. Both contain identical values. Verification of source and exact equality of all 16 replay ledgers were completed. Canonical sorted-key hash is an additional audit identity, not a change to the frozen protocol.",
+  "coverage": {
+    "intendedPairs": 20,
+    "includedPairs": 18,
+    "skipped": [
+      {
+        "symbol": "ARB/USDT",
+        "reason": "missing_from_demo_public_instrument_list"
+      },
+      {
+        "symbol": "TON/USDT",
+        "reason": "missing_from_public_spot_list"
+      }
+    ],
+    "evaluationDays": 30,
+    "warmupHours": 250,
+    "candles15mPerPair": 3880,
+    "candles1hPerPair": 970,
+    "allThreeBlocksComplete": true
+  },
+  "candidateStatus": {
+    "hybrid": "negative_all_four_cost_cases",
+    "mean_reversion": "negative_all_four_cost_cases",
+    "trend_pullback": "insufficient_sample_one_or_two_trades_per_case_and_negative_account_conditioned_case"
+  },
+  "artifact": {
+    "runId": 45081886474,
+    "artifactId": 14777956507,
+    "url": "https://github.com/00joaopedro/Crypto-bot/actions/runs/45081886474/artifacts/14777956507",
+    "zipSha256": "68a0da20417f2fcf958486feeb8821fc0f93d68042456e99be13c1481e2b1ef6",
+    "expiresAtUtc": "2026-12-22T23:15:36Z",
+    "contains": [
+      "all normalized public candle files",
+      "source.json",
+      "normalized-data.json",
+      "summary.json",
+      "all 16 full execution ledgers"
+    ]
+  },
+  "verification": {
+    "sourceSnapshotVerified": true,
+    "localAndActionsSummaryExactlyEqual": true,
+    "all16LocalAndActionsLedgersExactlyEqual": true,
+    "canonicalInputValuesEqual": true,
+    "ciRunId": 45081886488,
+    "ciConclusion": "success",
+    "ciTestsPassed": 589,
+    "ciTestFiles": 112,
+    "docker": "success",
+    "mobileSmoke": "success",
+    "publicUniverseWorkflow": "success",
+    "localTestsPassed": 569,
+    "localPostgresqlSkipped": 20,
+    "typecheck": "success",
+    "build": "success"
+  },
+  "modeledQuoteNotionalMinimumVerified": false,
+  "currentPrivateAccountFeesQueried": false,
+  "holdoutExecuted": false,
+  "configurationPromoted": false,
+  "demoIntegrationApproved": false,
+  "realMoneyApproved": false,
+  "productionDatabaseWritten": false,
+  "merged": false,
+  "consultedDevelopmentWindow": {
+    "warmupStartUtc": "2026-10-13T13:00:00.000Z",
+    "evaluationStartUtc": "2026-10-23T23:00:00.000Z",
+    "endExclusiveUtc": "2026-11-22T23:00:00Z"
+  },
+  "resultFilesSha256": {
+    "hybrid-research-results.json": "cc226c557f29127ac32a720d0c195c9b70fb2ebf348dd45af83bcabcd2a476ed",
+    "hybrid-research-source.json": "9ae6c4b2fe27f0721348df90e5a752285d074a222a9faad6df4452bd842342a4"
+  },
+  "ledgerFilesSha256": {
+    "run-0.json": "e9e49d19a77b1cd9204fca50d65735fabd7feac16f454ecb8553723dc3508568",
+    "run-1.json": "bbc24ead9ae6939dbfe01a6cd59565e1eca6936b3fe185c8c88cde340eb45021",
+    "run-10.json": "0d7e04e928566f185512fa0565ca03822d550f3b1e1aa74c1ff005db1d15f793",
+    "run-11.json": "1a8a81659005bb1de836b5504b9de557f05e511763c4c3a427b59f2b22153967",
+    "run-12.json": "c8b64e190adbd7ede6a22d12b742236f63bd74966ed65c51a303af394294c8f1",
+    "run-13.json": "2ae22ec8868f511ed5d4e3599a1bf83664e07125157c346e594bf379f10edf9f",
+    "run-14.json": "6ce35605efdf67129c7eec2cfb12766771579f081361d02d75af95bf6868f52d",
+    "run-15.json": "a64247ddb54dfacd574914ffb88aa0b30c2e3dca841a56efe0ebf779c2121418",
+    "run-2.json": "6c01f3680ef4bcfed14c9b0f415f1ee25c053e382eaa06148c61d9a3e7e915b1",
+    "run-3.json": "f0fa25ceb9033e3764d27f32c823fbfadb00446682bb2f6ac0e730803bf284e4",
+    "run-4.json": "ebc520222d66790f3d8efb4f09faa13f2ef922ea2982984a589e6701f971cbac",
+    "run-5.json": "9622596f4bf16c5dea15efbdb6d0061ea38332330360986d5c61759858714401",
+    "run-6.json": "59d96ff11359e572c0e947b9a86ab0badbc189fe888b7d02a8a00e60cbf86c66",
+    "run-7.json": "2a8a25504bbcc68b7915d4142eb19b7a490bb7f1bee6abde27c3ad7c20df9c8c",
+    "run-8.json": "fa539384451452a7a7faa63a9d2987614c3267fa73ccc5ddde7032201134ff63",
+    "run-9.json": "c3eb0e4dd75387ff65ed0a245c723806ccad6d5a090090a18d38de548a926930"
+  }
+}

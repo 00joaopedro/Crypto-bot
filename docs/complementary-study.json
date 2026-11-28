@@ -1,0 +1,1450 @@
+{
+  "status": "complementary_hypothesis_only",
+  "hypothesis": {
+    "bandPeriod": 20,
+    "bandDeviations": 2,
+    "rsiPeriod": 14,
+    "maximumRsi": 35,
+    "maximumBandwidthRate": 0.04
+  },
+  "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+  "limitations": [
+    "Already inspected data: exploratory, not an independent holdout.",
+    "Fixed ATR exits, BTC filter, portfolio limits and costs shared with trend. No middle-band target or ADX strategy is claimed.",
+    "Mean-reversion entries have score 8; ties use symbol order, not a calibrated cross-strategy ranking.",
+    "No combined portfolio, live strategy identity, order or configuration promotion. Trend and candidate are isolated wallets, not independent samples to pool."
+  ],
+  "fullReportSha256": "056958478c9140723d7247ed474df7e987e3b4c11b0f817196e4aa5d21ef2435",
+  "results": [
+    {
+      "entryModel": "trend",
+      "size": 10,
+      "scenario": {
+        "name": "standard",
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001,
+        "assumedDepthUsdt": 1000,
+        "maxParticipationRate": 0.001
+      },
+      "closedTrades": 41,
+      "netReturnUsdt": -1.1498713414594732,
+      "realizedPnlUsdt": -1.1498713414594874,
+      "profitFactor": 0.5162097903854423,
+      "maxDrawdownUsdt": 1.3501959195024824,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "trend",
+      "size": 10,
+      "scenario": {
+        "name": "stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "closedTrades": 33,
+      "netReturnUsdt": -2.0130777386420533,
+      "realizedPnlUsdt": -2.0130777386419987,
+      "profitFactor": 0.20459887637914526,
+      "maxDrawdownUsdt": 2.020868632713828,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "trend",
+      "size": 10,
+      "scenario": {
+        "name": "fixed-cost-stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "closedTrades": 38,
+      "netReturnUsdt": -2.3922995480361067,
+      "realizedPnlUsdt": -2.3922995480361218,
+      "profitFactor": 0.19151518342695442,
+      "maxDrawdownUsdt": 2.4051194188756426,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "trend",
+      "size": 30,
+      "scenario": {
+        "name": "standard",
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001,
+        "assumedDepthUsdt": 1000,
+        "maxParticipationRate": 0.001
+      },
+      "closedTrades": 57,
+      "netReturnUsdt": -0.6042502709651814,
+      "realizedPnlUsdt": -0.6042502709652,
+      "profitFactor": 0.8494682995520817,
+      "maxDrawdownUsdt": 2.5354597396711114,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "trend",
+      "size": 30,
+      "scenario": {
+        "name": "stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "closedTrades": 33,
+      "netReturnUsdt": -2.0130777386420533,
+      "realizedPnlUsdt": -2.0130777386419987,
+      "profitFactor": 0.20459887637914526,
+      "maxDrawdownUsdt": 2.020868632713828,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "trend",
+      "size": 30,
+      "scenario": {
+        "name": "fixed-cost-stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "closedTrades": 38,
+      "netReturnUsdt": -2.3922995480361067,
+      "realizedPnlUsdt": -2.3922995480361218,
+      "profitFactor": 0.19151518342695442,
+      "maxDrawdownUsdt": 2.4051194188756426,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "mean_reversion",
+      "size": 10,
+      "scenario": {
+        "name": "standard",
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001,
+        "assumedDepthUsdt": 1000,
+        "maxParticipationRate": 0.001
+      },
+      "closedTrades": 5,
+      "netReturnUsdt": -0.15138859312089892,
+      "realizedPnlUsdt": -0.15138859312087333,
+      "profitFactor": 0.5084535635926131,
+      "maxDrawdownUsdt": 0.2281074957810887,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "mean_reversion",
+      "size": 10,
+      "scenario": {
+        "name": "stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "closedTrades": 1,
+      "netReturnUsdt": -0.11224891668770454,
+      "realizedPnlUsdt": -0.11224891668771,
+      "profitFactor": 0,
+      "maxDrawdownUsdt": 0.11224891668770454,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "mean_reversion",
+      "size": 10,
+      "scenario": {
+        "name": "fixed-cost-stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "closedTrades": 1,
+      "netReturnUsdt": -0.10722680347718949,
+      "realizedPnlUsdt": -0.10722680347718583,
+      "profitFactor": 0,
+      "maxDrawdownUsdt": 0.10722680347718949,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "mean_reversion",
+      "size": 30,
+      "scenario": {
+        "name": "standard",
+        "feeRate": 0.001,
+        "slippageRate": 0.0005,
+        "spreadRate": 0.001,
+        "assumedDepthUsdt": 1000,
+        "maxParticipationRate": 0.001
+      },
+      "closedTrades": 1,
+      "netReturnUsdt": -0.14446617717406696,
+      "realizedPnlUsdt": -0.14446617717406846,
+      "profitFactor": 0,
+      "maxDrawdownUsdt": 0.3151637984026223,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "mean_reversion",
+      "size": 30,
+      "scenario": {
+        "name": "stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.0015,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "closedTrades": 1,
+      "netReturnUsdt": -0.17667933925878287,
+      "realizedPnlUsdt": -0.17667933925877768,
+      "profitFactor": 0,
+      "maxDrawdownUsdt": 0.31450589764399695,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    },
+    {
+      "entryModel": "mean_reversion",
+      "size": 30,
+      "scenario": {
+        "name": "fixed-cost-stress",
+        "feeRate": 0.002,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005
+      },
+      "closedTrades": 1,
+      "netReturnUsdt": -0.17176268904410108,
+      "realizedPnlUsdt": -0.17176268904410472,
+      "profitFactor": 0,
+      "maxDrawdownUsdt": 0.3146774267331125,
+      "openPositions": 0,
+      "bothBlocksPositive": false
+    }
+  ],
+  "sourceAssets": [
+    {
+      "symbol": "1INCH/USDT",
+      "sha256": "c6cb02e8be0677f97368dbf5e69329586c79a4bebe6297e4ed54c2450f09d74a",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "2Z/USDT",
+      "sha256": "57c499304e5ee484046dcfd3f7eecfd426a98b40feb9a68189cfb7b1c6665e28",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "A/USDT",
+      "sha256": "4d79e56f1c7aafc1430614c4fe52d8ed0034d34b22a25070b93e14db80b716b8",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AAVE/USDT",
+      "sha256": "3b616011d683934735a75d04f1bbce309d74570fd7a2813863f3c2a90ad2387b",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.01,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ACE/USDT",
+      "sha256": "ba1fcbde779ee7696ffdecdfa0f81bb9d330da8927e73a33fa74eba0581f1de1",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ACH/USDT",
+      "sha256": "609d6e954ed78cc2f06afe71bbe61f33dea5bdaa0e00307d19167ad17898ce1a",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ACT/USDT",
+      "sha256": "a79cf96697626bd0983b650ad53f98d0b610893a3ffc5de31ca9621e3844644f",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ADA/USDT",
+      "sha256": "c176489c9c9b6c5242c765f992e74be16d16196eb663b7f3ef8a215b4f0c34af",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AEVO/USDT",
+      "sha256": "4ed561cddde33eef67474cf7bec8e647d02ddef642fb9c88a7a80b594f99654f",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AGLD/USDT",
+      "sha256": "78b11c6c4591cce973ee7438cfe65c2e36bfcc818299dafcfd9a377ecad9dcc2",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AI/USDT",
+      "sha256": "f48cec49dd658e2fe6888a789bc096074bedabd0488cdfc78b07fb9f3c889988",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AIXBT/USDT",
+      "sha256": "967870b2c8c3213245c4fd294f9d7034e954ad5658da1fee2b8080f2b8c9b6b6",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ALGO/USDT",
+      "sha256": "511e642d0a33f48df8e93b7a03f8741be58c09d57ca25b8e8194a878ef01790d",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ALLO/USDT",
+      "sha256": "eaf97fef4f004a4bc9762e214416fe3a6b0f81ee8753791ca8615ed8e011146d",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ANIME/USDT",
+      "sha256": "e3b3f298c2e10c5da24da400e6c4f83818d56480b2be567b9e7d4ca777441c13",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "APE/USDT",
+      "sha256": "9fe18b268d333e719d93a37849ae932dde8076ca56c2bbf9f22385266c240f32",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "API3/USDT",
+      "sha256": "781be9188d46dbcbd3d8ebe87bbd9ccbf77396a55a72d25f11f888d6abc90cfc",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "APT/USDT",
+      "sha256": "cf48ee9bed351cbd0cfda2b0e67ce42b572878b781cb07e06e34b98cc1f96626",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AR/USDT",
+      "sha256": "838021b0df1b0f39f52de6fbd6b954e8e9970306b8995250a10d609d2f668baf",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ARB/USDT",
+      "sha256": "fcf0aaae3401a2acb147aa720212bcf4da6c3f69cf021a5612674dcb360492d0",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ARG/USDT",
+      "sha256": "101491538b818dea6f8e608c35524e34337dff4c17a01a6d7142e9edd8105fb4",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ARKM/USDT",
+      "sha256": "5272c3c0627f31a236ea271e9238b7b035fe0b7cf5a92917f66305e5af342fdb",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ASP/USDT",
+      "sha256": "70d0a3a5868225ea5cb49c60a4ebd6229c2cf02007a1156ea5cead77011a28b4",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ASTER/USDT",
+      "sha256": "0c8a21e9e26d52f2b2631fe66a2a68fe9d5d8ce359bec443520bf8edf468dbd2",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ASTR/USDT",
+      "sha256": "4c6943936db0fd6e5a7bf8d039481e74aca7bd1936f1c05e7862ed772a0e08b6",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ATH/USDT",
+      "sha256": "2d697d3824b212e5495cdd0832e3fe8866a380d651353e8b2233031d41a62352",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ATOM/USDT",
+      "sha256": "f5e85a26db2a11c16bc699215aca7d31ca63e6b7c9e5e4a0d2396bd577127cfc",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AUCTION/USDT",
+      "sha256": "600293d4aaeee3775f9cd03ac73bbaad6e3894b91360987f7562d31446fe6dc5",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AUDF/USDT",
+      "sha256": "a1dccb53ae4d65ab0dd133f0c8a8834cf3cb7c5db973df6c34e4caab5f705746",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AUDM/USDT",
+      "sha256": "55d838fd66144ad5f4edc59c688d09cdf932de011b500045b36dd303c7151874",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AVAX/USDT",
+      "sha256": "477e0ecb5ac4d3b02a2eb27f677d29ba8f92030bdb5faff14796eb1836451789",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AVNT/USDT",
+      "sha256": "e65280d11b3bb34e9a243fa384cfebeefb52af1a26e4b1dff71293a8a702c2e7",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "AXS/USDT",
+      "sha256": "c66b59f032906269e9ad6b1e744375dc8eaf478265b67fc34b8b713d3e31ef74",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BABY/USDT",
+      "sha256": "c4170fc06c6fccd41661e92e732fa0f038286a62b1cc62cdd5fabde36f3fbd29",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BABYDOGE/USDT",
+      "sha256": "7d491c4c0bfdcc1be73b2939953996d2e1207c630f3902658b5699e3e8ab03de",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1000000000,
+        "quantityStep": 1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BANANA/USDT",
+      "sha256": "9052dd86b96343bdef6f4c0beafc752f0b2c0888aae1e862684648f6aaed8a4e",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BAND/USDT",
+      "sha256": "25729e18984f3c4cec9c051efb40e4ef9844f6722eee7cc4e5f0b4f062db01d7",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BARD/USDT",
+      "sha256": "b0ff2609ef1aef836787a2b62b8d69b626a9888374453142db4ba64a8907e8ae",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BASED/USDT",
+      "sha256": "4910011a9e7219f8a92f80296c4fe711bd87d7c306ce8348bad5cbecd0eb765a",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BAT/USDT",
+      "sha256": "d2962c759347823a0a68547e5a500999fa0b946813ee2544bc401945fb10c9dc",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BCH/USDT",
+      "sha256": "10f81c6a7a9de259550d1645d8b7374221dfbc8fc1b5384969fb116e65365a0f",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.01,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BERA/USDT",
+      "sha256": "9c2009e970df094cc3e3bf42a7b0a08865b21ecbbc63037b97ef1dc74b076a4d",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BETH/USDT",
+      "sha256": "2ee6d86b6a65303009c235e55ee6e5543723934ce8f3daf06514c778da40bc62",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.001,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BICO/USDT",
+      "sha256": "4e0df53af946c87bf02246296c95888fbdbd8f6cf40f5443afa48f1e4442c36e",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BIGTIME/USDT",
+      "sha256": "ab15c65fb5b34dd307eeafdedb6072d5fd0937b78cbad76b53451f7d83ce5173",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BIO/USDT",
+      "sha256": "629abb7a90b41aaae6041102fab30b6b6528a5a6175c25a722fad7eeaece180b",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BLUR/USDT",
+      "sha256": "718e83b8378131b4026b1ac88e43991b78db1cc76d9d4896b06e77980dc7fd4c",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BNB/USDT",
+      "sha256": "0c024e2f802cc52807c64968de4cd6f72bbd236aa6168ea3f4b2956055d2b6b4",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.001,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BNT/USDT",
+      "sha256": "52dc05936a1150eb5dfdc979fce471b5db8499c303135ffe7f6d3b5f4c77366c",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BOME/USDT",
+      "sha256": "d98e3fbac3e01eac3459f12ca7e7b551ed5d7d0c1a81cc665667beb09f8e76b5",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1000,
+        "quantityStep": 1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BONK/USDT",
+      "sha256": "9845ef76066ac749772042df98740a306af447f5ea566cb7a014764a9eb8b753",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100000,
+        "quantityStep": 1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BREV/USDT",
+      "sha256": "658281bb152f83ac364138e807c6990de27f10c68670bf3be69ced86b5a56ed8",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BRL1/USDT",
+      "sha256": "37dc68636ff88cde7e3b32ae24bd04676b5633c1fdc4a40516db756c8f31571b",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "BTC/USDT",
+      "sha256": "b36a2eccf67cb6c690badfebbd91609001a2c9de9909de75d03081898226a328",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1e-05,
+        "quantityStep": 1e-08
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CARDS/USDT",
+      "sha256": "fec2b9a1b19370c6b089aa2f6def4afb5f938f2d6d153dca0a9cab5687055bf3",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CAT/USDT",
+      "sha256": "aa285f0afebe0452191553efda7e11ce26412fef1d41ca183b1d5c8ad15af2cd",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100000,
+        "quantityStep": 1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CATI/USDT",
+      "sha256": "d1e8168726d347f6b6b4ce17e53c9aed377c23d02b5b315602f32d2d9fc1690e",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CC/USDT",
+      "sha256": "4185209f7e5269a71f0d31d16151c786721c23d59ca96dff52bdc7a64268a102",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CELO/USDT",
+      "sha256": "f6b217b8ac454ae03c09a30cb0692456f5ff81ba4f6d596a15a6460cae6065d1",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CELR/USDT",
+      "sha256": "f353177e0693974d50ad7fa045380a332df846437e7ca598d85c5932b961c8c6",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CETUS/USDT",
+      "sha256": "b0d770dd5f2f54c3aec4b030dd6f5bec7b185fa5c44d2faa3d67b27698f05584",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CFG/USDT",
+      "sha256": "892703df8f2ffdc57fa80486de60ce20481fd16704e2faed8ca430cd6babdc9a",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CFX/USDT",
+      "sha256": "02d102077ebe8d47cb3ed42077374a48efe7c2ce218813eb96a666b900c24fd6",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CHIP/USDT",
+      "sha256": "a5bf24862faea1efc03d9b96222611440b9e95781ec93d8ce8fd29196d436e7e",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CHZ/USDT",
+      "sha256": "81a0c289988f3b32add361def2a7836a7beacf11dfa5154f9617677e38765108",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CITY/USDT",
+      "sha256": "f2b57e92179f41c6d299901ddecaccf06b1710915c542824b7a9a8bafbab09f0",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "COMP/USDT",
+      "sha256": "c95600c15609fc7da8c822bf7f240376a1c88948a2ed0e0930e66e50365b7e64",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CORE/USDT",
+      "sha256": "7e5629be373f11ba07e6dfe97077a27050ccd59f3f3f102fa1abf924cdfa5d89",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CRO/USDT",
+      "sha256": "03705118bbb9ed119727c23ca291ebb664fb23ff60d9f9affa07fc3944dee2fe",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CRV/USDT",
+      "sha256": "467be15446f8f931047f4cbfd0bd4341669aec610c16c787c0b383f03f2ddc2b",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CSPR/USDT",
+      "sha256": "84859bb8c6249cfc3540a63d44869078def59085f703e2ba6d992aaef958337c",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CTC/USDT",
+      "sha256": "c2ccd0b1c3bb22003fe60976970da42eeeeb50e8f55b0429c92ab0489ef468b8",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CVC/USDT",
+      "sha256": "862f3dd4b72dbb4c3f2233aa63b6be43d59f399e07c5c5592360c3bc5f095df0",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "CVX/USDT",
+      "sha256": "557ff33acda8d3f6f11434304877b4b83f0190a37e8d5c16c140242f8e6ebb6f",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "DASH/USDT",
+      "sha256": "f58b2faee6daffa48be18267d131682f1840f9ab582fb2469fba9a976908cac6",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "DATA/USDT",
+      "sha256": "b8f26f3f097468b5f79cefdcc65f587a262a26572262a9229d34e7fecd3acf61",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "DEGEN/USDT",
+      "sha256": "33a84c17cf9b780fbc65aace20b3c7ad668daba237d0f2405e252ecd49aec498",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1000,
+        "quantityStep": 1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "DGB/USDT",
+      "sha256": "4d1478d380e5650a5c931364b90d4813570ad9e9230c3628f16dd4018497533b",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "sha256": "8dab3201a5df0926b0724ba801335e4fd81b8a51d17478a552e83522184833f4",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "DOGS/USDT",
+      "sha256": "bab554b37fd4a98fdc75dab75ce6b8187114c345802b6a3bffcdeaaef51076f6",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10000,
+        "quantityStep": 1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "DOOD/USDT",
+      "sha256": "481ba5faba577cc7c2163b28a170c202548c67e1424f3103ad725cde96990cc8",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "DOT/USDT",
+      "sha256": "aadfdfc2377955482d6d165d33e3a07210675467baf3348dd0e1bc5816a9ef84",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "DYDX/USDT",
+      "sha256": "443d3695ce692b27e1241127a533c5a357f5a7c2f12721c297e9938c4b70f284",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "EDGE/USDT",
+      "sha256": "55c8b88ffb6f7fc54abf60a52de630faa8d7195b33bdd2307cba8109f84ecf7e",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "EGLD/USDT",
+      "sha256": "873c47bdca5dc54d2ed32b2059688cb7fb8dda1e2ac887355fb0fc18019829ac",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "EIGEN/USDT",
+      "sha256": "dfcc65ecb3bf2949e7ad34c664eaa53845fb4a5e998faccf82d6e6b926c08acd",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ENA/USDT",
+      "sha256": "9e89e0b25beb201acc86b35cdb7253297d01995dc86dfe3e6c90bc10ed849c44",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ENJ/USDT",
+      "sha256": "12a92ba8bb058f27d2e3a88b2163a6d820d0f3cdab38b9adf311c2e93370fc7d",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ENS/USDT",
+      "sha256": "aacef206df362811366e15893b2f5a45ce6867881f1a5d3f6573587b0bbb86a0",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ETC/USDT",
+      "sha256": "bf855130a833871e966a8983da1b3014c32b3b7ad93e7b62c73cde62d87d1889",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ETH/USDT",
+      "sha256": "0998351a0950587571383579e8fe1d4d151e78ab67a3039dcd30017075e4ef3d",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.0001,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ETHFI/USDT",
+      "sha256": "123fc3fb683f058c68001ceb260e57306e1ff09341635530d7e768136e4caf50",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ETHW/USDT",
+      "sha256": "8f782bd82c809b664bf76af7e042b5121765d259d55ca66ca74f2852f3b1a8aa",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "FET/USDT",
+      "sha256": "70118e4ca9fe4db8457934f35d3958698f28da67672cf03eb568efc3b823650b",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "FIL/USDT",
+      "sha256": "aefd0bc1b6ae8fc669cc0af55cf4d2fbe70c005aa80c8cae147fe54c001bf087",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "FLOKI/USDT",
+      "sha256": "ea5408d945b2083a8ad399c83ce1ae88b5b00a828b441b382ea9bc21bab46b51",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10000,
+        "quantityStep": 1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "FLOW/USDT",
+      "sha256": "36c60ea7d3b3d7a563d9b75d45d740c1c3989ecd2b8ffb3b7aebb5f6e7de2d7d",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "FLR/USDT",
+      "sha256": "7995904a430f5cc9ac73de5f61667223b9d6265e7edf4aa0b7510566cb1e6983",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.01
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "FLUID/USDT",
+      "sha256": "a78c1a411ed89020fe75fed350bea41cef784c9f345049cf61515ea76ae2fd7d",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "FOGO/USDT",
+      "sha256": "3151a747e2d4a607518ed548b20d511b18712f955c23914b89401a75ca3b861d",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "G/USDT",
+      "sha256": "7dd781a50f8521a31b9947820a861978e9f65a2a8e103b78c1e261d8f0b6ea03",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.1
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "GALA/USDT",
+      "sha256": "4454e33b7a7a5f942cb7fdb516e4e199eb6559a030b1a43ab4ec13305c8b40d2",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "GALFT/USDT",
+      "sha256": "ffcffc0bc2bb364cfccb0ad2b4422b31a2b0cd785508a17fb2a911689b1dccfe",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "GAS/USDT",
+      "sha256": "b9847a2435b44e69c9d57ee7f20dc5cff56c6ff3ec9229f11081143d6ca2ca88",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "GLM/USDT",
+      "sha256": "0387d7fc0a11d96705a3e3c1546e068cc983d06ff03248b403f9735a86eea48e",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "GMT/USDT",
+      "sha256": "c26270049dccc99da53a49e5bfea1bf2f6c697913c70584b3c1a3abdb33e8621",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 100,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "GMX/USDT",
+      "sha256": "2db993798ca2d1c49199d6214bf7d3ab406f7993e27ed2577b376f46d9dc3ac8",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "GOAT/USDT",
+      "sha256": "e3b6feb3bb3bd7b709f5ca1094be8c8b01b6e962687d8804e1cab2b745d22f6b",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 10,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "HYPE/USDT",
+      "sha256": "e6b84ef62b9cc2ace80b7d4cc2fee6bbf344c8587674044637520000287e4cdf",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.01,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "LINK/USDT",
+      "sha256": "bbb1ec94d5a6b86bdcde9455bc885c8b6b88d6a06ee1f85780389c4857f35ad8",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "LIT/USDT",
+      "sha256": "6637ca19d343c414165542d626adc803ac4087d6eea9809cd1faee3bb9b9742c",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "LTC/USDT",
+      "sha256": "a71425b50ba825c343f5ac3fb7ff1e91ebd415692303a8083137d684c1c7b004",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.01,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "sha256": "53dc26c349f5d94be8ba2dac7d2a59b9a143f0c6c8f7662f53bb5663b6021a73",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-08
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "SOL/USDT",
+      "sha256": "db14ae037a22ff493ab0b2eaeb92604fcf0de685e6fb54c36fbf729f4d8ffe74",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.01,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "SUI/USDT",
+      "sha256": "75ab34fb8e899b82a9f0d55a0911bc3c5838e66e5c64e9636336f3d770677fc4",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.0001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "TRX/USDT",
+      "sha256": "cd2933b329f5b709a929724106229e89a67e58249cf160605bea89590e940072",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "UNI/USDT",
+      "sha256": "da7a376b93feaf5455be7ab34b7024f7187032ef5b801cb2d8732f6fce41021f",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "WLD/USDT",
+      "sha256": "6fcd060e71a76581e17117a498b2fba7a1cb3b4bb657c7f422930a4db4fa0f79",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 0.001
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "XRP/USDT",
+      "sha256": "83a5a98f65ecc3c7dc50f0fc00e1d796fbafc9ce98fb931f3b1193348ca8adb3",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 1,
+        "quantityStep": 1e-06
+      },
+      "candleCount": 3552
+    },
+    {
+      "symbol": "ZEC/USDT",
+      "sha256": "e607f6a54426d8f01d9f034ea2aa746047a60ace7164ca8bfab2f17db7ecb0d0",
+      "constraints": {
+        "minimumNotionalUsdt": 0,
+        "minimumQuantity": 0.001,
+        "quantityStep": 1e-05
+      },
+      "candleCount": 3552
+    }
+  ]
+}

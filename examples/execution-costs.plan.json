@@ -1,0 +1,7 @@
+{
+  "fallbackFeeRate": 0.004,
+  "assumedSlippageRate": 0.001,
+  "assumedSpreadRate": 0.0015,
+  "stressMultiplier": 2,
+  "sizes": [10, 30]
+}

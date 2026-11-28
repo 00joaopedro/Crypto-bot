@@ -17,7 +17,7 @@ Cada janela de teste é posterior ao seu treino e não se sobrepõe às demais. 
 3. Calcula EMA 9, EMA 21, RSI 14, volume, momentum e volatilidade de forma determinística.
 4. Gera um score de entrada (1–8) com tendência, RSI, volume, momentum, volatilidade e distância estimada do stop. A EMA ainda precisa apontar para cima, mas não é necessário um cruzamento em um único candle.
 5. Opera no modo quantitativo por padrão, sem depender de IA; o score é determinístico e sujeito aos limites de risco.
-6. O Gemini pode ser ativado futuramente com `AI_MODE=filter` e `GEMINI_ENABLED=true` como filtro adicional de risco.
+6. Esta versão opera somente no modo quantitativo, sem chamadas pagas de IA. Configurações antigas `AI_MODE=filter` e `GEMINI_ENABLED=true` são normalizadas para quantitativo/desabilitado.
 7. Mantém uma carteira paper com taxa, slippage, Stop-Loss e Take-Profit.
 8. Quando as duas travas Demo estão habilitadas, envia uma compra Spot virtual à OKX com TP/SL anexados.
 9. Pode classificar uma lista de pares em cada candle fechado e só considera o melhor sinal elegível para a execução do par configurado. A carteira multiativos será uma etapa posterior.
@@ -34,7 +34,7 @@ A IA não cria sinais, não define tamanho da posição e não altera regras de 
 ## Requisitos
 
 - Node.js 22+
-- chave Gemini apenas se `GEMINI_ENABLED=true`
+- nenhuma chave de IA é necessária; a OKX Demo mantém suas credenciais próprias
 - para a OKX Demo: chave, secret e passphrase criados dentro de Trading simulado
 
 ## Uso local
@@ -60,7 +60,7 @@ Variáveis principais:
 - `LIVE_TRADING_ENABLED=false` (único valor aceito neste marco)
 - `OKX_API_KEY`, `OKX_SECRET_KEY` e `OKX_PASSPHRASE`
 - `AI_MODE=quantitative` (padrão, operação independente de IA)
-- `GEMINI_ENABLED=true` junto com `AI_MODE=filter` e `GEMINI_API_KEY` (opcional)
+- `GEMINI_ENABLED=false` (forçado nesta versão, inclusive com variáveis antigas)
 - `PAPER_INITIAL_BALANCE_USDT=1000`
 - `PAPER_TRADE_SIZE_USDT=100`
 - `PAPER_FEE_RATE=0.001` (0,10%)
@@ -589,3 +589,89 @@ No modo `--compare`, compare o filtro desativado com alternativas que acrescenta
 Use também 4, 8 e 24 horas para comparar custo, resultados líquidos e entradas
 bloqueadas. Cada janela do backtest começa com histórico de operações vazio.
 A redução de consultas e o impacto na estratégia dependem dos dados em uso.
+
+### Auditoria da configuração aplicada
+
+O diagnóstico JSON inclui configuração efetiva, hash e condições de execução
+consultadas na OKX. Compare com um estudo sem enviar ordens:
+
+```sh
+npm run build
+npm run execution:fidelity -- diagnostico.json examples/universe-validation.study.json
+```
+
+Consulte [diferenças e limites da auditoria](docs/execution-fidelity.md).
+Nenhuma variável nova é necessária. Evidência ausente permanece desconhecida.
+
+### Referência financeira por par
+
+Com dados históricos já congelados e diagnósticos exportados, execute sem
+consultar a corretora ou modificar o bot:
+
+```sh
+npm run execution:calibrate -- examples/execution-costs.plan.json examples/universe-validation.study.json .universe-data .financial-reference diagnostico.json
+```
+
+O diretório histórico precisa conter o manifesto `source.json` do estudo
+original. Hashes divergentes são rejeitados. O comando gera perfil de custos,
+estudo reconstruído, relatório e resumo em outro diretório. Taxas ausentes e
+spread/slippage sem evidência são hipóteses explícitas; não há aprovação
+automática nem alteração dos parâmetros ativos.
+Consulte [resultados e limitações](docs/financial-reference.md).
+
+### Experimentos com custos corrigidos
+
+`npm run strategy:cost-experiments -- examples/cost-experiments.plan.json DIRETORIO_CONGELADO DIRETORIO_DA_REFERENCIA NOVO_DIRETORIO`
+compara cinco variantes previamente definidas, com a mesma referência financeira.
+Confere hashes e reprodução da baseline; não aplica parâmetros ao bot.
+Veja [o protocolo e todos os resultados, inclusive negativos](docs/cost-aware-experiments.md).
+
+### Diagnóstico econômico e excursão após entrada
+
+`npm run strategy:economics -- examples/execution-costs.plan.json examples/universe-validation.study.json DIRETORIO_CONGELADO docs/financial-reference-current.json NOVO_DIRETORIO diagnostico.json [...]`
+reproduz a referência e separa custos, excursões durante a posição e janelas
+posteriores à saída. Consulte [os resultados e limites](docs/economic-diagnosis.md).
+É descritivo: não altera entradas, saídas, risco ou variáveis.
+
+### Diagnóstico das perdas da estratégia
+
+Para separar resultado antes das taxas, custos, saídas, pares, tamanhos e
+contexto de entrada, use o diagnóstico offline:
+
+```sh
+npm run strategy:diagnose -- --paper diagnostico.json
+npm run strategy:diagnose -- --portfolio dados/.universe-data/report.json
+```
+
+O relatório não altera parâmetros. Consulte o [diagnóstico e suas limitações](docs/strategy-loss-diagnosis.md).
+
+### Passagem para validação independente
+
+`npm run strategy:independent-readiness -- docs/limited-experiments.json`
+verifica a matriz de desenvolvimento antes de consumir outro período histórico.
+Consulte [o protocolo legado e seu resultado](docs/independent-validation.md).
+Para a matriz atual com custos corrigidos, use:
+
+```sh
+npm run strategy:independent-readiness -- docs/cost-aware-experiments.json docs/financial-reference-current.json examples/universe-validation.study.json
+```
+
+Veja [a terceira execução e o bloqueio atual](docs/cost-independent-validation.md).
+O comando não aprova dinheiro real nem aplica configurações.
+
+### Segunda hipótese de entrada (offline)
+
+`npm run strategy:complementary -- examples/universe-validation.study.json DIRETORIO_CONGELADO`
+compara a tendência com reversão à média isolada, mantendo risco e saídas comuns.
+Veja [resultados e limitações](docs/complementary-study.md); não ativa execução Demo.
+
+### Revisão de evidências antes de eventual piloto
+
+`npm run pilot:review -- docs/limited-experiments.json [evidencia-demo.json]`
+produz a avaliação offline de custos/fills, configuração observada e viabilidade
+do lote. Sem dados, registra impedimentos; nunca habilita dinheiro real.
+Veja [o protocolo e a decisão atual](docs/pilot-review.md).
+
+### Sessão híbrida Paper de 48h (sem ordens)
+
+`npm run demo:hybrid-shadow -- <diretório-persistente>` executa o perfil público Paper; `--once` faz somente um ciclo. Não há chamadas de IA ou ordens OKX. Banca 17 e teto nominal 10 usam limites conservadores para reduzir o lote, recusando mínimos incompatíveis. Ver `docs/hybrid-shadow-session.md`: a proposta precisa ser distinguida da integração Demo ainda pendente e não aprova dinheiro real.

@@ -17,6 +17,9 @@ export type BacktestOptions = {
   pairCooldown?: PairCooldown;
   btcCandles?: Candle[];
   feeRate: number;
+  entryFeeCurrency?: "base" | "quote";
+  /** Offline, identified pre-fill ask proxy for explicit account-conditioned costs. */
+  entryQuoteSpreadRate?: number;
   slippageRate: number;
   stopLossRate: number;
   takeProfitRate: number;
@@ -66,6 +69,7 @@ export type BacktestResult = { metrics: BacktestMetrics; trades: PaperTradeClose
 /** Deterministic, closed-candle backtest. It never calls exchanges or mutates live state. */
 export function runBacktest(candles: Candle[], options: BacktestOptions): BacktestResult {
   if (candles.length < 2) throw new Error("Backtest requires at least two candles");
+  if (options.entryQuoteSpreadRate !== undefined && (!Number.isFinite(options.entryQuoteSpreadRate) || options.entryQuoteSpreadRate < 0 || options.entryQuoteSpreadRate >= 1)) throw new Error("Invalid quote spread");
   const delay = options.executionDelayCandles ?? 0;
   const warmup = options.warmupCandles ?? 0;
   if (!Number.isInteger(warmup) || warmup < 0 || warmup >= candles.length - 1) throw new Error("warmupCandles must leave at least two test candles");
@@ -121,7 +125,9 @@ export function runBacktest(candles: Candle[], options: BacktestOptions): Backte
         rejectedEntries++;
       }
     }
-    const rates = options.exitPolicy ? initialExitRates(candles.slice(0, index), candle.open, options.exitPolicy, options) : undefined;
+    const entryHistory = candles.slice(0, options.entryQuoteSpreadRate !== undefined ? Math.max(0, index - Math.max(1, delay) + 1) : index);
+    const rates = options.exitPolicy ? { ...initialExitRates(entryHistory, options.entryQuoteSpreadRate !== undefined && entryHistory.length ? entryHistory.at(-1)!.close : candle.open, options.exitPolicy, options),
+      ...(options.entryQuoteSpreadRate !== undefined ? { referencePrice: candle.open * (1 + options.entryQuoteSpreadRate / 2) } : {}) } : undefined;
     const size = approved && options.riskSizing
       ? trader.planEntrySize(rates?.stopLossRate ?? options.stopLossRate, options.symbol?.split("/")[0] !== "BTC", 0, 0, liquidity)
       : undefined;

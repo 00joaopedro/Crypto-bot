@@ -1,8 +1,14 @@
+import { createConfirmedReversionGate, reversionObservation, reversionTargetEconomics, type ReversionSetup } from "./confirmed-mean-reversion.js";
+import { researchTrailingSchema } from "./research-trailing.js";
+import { averageTrueRange } from "./indicators.js";
+import { createPullbackGate, pullbackRuleSchema, type PullbackRule } from "./research-pullback.js";
+import { meanReversionEntry } from "./mean-reversion-study.js";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { REGIME_CANDLE_MS } from "./btc-regime.js";
 import { runPortfolioScenario, portfolioLimitsSchema, type PortfolioInstrument } from "./portfolio-comparison.js";
-import { comparisonSchema } from "./strategy-comparison.js";
+import { comparisonSchema, adverseCosts, scenarioCosts } from "./strategy-comparison.js";
+import { researchEntryScreenSchema, screenResearchEntry, type ResearchEntryScreen } from "./research-entry-screen.js";
 import { assertValidHistoricalCandles } from "./strategy-validation.js";
 import { evaluateStrategy } from "./strategy.js";
 import { assessMarketQuality } from "./signal-ranking.js";
@@ -23,7 +29,7 @@ export const universeStudySchema = z.object({
 }).strict().superRefine((study, ctx) => {
   if (new Set(study.sizes).size !== study.sizes.length || new Set(study.scenarios.map(s => s.name)).size !== study.scenarios.length) ctx.addIssue({ code: "custom", message: "Unique universe sizes and scenario names required" });
   const first = study.scenarios[0]!;
-  if (!study.scenarios.slice(1).some(s => s.feeRate >= first.feeRate && s.slippageRate >= first.slippageRate && s.spreadRate >= first.spreadRate && (s.feeRate > first.feeRate || s.slippageRate > first.slippageRate || s.spreadRate > first.spreadRate))) ctx.addIssue({ code: "custom", message: "An adverse cost scenario is required" });
+  if (!study.scenarios.slice(1).some(s => adverseCosts(first, s))) ctx.addIssue({ code: "custom", message: "An adverse cost scenario is required" });
   if (study.warmupCandles < study.candleLimit - 1) ctx.addIssue({ code: "custom", message: "Warmup must cover the runtime candle window" });
   if (study.parameters.riskSizing) ctx.addIssue({ code: "custom", message: "Universe study uses identical fixed trade ceilings" });
   if (study.parameters.executionDelayCandles < 1) ctx.addIssue({ code: "custom", message: "At least one execution delay candle is required" });
@@ -66,27 +72,70 @@ export function historicalUniverseRanks(datasets: UniverseDataset[], start: numb
   return { ranks, eligibleCounts };
 }
 
-export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown) {
+export const volatilityExitResearchSchema = z.object({
+  minimumAtrRate: z.number().finite().positive().lt(1).optional(),
+  trailing: researchTrailingSchema.optional(),
+}).strict();
+export type VolatilityExitResearch = z.infer<typeof volatilityExitResearchSchema>;
+
+export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: unknown, entryModel: "trend" | "mean_reversion" | "confirmed_mean_reversion" = "trend", rawEntryScreen?: ResearchEntryScreen, rawPullbackRule?: PullbackRule, rawExitResearch?: VolatilityExitResearch) {
   const study = universeStudySchema.parse(rawStudy);
+  const exitResearch = rawExitResearch === undefined ? undefined : volatilityExitResearchSchema.parse(rawExitResearch);
+  if (exitResearch && (entryModel !== "trend" || rawEntryScreen || rawPullbackRule)) throw new Error("Volatility/exit research must be isolated from other entry hypotheses");
+  const pullbackRule = rawPullbackRule === undefined ? undefined : pullbackRuleSchema.parse(rawPullbackRule);
+  if (pullbackRule && (entryModel !== "trend" || rawEntryScreen)) throw new Error("Pullback requires an isolated trend experiment");
+  const entryScreen = rawEntryScreen === undefined ? undefined : researchEntryScreenSchema.parse(rawEntryScreen);
+  if (entryScreen && (entryModel !== "trend" || !study.parameters.exitPolicy || study.parameters.exitPolicy.mode !== "fixed" || study.parameters.exitPolicy.breakeven)) throw new Error("Research screen only supports fixed ATR trend experiments");
+  if (entryModel === "confirmed_mean_reversion" && (study.parameters.exitPolicy?.mode !== "fixed" || study.parameters.exitPolicy.breakeven || study.parameters.executionDelayCandles !== 1)) throw new Error("Confirmed reversion requires fixed initial protection and next-open execution");
+  const reversionPlans = new Map<string, Array<ReversionSetup | undefined>>();
+  const reversionDiagnostics:Record<string,number>={};
+  const reversionCostChecks:Array<{symbol:string;decisionTimestamp:number;targetMoveRate:number;netReturnAtTargetRate:number;allowed:boolean}>=[];
+  const countReversion=(reason:string)=>{reversionDiagnostics[reason]=(reversionDiagnostics[reason]??0)+1;};
+  const entryScreenDiagnostics = { evaluatedQualityBuySignals: 0, rejectedQualityBuySignals: 0, costScenario: study.scenarios[0]!.name };
   const datasets = [...rawDatasets].sort((a, b) => a.symbol.localeCompare(b.symbol, "en"));
   validateUniverseDatasets(datasets, study);
   const startedAt = performance.now();
   const start = study.warmupCandles;
   const holdout = start + 960, split = holdout + 960;
   const membership = historicalUniverseRanks(datasets, start, study.minDailyQuoteVolumeUsdt);
-  const scores = new Map(datasets.map(d => [d.symbol, d.candles.map((_, index) => {
-    if (index < start) return undefined;
-    const candles = d.candles.slice(Math.max(0, index + 1 - study.candleLimit), index + 1);
-    const signal = evaluateStrategy(candles, { minimumScore: study.parameters.minimumSignalScore, maxBuyRsi: study.parameters.maxBuyRsi ?? 70 });
-    return signal.action === "BUY" && assessMarketQuality(candles).score >= 3 ? signal.score : undefined;
-  })]));
+  const scores = new Map(datasets.map(d => {
+    const reversionGate = entryModel === "confirmed_mean_reversion" ? createConfirmedReversionGate() : undefined;
+    const plans:Array<ReversionSetup|undefined>=Array(d.candles.length);reversionPlans.set(d.symbol,plans);
+    const gate = pullbackRule ? createPullbackGate(pullbackRule) : undefined;
+    return [d.symbol, d.candles.map((_, index) => {
+      if (index < start) return undefined;
+      const candles = d.candles.slice(Math.max(0, index + 1 - study.candleLimit), index + 1);
+      if (reversionGate) {
+        const decision=reversionGate(reversionObservation(candles));countReversion(decision.reason);
+        if(!decision.setup)return undefined;
+        if(assessMarketQuality(candles).score<3){countReversion("quality_rejected");return undefined;}
+        const economics=reversionTargetEconomics(candles.at(-1)!.close,decision.setup.targetPrice,scenarioCosts(study.scenarios[0]!,d.symbol));
+        reversionCostChecks.push({symbol:d.symbol,decisionTimestamp:decision.setup.decisionTimestamp,targetMoveRate:decision.setup.targetPrice/candles.at(-1)!.close-1,netReturnAtTargetRate:economics.netReturnRate,allowed:economics.allowed});
+        if(!economics.allowed){countReversion("decision_cost_rejected");return undefined;}
+        plans[index]=decision.setup;countReversion("eligible_before_membership");return 8;
+      }
+      if (entryModel === "mean_reversion") return meanReversionEntry(candles) && assessMarketQuality(candles).score >= 3 ? 8 : undefined;
+      const signal = evaluateStrategy(candles, { minimumScore: study.parameters.minimumSignalScore, maxBuyRsi: study.parameters.maxBuyRsi ?? 70 });
+      const gateAllowed = gate ? gate({ candle: candles.at(-1)!, ema21: signal.ema21, atr: averageTrueRange(candles), rsi: signal.rsi14, bullish: signal.ema9 > signal.ema21 }) : true;
+      const atrAllowed = !exitResearch?.minimumAtrRate || averageTrueRange(candles,14) / candles.at(-1)!.close >= exitResearch.minimumAtrRate;
+      if (!atrAllowed || !gateAllowed || signal.action !== "BUY" || assessMarketQuality(candles).score < 3) return undefined;
+      if (entryScreen) {
+        entryScreenDiagnostics.evaluatedQualityBuySignals++;
+        if (!screenResearchEntry(candles, study.parameters, scenarioCosts(study.scenarios[0]!, d.symbol), entryScreen).allowed) {
+          entryScreenDiagnostics.rejectedQualityBuySignals++;
+          return undefined;
+        }
+      }
+      return signal.score;
+    })] as const;
+  }));
   const btc = datasets.find(d => d.symbol === "BTC/USDT")?.candles;
   const mask = (size: number) => new Map(datasets.map(d => [d.symbol, scores.get(d.symbol)!.map((score, index) => {
     const rank = membership.ranks.get(d.symbol)![index];
     return rank !== undefined && (size === 0 || rank < size || study.fixedSymbols.includes(d.symbol)) ? score : undefined;
   })]));
   const run = (series: UniverseDataset[], masked: ReturnType<typeof mask>, from: number, scenario: UniverseStudy["scenarios"][number], boundary?: number) =>
-    runPortfolioScenario(series, masked, from, study.parameters, scenario, study.portfolio, study.initialBalanceUsdt, study.tradeSizeUsdt, btc, boundary);
+    runPortfolioScenario(series, masked, from, study.parameters, scenario, study.portfolio, study.initialBalanceUsdt, study.tradeSizeUsdt, btc, boundary, study.candleLimit, exitResearch?.trailing, entryModel === "confirmed_mean_reversion" ? reversionPlans : undefined);
   const prefixes = datasets.map(d => ({ ...d, candles: d.candles.slice(0, holdout), quoteVolumesUsdt: d.quoteVolumesUsdt.slice(0, holdout) }));
   const calibration = study.sizes.map(size => ({ size, result: run(prefixes, mask(size), start, study.scenarios[0]!) }));
   const selected = [...calibration].sort((a, b) => b.result.netReturnUsdt - a.result.netReturnUsdt || a.result.maxDrawdownUsdt - b.result.maxDrawdownUsdt)[0]!;
@@ -98,7 +147,11 @@ export function compareUniverseSizes(rawDatasets: UniverseDataset[], rawStudy: u
     }),
   }));
   return {
-    status: "exploratory_simulation_only", study,
+    status: "exploratory_simulation_only", entryModel, study,
+    ...(entryModel === "confirmed_mean_reversion" ? { confirmedReversionDiagnostics: reversionDiagnostics, confirmedReversionCostChecks: reversionCostChecks } : {}),
+    ...(exitResearch ? { volatilityExitResearch: exitResearch } : {}),
+    ...(pullbackRule ? { researchPullbackRule: pullbackRule } : {}),
+    ...(entryScreen ? { researchEntryScreen: entryScreen, entryScreenDiagnostics } : {}),
     assets: datasets.map(d => ({ symbol: d.symbol, sha256: datasetHash(d), constraints: d.constraints, candleCount: d.candles.length })),
     coverage: { validatedAssets: datasets.length, requestedSizesCoveredByPool: study.sizes.every(n => n <= datasets.length), minimumLiquidCandidates: Math.min(...membership.eligibleCounts), maximumLiquidCandidates: Math.max(...membership.eligibleCounts) },
     calibration, selectedSizeFromCalibration: selected.size, results,

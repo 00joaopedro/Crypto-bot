@@ -1,0 +1,75 @@
+{
+  "datasetSha256": "968783685746c751248ceb4c6bc97beefe997b8d46ded0f5cbc6905317620334",
+  "rows": [
+    {
+      "mode": "TREND_PULLBACK",
+      "candles": 51822,
+      "passed": {
+        "quality": 51822,
+        "atr": 14106,
+        "macro": 2086,
+        "touch": 6225,
+        "rsi_previous": 17123,
+        "volume": 36172,
+        "green": 24470,
+        "recovery": 23429,
+        "rsi_confirmation": 42573
+      },
+      "sequential": {
+        "quality": 51822,
+        "atr": 14106,
+        "macro": 943,
+        "touch": 112,
+        "rsi_previous": 14,
+        "volume": 9,
+        "green": 4,
+        "recovery": 4,
+        "rsi_confirmation": 3
+      },
+      "without": {
+        "quality": 3,
+        "atr": 8,
+        "macro": 145,
+        "touch": 35,
+        "rsi_previous": 24,
+        "volume": 5,
+        "green": 3,
+        "recovery": 3,
+        "rsi_confirmation": 4
+      },
+      "signals": 3
+    },
+    {
+      "mode": "MEAN_REVERSION",
+      "candles": 51822,
+      "passed": {
+        "quality": 51822,
+        "atr": 14106,
+        "regime": 26154,
+        "exhaustion": 3823,
+        "rsi_previous": 4073,
+        "green": 24470,
+        "recovery": 48007
+      },
+      "sequential": {
+        "quality": 51822,
+        "atr": 14106,
+        "regime": 4089,
+        "exhaustion": 245,
+        "rsi_previous": 130,
+        "green": 68,
+        "recovery": 47
+      },
+      "without": {
+        "quality": 47,
+        "atr": 298,
+        "regime": 345,
+        "exhaustion": 61,
+        "rsi_previous": 95,
+        "green": 50,
+        "recovery": 68
+      },
+      "signals": 47
+    }
+  ]
+}

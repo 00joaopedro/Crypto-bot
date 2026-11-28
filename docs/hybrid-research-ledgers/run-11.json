@@ -1,0 +1,305 @@
+{
+  "variant": "mean_reversion",
+  "scenario": {
+    "name": "account-cost-stress",
+    "feeRate": 0.008,
+    "slippageRate": 0.002,
+    "spreadRate": 0.003,
+    "assumedDepthUsdt": 500,
+    "maxParticipationRate": 0.0005,
+    "symbolCosts": {
+      "BTC/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "ETH/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "SOL/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "XRP/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "DOGE/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "SUI/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "NEAR/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "AVAX/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "LINK/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "DOT/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "AAVE/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "LTC/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "UNI/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "ATOM/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "APT/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "ARB/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "OP/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "FIL/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "INJ/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      },
+      "TON/USDT": {
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "entryFeeCurrency": "base"
+      }
+    }
+  },
+  "result": {
+    "status": "offline_research_only",
+    "closedTrades": 2,
+    "realizedPnlUsdt": -0.6229981741668151,
+    "winRatePercent": 0,
+    "profitFactor": 0,
+    "expectancyUsdt": -0.31149908708340757,
+    "topWinningTradePnLsUsdt": [],
+    "top3TradesProfitSharePercent": null,
+    "realizedPnlWithoutTop3Usdt": -0.6229981741668151,
+    "top3ProfitConcentrationWarning": false,
+    "netReturnUsdt": -0.6229981741668169,
+    "netReturnPercent": -3.6646951421577465,
+    "finalEquityUsdt": 16.377001825833183,
+    "maxDrawdownUsdt": 0.6229981741668169,
+    "maxDrawdownPercent": 3.6646951421577465,
+    "recoveryFactor": -1,
+    "feesUsdt": 0.3162592398111326,
+    "peakExposureRate": 0.5992037215866132,
+    "peakConcurrentPositions": 1,
+    "byMode": [
+      {
+        "strategy_mode": "BASELINE",
+        "closedTrades": 0,
+        "realizedPnlUsdt": 0,
+        "winRatePercent": null,
+        "profitFactor": null,
+        "expectancyUsdt": null,
+        "topWinningTradePnLsUsdt": [],
+        "top3TradesProfitSharePercent": null,
+        "realizedPnlWithoutTop3Usdt": 0,
+        "top3ProfitConcentrationWarning": false
+      },
+      {
+        "strategy_mode": "TREND_PULLBACK",
+        "closedTrades": 0,
+        "realizedPnlUsdt": 0,
+        "winRatePercent": null,
+        "profitFactor": null,
+        "expectancyUsdt": null,
+        "topWinningTradePnLsUsdt": [],
+        "top3TradesProfitSharePercent": null,
+        "realizedPnlWithoutTop3Usdt": 0,
+        "top3ProfitConcentrationWarning": false
+      },
+      {
+        "strategy_mode": "MEAN_REVERSION",
+        "closedTrades": 2,
+        "realizedPnlUsdt": -0.6229981741668151,
+        "winRatePercent": 0,
+        "profitFactor": 0,
+        "expectancyUsdt": -0.31149908708340757,
+        "topWinningTradePnLsUsdt": [],
+        "top3TradesProfitSharePercent": null,
+        "realizedPnlWithoutTop3Usdt": -0.6229981741668151,
+        "top3ProfitConcentrationWarning": false
+      }
+    ],
+    "blocks": [
+      {
+        "name": "D1-D10",
+        "complete": true,
+        "candles": 960,
+        "netReturnUsdt": 0,
+        "closedTrades": 0,
+        "realizedPnlUsdt": 0,
+        "winRatePercent": null,
+        "profitFactor": null,
+        "expectancyUsdt": null,
+        "topWinningTradePnLsUsdt": [],
+        "top3TradesProfitSharePercent": null,
+        "realizedPnlWithoutTop3Usdt": 0,
+        "top3ProfitConcentrationWarning": false
+      },
+      {
+        "name": "D11-D20",
+        "complete": true,
+        "candles": 960,
+        "netReturnUsdt": -0.3114982383825904,
+        "closedTrades": 1,
+        "realizedPnlUsdt": -0.3114982383825904,
+        "winRatePercent": 0,
+        "profitFactor": 0,
+        "expectancyUsdt": -0.3114982383825904,
+        "topWinningTradePnLsUsdt": [],
+        "top3TradesProfitSharePercent": null,
+        "realizedPnlWithoutTop3Usdt": -0.3114982383825904,
+        "top3ProfitConcentrationWarning": false
+      },
+      {
+        "name": "D21-D30",
+        "complete": true,
+        "candles": 960,
+        "netReturnUsdt": -0.3114999357842265,
+        "closedTrades": 1,
+        "realizedPnlUsdt": -0.31149993578422475,
+        "winRatePercent": 0,
+        "profitFactor": 0,
+        "expectancyUsdt": -0.31149993578422475,
+        "topWinningTradePnLsUsdt": [],
+        "top3TradesProfitSharePercent": null,
+        "realizedPnlWithoutTop3Usdt": -0.31149993578422475,
+        "top3ProfitConcentrationWarning": false
+      }
+    ],
+    "entries": [
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1794326400000,
+        "entryTimestamp": 1794327300000,
+        "stopPrice": 7.715549221848001,
+        "targetPrice": 8.017,
+        "notionalUsdt": 9.999757873053,
+        "estimatedInitialLossUsdt": 0.3114982383825904
+      },
+      {
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "decisionTimestamp": 1795142700000,
+        "entryTimestamp": 1795143600000,
+        "stopPrice": 6.725079718812,
+        "targetPrice": 6.973200000000001,
+        "notionalUsdt": 9.999812363265901,
+        "estimatedInitialLossUsdt": 0.31149993578422475
+      }
+    ],
+    "closedTradeLedger": [
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1794327300000,
+        "exitTimestamp": 1794331800000,
+        "entryPrice": 7.809260346,
+        "exitPrice": 7.688521652923867,
+        "quantity": 1.270256,
+        "reason": "STOP_LOSS",
+        "grossProceedsUsdt": 9.76639076075646,
+        "feesUsdt": 0.15812918907047568,
+        "netPnlUsdt": -0.3114982383825904,
+        "netPnlPercent": -3.1150578077695763,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 6,
+        "exitTimeProxy": null
+      },
+      {
+        "type": "CLOSED",
+        "entryTimestamp": 1795143600000,
+        "exitTimestamp": 1795143600000,
+        "entryPrice": 6.806760849000001,
+        "exitPrice": 6.701521764557001,
+        "quantity": 1.4573472,
+        "reason": "STOP_LOSS",
+        "grossProceedsUsdt": 9.766443979316206,
+        "feesUsdt": 0.15813005074065686,
+        "netPnlUsdt": -0.31149993578422475,
+        "netPnlPercent": -3.115057807769605,
+        "symbol": "INJ/USDT",
+        "strategy_mode": "MEAN_REVERSION",
+        "holdingCandles": 1,
+        "exitTimeProxy": null
+      }
+    ],
+    "rejected": {
+      "target_costs": 32,
+      "liquidity": 12,
+      "exit_levels": 1
+    },
+    "openPosition": null,
+    "configurationPromoted": false,
+    "realMoneyApproved": false
+  }
+}

@@ -1,4 +1,5 @@
-import type { DemoFill, DemoLedgerResult } from "./demo-ledger.js";
+import { Precise } from 'ccxt';
+import type { DemoFill, DemoLedgerResult, DemoBalanceEvidence } from "./demo-ledger.js";
 import { verifyDemoOwnership, type JournaledDemoBuy, type ExchangeDemoOrder, type ExchangeProtection } from "./demo-ownership.js";
 import { reconcileDemoExecutions } from "./demo-reconciliation.js";
 
@@ -24,7 +25,7 @@ export function accountForDemoEvidence(input: {
   sells: ExecutedDemoOrder[];
   fills: DemoFill[];
 }): DemoLedgerResult {
-  const unavailable = (reason: string): DemoLedgerResult => ({ status: "unavailable", reason });
+  const unavailable = (reason: string, balanceEvidence?: DemoBalanceEvidence): DemoLedgerResult => ({ status: "unavailable", reason, ...(balanceEvidence ? { balanceEvidence } : {}) });
   if (!input.journalComplete || !input.historyComplete || !input.positionsReconciled) return unavailable("evidence_coverage_incomplete");
   if (!Number.isSafeInteger(input.coverageStart) || !Number.isSafeInteger(input.coverageEnd) || input.coverageStart < 0 || input.coverageStart > input.coverageEnd) return unavailable("invalid_coverage_window");
   if (!input.baseline?.confirmed || input.baseline.timestamp !== input.coverageStart || !input.baseline.balances || typeof input.baseline.balances !== "object" || Array.isArray(input.baseline.balances)) return unavailable("baseline_unconfirmed");
@@ -57,18 +58,22 @@ export function accountForDemoEvidence(input: {
     const asset = symbol.split("/")[0]!;
     if (expectedAssets.has(asset)) return unavailable("ambiguous_position_asset");
     expectedAssets.add(asset);
-    // A Spot balance response can omit an asset that was zero before the bot's
-    // first buy; the complete, isolated baseline treats that absence as zero.
-    const actual = input.positionBalances[asset];
-    if (typeof actual !== "number" || !Number.isFinite(actual) || actual < 0) return unavailable("position_balance_missing");
-    const expected = (input.baseline.balances[asset] ?? 0) + position.quantity;
-    if (!Number.isFinite(expected) || Math.abs(actual - expected) > Math.max(actual, expected) * 1e-8) return unavailable("position_balance_mismatch");
+    const expected = Number(new Precise(String(input.baseline.balances[asset] ?? 0)).add(new Precise(String(position.quantity))).toString());
+    if (!Number.isFinite(expected)) return unavailable("invalid_calculation");
+    // OKX's complete REST balance omits zero holdings. Only an exactly zero
+    // independently reconstructed expectation permits that omission: never dust,
+    // an open position, positive legacy inventory, null, NaN or a missing quote.
+    const actual = !Object.hasOwn(input.positionBalances, asset) && expected === 0 ? 0 : input.positionBalances[asset];
+    const detail = { asset, expected, actual: typeof actual === 'number' && Number.isFinite(actual) ? actual : null, source: 'bot_position' as const };
+    if (typeof actual !== "number" || !Number.isFinite(actual) || actual < 0) return unavailable("position_balance_missing", detail);
+    if (Math.abs(actual - expected) > Math.max(actual, expected) * 1e-8) return unavailable("position_balance_mismatch", detail);
   }
   for (const [asset, baseline] of Object.entries(input.baseline.balances)) {
     if (asset === "USDT" || expectedAssets.has(asset)) continue;
-    const actual = input.positionBalances[asset];
-    if (typeof actual !== "number" || !Number.isFinite(actual) || actual < 0) return unavailable("position_balance_missing");
-    if (Math.abs(actual - baseline) > Math.max(actual, baseline) * 1e-8) return unavailable("position_balance_mismatch");
+    const actual = !Object.hasOwn(input.positionBalances, asset) && baseline === 0 ? 0 : input.positionBalances[asset];
+    const detail = { asset, expected: baseline, actual: typeof actual === 'number' && Number.isFinite(actual) ? actual : null, source: 'baseline' as const };
+    if (typeof actual !== "number" || !Number.isFinite(actual) || actual < 0) return unavailable("position_balance_missing", detail);
+    if (Math.abs(actual - baseline) > Math.max(actual, baseline) * 1e-8) return unavailable("position_balance_mismatch", detail);
     expectedAssets.add(asset);
   }
   for (const [asset, balance] of Object.entries(input.positionBalances)) {
@@ -80,13 +85,15 @@ export function accountForDemoEvidence(input: {
   const initialUsdt = input.baseline.balances.USDT;
   const actualUsdt = input.positionBalances.USDT;
   if (typeof initialUsdt !== "number" || typeof actualUsdt !== "number" || !Number.isFinite(actualUsdt) || actualUsdt < 0) return unavailable("quote_balance_missing");
-  let expectedUsdt = initialUsdt;
+  let expectedQuote = new Precise(String(initialUsdt));
   for (const fill of input.fills) {
-    expectedUsdt += fill.side === "buy" ? -fill.costUsdt : fill.costUsdt;
-    for (const fee of fill.fees) if (fee.currency === "USDT") expectedUsdt -= fee.cost;
-    if (!Number.isFinite(expectedUsdt)) return unavailable("invalid_calculation");
+    const cost = new Precise(String(fill.costUsdt));
+    expectedQuote = fill.side === "buy" ? expectedQuote.sub(cost) : expectedQuote.add(cost);
+    for (const fee of fill.fees) if (fee.currency === "USDT") expectedQuote = expectedQuote.sub(new Precise(String(fee.cost)));
+    if (!Number.isFinite(Number(expectedQuote.toString()))) return unavailable("invalid_calculation");
   }
-  if (expectedUsdt < 0 || Math.abs(actualUsdt - expectedUsdt) > Math.max(actualUsdt, expectedUsdt) * 1e-8) return unavailable("quote_balance_mismatch");
+  const expectedUsdt = Number(expectedQuote.toString());
+  if (expectedQuote.lt(new Precise('0')) || Math.abs(actualUsdt - expectedUsdt) > Math.max(actualUsdt, expectedUsdt) * 1e-8) return unavailable("quote_balance_mismatch");
   return result;
 }
 

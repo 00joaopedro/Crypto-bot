@@ -74,3 +74,9 @@ describe("Demo validation report", () => {
     expect(report.operational.criticalEvidence).toEqual({ DEMO_PROTECTION_BLOCKED: 1 });
   });
 });
+
+it("does not accept a fully covered 48h window without fills as operationally validated", () => {
+  const report = summarizeDemoValidation(start, [capture(end, 48)]);
+  expect(report.executionAssessment).toMatchObject({ status: "no_confirmed_fills", operationalValidationPassed: false });
+  expect(report.executionAssessment.conclusion).toMatch(/not validated/);
+});

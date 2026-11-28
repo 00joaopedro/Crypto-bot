@@ -1,0 +1,2227 @@
+{
+  "status": "offline_hybrid_supplied_data_replay",
+  "plan": {
+    "protocol": "hybrid-research-v1",
+    "engine": "pullback_mean_reversion",
+    "timeframe": "15m",
+    "bankUsdt": 17,
+    "lotUsdt": 10,
+    "maxConcurrentPositions": 1,
+    "allocationPolicy": "fixed_lot_cash_and_one_position",
+    "warmup15m": 1000,
+    "warmup1h": 250,
+    "atrFloorRate": 0.007,
+    "touchToleranceAtr": 0.25,
+    "atrMethod": "simple_true_range_mean_14",
+    "vwapDay": "UTC",
+    "profitBasis": "estimated_net_after_costs",
+    "stopA": "closer_of_entry_1.1_percent_and_pullback_low_minus_1.5_atr",
+    "activationA": 0.012,
+    "floorA": 0.007,
+    "trailingAtrA": 1.2,
+    "targetA": 0.028,
+    "targetB": 0.014,
+    "stopB": 0.012,
+    "timeStopB": 6,
+    "tieBreak": "watchlist_order_then_A",
+    "watchlist": [
+      "BTC/USDT",
+      "ETH/USDT",
+      "SOL/USDT",
+      "XRP/USDT",
+      "DOGE/USDT",
+      "SUI/USDT",
+      "NEAR/USDT",
+      "AVAX/USDT",
+      "LINK/USDT",
+      "DOT/USDT",
+      "AAVE/USDT",
+      "LTC/USDT",
+      "UNI/USDT",
+      "ATOM/USDT",
+      "APT/USDT",
+      "ARB/USDT",
+      "OP/USDT",
+      "FIL/USDT",
+      "INJ/USDT",
+      "TON/USDT"
+    ],
+    "baselineStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919"
+  },
+  "protocolSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "baselineStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+  "baselineParameters": {
+    "exitPolicy": {
+      "mode": "fixed",
+      "breakeven": false,
+      "atrPeriod": 14,
+      "stopMultiplier": 1.5,
+      "targetMultiplier": 3,
+      "minStopRate": 0.005,
+      "maxStopRate": 0.03,
+      "trailingMultiplier": 2,
+      "activationRate": 0.02,
+      "exitFeeRate": 0.001,
+      "exitSlippageRate": 0.001
+    },
+    "pairCooldown": {
+      "hours": 6,
+      "minLosses": 3
+    },
+    "btcRegimeFilter": false,
+    "stopLossRate": 0.01,
+    "takeProfitRate": 0.02,
+    "maxBuyRsi": 70,
+    "minimumSignalScore": 4,
+    "executionDelayCandles": 1
+  },
+  "variants": [
+    "baseline",
+    "trend_pullback",
+    "mean_reversion",
+    "hybrid"
+  ],
+  "profitabilityValidated": false,
+  "liveScannerChanged": false,
+  "configurationPromoted": false,
+  "realMoneyApproved": false,
+  "datasetSha256": "fb88541a351e706edcc838fffdd42ed9a11ba25ace8d4a883d8090ed6eaadfc4",
+  "asOfUtc": "2026-11-22T23:00:00Z",
+  "includedSymbols": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT",
+    "XRP/USDT",
+    "DOGE/USDT",
+    "SUI/USDT",
+    "NEAR/USDT",
+    "AVAX/USDT",
+    "LINK/USDT",
+    "DOT/USDT",
+    "AAVE/USDT",
+    "LTC/USDT",
+    "UNI/USDT",
+    "ATOM/USDT",
+    "APT/USDT",
+    "OP/USDT",
+    "FIL/USDT",
+    "INJ/USDT"
+  ],
+  "missingFromInput": [
+    "ARB/USDT",
+    "TON/USDT"
+  ],
+  "demoAvailabilityVerified": false,
+  "scenarios": [
+    {
+      "name": "gemini-hypothesis",
+      "evidence": "declared_hypothesis_not_verified",
+      "missingFromArchivedCostMap": [
+        "OP/USDT",
+        "INJ/USDT",
+        "TON/USDT"
+      ]
+    },
+    {
+      "name": "gemini-stress-hypothesis",
+      "evidence": "declared_hypothesis_not_verified",
+      "missingFromArchivedCostMap": [
+        "OP/USDT",
+        "INJ/USDT",
+        "TON/USDT"
+      ]
+    },
+    {
+      "name": "account-conditioned",
+      "evidence": "archived_partial_account_evidence_and_declared_assumptions",
+      "missingFromArchivedCostMap": [
+        "OP/USDT",
+        "INJ/USDT",
+        "TON/USDT"
+      ]
+    },
+    {
+      "name": "account-cost-stress",
+      "evidence": "archived_partial_account_evidence_and_declared_assumptions",
+      "missingFromArchivedCostMap": [
+        "OP/USDT",
+        "INJ/USDT",
+        "TON/USDT"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "variant": "baseline",
+      "scenario": "gemini-hypothesis",
+      "status": "offline_research_only",
+      "closedTrades": 109,
+      "realizedPnlUsdt": -6.768088995832315,
+      "winRatePercent": 25.68807339449541,
+      "profitFactor": 0.34458108460657555,
+      "expectancyUsdt": -0.06209255959479188,
+      "topWinningTradePnLsUsdt": [
+        0.29315999663247183,
+        0.2501320683526771,
+        0.23826103013607813
+      ],
+      "top3TradesProfitSharePercent": 21.964431342178536,
+      "realizedPnlWithoutTop3Usdt": -7.549642090953542,
+      "top3ProfitConcentrationWarning": false,
+      "netReturnUsdt": -6.721407644872128,
+      "netReturnPercent": -39.53769202865958,
+      "finalEquityUsdt": 10.278592355127872,
+      "maxDrawdownUsdt": 6.896188216592892,
+      "maxDrawdownPercent": 40.375590120076595,
+      "recoveryFactor": -0.9746554812265383,
+      "feesUsdt": 2.1842830915022193,
+      "peakExposureRate": 0.9772853939153555,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 109,
+          "realizedPnlUsdt": -6.768088995832315,
+          "winRatePercent": 25.68807339449541,
+          "profitFactor": 0.34458108460657555,
+          "expectancyUsdt": -0.06209255959479188,
+          "topWinningTradePnLsUsdt": [
+            0.29315999663247183,
+            0.2501320683526771,
+            0.23826103013607813
+          ],
+          "top3TradesProfitSharePercent": 21.964431342178536,
+          "realizedPnlWithoutTop3Usdt": -7.549642090953542,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -1.6236193547332753,
+          "closedTrades": 39,
+          "realizedPnlUsdt": -1.6236193547332736,
+          "winRatePercent": 33.333333333333336,
+          "profitFactor": 0.43445528657035376,
+          "expectancyUsdt": -0.041631265505981375,
+          "topWinningTradePnLsUsdt": [
+            0.29315999663247183,
+            0.2133199562723469,
+            0.1803523706526189
+          ],
+          "top3TradesProfitSharePercent": 55.0666132167295,
+          "realizedPnlWithoutTop3Usdt": -2.310451678290711,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -3.3411509657731013,
+          "closedTrades": 37,
+          "realizedPnlUsdt": -3.3411509657731013,
+          "winRatePercent": 18.91891891891892,
+          "profitFactor": 0.21375224093628595,
+          "expectancyUsdt": -0.09030137745332706,
+          "topWinningTradePnLsUsdt": [
+            0.2501320683526771,
+            0.22905699020512493,
+            0.12732691505854277
+          ],
+          "top3TradesProfitSharePercent": 66.77207741836652,
+          "realizedPnlWithoutTop3Usdt": -3.947666939389446,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -1.7566373243657516,
+          "closedTrades": 33,
+          "realizedPnlUsdt": -1.80331867532594,
+          "winRatePercent": 24.242424242424242,
+          "profitFactor": 0.43751273661643464,
+          "expectancyUsdt": -0.05464602046442243,
+          "topWinningTradePnLsUsdt": [
+            0.23826103013607813,
+            0.2345932027121851,
+            0.20297532052666156
+          ],
+          "top3TradesProfitSharePercent": 48.18220724997577,
+          "realizedPnlWithoutTop3Usdt": -2.479148228700865,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "rejected": {
+        "liquidity": 20,
+        "cooldown": 8
+      },
+      "openPosition": {
+        "symbol": "BTC/USDT",
+        "strategy_mode": "BASELINE",
+        "entryTimestamp": 1795350600000,
+        "stopPrice": 60075.00105535715,
+        "targetPrice": 61888.124164285706
+      },
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "baseline",
+      "scenario": "gemini-stress-hypothesis",
+      "status": "offline_research_only",
+      "closedTrades": 69,
+      "realizedPnlUsdt": -7.140720646841599,
+      "winRatePercent": 20.28985507246377,
+      "profitFactor": 0.16586533654366986,
+      "expectancyUsdt": -0.10348870502668985,
+      "topWinningTradePnLsUsdt": [
+        0.3178096747567256,
+        0.22089993513992034,
+        0.17502959472348323
+      ],
+      "top3TradesProfitSharePercent": 50.26643024780927,
+      "realizedPnlWithoutTop3Usdt": -7.854459851461728,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -7.140720646841594,
+      "netReturnPercent": -42.0042390990682,
+      "finalEquityUsdt": 9.859279353158406,
+      "maxDrawdownUsdt": 7.155157543364524,
+      "maxDrawdownPercent": 42.05344900263347,
+      "recoveryFactor": -0.997982309063716,
+      "feesUsdt": 2.7484016820215844,
+      "peakExposureRate": 0.9933589739315262,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 69,
+          "realizedPnlUsdt": -7.140720646841599,
+          "winRatePercent": 20.28985507246377,
+          "profitFactor": 0.16586533654366986,
+          "expectancyUsdt": -0.10348870502668985,
+          "topWinningTradePnLsUsdt": [
+            0.3178096747567256,
+            0.22089993513992034,
+            0.17502959472348323
+          ],
+          "top3TradesProfitSharePercent": 50.26643024780927,
+          "realizedPnlWithoutTop3Usdt": -7.854459851461728,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -3.937762696866537,
+          "closedTrades": 43,
+          "realizedPnlUsdt": -3.9377626968665425,
+          "winRatePercent": 20.930232558139537,
+          "profitFactor": 0.18993645236245446,
+          "expectancyUsdt": -0.09157587667131493,
+          "topWinningTradePnLsUsdt": [
+            0.3178096747567256,
+            0.17502959472348323,
+            0.1421857083349316
+          ],
+          "top3TradesProfitSharePercent": 68.77839470516481,
+          "realizedPnlWithoutTop3Usdt": -4.572787674681683,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -3.2029579499750565,
+          "closedTrades": 26,
+          "realizedPnlUsdt": -3.2029579499750565,
+          "winRatePercent": 19.23076923076923,
+          "profitFactor": 0.1342371431252072,
+          "expectancyUsdt": -0.12319069038365602,
+          "topWinningTradePnLsUsdt": [
+            0.22089993513992034,
+            0.10525931843701919,
+            0.08935905491438234
+          ],
+          "top3TradesProfitSharePercent": 83.66911516531992,
+          "realizedPnlWithoutTop3Usdt": -3.6184762584663783,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "liquidity": 156,
+        "cooldown": 4,
+        "cash": 744
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "baseline",
+      "scenario": "account-conditioned",
+      "status": "offline_research_only",
+      "closedTrades": 57,
+      "realizedPnlUsdt": -7.028363230871122,
+      "winRatePercent": 15.789473684210526,
+      "profitFactor": 0.11197375483378955,
+      "expectancyUsdt": -0.12330461808545828,
+      "topWinningTradePnLsUsdt": [
+        0.22119808220340964,
+        0.178468962396078,
+        0.14191617345252006
+      ],
+      "top3TradesProfitSharePercent": 61.11116457790676,
+      "realizedPnlWithoutTop3Usdt": -7.56994644892313,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -7.028363230871117,
+      "netReturnPercent": -41.34331312277127,
+      "finalEquityUsdt": 9.971636769128883,
+      "maxDrawdownUsdt": 7.028363230871117,
+      "maxDrawdownPercent": 41.34331312277127,
+      "recoveryFactor": -1,
+      "feesUsdt": 4.540815666531778,
+      "peakExposureRate": 0.9868952977462431,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 57,
+          "realizedPnlUsdt": -7.028363230871122,
+          "winRatePercent": 15.789473684210526,
+          "profitFactor": 0.11197375483378955,
+          "expectancyUsdt": -0.12330461808545828,
+          "topWinningTradePnLsUsdt": [
+            0.22119808220340964,
+            0.178468962396078,
+            0.14191617345252006
+          ],
+          "top3TradesProfitSharePercent": 61.11116457790676,
+          "realizedPnlWithoutTop3Usdt": -7.56994644892313,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -4.380987057936512,
+          "closedTrades": 39,
+          "realizedPnlUsdt": -4.380987057936517,
+          "winRatePercent": 12.820512820512821,
+          "profitFactor": 0.1266790148730647,
+          "expectancyUsdt": -0.11233300148555173,
+          "topWinningTradePnLsUsdt": [
+            0.22119808220340964,
+            0.14191617345252006,
+            0.10917910848019119
+          ],
+          "top3TradesProfitSharePercent": 74.3205803066473,
+          "realizedPnlWithoutTop3Usdt": -4.853280422072638,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -2.647376172934605,
+          "closedTrades": 18,
+          "realizedPnlUsdt": -2.647376172934605,
+          "winRatePercent": 22.22222222222222,
+          "profitFactor": 0.08651986051178642,
+          "expectancyUsdt": -0.1470764540519225,
+          "topWinningTradePnLsUsdt": [
+            0.178468962396078,
+            0.05652440669097025,
+            0.012436627997766792
+          ],
+          "top3TradesProfitSharePercent": 98.67792150447697,
+          "realizedPnlWithoutTop3Usdt": -2.89480617001942,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "liquidity": 57,
+        "cooldown": 1,
+        "cash": 929
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "baseline",
+      "scenario": "account-cost-stress",
+      "status": "offline_research_only",
+      "closedTrades": 31,
+      "realizedPnlUsdt": -7.013127804126864,
+      "winRatePercent": 9.67741935483871,
+      "profitFactor": 0.0286979715458838,
+      "expectancyUsdt": -0.2262299291653827,
+      "topWinningTradePnLsUsdt": [
+        0.17372219054209737,
+        0.0329360268853236,
+        0.0005508033246517385
+      ],
+      "top3TradesProfitSharePercent": 100,
+      "realizedPnlWithoutTop3Usdt": -7.220336824878936,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -7.013127804126865,
+      "netReturnPercent": -41.253692965452146,
+      "finalEquityUsdt": 9.986872195873135,
+      "maxDrawdownUsdt": 7.013127804126865,
+      "maxDrawdownPercent": 41.253692965452146,
+      "recoveryFactor": -1,
+      "feesUsdt": 4.92338036832705,
+      "peakExposureRate": 0.9756846632369118,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 31,
+          "realizedPnlUsdt": -7.013127804126864,
+          "winRatePercent": 9.67741935483871,
+          "profitFactor": 0.0286979715458838,
+          "expectancyUsdt": -0.2262299291653827,
+          "topWinningTradePnLsUsdt": [
+            0.17372219054209737,
+            0.0329360268853236,
+            0.0005508033246517385
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -7.220336824878936,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -7.013127804126865,
+          "closedTrades": 31,
+          "realizedPnlUsdt": -7.013127804126864,
+          "winRatePercent": 9.67741935483871,
+          "profitFactor": 0.0286979715458838,
+          "expectancyUsdt": -0.2262299291653827,
+          "topWinningTradePnLsUsdt": [
+            0.17372219054209737,
+            0.0329360268853236,
+            0.0005508033246517385
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -7.220336824878936,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "liquidity": 215,
+        "cooldown": 1,
+        "cash": 1457
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "trend_pullback",
+      "scenario": "gemini-hypothesis",
+      "status": "offline_research_only",
+      "closedTrades": 2,
+      "realizedPnlUsdt": 0.3499971279795613,
+      "winRatePercent": 100,
+      "profitFactor": null,
+      "expectancyUsdt": 0.17499856398978064,
+      "topWinningTradePnLsUsdt": [
+        0.27999999361216865,
+        0.06999713436739263
+      ],
+      "top3TradesProfitSharePercent": 100,
+      "realizedPnlWithoutTop3Usdt": 0,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": 0.34999712797956306,
+      "netReturnPercent": 2.0588066351739003,
+      "finalEquityUsdt": 17.349997127979563,
+      "maxDrawdownUsdt": 0.1572530215679997,
+      "maxDrawdownPercent": 0.905933658890357,
+      "recoveryFactor": 2.22569413604696,
+      "feesUsdt": 0.04036954787701427,
+      "peakExposureRate": 0.5882352806978303,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.3499971279795613,
+          "winRatePercent": 100,
+          "profitFactor": null,
+          "expectancyUsdt": 0.17499856398978064,
+          "topWinningTradePnLsUsdt": [
+            0.27999999361216865,
+            0.06999713436739263
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0.34999712797956306,
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.3499971279795613,
+          "winRatePercent": 100,
+          "profitFactor": null,
+          "expectancyUsdt": 0.17499856398978064,
+          "topWinningTradePnLsUsdt": [
+            0.27999999361216865,
+            0.06999713436739263
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "liquidity": 1
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "trend_pullback",
+      "scenario": "gemini-stress-hypothesis",
+      "status": "offline_research_only",
+      "closedTrades": 1,
+      "realizedPnlUsdt": 0.18785514066128783,
+      "winRatePercent": 100,
+      "profitFactor": null,
+      "expectancyUsdt": 0.18785514066128783,
+      "topWinningTradePnLsUsdt": [
+        0.18785514066128783
+      ],
+      "top3TradesProfitSharePercent": 100,
+      "realizedPnlWithoutTop3Usdt": 0,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": 0.18785514066128783,
+      "netReturnPercent": 1.105030239184046,
+      "finalEquityUsdt": 17.187855140661288,
+      "maxDrawdownUsdt": 0.10519438276170945,
+      "maxDrawdownPercent": 0.616398521117095,
+      "recoveryFactor": 1.7857906071546126,
+      "feesUsdt": 0.04041652667822172,
+      "peakExposureRate": 0.5882350489245525,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.18785514066128783,
+          "winRatePercent": 100,
+          "profitFactor": null,
+          "expectancyUsdt": 0.18785514066128783,
+          "topWinningTradePnLsUsdt": [
+            0.18785514066128783
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0.18785514066128783,
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.18785514066128783,
+          "winRatePercent": 100,
+          "profitFactor": null,
+          "expectancyUsdt": 0.18785514066128783,
+          "topWinningTradePnLsUsdt": [
+            0.18785514066128783
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "liquidity": 2
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "trend_pullback",
+      "scenario": "account-conditioned",
+      "status": "offline_research_only",
+      "closedTrades": 2,
+      "realizedPnlUsdt": -0.04382214055028655,
+      "winRatePercent": 50,
+      "profitFactor": 0.7874078922614017,
+      "expectancyUsdt": -0.021911070275143274,
+      "topWinningTradePnLsUsdt": [
+        0.16231034958039103
+      ],
+      "top3TradesProfitSharePercent": 100,
+      "realizedPnlWithoutTop3Usdt": -0.20613249013067758,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -0.04382214055028655,
+      "netReturnPercent": -0.25777729735462673,
+      "finalEquityUsdt": 16.956177859449713,
+      "maxDrawdownUsdt": 0.2896032460046776,
+      "maxDrawdownPercent": 1.6792701022575522,
+      "recoveryFactor": -0.1513178500408754,
+      "feesUsdt": 0.16014296785963109,
+      "peakExposureRate": 0.5882351994411981,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.04382214055028655,
+          "winRatePercent": 50,
+          "profitFactor": 0.7874078922614017,
+          "expectancyUsdt": -0.021911070275143274,
+          "topWinningTradePnLsUsdt": [
+            0.16231034958039103
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.20613249013067758,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.04382214055028655,
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.04382214055028655,
+          "winRatePercent": 50,
+          "profitFactor": 0.7874078922614017,
+          "expectancyUsdt": -0.021911070275143274,
+          "topWinningTradePnLsUsdt": [
+            0.16231034958039103
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.20613249013067758,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "liquidity": 1
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "trend_pullback",
+      "scenario": "account-cost-stress",
+      "status": "offline_research_only",
+      "closedTrades": 1,
+      "realizedPnlUsdt": 0.13626501341232355,
+      "winRatePercent": 100,
+      "profitFactor": null,
+      "expectancyUsdt": 0.13626501341232355,
+      "topWinningTradePnLsUsdt": [
+        0.13626501341232355
+      ],
+      "top3TradesProfitSharePercent": 100,
+      "realizedPnlWithoutTop3Usdt": 0,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": 0.13626501341232355,
+      "netReturnPercent": 0.8015589024254327,
+      "finalEquityUsdt": 17.136265013412324,
+      "maxDrawdownUsdt": 0.2217734635470734,
+      "maxDrawdownPercent": 1.30454978557102,
+      "recoveryFactor": 0.6144333556994752,
+      "feesUsdt": 0.16174405081713542,
+      "peakExposureRate": 0.5882352140300162,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.13626501341232355,
+          "winRatePercent": 100,
+          "profitFactor": null,
+          "expectancyUsdt": 0.13626501341232355,
+          "topWinningTradePnLsUsdt": [
+            0.13626501341232355
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0.13626501341232355,
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.13626501341232355,
+          "winRatePercent": 100,
+          "profitFactor": null,
+          "expectancyUsdt": 0.13626501341232355,
+          "topWinningTradePnLsUsdt": [
+            0.13626501341232355
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "liquidity": 2
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "mean_reversion",
+      "scenario": "gemini-hypothesis",
+      "status": "offline_research_only",
+      "closedTrades": 26,
+      "realizedPnlUsdt": -0.6063290313506808,
+      "winRatePercent": 50,
+      "profitFactor": 0.5861279260912332,
+      "expectancyUsdt": -0.02332034735964157,
+      "topWinningTradePnLsUsdt": [
+        0.13999999878816105,
+        0.13999498643105923,
+        0.13999330853568104
+      ],
+      "top3TradesProfitSharePercent": 48.91054837024693,
+      "realizedPnlWithoutTop3Usdt": -1.0263173251055822,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -0.6063290313506897,
+      "netReturnPercent": -3.5666413608864103,
+      "finalEquityUsdt": 16.39367096864931,
+      "maxDrawdownUsdt": 0.6063290313506897,
+      "maxDrawdownPercent": 3.5666413608864103,
+      "recoveryFactor": -1,
+      "feesUsdt": 0.5196491593698253,
+      "peakExposureRate": 0.6043845694050575,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 26,
+          "realizedPnlUsdt": -0.6063290313506808,
+          "winRatePercent": 50,
+          "profitFactor": 0.5861279260912332,
+          "expectancyUsdt": -0.02332034735964157,
+          "topWinningTradePnLsUsdt": [
+            0.13999999878816105,
+            0.13999498643105923,
+            0.13999330853568104
+          ],
+          "top3TradesProfitSharePercent": 48.91054837024693,
+          "realizedPnlWithoutTop3Usdt": -1.0263173251055822,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.3478358723969315,
+          "closedTrades": 8,
+          "realizedPnlUsdt": -0.34783587239693503,
+          "winRatePercent": 37.5,
+          "profitFactor": 0.35614011022370023,
+          "expectancyUsdt": -0.04347948404961688,
+          "topWinningTradePnLsUsdt": [
+            0.13999498643105923,
+            0.030769027469903065,
+            0.02163546291415841
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5402353492120557,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.03258834445989578,
+          "closedTrades": 9,
+          "realizedPnlUsdt": -0.03258834445989223,
+          "winRatePercent": 55.55555555555556,
+          "profitFactor": 0.9193006241513025,
+          "expectancyUsdt": -0.0036209271622102473,
+          "topWinningTradePnLsUsdt": [
+            0.13999999878816105,
+            0.10811537103936786,
+            0.08646299240959543
+          ],
+          "top3TradesProfitSharePercent": 90.12560095304372,
+          "realizedPnlWithoutTop3Usdt": -0.36716670669701656,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.22590481449386246,
+          "closedTrades": 9,
+          "realizedPnlUsdt": -0.22590481449385358,
+          "winRatePercent": 55.55555555555556,
+          "profitFactor": 0.5663650708765083,
+          "expectancyUsdt": -0.025100534943761507,
+          "topWinningTradePnLsUsdt": [
+            0.13999330853568104,
+            0.1052859592667037,
+            0.03185656155174854
+          ],
+          "top3TradesProfitSharePercent": 93.9279807205997,
+          "realizedPnlWithoutTop3Usdt": -0.5030406438479869,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "rejected": {
+        "exit_levels": 1,
+        "liquidity": 2
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "mean_reversion",
+      "scenario": "gemini-stress-hypothesis",
+      "status": "offline_research_only",
+      "closedTrades": 16,
+      "realizedPnlUsdt": -1.2391028827457546,
+      "winRatePercent": 37.5,
+      "profitFactor": 0.2656079447746823,
+      "expectancyUsdt": -0.07744393017160967,
+      "topWinningTradePnLsUsdt": [
+        0.11833657446204882,
+        0.10067049745858725,
+        0.09769595072601334
+      ],
+      "top3TradesProfitSharePercent": 70.66945622228276,
+      "realizedPnlWithoutTop3Usdt": -1.555805905392404,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -1.2391028827457493,
+      "netReturnPercent": -7.288840486739701,
+      "finalEquityUsdt": 15.76089711725425,
+      "maxDrawdownUsdt": 1.2480074864639192,
+      "maxDrawdownPercent": 7.34122050861129,
+      "recoveryFactor": -0.9928649436684069,
+      "feesUsdt": 0.6381477149992695,
+      "peakExposureRate": 0.6347954609073203,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 16,
+          "realizedPnlUsdt": -1.2391028827457546,
+          "winRatePercent": 37.5,
+          "profitFactor": 0.2656079447746823,
+          "expectancyUsdt": -0.07744393017160967,
+          "topWinningTradePnLsUsdt": [
+            0.11833657446204882,
+            0.10067049745858725,
+            0.09769595072601334
+          ],
+          "top3TradesProfitSharePercent": 70.66945622228276,
+          "realizedPnlWithoutTop3Usdt": -1.555805905392404,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.5684372622785894,
+          "closedTrades": 5,
+          "realizedPnlUsdt": -0.5684372622785911,
+          "winRatePercent": 20,
+          "profitFactor": 0.1466612815856369,
+          "expectancyUsdt": -0.11368745245571824,
+          "topWinningTradePnLsUsdt": [
+            0.09769595072601334
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.6661332130046045,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.3054786311551787,
+          "closedTrades": 5,
+          "realizedPnlUsdt": -0.30547863115518226,
+          "winRatePercent": 40,
+          "profitFactor": 0.34841940381884756,
+          "expectancyUsdt": -0.06109572623103645,
+          "topWinningTradePnLsUsdt": [
+            0.10067049745858725,
+            0.06267795578002833
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.46882708439379783,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.36518698931198124,
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.36518698931198124,
+          "winRatePercent": 50,
+          "profitFactor": 0.3387762096177613,
+          "expectancyUsdt": -0.06086449821866354,
+          "topWinningTradePnLsUsdt": [
+            0.11833657446204882,
+            0.05986138201247648,
+            0.008904603718169923
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5522895495046765,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "rejected": {
+        "target_costs": 9,
+        "liquidity": 9,
+        "exit_levels": 1
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "mean_reversion",
+      "scenario": "account-conditioned",
+      "status": "offline_research_only",
+      "closedTrades": 17,
+      "realizedPnlUsdt": -1.384112217921217,
+      "winRatePercent": 35.294117647058826,
+      "profitFactor": 0.19191702147877607,
+      "expectancyUsdt": -0.0814183657600716,
+      "topWinningTradePnLsUsdt": [
+        0.09296504845274178,
+        0.07534426133455518,
+        0.07237961480228527
+      ],
+      "top3TradesProfitSharePercent": 73.21958587687631,
+      "realizedPnlWithoutTop3Usdt": -1.6248011425107993,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -1.3841122179212153,
+      "netReturnPercent": -8.14183657600715,
+      "finalEquityUsdt": 15.615887782078785,
+      "maxDrawdownUsdt": 1.3841122179212153,
+      "maxDrawdownPercent": 8.14183657600715,
+      "recoveryFactor": -1,
+      "feesUsdt": 1.357154813184385,
+      "peakExposureRate": 0.636468615111483,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 17,
+          "realizedPnlUsdt": -1.384112217921217,
+          "winRatePercent": 35.294117647058826,
+          "profitFactor": 0.19191702147877607,
+          "expectancyUsdt": -0.0814183657600716,
+          "topWinningTradePnLsUsdt": [
+            0.09296504845274178,
+            0.07534426133455518,
+            0.07237961480228527
+          ],
+          "top3TradesProfitSharePercent": 73.21958587687631,
+          "realizedPnlWithoutTop3Usdt": -1.6248011425107993,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.4927044974526851,
+          "closedTrades": 5,
+          "realizedPnlUsdt": -0.4927044974526833,
+          "winRatePercent": 20,
+          "profitFactor": 0.12808644453558315,
+          "expectancyUsdt": -0.09854089949053665,
+          "topWinningTradePnLsUsdt": [
+            0.07237961480228527
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5650841122549686,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.2750835514017993,
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.2750835514018064,
+          "winRatePercent": 50,
+          "profitFactor": 0.31880246922664224,
+          "expectancyUsdt": -0.04584725856696773,
+          "topWinningTradePnLsUsdt": [
+            0.07534426133455518,
+            0.037447459920720405,
+            0.015948198472512942
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.40382347112959494,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.6163241690667309,
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.6163241690667274,
+          "winRatePercent": 33.333333333333336,
+          "profitFactor": 0.17152566124242258,
+          "expectancyUsdt": -0.10272069484445456,
+          "topWinningTradePnLsUsdt": [
+            0.09296504845274178,
+            0.034637468237628255
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.7439266857570974,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "rejected": {
+        "target_costs": 18,
+        "liquidity": 4,
+        "exit_levels": 1
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "mean_reversion",
+      "scenario": "account-cost-stress",
+      "status": "offline_research_only",
+      "closedTrades": 2,
+      "realizedPnlUsdt": -0.6229981741668151,
+      "winRatePercent": 0,
+      "profitFactor": 0,
+      "expectancyUsdt": -0.31149908708340757,
+      "topWinningTradePnLsUsdt": [],
+      "top3TradesProfitSharePercent": null,
+      "realizedPnlWithoutTop3Usdt": -0.6229981741668151,
+      "top3ProfitConcentrationWarning": false,
+      "netReturnUsdt": -0.6229981741668169,
+      "netReturnPercent": -3.6646951421577465,
+      "finalEquityUsdt": 16.377001825833183,
+      "maxDrawdownUsdt": 0.6229981741668169,
+      "maxDrawdownPercent": 3.6646951421577465,
+      "recoveryFactor": -1,
+      "feesUsdt": 0.3162592398111326,
+      "peakExposureRate": 0.5992037215866132,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.6229981741668151,
+          "winRatePercent": 0,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.31149908708340757,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.6229981741668151,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.3114982383825904,
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.3114982383825904,
+          "winRatePercent": 0,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.3114982383825904,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.3114982383825904,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.3114999357842265,
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.31149993578422475,
+          "winRatePercent": 0,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.31149993578422475,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.31149993578422475,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "target_costs": 32,
+        "liquidity": 12,
+        "exit_levels": 1
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "hybrid",
+      "scenario": "gemini-hypothesis",
+      "status": "offline_research_only",
+      "closedTrades": 28,
+      "realizedPnlUsdt": -0.25633190337111955,
+      "winRatePercent": 53.57142857142857,
+      "profitFactor": 0.825031276795604,
+      "expectancyUsdt": -0.009154710834682842,
+      "topWinningTradePnLsUsdt": [
+        0.27999999361216865,
+        0.13999999878816105,
+        0.13999498643105923
+      ],
+      "top3TradesProfitSharePercent": 46.33097933856228,
+      "realizedPnlWithoutTop3Usdt": -0.8163268822025085,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -0.25633190337112666,
+      "netReturnPercent": -1.5078347257125098,
+      "finalEquityUsdt": 16.743668096628873,
+      "maxDrawdownUsdt": 0.5058244194627761,
+      "maxDrawdownPercent": 2.9324017445203348,
+      "recoveryFactor": -0.5067606337459362,
+      "feesUsdt": 0.5600187072468396,
+      "peakExposureRate": 0.6005225324008697,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 2,
+          "realizedPnlUsdt": 0.3499971279795613,
+          "winRatePercent": 100,
+          "profitFactor": null,
+          "expectancyUsdt": 0.17499856398978064,
+          "topWinningTradePnLsUsdt": [
+            0.27999999361216865,
+            0.06999713436739263
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 26,
+          "realizedPnlUsdt": -0.6063290313506808,
+          "winRatePercent": 50,
+          "profitFactor": 0.5861279260912332,
+          "expectancyUsdt": -0.02332034735964157,
+          "topWinningTradePnLsUsdt": [
+            0.13999999878816105,
+            0.13999498643105923,
+            0.13999330853568104
+          ],
+          "top3TradesProfitSharePercent": 48.91054837024693,
+          "realizedPnlWithoutTop3Usdt": -1.0263173251055822,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.3478358723969315,
+          "closedTrades": 8,
+          "realizedPnlUsdt": -0.34783587239693503,
+          "winRatePercent": 37.5,
+          "profitFactor": 0.35614011022370023,
+          "expectancyUsdt": -0.04347948404961688,
+          "topWinningTradePnLsUsdt": [
+            0.13999498643105923,
+            0.030769027469903065,
+            0.02163546291415841
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5402353492120557,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0.3174087835196673,
+          "closedTrades": 11,
+          "realizedPnlUsdt": 0.31740878351966906,
+          "winRatePercent": 63.63636363636363,
+          "profitFactor": 1.7860077320115673,
+          "expectancyUsdt": 0.02885534395633355,
+          "topWinningTradePnLsUsdt": [
+            0.27999999361216865,
+            0.13999999878816105,
+            0.10811537103936786
+          ],
+          "top3TradesProfitSharePercent": 73.2239823486003,
+          "realizedPnlWithoutTop3Usdt": -0.2107065799200285,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.22590481449386246,
+          "closedTrades": 9,
+          "realizedPnlUsdt": -0.22590481449385358,
+          "winRatePercent": 55.55555555555556,
+          "profitFactor": 0.5663650708765083,
+          "expectancyUsdt": -0.025100534943761507,
+          "topWinningTradePnLsUsdt": [
+            0.13999330853568104,
+            0.1052859592667037,
+            0.03185656155174854
+          ],
+          "top3TradesProfitSharePercent": 93.9279807205997,
+          "realizedPnlWithoutTop3Usdt": -0.5030406438479869,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "rejected": {
+        "exit_levels": 1,
+        "liquidity": 3
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "hybrid",
+      "scenario": "gemini-stress-hypothesis",
+      "status": "offline_research_only",
+      "closedTrades": 17,
+      "realizedPnlUsdt": -1.0512477420844668,
+      "winRatePercent": 41.1764705882353,
+      "profitFactor": 0.37694601424085716,
+      "expectancyUsdt": -0.06183810247555687,
+      "topWinningTradePnLsUsdt": [
+        0.18785514066128783,
+        0.11833657446204882,
+        0.10067049745858725
+      ],
+      "top3TradesProfitSharePercent": 63.97183429101404,
+      "realizedPnlWithoutTop3Usdt": -1.4581099546663907,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -1.051247742084465,
+      "netReturnPercent": -6.183810247555677,
+      "finalEquityUsdt": 15.948752257915535,
+      "maxDrawdownUsdt": 1.060152345802635,
+      "maxDrawdownPercent": 6.236190269427264,
+      "recoveryFactor": -0.9916006376315394,
+      "feesUsdt": 0.6785642416774912,
+      "peakExposureRate": 0.6273142356668465,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.18785514066128783,
+          "winRatePercent": 100,
+          "profitFactor": null,
+          "expectancyUsdt": 0.18785514066128783,
+          "topWinningTradePnLsUsdt": [
+            0.18785514066128783
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 16,
+          "realizedPnlUsdt": -1.2391028827457546,
+          "winRatePercent": 37.5,
+          "profitFactor": 0.2656079447746823,
+          "expectancyUsdt": -0.07744393017160967,
+          "topWinningTradePnLsUsdt": [
+            0.11833657446204882,
+            0.10067049745858725,
+            0.09769595072601334
+          ],
+          "top3TradesProfitSharePercent": 70.66945622228276,
+          "realizedPnlWithoutTop3Usdt": -1.555805905392404,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.5684372622785894,
+          "closedTrades": 5,
+          "realizedPnlUsdt": -0.5684372622785911,
+          "winRatePercent": 20,
+          "profitFactor": 0.1466612815856369,
+          "expectancyUsdt": -0.11368745245571824,
+          "topWinningTradePnLsUsdt": [
+            0.09769595072601334
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.6661332130046045,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.11762349049389442,
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.11762349049389442,
+          "winRatePercent": 50,
+          "profitFactor": 0.7491111447923624,
+          "expectancyUsdt": -0.019603915082315737,
+          "topWinningTradePnLsUsdt": [
+            0.18785514066128783,
+            0.10067049745858725,
+            0.06267795578002833
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.46882708439379783,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.36518698931198124,
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.36518698931198124,
+          "winRatePercent": 50,
+          "profitFactor": 0.3387762096177613,
+          "expectancyUsdt": -0.06086449821866354,
+          "topWinningTradePnLsUsdt": [
+            0.11833657446204882,
+            0.05986138201247648,
+            0.008904603718169923
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5522895495046765,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "rejected": {
+        "target_costs": 9,
+        "liquidity": 11,
+        "exit_levels": 1
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "hybrid",
+      "scenario": "account-conditioned",
+      "status": "offline_research_only",
+      "closedTrades": 19,
+      "realizedPnlUsdt": -1.4279343584715036,
+      "winRatePercent": 36.8421052631579,
+      "profitFactor": 0.25588374495190924,
+      "expectancyUsdt": -0.07515443991955283,
+      "topWinningTradePnLsUsdt": [
+        0.16231034958039103,
+        0.09296504845274178,
+        0.07534426133455518
+      ],
+      "top3TradesProfitSharePercent": 67.33153633619158,
+      "realizedPnlWithoutTop3Usdt": -1.7585540178391916,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -1.4279343584715054,
+      "netReturnPercent": -8.399613873361796,
+      "finalEquityUsdt": 15.572065641528495,
+      "maxDrawdownUsdt": 1.4279343584715054,
+      "maxDrawdownPercent": 8.399613873361796,
+      "recoveryFactor": -1,
+      "feesUsdt": 1.5172977810440162,
+      "peakExposureRate": 0.6382487817410221,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.04382214055028655,
+          "winRatePercent": 50,
+          "profitFactor": 0.7874078922614017,
+          "expectancyUsdt": -0.021911070275143274,
+          "topWinningTradePnLsUsdt": [
+            0.16231034958039103
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.20613249013067758,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 17,
+          "realizedPnlUsdt": -1.384112217921217,
+          "winRatePercent": 35.294117647058826,
+          "profitFactor": 0.19191702147877607,
+          "expectancyUsdt": -0.0814183657600716,
+          "topWinningTradePnLsUsdt": [
+            0.09296504845274178,
+            0.07534426133455518,
+            0.07237961480228527
+          ],
+          "top3TradesProfitSharePercent": 73.21958587687631,
+          "realizedPnlWithoutTop3Usdt": -1.6248011425107993,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.4927044974526851,
+          "closedTrades": 5,
+          "realizedPnlUsdt": -0.4927044974526833,
+          "winRatePercent": 20,
+          "profitFactor": 0.12808644453558315,
+          "expectancyUsdt": -0.09854089949053665,
+          "topWinningTradePnLsUsdt": [
+            0.07237961480228527
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.5650841122549686,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.3189056919520894,
+          "closedTrades": 8,
+          "realizedPnlUsdt": -0.31890569195209295,
+          "winRatePercent": 50,
+          "profitFactor": 0.47716603786742295,
+          "expectancyUsdt": -0.03986321149401162,
+          "topWinningTradePnLsUsdt": [
+            0.16231034958039103,
+            0.07534426133455518,
+            0.037447459920720405
+          ],
+          "top3TradesProfitSharePercent": 94.52046599701781,
+          "realizedPnlWithoutTop3Usdt": -0.5940077627877596,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.6163241690667309,
+          "closedTrades": 6,
+          "realizedPnlUsdt": -0.6163241690667274,
+          "winRatePercent": 33.333333333333336,
+          "profitFactor": 0.17152566124242258,
+          "expectancyUsdt": -0.10272069484445456,
+          "topWinningTradePnLsUsdt": [
+            0.09296504845274178,
+            0.034637468237628255
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.7439266857570974,
+          "top3ProfitConcentrationWarning": true
+        }
+      ],
+      "rejected": {
+        "target_costs": 18,
+        "liquidity": 5,
+        "exit_levels": 1
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    },
+    {
+      "variant": "hybrid",
+      "scenario": "account-cost-stress",
+      "status": "offline_research_only",
+      "closedTrades": 3,
+      "realizedPnlUsdt": -0.4867331607544916,
+      "winRatePercent": 33.333333333333336,
+      "profitFactor": 0.21872457908012582,
+      "expectancyUsdt": -0.16224438691816387,
+      "topWinningTradePnLsUsdt": [
+        0.13626501341232355
+      ],
+      "top3TradesProfitSharePercent": 100,
+      "realizedPnlWithoutTop3Usdt": -0.6229981741668151,
+      "top3ProfitConcentrationWarning": true,
+      "netReturnUsdt": -0.4867331607544898,
+      "netReturnPercent": -2.863136239732293,
+      "finalEquityUsdt": 16.51326683924551,
+      "maxDrawdownUsdt": 0.7083402618922143,
+      "maxDrawdownPercent": 4.113090362196329,
+      "recoveryFactor": -0.6871459762208947,
+      "feesUsdt": 0.47800329062826796,
+      "peakExposureRate": 0.5943507269359001,
+      "peakConcurrentPositions": 1,
+      "byMode": [
+        {
+          "strategy_mode": "BASELINE",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "strategy_mode": "TREND_PULLBACK",
+          "closedTrades": 1,
+          "realizedPnlUsdt": 0.13626501341232355,
+          "winRatePercent": 100,
+          "profitFactor": null,
+          "expectancyUsdt": 0.13626501341232355,
+          "topWinningTradePnLsUsdt": [
+            0.13626501341232355
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "strategy_mode": "MEAN_REVERSION",
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.6229981741668151,
+          "winRatePercent": 0,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.31149908708340757,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.6229981741668151,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "blocks": [
+        {
+          "name": "D1-D10",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "winRatePercent": null,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D11-D20",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.17523322497026683,
+          "closedTrades": 2,
+          "realizedPnlUsdt": -0.17523322497026683,
+          "winRatePercent": 50,
+          "profitFactor": 0.437450350024,
+          "expectancyUsdt": -0.08761661248513342,
+          "topWinningTradePnLsUsdt": [
+            0.13626501341232355
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.3114982383825904,
+          "top3ProfitConcentrationWarning": true
+        },
+        {
+          "name": "D21-D30",
+          "complete": true,
+          "candles": 960,
+          "netReturnUsdt": -0.31149993578422297,
+          "closedTrades": 1,
+          "realizedPnlUsdt": -0.31149993578422475,
+          "winRatePercent": 0,
+          "profitFactor": 0,
+          "expectancyUsdt": -0.31149993578422475,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": -0.31149993578422475,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "target_costs": 32,
+        "liquidity": 14,
+        "exit_levels": 1
+      },
+      "openPosition": null,
+      "configurationPromoted": false,
+      "realMoneyApproved": false
+    }
+  ],
+  "limitations": [
+    "This command consumes supplied local data only; no exchange, private account or operational scanner is accessed. Missing pairs are listed; coverage is not certified as the 20 most liquid markets.",
+    "Gemini fee/slippage levels are hypotheses, with an explicit assumed spread. Archived account-conditioned fees and adverse assumptions remain separate; none proves real-account fees.",
+    "New 17 USDT fixed-lot/one-position allocation is explicitly separate from the legacy 10% exposure constraint. Initial loss estimates are not guaranteed gap protection. No risk cap is changed in production.",
+    "Baseline signal logic and fixed ATR exits are reused with common study capital/list/costs. Old dynamic-universe and 5000-USDT results are not directly comparable.",
+    "Three blocks are chronological accounting of the same cash/positions, not independent evidence or automatic walk-forward certification. Incomplete blocks remain flagged; no holdout, selection, promotion or Demo deployment is performed.",
+    "OHLC timing, fills, trigger rounding, native protection, dust, scheduler, daily/global risk admission and account parity remain approximations. Cooldown is shared from the frozen baseline parameters."
+  ]
+}

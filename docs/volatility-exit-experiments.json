@@ -1,0 +1,3210 @@
+{
+  "status": "volatility_exit_development_experiments_only",
+  "protocol": {
+    "protocol": "volatility-exit-development-v1",
+    "referenceStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+    "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+    "sizes": [
+      10,
+      30
+    ],
+    "variants": [
+      "reference",
+      "atr-floor-0.75",
+      "net-trailing-with-target",
+      "net-trailing-no-target"
+    ],
+    "minimumClosedTradesPerRun": 30,
+    "rules": {
+      "minimumAtrRate": 0.0075,
+      "netActivationRate": 0.012,
+      "trailingMultiplier": 1.5,
+      "activationBasis": "surviving_candle_close"
+    }
+  },
+  "protocolSha256": "99cd80177971baea1184cbd0b7015d727c128ab4a025485de6af32ade17908a6",
+  "referenceStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+  "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+  "datasetHashes": [
+    {
+      "symbol": "BTC/USDT",
+      "sha256": "b36a2eccf67cb6c690badfebbd91609001a2c9de9909de75d03081898226a328"
+    },
+    {
+      "symbol": "ETH/USDT",
+      "sha256": "0998351a0950587571383579e8fe1d4d151e78ab67a3039dcd30017075e4ef3d"
+    },
+    {
+      "symbol": "SOL/USDT",
+      "sha256": "db14ae037a22ff493ab0b2eaeb92604fcf0de685e6fb54c36fbf729f4d8ffe74"
+    },
+    {
+      "symbol": "XRP/USDT",
+      "sha256": "83a5a98f65ecc3c7dc50f0fc00e1d796fbafc9ce98fb931f3b1193348ca8adb3"
+    },
+    {
+      "symbol": "ADA/USDT",
+      "sha256": "c176489c9c9b6c5242c765f992e74be16d16196eb663b7f3ef8a215b4f0c34af"
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "sha256": "8dab3201a5df0926b0724ba801335e4fd81b8a51d17478a552e83522184833f4"
+    },
+    {
+      "symbol": "SUI/USDT",
+      "sha256": "75ab34fb8e899b82a9f0d55a0911bc3c5838e66e5c64e9636336f3d770677fc4"
+    },
+    {
+      "symbol": "NEAR/USDT",
+      "sha256": "53dc26c349f5d94be8ba2dac7d2a59b9a143f0c6c8f7662f53bb5663b6021a73"
+    },
+    {
+      "symbol": "AVAX/USDT",
+      "sha256": "477e0ecb5ac4d3b02a2eb27f677d29ba8f92030bdb5faff14796eb1836451789"
+    },
+    {
+      "symbol": "LINK/USDT",
+      "sha256": "bbb1ec94d5a6b86bdcde9455bc885c8b6b88d6a06ee1f85780389c4857f35ad8"
+    },
+    {
+      "symbol": "DOT/USDT",
+      "sha256": "aadfdfc2377955482d6d165d33e3a07210675467baf3348dd0e1bc5816a9ef84"
+    },
+    {
+      "symbol": "ATOM/USDT",
+      "sha256": "f5e85a26db2a11c16bc699215aca7d31ca63e6b7c9e5e4a0d2396bd577127cfc"
+    },
+    {
+      "symbol": "UNI/USDT",
+      "sha256": "da7a376b93feaf5455be7ab34b7024f7187032ef5b801cb2d8732f6fce41021f"
+    },
+    {
+      "symbol": "AAVE/USDT",
+      "sha256": "3b616011d683934735a75d04f1bbce309d74570fd7a2813863f3c2a90ad2387b"
+    },
+    {
+      "symbol": "LTC/USDT",
+      "sha256": "a71425b50ba825c343f5ac3fb7ff1e91ebd415692303a8083137d684c1c7b004"
+    },
+    {
+      "symbol": "WLD/USDT",
+      "sha256": "6fcd060e71a76581e17117a498b2fba7a1cb3b4bb657c7f422930a4db4fa0f79"
+    },
+    {
+      "symbol": "ZEC/USDT",
+      "sha256": "e607f6a54426d8f01d9f034ea2aa746047a60ace7164ca8bfab2f17db7ecb0d0"
+    },
+    {
+      "symbol": "HYPE/USDT",
+      "sha256": "e6b84ef62b9cc2ace80b7d4cc2fee6bbf344c8587674044637520000287e4cdf"
+    },
+    {
+      "symbol": "LIT/USDT",
+      "sha256": "6637ca19d343c414165542d626adc803ac4087d6eea9809cd1faee3bb9b9742c"
+    },
+    {
+      "symbol": "TRX/USDT",
+      "sha256": "cd2933b329f5b709a929724106229e89a67e58249cf160605bea89590e940072"
+    },
+    {
+      "symbol": "1INCH/USDT",
+      "sha256": "c6cb02e8be0677f97368dbf5e69329586c79a4bebe6297e4ed54c2450f09d74a"
+    },
+    {
+      "symbol": "2Z/USDT",
+      "sha256": "57c499304e5ee484046dcfd3f7eecfd426a98b40feb9a68189cfb7b1c6665e28"
+    },
+    {
+      "symbol": "A/USDT",
+      "sha256": "4d79e56f1c7aafc1430614c4fe52d8ed0034d34b22a25070b93e14db80b716b8"
+    },
+    {
+      "symbol": "ACE/USDT",
+      "sha256": "ba1fcbde779ee7696ffdecdfa0f81bb9d330da8927e73a33fa74eba0581f1de1"
+    },
+    {
+      "symbol": "ACH/USDT",
+      "sha256": "609d6e954ed78cc2f06afe71bbe61f33dea5bdaa0e00307d19167ad17898ce1a"
+    },
+    {
+      "symbol": "ACT/USDT",
+      "sha256": "a79cf96697626bd0983b650ad53f98d0b610893a3ffc5de31ca9621e3844644f"
+    },
+    {
+      "symbol": "AEVO/USDT",
+      "sha256": "4ed561cddde33eef67474cf7bec8e647d02ddef642fb9c88a7a80b594f99654f"
+    },
+    {
+      "symbol": "AGLD/USDT",
+      "sha256": "78b11c6c4591cce973ee7438cfe65c2e36bfcc818299dafcfd9a377ecad9dcc2"
+    },
+    {
+      "symbol": "AI/USDT",
+      "sha256": "f48cec49dd658e2fe6888a789bc096074bedabd0488cdfc78b07fb9f3c889988"
+    },
+    {
+      "symbol": "AIXBT/USDT",
+      "sha256": "967870b2c8c3213245c4fd294f9d7034e954ad5658da1fee2b8080f2b8c9b6b6"
+    },
+    {
+      "symbol": "ALGO/USDT",
+      "sha256": "511e642d0a33f48df8e93b7a03f8741be58c09d57ca25b8e8194a878ef01790d"
+    },
+    {
+      "symbol": "ALLO/USDT",
+      "sha256": "eaf97fef4f004a4bc9762e214416fe3a6b0f81ee8753791ca8615ed8e011146d"
+    },
+    {
+      "symbol": "ANIME/USDT",
+      "sha256": "e3b3f298c2e10c5da24da400e6c4f83818d56480b2be567b9e7d4ca777441c13"
+    },
+    {
+      "symbol": "APE/USDT",
+      "sha256": "9fe18b268d333e719d93a37849ae932dde8076ca56c2bbf9f22385266c240f32"
+    },
+    {
+      "symbol": "API3/USDT",
+      "sha256": "781be9188d46dbcbd3d8ebe87bbd9ccbf77396a55a72d25f11f888d6abc90cfc"
+    },
+    {
+      "symbol": "APT/USDT",
+      "sha256": "cf48ee9bed351cbd0cfda2b0e67ce42b572878b781cb07e06e34b98cc1f96626"
+    },
+    {
+      "symbol": "AR/USDT",
+      "sha256": "838021b0df1b0f39f52de6fbd6b954e8e9970306b8995250a10d609d2f668baf"
+    },
+    {
+      "symbol": "ARB/USDT",
+      "sha256": "fcf0aaae3401a2acb147aa720212bcf4da6c3f69cf021a5612674dcb360492d0"
+    },
+    {
+      "symbol": "ARG/USDT",
+      "sha256": "101491538b818dea6f8e608c35524e34337dff4c17a01a6d7142e9edd8105fb4"
+    },
+    {
+      "symbol": "ARKM/USDT",
+      "sha256": "5272c3c0627f31a236ea271e9238b7b035fe0b7cf5a92917f66305e5af342fdb"
+    },
+    {
+      "symbol": "ASP/USDT",
+      "sha256": "70d0a3a5868225ea5cb49c60a4ebd6229c2cf02007a1156ea5cead77011a28b4"
+    },
+    {
+      "symbol": "ASTER/USDT",
+      "sha256": "0c8a21e9e26d52f2b2631fe66a2a68fe9d5d8ce359bec443520bf8edf468dbd2"
+    },
+    {
+      "symbol": "ASTR/USDT",
+      "sha256": "4c6943936db0fd6e5a7bf8d039481e74aca7bd1936f1c05e7862ed772a0e08b6"
+    },
+    {
+      "symbol": "ATH/USDT",
+      "sha256": "2d697d3824b212e5495cdd0832e3fe8866a380d651353e8b2233031d41a62352"
+    },
+    {
+      "symbol": "AUCTION/USDT",
+      "sha256": "600293d4aaeee3775f9cd03ac73bbaad6e3894b91360987f7562d31446fe6dc5"
+    },
+    {
+      "symbol": "AUDF/USDT",
+      "sha256": "a1dccb53ae4d65ab0dd133f0c8a8834cf3cb7c5db973df6c34e4caab5f705746"
+    },
+    {
+      "symbol": "AUDM/USDT",
+      "sha256": "55d838fd66144ad5f4edc59c688d09cdf932de011b500045b36dd303c7151874"
+    },
+    {
+      "symbol": "AVNT/USDT",
+      "sha256": "e65280d11b3bb34e9a243fa384cfebeefb52af1a26e4b1dff71293a8a702c2e7"
+    },
+    {
+      "symbol": "AXS/USDT",
+      "sha256": "c66b59f032906269e9ad6b1e744375dc8eaf478265b67fc34b8b713d3e31ef74"
+    },
+    {
+      "symbol": "BABY/USDT",
+      "sha256": "c4170fc06c6fccd41661e92e732fa0f038286a62b1cc62cdd5fabde36f3fbd29"
+    },
+    {
+      "symbol": "BABYDOGE/USDT",
+      "sha256": "7d491c4c0bfdcc1be73b2939953996d2e1207c630f3902658b5699e3e8ab03de"
+    },
+    {
+      "symbol": "BANANA/USDT",
+      "sha256": "9052dd86b96343bdef6f4c0beafc752f0b2c0888aae1e862684648f6aaed8a4e"
+    },
+    {
+      "symbol": "BAND/USDT",
+      "sha256": "25729e18984f3c4cec9c051efb40e4ef9844f6722eee7cc4e5f0b4f062db01d7"
+    },
+    {
+      "symbol": "BARD/USDT",
+      "sha256": "b0ff2609ef1aef836787a2b62b8d69b626a9888374453142db4ba64a8907e8ae"
+    },
+    {
+      "symbol": "BASED/USDT",
+      "sha256": "4910011a9e7219f8a92f80296c4fe711bd87d7c306ce8348bad5cbecd0eb765a"
+    },
+    {
+      "symbol": "BAT/USDT",
+      "sha256": "d2962c759347823a0a68547e5a500999fa0b946813ee2544bc401945fb10c9dc"
+    },
+    {
+      "symbol": "BCH/USDT",
+      "sha256": "10f81c6a7a9de259550d1645d8b7374221dfbc8fc1b5384969fb116e65365a0f"
+    },
+    {
+      "symbol": "BERA/USDT",
+      "sha256": "9c2009e970df094cc3e3bf42a7b0a08865b21ecbbc63037b97ef1dc74b076a4d"
+    },
+    {
+      "symbol": "BETH/USDT",
+      "sha256": "2ee6d86b6a65303009c235e55ee6e5543723934ce8f3daf06514c778da40bc62"
+    },
+    {
+      "symbol": "BICO/USDT",
+      "sha256": "4e0df53af946c87bf02246296c95888fbdbd8f6cf40f5443afa48f1e4442c36e"
+    },
+    {
+      "symbol": "BIGTIME/USDT",
+      "sha256": "ab15c65fb5b34dd307eeafdedb6072d5fd0937b78cbad76b53451f7d83ce5173"
+    },
+    {
+      "symbol": "BIO/USDT",
+      "sha256": "629abb7a90b41aaae6041102fab30b6b6528a5a6175c25a722fad7eeaece180b"
+    },
+    {
+      "symbol": "BLUR/USDT",
+      "sha256": "718e83b8378131b4026b1ac88e43991b78db1cc76d9d4896b06e77980dc7fd4c"
+    },
+    {
+      "symbol": "BNB/USDT",
+      "sha256": "0c024e2f802cc52807c64968de4cd6f72bbd236aa6168ea3f4b2956055d2b6b4"
+    },
+    {
+      "symbol": "BNT/USDT",
+      "sha256": "52dc05936a1150eb5dfdc979fce471b5db8499c303135ffe7f6d3b5f4c77366c"
+    },
+    {
+      "symbol": "BOME/USDT",
+      "sha256": "d98e3fbac3e01eac3459f12ca7e7b551ed5d7d0c1a81cc665667beb09f8e76b5"
+    },
+    {
+      "symbol": "BONK/USDT",
+      "sha256": "9845ef76066ac749772042df98740a306af447f5ea566cb7a014764a9eb8b753"
+    },
+    {
+      "symbol": "BREV/USDT",
+      "sha256": "658281bb152f83ac364138e807c6990de27f10c68670bf3be69ced86b5a56ed8"
+    },
+    {
+      "symbol": "BRL1/USDT",
+      "sha256": "37dc68636ff88cde7e3b32ae24bd04676b5633c1fdc4a40516db756c8f31571b"
+    },
+    {
+      "symbol": "CARDS/USDT",
+      "sha256": "fec2b9a1b19370c6b089aa2f6def4afb5f938f2d6d153dca0a9cab5687055bf3"
+    },
+    {
+      "symbol": "CAT/USDT",
+      "sha256": "aa285f0afebe0452191553efda7e11ce26412fef1d41ca183b1d5c8ad15af2cd"
+    },
+    {
+      "symbol": "CATI/USDT",
+      "sha256": "d1e8168726d347f6b6b4ce17e53c9aed377c23d02b5b315602f32d2d9fc1690e"
+    },
+    {
+      "symbol": "CC/USDT",
+      "sha256": "4185209f7e5269a71f0d31d16151c786721c23d59ca96dff52bdc7a64268a102"
+    },
+    {
+      "symbol": "CELO/USDT",
+      "sha256": "f6b217b8ac454ae03c09a30cb0692456f5ff81ba4f6d596a15a6460cae6065d1"
+    },
+    {
+      "symbol": "CELR/USDT",
+      "sha256": "f353177e0693974d50ad7fa045380a332df846437e7ca598d85c5932b961c8c6"
+    },
+    {
+      "symbol": "CETUS/USDT",
+      "sha256": "b0d770dd5f2f54c3aec4b030dd6f5bec7b185fa5c44d2faa3d67b27698f05584"
+    },
+    {
+      "symbol": "CFG/USDT",
+      "sha256": "892703df8f2ffdc57fa80486de60ce20481fd16704e2faed8ca430cd6babdc9a"
+    },
+    {
+      "symbol": "CFX/USDT",
+      "sha256": "02d102077ebe8d47cb3ed42077374a48efe7c2ce218813eb96a666b900c24fd6"
+    },
+    {
+      "symbol": "CHIP/USDT",
+      "sha256": "a5bf24862faea1efc03d9b96222611440b9e95781ec93d8ce8fd29196d436e7e"
+    },
+    {
+      "symbol": "CHZ/USDT",
+      "sha256": "81a0c289988f3b32add361def2a7836a7beacf11dfa5154f9617677e38765108"
+    },
+    {
+      "symbol": "CITY/USDT",
+      "sha256": "f2b57e92179f41c6d299901ddecaccf06b1710915c542824b7a9a8bafbab09f0"
+    },
+    {
+      "symbol": "COMP/USDT",
+      "sha256": "c95600c15609fc7da8c822bf7f240376a1c88948a2ed0e0930e66e50365b7e64"
+    },
+    {
+      "symbol": "CORE/USDT",
+      "sha256": "7e5629be373f11ba07e6dfe97077a27050ccd59f3f3f102fa1abf924cdfa5d89"
+    },
+    {
+      "symbol": "CRO/USDT",
+      "sha256": "03705118bbb9ed119727c23ca291ebb664fb23ff60d9f9affa07fc3944dee2fe"
+    },
+    {
+      "symbol": "CRV/USDT",
+      "sha256": "467be15446f8f931047f4cbfd0bd4341669aec610c16c787c0b383f03f2ddc2b"
+    },
+    {
+      "symbol": "CSPR/USDT",
+      "sha256": "84859bb8c6249cfc3540a63d44869078def59085f703e2ba6d992aaef958337c"
+    },
+    {
+      "symbol": "CTC/USDT",
+      "sha256": "c2ccd0b1c3bb22003fe60976970da42eeeeb50e8f55b0429c92ab0489ef468b8"
+    },
+    {
+      "symbol": "CVC/USDT",
+      "sha256": "862f3dd4b72dbb4c3f2233aa63b6be43d59f399e07c5c5592360c3bc5f095df0"
+    },
+    {
+      "symbol": "CVX/USDT",
+      "sha256": "557ff33acda8d3f6f11434304877b4b83f0190a37e8d5c16c140242f8e6ebb6f"
+    },
+    {
+      "symbol": "DASH/USDT",
+      "sha256": "f58b2faee6daffa48be18267d131682f1840f9ab582fb2469fba9a976908cac6"
+    },
+    {
+      "symbol": "DATA/USDT",
+      "sha256": "b8f26f3f097468b5f79cefdcc65f587a262a26572262a9229d34e7fecd3acf61"
+    },
+    {
+      "symbol": "DEGEN/USDT",
+      "sha256": "33a84c17cf9b780fbc65aace20b3c7ad668daba237d0f2405e252ecd49aec498"
+    },
+    {
+      "symbol": "DGB/USDT",
+      "sha256": "4d1478d380e5650a5c931364b90d4813570ad9e9230c3628f16dd4018497533b"
+    },
+    {
+      "symbol": "DOGS/USDT",
+      "sha256": "bab554b37fd4a98fdc75dab75ce6b8187114c345802b6a3bffcdeaaef51076f6"
+    },
+    {
+      "symbol": "DOOD/USDT",
+      "sha256": "481ba5faba577cc7c2163b28a170c202548c67e1424f3103ad725cde96990cc8"
+    },
+    {
+      "symbol": "DYDX/USDT",
+      "sha256": "443d3695ce692b27e1241127a533c5a357f5a7c2f12721c297e9938c4b70f284"
+    },
+    {
+      "symbol": "EDGE/USDT",
+      "sha256": "55c8b88ffb6f7fc54abf60a52de630faa8d7195b33bdd2307cba8109f84ecf7e"
+    },
+    {
+      "symbol": "EGLD/USDT",
+      "sha256": "873c47bdca5dc54d2ed32b2059688cb7fb8dda1e2ac887355fb0fc18019829ac"
+    },
+    {
+      "symbol": "EIGEN/USDT",
+      "sha256": "dfcc65ecb3bf2949e7ad34c664eaa53845fb4a5e998faccf82d6e6b926c08acd"
+    },
+    {
+      "symbol": "ENA/USDT",
+      "sha256": "9e89e0b25beb201acc86b35cdb7253297d01995dc86dfe3e6c90bc10ed849c44"
+    },
+    {
+      "symbol": "ENJ/USDT",
+      "sha256": "12a92ba8bb058f27d2e3a88b2163a6d820d0f3cdab38b9adf311c2e93370fc7d"
+    },
+    {
+      "symbol": "ENS/USDT",
+      "sha256": "aacef206df362811366e15893b2f5a45ce6867881f1a5d3f6573587b0bbb86a0"
+    },
+    {
+      "symbol": "ETC/USDT",
+      "sha256": "bf855130a833871e966a8983da1b3014c32b3b7ad93e7b62c73cde62d87d1889"
+    },
+    {
+      "symbol": "ETHFI/USDT",
+      "sha256": "123fc3fb683f058c68001ceb260e57306e1ff09341635530d7e768136e4caf50"
+    },
+    {
+      "symbol": "ETHW/USDT",
+      "sha256": "8f782bd82c809b664bf76af7e042b5121765d259d55ca66ca74f2852f3b1a8aa"
+    },
+    {
+      "symbol": "FET/USDT",
+      "sha256": "70118e4ca9fe4db8457934f35d3958698f28da67672cf03eb568efc3b823650b"
+    },
+    {
+      "symbol": "FIL/USDT",
+      "sha256": "aefd0bc1b6ae8fc669cc0af55cf4d2fbe70c005aa80c8cae147fe54c001bf087"
+    },
+    {
+      "symbol": "FLOKI/USDT",
+      "sha256": "ea5408d945b2083a8ad399c83ce1ae88b5b00a828b441b382ea9bc21bab46b51"
+    },
+    {
+      "symbol": "FLOW/USDT",
+      "sha256": "36c60ea7d3b3d7a563d9b75d45d740c1c3989ecd2b8ffb3b7aebb5f6e7de2d7d"
+    },
+    {
+      "symbol": "FLR/USDT",
+      "sha256": "7995904a430f5cc9ac73de5f61667223b9d6265e7edf4aa0b7510566cb1e6983"
+    },
+    {
+      "symbol": "FLUID/USDT",
+      "sha256": "a78c1a411ed89020fe75fed350bea41cef784c9f345049cf61515ea76ae2fd7d"
+    },
+    {
+      "symbol": "FOGO/USDT",
+      "sha256": "3151a747e2d4a607518ed548b20d511b18712f955c23914b89401a75ca3b861d"
+    },
+    {
+      "symbol": "G/USDT",
+      "sha256": "7dd781a50f8521a31b9947820a861978e9f65a2a8e103b78c1e261d8f0b6ea03"
+    },
+    {
+      "symbol": "GALA/USDT",
+      "sha256": "4454e33b7a7a5f942cb7fdb516e4e199eb6559a030b1a43ab4ec13305c8b40d2"
+    },
+    {
+      "symbol": "GALFT/USDT",
+      "sha256": "ffcffc0bc2bb364cfccb0ad2b4422b31a2b0cd785508a17fb2a911689b1dccfe"
+    },
+    {
+      "symbol": "GAS/USDT",
+      "sha256": "b9847a2435b44e69c9d57ee7f20dc5cff56c6ff3ec9229f11081143d6ca2ca88"
+    },
+    {
+      "symbol": "GLM/USDT",
+      "sha256": "0387d7fc0a11d96705a3e3c1546e068cc983d06ff03248b403f9735a86eea48e"
+    },
+    {
+      "symbol": "GMT/USDT",
+      "sha256": "c26270049dccc99da53a49e5bfea1bf2f6c697913c70584b3c1a3abdb33e8621"
+    },
+    {
+      "symbol": "GMX/USDT",
+      "sha256": "2db993798ca2d1c49199d6214bf7d3ab406f7993e27ed2577b376f46d9dc3ac8"
+    },
+    {
+      "symbol": "GOAT/USDT",
+      "sha256": "e3b6feb3bb3bd7b709f5ca1094be8c8b01b6e962687d8804e1cab2b745d22f6b"
+    }
+  ],
+  "referenceConfigurationHash": "97bdb8e289cdc88b05b9fcc20b992dd2b44537c49f5d42876fb7988cd559015d",
+  "referenceSourceCommit": "37649535419065e1554070cdce23a9606ea5330d",
+  "feeEvidenceCoverage": {
+    "symbols": 120,
+    "feeEvidenced": 6,
+    "feesAssumed": 114,
+    "measuredBuyQuoteSymbols": 0
+  },
+  "results": [
+    {
+      "variant": "reference",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -38.182602844553,
+      "realizedPnlUsdt": -38.182602844560655,
+      "profitFactor": 0.3981977220700748,
+      "closedTrades": 447,
+      "expectancyUsdt": -0.08541969316456523,
+      "maxDrawdownUsdt": 38.182602844553,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 15.049431884228348,
+      "realizedPnlWithoutTop3Usdt": -41.984764518519654,
+      "blocks": [
+        {
+          "netReturnUsdt": -22.079927946120733,
+          "closedTrades": 198,
+          "profitFactor": 0.21961691746227102
+        },
+        {
+          "netReturnUsdt": -16.10267489843227,
+          "closedTrades": 249,
+          "profitFactor": 0.5390350740782688
+        }
+      ]
+    },
+    {
+      "variant": "reference",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -82.70929605400124,
+      "realizedPnlUsdt": -82.70929605398999,
+      "profitFactor": 0.13101358831301674,
+      "closedTrades": 405,
+      "expectancyUsdt": -0.2042204840839259,
+      "maxDrawdownUsdt": 82.70929605400124,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 27.578255907571435,
+      "realizedPnlWithoutTop3Usdt": -86.14823509820106,
+      "blocks": [
+        {
+          "netReturnUsdt": -42.346028508362906,
+          "closedTrades": 183,
+          "profitFactor": 0.07588841441938445
+        },
+        {
+          "netReturnUsdt": -40.36326754563834,
+          "closedTrades": 222,
+          "profitFactor": 0.18100543049147244
+        }
+      ]
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -97.5024003960516,
+      "realizedPnlUsdt": -97.50240039605761,
+      "profitFactor": 0.40785512595305484,
+      "closedTrades": 1078,
+      "expectancyUsdt": -0.09044749572918145,
+      "maxDrawdownUsdt": 97.5024003960516,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 5.657941558909963,
+      "realizedPnlWithoutTop3Usdt": -101.30212145438426,
+      "blocks": [
+        {
+          "netReturnUsdt": -50.99898379047772,
+          "closedTrades": 474,
+          "profitFactor": 0.28658777499800664
+        },
+        {
+          "netReturnUsdt": -46.503416605573875,
+          "closedTrades": 604,
+          "profitFactor": 0.5011186359714479
+        }
+      ]
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -195.2272125877762,
+      "realizedPnlUsdt": -195.2272125877643,
+      "profitFactor": 0.15266618868569154,
+      "closedTrades": 947,
+      "expectancyUsdt": -0.20615333958581236,
+      "maxDrawdownUsdt": 195.2272125877762,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 9.769914957125456,
+      "realizedPnlWithoutTop3Usdt": -198.66373724250568,
+      "blocks": [
+        {
+          "netReturnUsdt": -92.11808432581438,
+          "closedTrades": 412,
+          "profitFactor": 0.11420495350096944
+        },
+        {
+          "netReturnUsdt": -103.10912826196181,
+          "closedTrades": 535,
+          "profitFactor": 0.1838591892008051
+        }
+      ]
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -12.704001872389199,
+      "realizedPnlUsdt": -12.704001872383614,
+      "profitFactor": 0.6560276424089799,
+      "closedTrades": 212,
+      "expectancyUsdt": -0.05992453713388497,
+      "maxDrawdownUsdt": 13.395322878502157,
+      "recoveryFactor": -0.9483908665447368,
+      "top3TradesProfitSharePercent": 15.69247460764511,
+      "realizedPnlWithoutTop3Usdt": -16.506163546342613,
+      "blocks": [
+        {
+          "netReturnUsdt": -5.435591830622798,
+          "closedTrades": 59,
+          "profitFactor": 0.5532660912902666
+        },
+        {
+          "netReturnUsdt": -7.268410041766401,
+          "closedTrades": 153,
+          "profitFactor": 0.7026350715683684
+        }
+      ]
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -38.88894085926495,
+      "realizedPnlUsdt": -38.88894085925987,
+      "profitFactor": 0.2675157475990657,
+      "closedTrades": 215,
+      "expectancyUsdt": -0.18087879469423196,
+      "maxDrawdownUsdt": 38.88894085926495,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 24.212927554416407,
+      "realizedPnlWithoutTop3Usdt": -42.32787990347094,
+      "blocks": [
+        {
+          "netReturnUsdt": -13.407410314644949,
+          "closedTrades": 62,
+          "profitFactor": 0.23996800063656343
+        },
+        {
+          "netReturnUsdt": -25.48153054462,
+          "closedTrades": 153,
+          "profitFactor": 0.2803586281962983
+        }
+      ]
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -44.68575367329959,
+      "realizedPnlUsdt": -44.68575367329502,
+      "profitFactor": 0.5820876373503009,
+      "closedTrades": 568,
+      "expectancyUsdt": -0.07867210153749123,
+      "maxDrawdownUsdt": 44.68575367329959,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 6.104912891332469,
+      "realizedPnlWithoutTop3Usdt": -48.485474731621665,
+      "blocks": [
+        {
+          "netReturnUsdt": -18.343486850929366,
+          "closedTrades": 185,
+          "profitFactor": 0.5075702902853766
+        },
+        {
+          "netReturnUsdt": -26.34226682237022,
+          "closedTrades": 383,
+          "profitFactor": 0.6227584394799844
+        }
+      ]
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -106.42026133606305,
+      "realizedPnlUsdt": -106.4202613360641,
+      "profitFactor": 0.2598671864347278,
+      "closedTrades": 555,
+      "expectancyUsdt": -0.1917482186235389,
+      "maxDrawdownUsdt": 106.42026133606305,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 9.19715186133744,
+      "realizedPnlWithoutTop3Usdt": -109.85678599080545,
+      "blocks": [
+        {
+          "netReturnUsdt": -38.369200256322074,
+          "closedTrades": 181,
+          "profitFactor": 0.247954166243233
+        },
+        {
+          "netReturnUsdt": -68.05106107974098,
+          "closedTrades": 374,
+          "profitFactor": 0.2662787229267501
+        }
+      ]
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -39.849400450257235,
+      "realizedPnlUsdt": -39.84940045026188,
+      "profitFactor": 0.37135659298665324,
+      "closedTrades": 469,
+      "expectancyUsdt": -0.08496673869991872,
+      "maxDrawdownUsdt": 39.849400450257235,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 15.13204505580151,
+      "realizedPnlWithoutTop3Usdt": -43.41150113517076,
+      "blocks": [
+        {
+          "netReturnUsdt": -22.475815304402204,
+          "closedTrades": 205,
+          "profitFactor": 0.21752117623895223
+        },
+        {
+          "netReturnUsdt": -17.37358514585503,
+          "closedTrades": 264,
+          "profitFactor": 0.4962682882625662
+        }
+      ]
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -81.88586853891229,
+      "realizedPnlUsdt": -81.8858685389048,
+      "profitFactor": 0.12517965509082019,
+      "closedTrades": 411,
+      "expectancyUsdt": -0.19923568987568077,
+      "maxDrawdownUsdt": 81.88586853891229,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 27.322725159323625,
+      "realizedPnlWithoutTop3Usdt": -85.08732683978414,
+      "blocks": [
+        {
+          "netReturnUsdt": -41.69911916471483,
+          "closedTrades": 185,
+          "profitFactor": 0.07889485959867684
+        },
+        {
+          "netReturnUsdt": -40.18674937419746,
+          "closedTrades": 226,
+          "profitFactor": 0.16750623746469442
+        }
+      ]
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -103.23559922721961,
+      "realizedPnlUsdt": -103.23559922722619,
+      "profitFactor": 0.36567408501612764,
+      "closedTrades": 1132,
+      "expectancyUsdt": -0.09119752581910441,
+      "maxDrawdownUsdt": 103.23559922721961,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 6.209029880388961,
+      "realizedPnlWithoutTop3Usdt": -106.9307738071015,
+      "blocks": [
+        {
+          "netReturnUsdt": -51.210202800662046,
+          "closedTrades": 496,
+          "profitFactor": 0.2891020962029415
+        },
+        {
+          "netReturnUsdt": -52.02539642655756,
+          "closedTrades": 636,
+          "profitFactor": 0.42504458311756527
+        }
+      ]
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -196.33449382013168,
+      "realizedPnlUsdt": -196.3344938201219,
+      "profitFactor": 0.13535790869176062,
+      "closedTrades": 971,
+      "expectancyUsdt": -0.20219824286315335,
+      "maxDrawdownUsdt": 196.33449382013168,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 10.844376370677532,
+      "realizedPnlWithoutTop3Usdt": -199.6675946480747,
+      "blocks": [
+        {
+          "netReturnUsdt": -90.71565407127127,
+          "closedTrades": 417,
+          "profitFactor": 0.11102191448040788
+        },
+        {
+          "netReturnUsdt": -105.61883974886041,
+          "closedTrades": 554,
+          "profitFactor": 0.15493560986250648
+        }
+      ]
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -26.156209477083394,
+      "realizedPnlUsdt": -26.156209477082804,
+      "profitFactor": 0.5524947819092033,
+      "closedTrades": 398,
+      "expectancyUsdt": -0.06571911928915278,
+      "maxDrawdownUsdt": 26.156209477083394,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 11.283389916438,
+      "realizedPnlWithoutTop3Usdt": -29.79992514365664,
+      "blocks": [
+        {
+          "netReturnUsdt": -15.77128322151566,
+          "closedTrades": 170,
+          "profitFactor": 0.40313415641700656
+        },
+        {
+          "netReturnUsdt": -10.384926255567734,
+          "closedTrades": 228,
+          "profitFactor": 0.6752127723416835
+        }
+      ]
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -60.20443647723914,
+      "realizedPnlUsdt": -60.20443647724237,
+      "profitFactor": 0.2906969159034837,
+      "closedTrades": 361,
+      "expectancyUsdt": -0.16677129218072678,
+      "maxDrawdownUsdt": 60.20443647723914,
+      "recoveryFactor": -1,
+      "top3TradesProfitSharePercent": 13.199751646484412,
+      "realizedPnlWithoutTop3Usdt": -63.461324535182314,
+      "blocks": [
+        {
+          "netReturnUsdt": -30.055772789270122,
+          "closedTrades": 161,
+          "profitFactor": 0.2558709435149461
+        },
+        {
+          "netReturnUsdt": -30.14866368796902,
+          "closedTrades": 200,
+          "profitFactor": 0.32120450326984246
+        }
+      ]
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netReturnUsdt": -72.7664834371435,
+      "realizedPnlUsdt": -72.66194731691934,
+      "profitFactor": 0.5083038638642168,
+      "closedTrades": 947,
+      "expectancyUsdt": -0.07672856105271314,
+      "maxDrawdownUsdt": 72.76677778730755,
+      "recoveryFactor": -0.9999959548825303,
+      "top3TradesProfitSharePercent": 5.712151016190844,
+      "realizedPnlWithoutTop3Usdt": -76.95269847911071,
+      "blocks": [
+        {
+          "netReturnUsdt": -36.247035918998336,
+          "closedTrades": 409,
+          "profitFactor": 0.4475565242755491
+        },
+        {
+          "netReturnUsdt": -36.51944751814517,
+          "closedTrades": 538,
+          "profitFactor": 0.555998388998592
+        }
+      ]
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netReturnUsdt": -149.64334664083526,
+      "realizedPnlUsdt": -149.442348192367,
+      "profitFactor": 0.2796401981555764,
+      "closedTrades": 845,
+      "expectancyUsdt": -0.17685484993179526,
+      "maxDrawdownUsdt": 149.64363812163538,
+      "recoveryFactor": -0.99999805216711,
+      "top3TradesProfitSharePercent": 6.416735730453831,
+      "realizedPnlWithoutTop3Usdt": -153.16487614676043,
+      "blocks": [
+        {
+          "netReturnUsdt": -70.16107726090559,
+          "closedTrades": 370,
+          "profitFactor": 0.257192206823319
+        },
+        {
+          "netReturnUsdt": -79.48226937992968,
+          "closedTrades": 475,
+          "profitFactor": 0.2981630996345432
+        }
+      ]
+    }
+  ],
+  "readiness": {
+    "status": "blocked_no_eligible_candidate",
+    "candidates": [
+      {
+        "variant": "reference",
+        "passesDevelopmentScreen": false,
+        "reasons": [
+          "10:account-conditioned:nonpositive_result",
+          "10:account-conditioned:no_positive_closed_trade_edge",
+          "10:account-conditioned:nonpositive_expectancy",
+          "10:account-conditioned:weak_development_block",
+          "10:account-conditioned:dependent_on_top_three",
+          "10:account-cost-stress:nonpositive_result",
+          "10:account-cost-stress:no_positive_closed_trade_edge",
+          "10:account-cost-stress:nonpositive_expectancy",
+          "10:account-cost-stress:weak_development_block",
+          "10:account-cost-stress:dependent_on_top_three",
+          "30:account-conditioned:nonpositive_result",
+          "30:account-conditioned:no_positive_closed_trade_edge",
+          "30:account-conditioned:nonpositive_expectancy",
+          "30:account-conditioned:weak_development_block",
+          "30:account-conditioned:dependent_on_top_three",
+          "30:account-cost-stress:nonpositive_result",
+          "30:account-cost-stress:no_positive_closed_trade_edge",
+          "30:account-cost-stress:nonpositive_expectancy",
+          "30:account-cost-stress:weak_development_block",
+          "30:account-cost-stress:dependent_on_top_three"
+        ]
+      },
+      {
+        "variant": "atr-floor-0.75",
+        "passesDevelopmentScreen": false,
+        "reasons": [
+          "10:account-conditioned:nonpositive_result",
+          "10:account-conditioned:no_positive_closed_trade_edge",
+          "10:account-conditioned:nonpositive_expectancy",
+          "10:account-conditioned:weak_development_block",
+          "10:account-conditioned:dependent_on_top_three",
+          "10:account-cost-stress:nonpositive_result",
+          "10:account-cost-stress:no_positive_closed_trade_edge",
+          "10:account-cost-stress:nonpositive_expectancy",
+          "10:account-cost-stress:weak_development_block",
+          "10:account-cost-stress:dependent_on_top_three",
+          "30:account-conditioned:nonpositive_result",
+          "30:account-conditioned:no_positive_closed_trade_edge",
+          "30:account-conditioned:nonpositive_expectancy",
+          "30:account-conditioned:weak_development_block",
+          "30:account-conditioned:dependent_on_top_three",
+          "30:account-cost-stress:nonpositive_result",
+          "30:account-cost-stress:no_positive_closed_trade_edge",
+          "30:account-cost-stress:nonpositive_expectancy",
+          "30:account-cost-stress:weak_development_block",
+          "30:account-cost-stress:dependent_on_top_three"
+        ]
+      },
+      {
+        "variant": "net-trailing-with-target",
+        "passesDevelopmentScreen": false,
+        "reasons": [
+          "10:account-conditioned:nonpositive_result",
+          "10:account-conditioned:no_positive_closed_trade_edge",
+          "10:account-conditioned:nonpositive_expectancy",
+          "10:account-conditioned:weak_development_block",
+          "10:account-conditioned:dependent_on_top_three",
+          "10:account-cost-stress:nonpositive_result",
+          "10:account-cost-stress:no_positive_closed_trade_edge",
+          "10:account-cost-stress:nonpositive_expectancy",
+          "10:account-cost-stress:weak_development_block",
+          "10:account-cost-stress:dependent_on_top_three",
+          "30:account-conditioned:nonpositive_result",
+          "30:account-conditioned:no_positive_closed_trade_edge",
+          "30:account-conditioned:nonpositive_expectancy",
+          "30:account-conditioned:weak_development_block",
+          "30:account-conditioned:dependent_on_top_three",
+          "30:account-cost-stress:nonpositive_result",
+          "30:account-cost-stress:no_positive_closed_trade_edge",
+          "30:account-cost-stress:nonpositive_expectancy",
+          "30:account-cost-stress:weak_development_block",
+          "30:account-cost-stress:dependent_on_top_three"
+        ]
+      },
+      {
+        "variant": "net-trailing-no-target",
+        "passesDevelopmentScreen": false,
+        "reasons": [
+          "10:account-conditioned:nonpositive_result",
+          "10:account-conditioned:no_positive_closed_trade_edge",
+          "10:account-conditioned:nonpositive_expectancy",
+          "10:account-conditioned:weak_development_block",
+          "10:account-conditioned:dependent_on_top_three",
+          "10:account-cost-stress:nonpositive_result",
+          "10:account-cost-stress:no_positive_closed_trade_edge",
+          "10:account-cost-stress:nonpositive_expectancy",
+          "10:account-cost-stress:weak_development_block",
+          "10:account-cost-stress:dependent_on_top_three",
+          "30:account-conditioned:nonpositive_result",
+          "30:account-conditioned:no_positive_closed_trade_edge",
+          "30:account-conditioned:nonpositive_expectancy",
+          "30:account-conditioned:weak_development_block",
+          "30:account-conditioned:dependent_on_top_three",
+          "30:account-cost-stress:nonpositive_result",
+          "30:account-cost-stress:no_positive_closed_trade_edge",
+          "30:account-cost-stress:nonpositive_expectancy",
+          "30:account-cost-stress:weak_development_block",
+          "30:account-cost-stress:dependent_on_top_three"
+        ]
+      }
+    ],
+    "holdoutExecuted": false,
+    "configurationPromoted": false,
+    "realMoneyApproved": false
+  },
+  "comparisons": [
+    {
+      "variant": "atr-floor-0.75",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netPnlDeltaUsdt": 25.478600972163804,
+      "closedTradesDelta": -235,
+      "profitFactorDelta": 0.2578299203389051,
+      "expectancyDeltaUsdt": 0.025495156030680255
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netPnlDeltaUsdt": 43.820355194736294,
+      "closedTradesDelta": -190,
+      "profitFactorDelta": 0.13650215928604897,
+      "expectancyDeltaUsdt": 0.023341689389693943
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netPnlDeltaUsdt": 52.81664672275201,
+      "closedTradesDelta": -510,
+      "profitFactorDelta": 0.17423251139724605,
+      "expectancyDeltaUsdt": 0.011775394191690228
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netPnlDeltaUsdt": 88.80695125171314,
+      "closedTradesDelta": -392,
+      "profitFactorDelta": 0.10720099774903624,
+      "expectancyDeltaUsdt": 0.014405120962273449
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netPnlDeltaUsdt": -1.6667976057042324,
+      "closedTradesDelta": 22,
+      "profitFactorDelta": -0.026841129083421567,
+      "expectancyDeltaUsdt": 0.00045295446464650724
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netPnlDeltaUsdt": 0.8234275150889516,
+      "closedTradesDelta": 6,
+      "profitFactorDelta": -0.005833933222196552,
+      "expectancyDeltaUsdt": 0.00498479420824513
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netPnlDeltaUsdt": -5.733198831168011,
+      "closedTradesDelta": 54,
+      "profitFactorDelta": -0.042181040936927205,
+      "expectancyDeltaUsdt": -0.0007500300899229567
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netPnlDeltaUsdt": -1.10728123235549,
+      "closedTradesDelta": 24,
+      "profitFactorDelta": -0.01730827999393092,
+      "expectancyDeltaUsdt": 0.003955096722659007
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "netPnlDeltaUsdt": 12.026393367469609,
+      "closedTradesDelta": -49,
+      "profitFactorDelta": 0.1542970598391285,
+      "expectancyDeltaUsdt": 0.01970057387541245
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "netPnlDeltaUsdt": 22.5048595767621,
+      "closedTradesDelta": -44,
+      "profitFactorDelta": 0.15968332759046694,
+      "expectancyDeltaUsdt": 0.03744919190319912
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "netPnlDeltaUsdt": 24.735916958908092,
+      "closedTradesDelta": -131,
+      "profitFactorDelta": 0.10044873791116193,
+      "expectancyDeltaUsdt": 0.013718934676468314
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "netPnlDeltaUsdt": 45.58386594694093,
+      "closedTradesDelta": -102,
+      "profitFactorDelta": 0.12697400946988485,
+      "expectancyDeltaUsdt": 0.0292984896540171
+    }
+  ],
+  "exitDiagnostics": [
+    {
+      "variant": "reference",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "openPositions": 0,
+      "feesUsdt": 35.67559699010957,
+      "closedTradesFeesUsdt": 35.675596990109554,
+      "realizedPnlUsdt": -38.182602844560655,
+      "beforeFeesRealizedPnlUsdt": -2.5070058544510836,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 277,
+          "realizedPnlUsdt": -62.27672611779941
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 170,
+          "realizedPnlUsdt": 24.094123273238758
+        }
+      ],
+      "fixedTargetGeometry": {
+        "closedReferenceTrades": 447,
+        "fixedTargetsBelowNetActivation": 267,
+        "takeProfitsBelowNetActivation": 97,
+        "requiredPriceRiseFromFillRate": {
+          "minimum": 0.021933987301875346,
+          "maximum": 0.021933987301876234,
+          "mean": 0.021933987301875728
+        },
+        "netReturnAtFixedTargetRate": {
+          "minimum": -0.005763612259800599,
+          "maximum": 0.28901644935522164,
+          "mean": 0.017596027253382995
+        }
+      }
+    },
+    {
+      "variant": "reference",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "openPositions": 0,
+      "feesUsdt": 64.38936130027058,
+      "closedTradesFeesUsdt": 64.38936130027054,
+      "realizedPnlUsdt": -82.70929605398999,
+      "beforeFeesRealizedPnlUsdt": -18.319934753719394,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 268,
+          "realizedPnlUsdt": -88.26686891249514
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 137,
+          "realizedPnlUsdt": 5.5575728585052
+        }
+      ],
+      "fixedTargetGeometry": {
+        "closedReferenceTrades": 405,
+        "fixedTargetsBelowNetActivation": 317,
+        "takeProfitsBelowNetActivation": 105,
+        "requiredPriceRiseFromFillRate": {
+          "minimum": 0.03200350578336031,
+          "maximum": 0.032003505783360975,
+          "mean": 0.03200350578336084
+        },
+        "netReturnAtFixedTargetRate": {
+          "minimum": -0.016447197677605496,
+          "maximum": 0.2751652993556297,
+          "mean": 0.007432780180455569
+        }
+      }
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "openPositions": 0,
+      "feesUsdt": 86.01756887221005,
+      "closedTradesFeesUsdt": 86.01756887221009,
+      "realizedPnlUsdt": -97.50240039605761,
+      "beforeFeesRealizedPnlUsdt": -11.484831523847552,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 678,
+          "realizedPnlUsdt": -162.15326687067082
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 400,
+          "realizedPnlUsdt": 64.6508664746132
+        }
+      ],
+      "fixedTargetGeometry": {
+        "closedReferenceTrades": 1078,
+        "fixedTargetsBelowNetActivation": 571,
+        "takeProfitsBelowNetActivation": 210,
+        "requiredPriceRiseFromFillRate": {
+          "minimum": 0.021933987301875346,
+          "maximum": 0.021933987301876234,
+          "mean": 0.021933987301875468
+        },
+        "netReturnAtFixedTargetRate": {
+          "minimum": -0.005763612259800599,
+          "maximum": 0.28901644935522164,
+          "mean": 0.01909908331840781
+        }
+      }
+    },
+    {
+      "variant": "reference",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "openPositions": 0,
+      "feesUsdt": 150.5495502672709,
+      "closedTradesFeesUsdt": 150.54955026727086,
+      "realizedPnlUsdt": -195.2272125877643,
+      "beforeFeesRealizedPnlUsdt": -44.677662320493724,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 627,
+          "realizedPnlUsdt": -216.01407821422595
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 320,
+          "realizedPnlUsdt": 20.78686562646156
+        }
+      ],
+      "fixedTargetGeometry": {
+        "closedReferenceTrades": 947,
+        "fixedTargetsBelowNetActivation": 681,
+        "takeProfitsBelowNetActivation": 228,
+        "requiredPriceRiseFromFillRate": {
+          "minimum": 0.03200350578336031,
+          "maximum": 0.032003505783360975,
+          "mean": 0.03200350578336115
+        },
+        "netReturnAtFixedTargetRate": {
+          "minimum": -0.016447197677605496,
+          "maximum": 0.2751652993556297,
+          "mean": 0.009149012085556076
+        }
+      }
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "openPositions": 0,
+      "feesUsdt": 16.941536850943283,
+      "closedTradesFeesUsdt": 16.94153685094328,
+      "realizedPnlUsdt": -12.704001872383614,
+      "beforeFeesRealizedPnlUsdt": 4.237534978559698,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 125,
+          "realizedPnlUsdt": -36.93320579989322
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 87,
+          "realizedPnlUsdt": 24.229203927509637
+        }
+      ]
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "openPositions": 0,
+      "feesUsdt": 34.22158412924567,
+      "closedTradesFeesUsdt": 34.22158412924565,
+      "realizedPnlUsdt": -38.88894085925987,
+      "beforeFeesRealizedPnlUsdt": -4.667356730014207,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 133,
+          "realizedPnlUsdt": -53.09184563598444
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 82,
+          "realizedPnlUsdt": 14.202904776724573
+        }
+      ]
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "openPositions": 0,
+      "feesUsdt": 45.34939937872977,
+      "closedTradesFeesUsdt": 45.34939937872975,
+      "realizedPnlUsdt": -44.68575367329502,
+      "beforeFeesRealizedPnlUsdt": 0.6636457054347299,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 355,
+          "realizedPnlUsdt": -106.92613491970654
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 213,
+          "realizedPnlUsdt": 62.24038124641143
+        }
+      ]
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "openPositions": 0,
+      "feesUsdt": 88.29461808708982,
+      "closedTradesFeesUsdt": 88.29461808708975,
+      "realizedPnlUsdt": -106.4202613360641,
+      "beforeFeesRealizedPnlUsdt": -18.125643248974264,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 355,
+          "realizedPnlUsdt": -143.78535768929106
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 200,
+          "realizedPnlUsdt": 37.365096353227045
+        }
+      ]
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "openPositions": 0,
+      "feesUsdt": 37.43242155998597,
+      "closedTradesFeesUsdt": 37.43242155998595,
+      "realizedPnlUsdt": -39.84940045026188,
+      "beforeFeesRealizedPnlUsdt": -2.4169788902759426,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 305,
+          "realizedPnlUsdt": -60.43071704984583
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 164,
+          "realizedPnlUsdt": 20.581316599583936
+        }
+      ],
+      "trailing": {
+        "opened": 469,
+        "fixedTargetBelowNetActivation": 277,
+        "activatedPositions": 57,
+        "stopUpdates": 162,
+        "closedBeforeActivation": 412,
+        "closedAfterActivation": 57,
+        "takeProfitBeforeActivation": 134
+      }
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "openPositions": 0,
+      "feesUsdt": 65.35976298008335,
+      "closedTradesFeesUsdt": 65.3597629800833,
+      "realizedPnlUsdt": -81.8858685389048,
+      "beforeFeesRealizedPnlUsdt": -16.526105558821474,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 276,
+          "realizedPnlUsdt": -86.14140609667645
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 135,
+          "realizedPnlUsdt": 4.255537557771628
+        }
+      ],
+      "trailing": {
+        "opened": 411,
+        "fixedTargetBelowNetActivation": 318,
+        "activatedPositions": 26,
+        "stopUpdates": 76,
+        "closedBeforeActivation": 385,
+        "closedAfterActivation": 26,
+        "takeProfitBeforeActivation": 123
+      }
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "openPositions": 0,
+      "feesUsdt": 90.32315658092284,
+      "closedTradesFeesUsdt": 90.32315658092288,
+      "realizedPnlUsdt": -103.23559922722619,
+      "beforeFeesRealizedPnlUsdt": -12.912442646303374,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 755,
+          "realizedPnlUsdt": -155.25436767325607
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 377,
+          "realizedPnlUsdt": 52.01876844602976
+        }
+      ],
+      "trailing": {
+        "opened": 1132,
+        "fixedTargetBelowNetActivation": 583,
+        "activatedPositions": 166,
+        "stopUpdates": 451,
+        "closedBeforeActivation": 966,
+        "closedAfterActivation": 166,
+        "takeProfitBeforeActivation": 293
+      }
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "openPositions": 0,
+      "feesUsdt": 154.39584189921325,
+      "closedTradesFeesUsdt": 154.3958418992131,
+      "realizedPnlUsdt": -196.3344938201219,
+      "beforeFeesRealizedPnlUsdt": -41.93865192090902,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 658,
+          "realizedPnlUsdt": -210.48916235632356
+        },
+        {
+          "reason": "TAKE_PROFIT",
+          "trades": 313,
+          "realizedPnlUsdt": 14.1546685362014
+        }
+      ],
+      "trailing": {
+        "opened": 971,
+        "fixedTargetBelowNetActivation": 687,
+        "activatedPositions": 76,
+        "stopUpdates": 200,
+        "closedBeforeActivation": 895,
+        "closedAfterActivation": 76,
+        "takeProfitBeforeActivation": 280
+      }
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 10,
+      "scenario": "account-conditioned",
+      "openPositions": 0,
+      "feesUsdt": 31.796643196102053,
+      "closedTradesFeesUsdt": 31.796643196102032,
+      "realizedPnlUsdt": -26.156209477082804,
+      "beforeFeesRealizedPnlUsdt": 5.640433719019272,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 398,
+          "realizedPnlUsdt": -26.156209477082804
+        }
+      ],
+      "trailing": {
+        "opened": 398,
+        "fixedTargetBelowNetActivation": 222,
+        "activatedPositions": 140,
+        "stopUpdates": 473,
+        "closedBeforeActivation": 258,
+        "closedAfterActivation": 140,
+        "takeProfitBeforeActivation": 0
+      }
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 10,
+      "scenario": "account-cost-stress",
+      "openPositions": 0,
+      "feesUsdt": 57.50295457798668,
+      "closedTradesFeesUsdt": 57.50295457798661,
+      "realizedPnlUsdt": -60.20443647724237,
+      "beforeFeesRealizedPnlUsdt": -2.7014818992557146,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 361,
+          "realizedPnlUsdt": -60.20443647724235
+        }
+      ],
+      "trailing": {
+        "opened": 361,
+        "fixedTargetBelowNetActivation": 268,
+        "activatedPositions": 105,
+        "stopUpdates": 340,
+        "closedBeforeActivation": 256,
+        "closedAfterActivation": 105,
+        "takeProfitBeforeActivation": 0
+      }
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 30,
+      "scenario": "account-conditioned",
+      "openPositions": 1,
+      "feesUsdt": 75.65698282552734,
+      "closedTradesFeesUsdt": 75.61698282577336,
+      "realizedPnlUsdt": -72.66194731691934,
+      "beforeFeesRealizedPnlUsdt": 2.95503550885386,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 947,
+          "realizedPnlUsdt": -72.66194731691938
+        }
+      ],
+      "trailing": {
+        "opened": 948,
+        "fixedTargetBelowNetActivation": 449,
+        "activatedPositions": 329,
+        "stopUpdates": 1163,
+        "closedBeforeActivation": 618,
+        "closedAfterActivation": 329,
+        "takeProfitBeforeActivation": 0
+      }
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "size": 30,
+      "scenario": "account-cost-stress",
+      "openPositions": 1,
+      "feesUsdt": 134.6135590582239,
+      "closedTradesFeesUsdt": 134.5335590583857,
+      "realizedPnlUsdt": -149.442348192367,
+      "beforeFeesRealizedPnlUsdt": -14.908789133981273,
+      "exitReasons": [
+        {
+          "reason": "STOP_LOSS",
+          "trades": 845,
+          "realizedPnlUsdt": -149.4423481923671
+        }
+      ],
+      "trailing": {
+        "opened": 846,
+        "fixedTargetBelowNetActivation": 577,
+        "activatedPositions": 244,
+        "stopUpdates": 810,
+        "closedBeforeActivation": 601,
+        "closedAfterActivation": 244,
+        "takeProfitBeforeActivation": 0
+      }
+    }
+  ],
+  "variants": [
+    {
+      "variant": "reference",
+      "studySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+      "research": null
+    },
+    {
+      "variant": "atr-floor-0.75",
+      "studySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+      "research": {
+        "minimumAtrRate": 0.0075
+      }
+    },
+    {
+      "variant": "net-trailing-with-target",
+      "studySha256": "86de9308916357dfa3891b753b0c58376d960dfd85bac99825420ab70ec98be2",
+      "research": {
+        "trailing": {
+          "netActivationRate": 0.012,
+          "trailingMultiplier": 1.5,
+          "retainFixedTarget": true
+        }
+      }
+    },
+    {
+      "variant": "net-trailing-no-target",
+      "studySha256": "86de9308916357dfa3891b753b0c58376d960dfd85bac99825420ab70ec98be2",
+      "research": {
+        "trailing": {
+          "netActivationRate": 0.012,
+          "trailingMultiplier": 1.5,
+          "retainFixedTarget": false
+        }
+      }
+    }
+  ],
+  "referenceStudy": {
+    "endExclusiveUtc": "2026-08-31T00:00:00Z",
+    "days": 30,
+    "warmupCandles": 672,
+    "candleLimit": 100,
+    "sizes": [
+      10,
+      30
+    ],
+    "fixedSymbols": [
+      "BTC/USDT",
+      "ETH/USDT",
+      "SOL/USDT",
+      "XRP/USDT",
+      "ADA/USDT",
+      "DOGE/USDT",
+      "SUI/USDT",
+      "NEAR/USDT"
+    ],
+    "minDailyQuoteVolumeUsdt": 1000000,
+    "initialBalanceUsdt": 5000,
+    "tradeSizeUsdt": 10,
+    "portfolio": {
+      "maxConcurrentPositions": 30,
+      "maxExposureRate": 0.1,
+      "maxAltExposureRate": 0.1
+    },
+    "parameters": {
+      "exitPolicy": {
+        "mode": "fixed",
+        "breakeven": false,
+        "atrPeriod": 14,
+        "stopMultiplier": 1.5,
+        "targetMultiplier": 3,
+        "minStopRate": 0.005,
+        "maxStopRate": 0.03,
+        "trailingMultiplier": 2,
+        "activationRate": 0.02,
+        "exitFeeRate": 0.001,
+        "exitSlippageRate": 0.001
+      },
+      "pairCooldown": {
+        "hours": 6,
+        "minLosses": 3
+      },
+      "btcRegimeFilter": false,
+      "stopLossRate": 0.01,
+      "takeProfitRate": 0.02,
+      "maxBuyRsi": 70,
+      "minimumSignalScore": 4,
+      "executionDelayCandles": 1
+    },
+    "scenarios": [
+      {
+        "name": "account-conditioned",
+        "feeRate": 0.004,
+        "slippageRate": 0.001,
+        "spreadRate": 0.0015,
+        "assumedDepthUsdt": 1000,
+        "maxParticipationRate": 0.001,
+        "symbolCosts": {
+          "1INCH/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "2Z/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "A/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AAVE/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ACE/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ACH/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ACT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ADA/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AEVO/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AGLD/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AI/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AIXBT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ALGO/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ALLO/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ANIME/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "APE/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "API3/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "APT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AR/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ARB/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ARG/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ARKM/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ASP/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ASTER/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ASTR/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ATH/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ATOM/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AUCTION/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AUDF/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AUDM/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AVAX/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AVNT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "AXS/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BABY/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BABYDOGE/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BANANA/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BAND/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BARD/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BASED/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BAT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BCH/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BERA/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BETH/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BICO/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BIGTIME/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BIO/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BLUR/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BNB/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BNT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BOME/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BONK/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BREV/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BRL1/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "BTC/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CARDS/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CAT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CATI/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CC/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CELO/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CELR/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CETUS/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CFG/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CFX/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CHIP/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CHZ/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CITY/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "COMP/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CORE/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CRO/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CRV/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CSPR/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CTC/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CVC/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "CVX/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "DASH/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "DATA/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "DEGEN/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "DGB/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "DOGE/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "DOGS/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "DOOD/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "DOT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "DYDX/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "EDGE/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "EGLD/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "EIGEN/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ENA/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ENJ/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ENS/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ETC/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ETH/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ETHFI/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ETHW/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "FET/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "FIL/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "FLOKI/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "FLOW/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "FLR/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "FLUID/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "FOGO/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "G/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "GALA/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "GALFT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "GAS/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "GLM/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "GMT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "GMX/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "GOAT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "HYPE/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "LINK/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "LIT/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "LTC/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "NEAR/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "SOL/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "SUI/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "TRX/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "UNI/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "WLD/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "XRP/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          },
+          "ZEC/USDT": {
+            "feeRate": 0.004,
+            "slippageRate": 0.001,
+            "spreadRate": 0.0015,
+            "entryFeeCurrency": "base"
+          }
+        }
+      },
+      {
+        "name": "account-cost-stress",
+        "feeRate": 0.008,
+        "slippageRate": 0.002,
+        "spreadRate": 0.003,
+        "assumedDepthUsdt": 500,
+        "maxParticipationRate": 0.0005,
+        "symbolCosts": {
+          "1INCH/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "2Z/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "A/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AAVE/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ACE/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ACH/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ACT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ADA/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AEVO/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AGLD/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AI/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AIXBT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ALGO/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ALLO/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ANIME/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "APE/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "API3/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "APT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AR/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ARB/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ARG/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ARKM/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ASP/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ASTER/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ASTR/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ATH/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ATOM/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AUCTION/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AUDF/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AUDM/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AVAX/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AVNT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "AXS/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BABY/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BABYDOGE/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BANANA/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BAND/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BARD/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BASED/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BAT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BCH/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BERA/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BETH/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BICO/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BIGTIME/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BIO/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BLUR/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BNB/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BNT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BOME/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BONK/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BREV/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BRL1/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "BTC/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CARDS/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CAT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CATI/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CC/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CELO/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CELR/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CETUS/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CFG/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CFX/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CHIP/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CHZ/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CITY/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "COMP/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CORE/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CRO/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CRV/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CSPR/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CTC/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CVC/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "CVX/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "DASH/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "DATA/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "DEGEN/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "DGB/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "DOGE/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "DOGS/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "DOOD/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "DOT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "DYDX/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "EDGE/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "EGLD/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "EIGEN/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ENA/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ENJ/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ENS/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ETC/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ETH/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ETHFI/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ETHW/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "FET/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "FIL/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "FLOKI/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "FLOW/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "FLR/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "FLUID/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "FOGO/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "G/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "GALA/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "GALFT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "GAS/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "GLM/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "GMT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "GMX/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "GOAT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "HYPE/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "LINK/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "LIT/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "LTC/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "NEAR/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "SOL/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "SUI/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "TRX/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "UNI/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "WLD/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "XRP/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          },
+          "ZEC/USDT": {
+            "feeRate": 0.008,
+            "slippageRate": 0.002,
+            "spreadRate": 0.003,
+            "entryFeeCurrency": "base"
+          }
+        }
+      }
+    ],
+    "collection": {
+      "maximumSymbols": 120,
+      "preferredSymbols": [
+        "BTC/USDT",
+        "ETH/USDT",
+        "SOL/USDT",
+        "XRP/USDT",
+        "ADA/USDT",
+        "DOGE/USDT",
+        "SUI/USDT",
+        "NEAR/USDT",
+        "AVAX/USDT",
+        "LINK/USDT",
+        "DOT/USDT",
+        "ATOM/USDT",
+        "UNI/USDT",
+        "AAVE/USDT",
+        "LTC/USDT",
+        "WLD/USDT",
+        "ZEC/USDT",
+        "HYPE/USDT",
+        "LIT/USDT",
+        "TRX/USDT"
+      ]
+    }
+  },
+  "limitations": [
+    "Four predeclared development variants on already inspected data: original fixed exit, ATR floor only, net trailing with target, net trailing replacing target. No pullback, RSI58 or combined ATR+trailing optimization.",
+    "ATR14/close >=0.75% is evaluated on closed decision candles; stops, initial risk, fees, capital, seeds, limits and windows remain common. Changed exits can change subsequent entries and exposure.",
+    "Net trailing activation requires a surviving candle close with modeled liquidation return >=1.2% after entry and exit fees and exit spread/slippage. Initial fill already includes entry spread/slippage, not charged twice. Activation latches and updates are usable only on later candles.",
+    "Trailing distance is 1.5 ATR14, preserves initial protection and never loosens. The with-target variant preserves fixed take-profit; the no-target variant removes only that take-profit, without increasing position risk ceilings. Gaps can lose more than an ideal stop.",
+    "Fixed-target geometry is descriptive on closed reference trades. Trailing counters report all openings, activation on surviving closes, stop updates and exits before/after activation; STOP_LOSS labels include ratcheted managed stops.",
+    "Net activation is an estimated liquidation value, not realized profit, a guaranteed protected return, or proof of execution at historical highs. Intrabar order is unknown; stop wins simultaneous touches; no same-candle retroactive trailing stop.",
+    "Historical books, liquidity, regional eligibility, scheduling, dust and full operational guards remain approximations. Fee evidence is partial and account conditioned. Open positions use common marks, not executable liquidation quotes.",
+    "All attempts, negative blocks and small samples remain. No new holdout, parameter search after results, runtime setting, order, deployment, configuration promotion or real-money approval."
+  ]
+}

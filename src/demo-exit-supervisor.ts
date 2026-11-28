@@ -138,17 +138,26 @@ export async function auditDemoProtections(
       fills: (carry?.fills ?? checkpoint.evidence.reconciledFills ?? []) as DemoFill[],
       from: checkpoint.observedAt.getTime(),
     } : undefined;
-    for (const row of newBuy ? [newBuy] : placed) {
+    const inspectOne = async (row: (typeof placed)[number]) => {
       const createdAt = new Date(row.created_at).getTime();
       if (!Number.isSafeInteger(createdAt)) return blocked("protection_journal_date_invalid");
-      if (!newBuy && createdAt < from) continue;
+      if (!newBuy && createdAt < from) return { status: "safe" as const };
       const orderId = (row.result as { orderId?: unknown } | null)?.orderId;
       if (typeof orderId !== "string" || !orderId || !row.attached_algo_client_id) return blocked("protection_identity_missing");
       const result = await executor.inspectExitProtection({
         orderId, clientOrderId: row.client_order_id, symbol: row.symbol, attachedAlgoClientId: row.attached_algo_client_id,
       }, createdAt, cached);
       if (result.status === "blocked") return result;
+      return { status: "safe" as const };
+    };
+    const failures: Array<{ symbol: string; reason: string }> = [];
+    for (const row of newBuy ? [newBuy] : placed) {
+      try {
+        const result = await inspectOne(row);
+        if (result.status === 'blocked') failures.push({ symbol: row.symbol, reason: result.reason });
+      } catch { failures.push({ symbol: row.symbol, reason: 'protection_audit_failed' }); }
     }
+    if (failures.length) return { ...blocked(failures[0]!.reason), failures };
     return { status: "safe" as const };
   } catch {
     return blocked("protection_audit_failed");

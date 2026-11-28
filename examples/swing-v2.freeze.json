@@ -1,0 +1,8 @@
+{
+  "protocolFrozenCommit": "6eaf3c19a9cc4f95ecb816899d2f2cf6fafd781e",
+  "protocolFileSha256": "7d40f912f921353fd779e98d107506a313fccaa19db48b1647190a746279ad54",
+  "replayBeforeFreeze": false,
+  "publicCollectionOnly": true,
+  "thisHypothesis": 1,
+  "secondHypothesisV2Executed": false
+}

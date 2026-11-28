@@ -1,3 +1,5 @@
+import { reversionTargetEconomics, type ReversionSetup } from "./confirmed-mean-reversion.js";
+import { netActivationPrice, type ResearchTrailing } from "./research-trailing.js";
 import { tradeProfitConcentration } from "./backtest-performance.js";
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
@@ -8,8 +10,9 @@ import { initialExitRates } from "./exit-policy.js";
 import { pairCooldownUntil } from "./pair-cooldown.js";
 import { PaperTrader, type PaperTradeClosed } from "./paper-trader.js";
 import { evaluateStrategy } from "./strategy.js";
-import { assertComparisonCandidatesAndScenarios, compareDemoStrategies, comparisonSchema, comparisonSlippage, type ComparisonOptions } from "./strategy-comparison.js";
+import { assertComparisonCandidatesAndScenarios, compareDemoStrategies, comparisonSchema, comparisonSlippage, scenarioCosts, type ComparisonOptions } from "./strategy-comparison.js";
 import { TREND_STRATEGY_ID } from "./strategy-id.js";
+import { diagnoseClosedTrades, paperDiagnosticTrade, type DiagnosticTrade, type EntryDiagnosticContext } from "./strategy-diagnostics.js";
 import { assertValidHistoricalCandles } from "./strategy-validation.js";
 import { requiredWalkForwardWarmup } from "./walk-forward.js";
 import type { Candle } from "./types.js";
@@ -19,7 +22,7 @@ type Scenario = ComparisonOptions["scenarios"][number];
 export type PortfolioInstrument = { symbol: string; candles: Candle[]; constraints: ComparisonOptions["constraints"]; quoteVolumesUsdt?: number[] };
 type Instrument = PortfolioInstrument;
 type Dataset = { candles: Candle[]; btcCandles?: Candle[]; options: ComparisonOptions };
-type Rejection = "cash" | "positions" | "totalExposure" | "altExposure" | "liquidity" | "minimum" | "regime" | "cooldown";
+type Rejection = "cash" | "positions" | "totalExposure" | "altExposure" | "liquidity" | "minimum" | "regime" | "cooldown" | "targetCosts";
 
 export const portfolioLimitsSchema = z.object({
   maxConcurrentPositions: z.number().int().min(1).max(50),
@@ -168,25 +171,35 @@ export function runPortfolioScenario(
   tradeSize: number,
   btc?: Candle[],
   split?: number,
+  signalCandleLimit?: number,
+  researchTrailing?: ResearchTrailing,
+  reversionPlans?: ReadonlyMap<string, ReadonlyArray<ReversionSetup | undefined>>,
 ) {
   if (split !== undefined && (!Number.isInteger(split) || split <= start || split >= instruments[0]!.candles.length)) {
     throw new Error("Portfolio split must be inside the replay window");
   }
-  const slippageRate = comparisonSlippage(scenario);
-  const feeRate = scenario.feeRate;
-  const assets = instruments.map(instrument => ({
-    ...instrument,
+
+  if(reversionPlans&&(researchTrailing||parameters.exitPolicy?.mode!=="fixed"||parameters.exitPolicy.breakeven||parameters.executionDelayCandles!==1))throw new Error("Reversion target requires isolated fixed-exit research");
+  const researchExitDiagnostics = { opened: 0, fixedTargetBelowNetActivation: 0, activatedPositions: 0, stopUpdates: 0, closedBeforeActivation: 0, closedAfterActivation: 0, takeProfitBeforeActivation: 0 };
+  const entryContexts = new Map<string, EntryDiagnosticContext>();
+  const closedTradeLedger: DiagnosticTrade[] = [];
+  const assets = instruments.map(instrument => {
+    const costs = scenarioCosts(scenario, instrument.symbol);
+    const slippageRate = comparisonSlippage(costs);
+    return {
+    ...instrument, costs, slippageRate,
     trader: new PaperTrader({
       stopLossRate: parameters.stopLossRate, takeProfitRate: parameters.takeProfitRate,
       ...(parameters.exitPolicy ? { exitPolicy: parameters.exitPolicy } : {}),
+      ...(researchTrailing ? { researchTrailing } : {}),
       strategyId: TREND_STRATEGY_ID, initialBalanceUsdt: initialBalance,
-      tradeSizeUsdt: tradeSize, feeRate, slippageRate, executionConstraints: instrument.constraints,
+      tradeSizeUsdt: tradeSize, feeRate: costs.feeRate, entryFeeCurrency: costs.entryFeeCurrency, slippageRate, executionConstraints: instrument.constraints,
     }),
     alt: instrument.symbol !== "BTC/USDT",
     trades: [] as PaperTradeClosed[],
     rejected: {} as Partial<Record<Rejection, number>>,
     cooldownUntil: undefined as number | undefined,
-  }));
+  }; });
   let cash = initialBalance;
   let equity = cash;
   let peak = cash;
@@ -225,16 +238,25 @@ export function runPortfolioScenario(
     for (const { asset } of candidates) {
       const candle = asset.candles[index]!;
       const previous = asset.candles[index - 1]!;
+      if (reversionPlans) {
+        const setup=reversionPlans.get(asset.symbol)?.[entryIndex];
+        if(!setup||setup.decisionTimestamp!==asset.candles[entryIndex]!.timestamp)throw new Error("Missing or mismatched frozen reversion target");
+        if(setup.targetPrice/(candle.open*(1+asset.costs.spreadRate/2))-1>=1||!reversionTargetEconomics(candle.open,setup.targetPrice,asset.costs).allowed){reject(asset,"targetCosts");continue;}
+      }
       if (regimeBlocked(entryIndex) || (delay > 1 && regimeBlocked(index - 1))) { reject(asset, "regime"); continue; }
       if (asset.cooldownUntil !== undefined && timestamp < asset.cooldownUntil) { reject(asset, "cooldown"); continue; }
       if (tradeSize > Math.min(scenario.assumedDepthUsdt, (asset.quoteVolumesUsdt?.[index - 1] ?? previous.volume * previous.close) * scenario.maxParticipationRate)) {
         reject(asset, "liquidity"); continue;
       }
-      const { quantity, notional } = quantizeQuantityDown(tradeSize, candle.open * (1 + slippageRate), asset.constraints.quantityStep);
+      const { quantity, notional } = quantizeQuantityDown(tradeSize, candle.open * (1 + asset.slippageRate), asset.constraints.quantityStep);
       if (quantity <= 0 || quantity < asset.constraints.minimumQuantity || notional < asset.constraints.minimumNotionalUsdt) {
         reject(asset, "minimum"); continue;
       }
-      const cost = notional + notional * feeRate;
+      if (asset.costs.entryFeeCurrency === "base") {
+        const sellable = quantizeQuantityDown(quantity * (1 - asset.costs.feeRate) * candle.open * (1 + asset.slippageRate), candle.open * (1 + asset.slippageRate), asset.constraints.quantityStep);
+        if (sellable.quantity < asset.constraints.minimumQuantity || sellable.notional < asset.constraints.minimumNotionalUsdt) { reject(asset, "minimum"); continue; }
+      }
+      const cost = notional + (asset.costs.entryFeeCurrency === "base" ? 0 : notional * asset.costs.feeRate);
       if (cost > available) { reject(asset, "cash"); continue; }
       if (count >= limits.maxConcurrentPositions) { reject(asset, "positions"); continue; }
       if (exposure + notional > equity * limits.maxExposureRate) { reject(asset, "totalExposure"); continue; }
@@ -255,18 +277,48 @@ export function runPortfolioScenario(
       const candle = asset.candles[index]!;
       const approved = entries.has(asset.symbol);
       if (!approved && !occupied.has(asset.symbol)) continue;
-      const prior = parameters.exitPolicy ? asset.candles.slice(0, index) : undefined;
-      const rates = approved && prior && parameters.exitPolicy ? initialExitRates(prior, candle.open, parameters.exitPolicy, parameters) : undefined;
+      const prior = parameters.exitPolicy ? asset.candles.slice(scenario.symbolCosts && signalCandleLimit ? Math.max(0, index - signalCandleLimit) : 0, index) : undefined;
+      const entryHistory = scenario.symbolCosts && approved ? asset.candles.slice(signalCandleLimit ? Math.max(0, entryIndex + 1 - signalCandleLimit) : 0, entryIndex + 1) : prior;
+      const rates = approved && entryHistory && parameters.exitPolicy ? {
+        ...initialExitRates(entryHistory, scenario.symbolCosts ? entryHistory.at(-1)!.close : candle.open, parameters.exitPolicy, parameters),
+        ...(scenario.symbolCosts ? { referencePrice: candle.open * (1 + asset.costs.spreadRate / 2) } : {}),
+      } : undefined;
+      if (approved && reversionPlans) {
+        const setup=reversionPlans.get(asset.symbol)![entryIndex]!;
+        if(!rates?.referencePrice)throw new Error("Frozen reversion target requires cost-aware entry reference");
+        rates.takeProfitRate=setup.targetPrice/rates.referencePrice-1;
+        if(rates.takeProfitRate<=0)throw new Error("Reversion target is not above entry");
+      }
       // PaperTrader simulates the instrument's fill. Only the shared wallet above admits entries.
       if (approved) asset.trader.restoreState({ ...asset.trader.exportState(), cashUsdt: tradeSize * 2 });
+      const positionBefore = researchTrailing ? asset.trader.exportState().position : null;
       const { events } = asset.trader.processCandle(candle, approved, rates, false, candle.open);
       if (approved && events[0]?.type !== "OPENED") throw new Error(`Accepted portfolio entry did not open: ${asset.symbol}`);
       for (const event of events) {
         if (event.type === "OPENED") {
-          cash -= event.notionalUsdt + event.feeUsdt;
+          if (researchTrailing) {
+            researchExitDiagnostics.opened++;
+            const costUsdt = event.notionalUsdt + (event.entryFeeCurrency === "base" ? 0 : event.feeUsdt);
+            if (event.takeProfitPrice < netActivationPrice(costUsdt,event.quantity,asset.costs.feeRate,asset.slippageRate,researchTrailing.netActivationRate)) researchExitDiagnostics.fixedTargetBelowNetActivation++;
+          }
+          cash -= event.notionalUsdt + (event.entryFeeCurrency === "base" ? 0 : event.feeUsdt);
+          const history = asset.candles.slice(signalCandleLimit ? Math.max(0, entryIndex + 1 - signalCandleLimit) : 0, entryIndex + 1);
+          const signal = history.length >= 50 ? evaluateStrategy(history, { minimumScore: parameters.minimumSignalScore, maxBuyRsi: parameters.maxBuyRsi ?? 70 }) : undefined;
+          entryContexts.set(asset.symbol, {
+            decisionTimestamp: asset.candles[entryIndex]!.timestamp,
+            ...(scores.get(asset.symbol)?.[entryIndex] !== undefined ? { score: scores.get(asset.symbol)![entryIndex]! } : {}),
+            ...(signal ? { rsi14: signal.rsi14 } : {}),
+            btcState: btc ? btcRegimeBlock(btc, asset.candles[entryIndex]!.timestamp, entryIndex) ?? "allowed" : "unknown",
+          });
         } else {
-          cash += event.grossProceedsUsdt - event.grossProceedsUsdt * feeRate;
+          if (researchTrailing) {
+            if (positionBefore?.researchTrailingActivated) researchExitDiagnostics.closedAfterActivation++;
+            else { researchExitDiagnostics.closedBeforeActivation++; if (event.reason === "TAKE_PROFIT") researchExitDiagnostics.takeProfitBeforeActivation++; }
+          }
+          cash += event.grossProceedsUsdt - event.grossProceedsUsdt * asset.costs.feeRate;
           asset.trades.push(event);
+          closedTradeLedger.push(paperDiagnosticTrade(asset.symbol, event, entryContexts.get(asset.symbol)));
+          entryContexts.delete(asset.symbol);
           if (parameters.pairCooldown) {
             const recent = asset.trades.slice(-parameters.pairCooldown.minLosses).reverse()
               .map(trade => ({ closedAt: trade.exitTimestamp + REGIME_CANDLE_MS, netPnlUsdt: trade.netPnlUsdt }));
@@ -274,8 +326,14 @@ export function runPortfolioScenario(
           }
         }
       }
+      const beforeAdvance = researchTrailing ? asset.trader.exportState().position : null;
       if (prior) asset.trader.advanceManagedExit([...prior, candle]);
-      marketValue += (asset.trader.exportState().position?.quantity ?? 0) * candle.close * (1 - feeRate);
+      if (researchTrailing && beforeAdvance) {
+        const after = asset.trader.exportState().position!;
+        if (!beforeAdvance.researchTrailingActivated && after.researchTrailingActivated) researchExitDiagnostics.activatedPositions++;
+        if (after.stopLossPrice > beforeAdvance.stopLossPrice) researchExitDiagnostics.stopUpdates++;
+      }
+      marketValue += (asset.trader.exportState().position?.quantity ?? 0) * candle.close * (1 - asset.costs.feeRate);
     }
     equity = cash + marketValue;
     if (split !== undefined) marks.push(equity);
@@ -289,6 +347,7 @@ export function runPortfolioScenario(
     const open = state.position;
     return {
       symbol: asset.symbol,
+      ...(scenario.symbolCosts ? { executionCosts: asset.costs } : {}),
       ...tradeMetrics(asset.trades),
       rejected: asset.rejected,
       feesUsdt: state.totalFeesUsdt,
@@ -323,6 +382,9 @@ export function runPortfolioScenario(
   });
   return {
     ...tradeMetrics(trades),
+    closedTradeLedger,
+    ...(researchTrailing ? { researchExitDiagnostics } : {}),
+    diagnostics: diagnoseClosedTrades(closedTradeLedger),
     ...(blocks ? { blocks } : {}),
     finalEquityUsdt: equity, netReturnUsdt: equity - initialBalance, netReturnPercent: (equity / initialBalance - 1) * 100,
     maxDrawdownPercent, maxDrawdownUsdt, recoveryFactor: maxDrawdownUsdt > 0 ? (equity - initialBalance) / maxDrawdownUsdt : null,

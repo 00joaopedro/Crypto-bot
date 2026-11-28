@@ -1,0 +1,109 @@
+{
+  "protocol": "swing-pullback-v2-final-round-v1",
+  "finalRound": {
+    "hypotheses": 2,
+    "thisHypothesis": 1,
+    "parameterVariants": 1,
+    "costScenarios": 2,
+    "allowV3": false,
+    "archiveIfBothV2Fail": true,
+    "archiveNow": false
+  },
+  "window": {
+    "evaluationStartUtc": "2026-05-26T00:00:00Z",
+    "endExclusiveUtc": "2026-11-22T00:00:00Z",
+    "days": 180,
+    "warmupHours": 1000
+  },
+  "independentWindow": {
+    "evaluationStartUtc": "2025-10-01T00:00:00Z",
+    "endExclusiveUtc": "2025-12-30T00:00:00Z",
+    "days": 90,
+    "warmupHours": 1000
+  },
+  "independentPolicy": "Reserved before replay; collect only if BOTH development cost scenarios pass. Earlier historical holdout according to repository consultation record, not a chronological forward test or proof of all external human history. Same fixed strategy/cost/criteria; if failed, no tuning or extension.",
+  "universe": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT"
+  ],
+  "rules": {
+    "BTC/USDT": {
+      "minimumQuantity": 1e-05,
+      "quantityStep": 1e-08,
+      "priceTick": 0.1
+    },
+    "ETH/USDT": {
+      "minimumQuantity": 0.0001,
+      "quantityStep": 1e-06,
+      "priceTick": 0.01
+    },
+    "SOL/USDT": {
+      "minimumQuantity": 0.01,
+      "quantityStep": 1e-06,
+      "priceTick": 0.01
+    }
+  },
+  "rulesSource": "Dated real-account/public rules previously supplied 23Nov2026; missing minimum notional remains unknown. Public catalogue will be checked separately, never silently rewritten.",
+  "feeSource": "User-transcribed real Spot screenshots reported28Nov2026: maker0.10%,taker0.40% in all3pairs. Not authenticated fills/historical rates; real cash0, no deposit required for Paper.",
+  "signal": "Only closed4h: current1h close>last4hEMA50,4hEMA20>EMA50 and BOTH averages have3successive positive increments; ATR14simple4h/currentclose>=1.2%. In1h, current candle intersects zoneEMA20..EMA50, closes>=lowerzone and at leastone previous3closes was above its then-known upperzone. Pullback last3lows>=minimum of12candles preceding those3. No wick/body/RSI/volume extra filter. false->true1h. Entry=middleEMAzone rounded down. Stop=minimum3pullbacklows-0.5ATR1h, rounded down; reject (do not widen) if distance<0.90%.",
+  "entry": "Post-only modeled next1h open; reject marketable price proxy. Valid60minutes [placedAt,placedAt+1h). Trade-through beyondtick + volume-participation cap; no chase/taker conversion. Preserve partial fills, cancel remainder at60min or when exits start; block inventory that cannot be protected at minimum quantity.",
+  "target": "Compute target after actual filled and rounded sellable quantity so FULL maker target delivers>=1.60*initial net stop risk AFTER maker buy0.1%, maker sell0.1%, dust and conservative modeled buffer. Round target UP. Reject proposed gross target<2%; do not construct forecast edge from an arbitrary farther target.",
+  "makerBuffer": "Maker target fills EXACTLY at its resting limit (never below sell limit). Extra uncertainty reserve equal to entry-notional*effectiveFriction is debited separately pro-rata at maker exits, not represented as an OKX fee or worse maker price. Effective friction=(1+slippage)*(1+spread/2)-1. Stop fill uses this friction in taker price, with no duplicate maker reserve.",
+  "protection": "Evaluate at CLOSED1m net trade liquidation PnL>=1.0*initial net stop risk; raise stop to secure projected total trade PnL>=+0.15Rnet after taker fee/friction, roundingUP, including realized partial-target proceeds. Cancel any unfilled entry remainder before protecting. Never lower/retroactively act; new stop valid following minute only. Gaps may exceed projected floor.",
+  "targetPosting": "After each entry fill, target is recomputed for actual inventory and posted only after that minute closes if above modeled bid; otherwise it is not counted as maker, and fixed-price posting can be retried at later closes. A new entry-fill minute cannot also receive target profit. No TP market fallback.",
+  "intrabar": "Minute evidence for ALL entry hours and every later hour where stop, target or1R activation might be reached. Missing event-hour evidence pauses replay; fetch that public hour and rerun deterministically. Stop wins if both touched. Maker sell fills require resting target + strict penetration beyondtick + participation cap; partial residual below minimum blocks rather than inventing sale. No same-hour portfolio reuse.",
+  "bankUsdt": 17,
+  "lotCeilingUsdt": 10,
+  "riskLimits": {
+    "riskPerTrade": 0.01,
+    "maxExposure": 0.25,
+    "maxAltExposure": 0.1,
+    "maxSymbolExposure": 0.15
+  },
+  "portfolioGuards": "Existing3%daily,10%drawdown new-entry halts and1h cooldown after3losses; no claim of native kill-switch validation.",
+  "scenarios": [
+    {
+      "name": "maker-target-standard",
+      "makerRate": 0.001,
+      "takerRate": 0.004,
+      "slippageRate": 0.001,
+      "spreadRate": 0.0015,
+      "penetrationTicks": 1,
+      "participationRate": 0.001
+    },
+    {
+      "name": "maker-target-adverse",
+      "makerRate": 0.002,
+      "takerRate": 0.008,
+      "slippageRate": 0.002,
+      "spreadRate": 0.003,
+      "penetrationTicks": 2,
+      "participationRate": 0.0005
+    }
+  ],
+  "criteria": {
+    "closedTradesEachScenario": 30,
+    "standardPFStrictlyAbove": 1.25,
+    "standardPositiveNetEV": true,
+    "adverseSurvival": "PF>=1, net/EV>=0, DD<10%; with>=30closedtrades, never zero-activity approval",
+    "positiveCompleteBlocksEachScenario": 2,
+    "totalBlocks": 3,
+    "maxDrawdownPercentStrictlyBelow": 10,
+    "positiveRealizedWithoutTop3EachScenario": true,
+    "completeHourlyAndNeededMinuteEvidence": true,
+    "noUnprotectableInventory": true,
+    "bothDevelopmentAndIndependentMustPass": true
+  },
+  "dataBudget": {
+    "maxMinuteWindowsPerPhase": 1200,
+    "hoursOneTimeSource": true,
+    "noSilentSourceReplacement": true
+  },
+  "limitations": [
+    "Increasing window to180days does not guarantee30trades or positive expectation.",
+    "Signals/targets/stops use closed candles; OHLC/participation does not certify queue, maker role, latency, native OCO or actual fees.",
+    "Public rules are dated/current proxies for historical precision; minimum notional/account access remain unconfirmed.",
+    "Real cash0; planned17 only. No deposit, private API, trade order, deployment, merge or active configuration change."
+  ]
+}

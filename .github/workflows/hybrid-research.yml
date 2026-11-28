@@ -1,0 +1,151 @@
+name: Hybrid research (frozen public OKX data)
+
+on:
+  pull_request:
+    paths:
+      - 'src/hybrid-*.ts'
+      - 'src/trend-horizon*.ts'
+      - 'src/opportunity-diagnosis*.ts'
+      - 'scripts/opportunity-reproduce.mjs'
+      - 'docs/opportunity-cost-diagnosis.json'
+      - 'src/channel-continuation*.ts'
+      - 'examples/channel-continuation*.json'
+      - 'docs/channel-continuation*.json'
+      - 'scripts/channel-diagnosis.mjs'
+      - 'examples/trend-horizon*.json'
+      - 'src/okx-history.ts'
+      - 'examples/hybrid-*.json'
+      - '.github/workflows/hybrid-research.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hybrid-research-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/cache@v4
+        with:
+          path: .hybrid-data
+          key: hybrid-v1-${{ hashFiles('examples/hybrid-research.plan.json', 'examples/hybrid-collection.study.json') }}
+      - name: Collect frozen closed candles without private credentials
+        run: |
+          if [ ! -f .hybrid-data/source.json ]; then
+            rm -rf .hybrid-data
+            npm run strategy:hybrid-collect -- examples/hybrid-research.plan.json examples/hybrid-collection.study.json .hybrid-data
+          fi
+      - name: Verify frozen data identity and full coverage
+        run: npm run strategy:hybrid-collect -- --verify examples/hybrid-research.plan.json examples/hybrid-collection.study.json .hybrid-data
+      - name: Compare baseline, A, B and shared hybrid
+        run: npm run --silent strategy:hybrid-research -- examples/hybrid-research.plan.json examples/pullback-reference.study.json .hybrid-data/normalized-data.json .hybrid-results
+      - name: Preserve the eight archived fixed-lot results
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const old=JSON.parse(fs.readFileSync('docs/hybrid-research-results.json','utf8'));
+          const current=JSON.parse(fs.readFileSync('.hybrid-results/summary.json','utf8'));
+          const selected=old.runs.filter(r=>['account-conditioned','account-cost-stress'].includes(r.scenario));
+          if(JSON.stringify(selected)!==JSON.stringify(current.runs))throw new Error('Fixed-lot historical reference changed');
+          console.log('All eight archived fixed-lot results reproduced exactly');
+          JS
+      - name: Reproduce frozen economic experiments and every ledger
+        run: |
+          npm run strategy:hybrid-economic -- .hybrid-data/normalized-data.json .hybrid-economic-results
+          diff -u docs/hybrid-economic-results.json .hybrid-economic-results/summary.json
+          diff -u docs/hybrid-economic-ledgers.json .hybrid-economic-results/ledgers.json
+      - name: Recompute economic decision without holdout or Demo promotion
+        run: |
+          npm run strategy:hybrid-economic-readiness -- docs/hybrid-economic-results.json docs/hybrid-economic-ledgers.json examples/hybrid-economic-experiments.plan.json examples/hybrid-economic-readiness.plan.json .hybrid-economic-readiness
+          diff -u docs/hybrid-economic-readiness.json .hybrid-economic-readiness/summary.json
+      - name: Reproduce frozen transition, regime, ROI and isolated squeeze experiments
+        run: |
+          npm run strategy:hybrid-evolution -- .hybrid-data/normalized-data.json .hybrid-evolution-results
+          diff -u docs/hybrid-evolution-results.json .hybrid-evolution-results/summary.json
+          diff -u docs/hybrid-evolution-ledgers.json .hybrid-evolution-results/ledgers.json
+      - name: Reconcile latest evidence without collecting holdout or authorizing Demo
+        run: |
+          npm run strategy:hybrid-evolution-readiness -- docs/hybrid-evolution-results.json docs/hybrid-evolution-ledgers.json examples/hybrid-evolution.plan.json examples/hybrid-evolution-readiness.plan.json .hybrid-evolution-readiness
+          diff -u docs/hybrid-evolution-readiness.json .hybrid-evolution-readiness/summary.json
+      - uses: actions/cache@v4
+        with:
+          path: .trend-horizon-source
+          key: trend-horizon-v1-${{ hashFiles('examples/trend-horizon.plan.json') }}
+      - uses: actions/download-artifact@v4
+        if: hashFiles('.trend-horizon-source/normalized-data.json') == '' && hashFiles('docs/trend-horizon-results.json') != ''
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 45722652141
+          name: okx-hybrid-research
+          path: .trend-frozen-artifact
+      - name: Restore the exact archived horizon source when cache expires
+        if: hashFiles('.trend-horizon-source/normalized-data.json') == '' && hashFiles('docs/trend-horizon-results.json') != ''
+        run: |
+          mkdir -p .trend-horizon-source
+          cp .trend-frozen-artifact/.trend-horizon-source/normalized-data.json .trend-horizon-source/normalized-data.json
+      - name: Collect and evaluate one frozen1h/4h hypothesis without orders
+        run: |
+          if [ ! -f .trend-horizon-source/normalized-data.json ]; then
+            npm run strategy:trend-horizon -- .trend-horizon-source
+          fi
+          npm run strategy:trend-horizon -- --replay .trend-horizon-source/normalized-data.json .trend-horizon-results
+          if [ -f docs/trend-horizon-results.json ]; then
+            diff -u docs/trend-horizon-results.json .trend-horizon-results/summary.json
+            diff -u docs/trend-horizon-ledgers.json .trend-horizon-results/ledgers.json
+          fi
+      - name: Reproduce descriptive opportunity and cost attribution without choosing a strategy
+        run: node scripts/opportunity-reproduce.mjs .hybrid-data/normalized-data.json .trend-horizon-source/normalized-data.json
+      - name: Reproduce one frozen channel hypothesis and all negative/reference results
+        run: |
+          npm run strategy:channel-continuation -- .trend-horizon-source/normalized-data.json .channel-continuation-results
+          diff -u docs/channel-continuation-results.json .channel-continuation-results/summary.json
+          diff -u docs/channel-continuation-ledgers.json .channel-continuation-results/ledgers.json
+          node scripts/channel-diagnosis.mjs .trend-horizon-source/normalized-data.json .channel-continuation-results .channel-continuation-results/diagnosis.json
+          diff -u docs/channel-continuation-diagnosis.json .channel-continuation-results/diagnosis.json
+      - name: Assess readiness without orders, account access or paid AI
+        run: |
+          npm run demo:hybrid-readiness -- docs/hybrid-research-results.json examples/hybrid-research.plan.json examples/hybrid-demo-readiness.plan.json .hybrid-readiness
+          diff -u docs/hybrid-demo-readiness.json .hybrid-readiness/summary.json
+      - name: Public Paper shadow warmup and restart smoke (no exchange orders)
+        run: |
+          npm run demo:hybrid-shadow -- .hybrid-shadow --once --websocket
+          npm run demo:hybrid-shadow -- .hybrid-shadow --once --websocket
+          if npm run demo:hybrid-shadow -- .hybrid-shadow --once > /tmp/frozen-transport-mode.log 2>&1; then
+            echo "Unexpected transport mode change accepted"
+            exit 1
+          fi
+          node --input-type=module -e "import fs from 'node:fs'; if (!fs.readFileSync('/tmp/frozen-transport-mode.log','utf8').includes('Frozen transport mode changed')) throw new Error('Expected frozen transport rejection missing');"
+          npm run demo:hybrid-audit -- .hybrid-shadow .hybrid-shadow-audit
+          npm run market:stream-smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: okx-hybrid-research
+          path: |
+            .hybrid-data/
+            .hybrid-results/
+            .hybrid-economic-results/
+            .hybrid-economic-readiness/
+            .hybrid-evolution-results/
+            .hybrid-evolution-readiness/
+            .trend-horizon-source/
+            .trend-horizon-results/
+            .channel-continuation-results/
+            .hybrid-readiness/
+            .hybrid-shadow/
+            .hybrid-shadow-audit/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error

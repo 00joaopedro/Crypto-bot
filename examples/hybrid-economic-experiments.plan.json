@@ -1,0 +1,86 @@
+{
+  "protocol": "hybrid-economic-development-v1",
+  "frozenBeforeAlternativeReplay": true,
+  "developmentOnly": true,
+  "datasetSha256": "fb88541a351e706edcc838fffdd42ed9a11ba25ace8d4a883d8090ed6eaadfc4",
+  "artifactId": 14950615105,
+  "artifactSha256": "d60c37242c4fc833aa3be57b2a6ea89a5f991f5b3c4f2eedb2f63aba870d04ea",
+  "strategyPlanSha256": "8af5316ef7b6774f4c66c2d3a4fcc792abd2ed34a77b41fa9a1c35eaf876fce9",
+  "cases": [
+    {
+      "name": "A_REFERENCE",
+      "variant": "trend_pullback",
+      "hypothesis": null
+    },
+    {
+      "name": "A_VOLUME_OFF",
+      "variant": "trend_pullback",
+      "hypothesis": "A_VOLUME_OFF"
+    },
+    {
+      "name": "A_TOUCH_1_ATR",
+      "variant": "trend_pullback",
+      "hypothesis": "A_TOUCH_1_ATR"
+    },
+    {
+      "name": "B_REFERENCE",
+      "variant": "mean_reversion",
+      "hypothesis": null
+    },
+    {
+      "name": "B_NET_RR_1_5",
+      "variant": "mean_reversion",
+      "hypothesis": "B_NET_RR_1_5"
+    },
+    {
+      "name": "B_ATR_OFF",
+      "variant": "mean_reversion",
+      "hypothesis": "B_ATR_OFF"
+    }
+  ],
+  "scenarios": [
+    "account-conditioned",
+    "account-cost-stress"
+  ],
+  "riskLimits": {
+    "riskPerTrade": 0.01,
+    "maxExposure": 0.25,
+    "maxAltExposure": 0.1,
+    "maxSymbolExposure": 0.15
+  },
+  "bankUsdt": 17,
+  "lotCeilingUsdt": 10,
+  "maxConcurrentPositions": 1,
+  "touchToleranceAtr": 1,
+  "minimumNetRewardRisk": 1.5,
+  "rrDecisionQuote": "unit_notional_at_closed_signal_close_with_modeled_buy_and_sell_costs",
+  "rrOpeningQuote": "actual_quantized_net_quantity_and_cash_cost",
+  "criteria": {
+    "minimumClosedTradesEachScenario": 30,
+    "positiveExpectancyEachScenario": true,
+    "profitFactorGreaterThan": 1,
+    "positiveNetMarkedProfitEachScenario": true,
+    "allThreeDevelopmentBlocksPositiveEachScenario": true
+  },
+  "selection": "per-mode only; no combination, new threshold search or promotion; passing only allows consideration for a future independently frozen validation",
+  "unchanged": [
+    "entry_next_open",
+    "quality_filter",
+    "liquidity",
+    "costs",
+    "initial_protection",
+    "targets",
+    "trailing",
+    "time_stop",
+    "cooldown",
+    "risk_limits"
+  ],
+  "notObserved": [
+    "historical_spread_and_depth",
+    "actual_slippage",
+    "actual_fills",
+    "minimum_notional_usdt"
+  ],
+  "productionChanged": false,
+  "realMoneyApproved": false
+}

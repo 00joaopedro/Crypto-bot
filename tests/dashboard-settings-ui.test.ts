@@ -9,8 +9,8 @@ it("loads every saved field and preserves edits during automatic dashboard rende
     if (!elements.has(id)) elements.set(id, { value: "", textContent: "", innerHTML: "", hidden: true, dataset: {}, lastChild: { textContent: "" }, classList: { toggle() {} }, parentElement: { getBoundingClientRect: () => ({ width: 300, height: 200 }) }, getContext: () => ctx, handlers: {} as Record<string, Function>, addEventListener(event: string, fn: Function) { this.handlers[event] = fn; }, querySelectorAll: () => [] });
     return elements.get(id);
   };
-  const document = { getElementById: element, querySelectorAll: () => [], documentElement: { dataset: { theme: "dark" } } };
-  const sandbox = createContext({ document, fetch: () => new Promise(() => {}), localStorage: { getItem: () => null }, addEventListener() {}, setInterval() {}, setTimeout() {}, getComputedStyle: () => ({ getPropertyValue: () => "" }), devicePixelRatio: 1, Intl, Number, Date, String, Object, Array, Math, Promise, URLSearchParams, encodeURIComponent });
+  const document = { addEventListener() {}, getElementById: element, querySelectorAll: () => [], documentElement: { dataset: { theme: "dark" } } };
+  const sandbox = createContext({ AbortController, clearTimeout() {}, document, fetch: () => new Promise(() => {}), localStorage: { getItem: () => null }, addEventListener() {}, setInterval() {}, setTimeout() {}, getComputedStyle: () => ({ getPropertyValue: () => "" }), devicePixelRatio: 1, Intl, Number, Date, String, Object, Array, Math, Promise, URLSearchParams, encodeURIComponent });
   runInContext(readFileSync(new URL("../public/app.js", import.meta.url), "utf8"), sandbox);
   runInContext('state = {paused:true,settings:{symbol:"BTC/USDT",orderSizeUsdt:10,paperTradeSizeUsdt:12,maxTrades:5,maxConcurrentPositions:60,intervalMinutes:15},supportedSymbols:["BTC/USDT"],metrics:{},health:{},orders:[],trades:[],snapshots:[]};render()', sandbox);
   expect(element("paper-order-size").value).toBe(12);

@@ -65,3 +65,12 @@ describe("OKX Spot history", () => {
     expect(fetchPage).not.toHaveBeenCalled();
   });
 });
+
+it('collects hourly closed bars with hourly pagination/grid and rejects a missing hour',async()=>{
+ const hour=3600000,from=Date.parse('2026-11-01T00:00:00Z'),to=from+3*hour;
+ const fetchPage=vi.fn().mockResolvedValue(page(row(from+2*hour),row(from+hour),row(from)));
+ expect((await collectOkxSpotHistory(fetchPage,'BTC-USDT',from,to,to,'1H')).map(c=>c.timestamp)).toEqual([from,from+hour,from+2*hour]);
+ expect(fetchPage.mock.calls[0]![0]).toMatchObject({bar:'1H',after:String(to)});
+ await expect(collectOkxSpotHistory(async()=>page(row(from+2*hour),row(from)),'BTC-USDT',from,to,to,'1H')).rejects.toThrow('Missing confirmed');
+ await expect(collectOkxSpotHistory(fetchPage,'BTC-USDT',from+900000,to,to,'1H')).rejects.toThrow('Invalid OKX history window');
+});

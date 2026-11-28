@@ -1,7 +1,7 @@
 import { symbolEntryBlock, type MarketEligibilityPolicy, type MarketScreen } from "./market-eligibility.js";
 import type { FilledDemoBuy } from "./demo-exit-supervisor.js";
 import type { PairCooldown } from "./pair-cooldown.js";
-import type { DemoAdmission } from "./demo-entry.js";
+import type { DemoAdmission, DemoEquityRiskResult } from "./demo-entry.js";
 import { BTC_REGIME_HISTORY, REGIME_CANDLE_MS, btcRegimeBlock } from "./btc-regime.js";
 import { initialExitRates, type ExitPolicy } from "./exit-policy.js";
 import type { PublicMarketData, MarketDataProvider } from "./market-data.js";
@@ -23,6 +23,7 @@ export type ScanStatistics = {
 };
 
 type BotOptions = {
+  configurationHash?: string;
   symbol: string;
   candleLimit: number;
   btcRegimeFilter?: boolean;
@@ -30,6 +31,7 @@ type BotOptions = {
   aiFailureMode?: "reject" | "quantitative";
   minimumSignalScore?: number;
   signalScanSymbols?: string[];
+  eligibleDemoSymbols?: () => Promise<Set<string>>;
   dynamicUniverseSize?: number;
   scanConcurrency?: number;
   scanRequestBudget?: number;
@@ -45,7 +47,7 @@ type BotOptions = {
   demoExecutor?: Pick<OkxDemoExecutor, "executeApprovedBuy"> & Partial<Pick<OkxDemoExecutor, "executeApprovedSell">>;
   inspectEntryMarket?: (symbol: string) => Promise<DemoEntryMarketCheck>;
   verifyFilledDemoBuy?: (buy: FilledDemoBuy) => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
-  verifyDemoExecutionSafety?: () => Promise<{ status: "safe" } | { status: "blocked"; reason: string }>;
+  verifyDemoExecutionSafety?: () => Promise<DemoEquityRiskResult>;
   inspectDemoEntry?: (symbol: string, stopLossRate: number) => Promise<DemoAdmission>;
   inspectDemoPositions?: () => Promise<{ status: "safe"; positions: Array<{ symbol: string }> } | { status: "blocked"; reason: string }>;
   ai?: GeminiRiskFilter;
@@ -156,8 +158,8 @@ export class TradingBot {
       if (safety.status !== "safe") {
         this.demoExecutionBlocked = true;
         await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason);
-        await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "WARN", { symbol: this.options.symbol, approved: false, reason: safety.reason });
-        console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
+        await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "WARN", { symbol: this.options.symbol, approved: false, ...safety });
+        console.error(JSON.stringify({ event: "demo_execution_blocked", ...safety }));
         return;
       }
     }
@@ -220,7 +222,7 @@ export class TradingBot {
     if (this.observedPaused) return;
     const paperTrader = await this.getPaperTrader(executionSymbol);
     const { strategyId } = paperTrader.configuration;
-    const executionCandles = executionSymbol === this.options.symbol
+    let executionCandles = executionSymbol === this.options.symbol
       ? candles
       : this.scanCache?.candles.get(executionSymbol)?.slice(-this.options.candleLimit)
         ?? await this.market.fetchClosedCandles(executionSymbol, this.options.candleLimit);
@@ -228,6 +230,7 @@ export class TradingBot {
     if (!executionLatest) throw new Error(`Market data provider returned no closed candles for ${executionSymbol}`);
     const lastProcessedCandle = this.lastProcessedCandleBySymbol.get(executionSymbol);
     const paperCursor = lastProcessedCandle ?? paperTrader.exportState().position?.entryTimestamp;
+    executionCandles = await this.recoverPaperCandles(paperTrader, executionSymbol, paperCursor, executionCandles);
     const supervised = this.supervisedPaper.get(executionSymbol);
     const supervisedCurrent = supervised?.timestamp === executionLatest.timestamp ? supervised : undefined;
     const unseenCandles = supervisedCurrent ? [executionLatest] : paperCursor === undefined
@@ -430,7 +433,8 @@ export class TradingBot {
         approved = false;
         this.demoExecutionBlocked = true;
         await this.options.persistence?.setPaused(true, "system:demo_execution_safety", safety.reason);
-        console.error(JSON.stringify({ event: "demo_execution_blocked", reason: safety.reason }));
+        await this.recordOperationalEvent("DEMO_ENTRY_DECISION", "WARN", { approved: false, ...safety });
+        console.error(JSON.stringify({ event: "demo_execution_blocked", ...safety }));
       }
     }
 
@@ -532,6 +536,8 @@ export class TradingBot {
           symbol: executionSymbol, candleTimestamp: currentCandle.timestamp,
           approved: admission.allowed, stage: "portfolio_admission", reason: admission.reason ?? "demo_preflight_passed",
           ...(admission.exposure ? { exposure: admission.exposure } : {}),
+          ...(admission.riskEvidence ? { riskEvidence: admission.riskEvidence } : {}),
+          ...(admission.attributionReason ? { attributionReason: admission.attributionReason } : {}),
         });
       }
     }
@@ -783,6 +789,24 @@ export class TradingBot {
       currentDrawdownPercent: snapshot.currentDrawdownPercent, dailyLossPercent }));
   }
 
+  private lastAccessFailureCandle: number | undefined;
+  private readonly historyRecoveryAttempts = new Map<string, number>();
+  private async recoverPaperCandles(trader: PaperTrader, symbol: string, cursor: number | undefined, candles: Candle[]): Promise<Candle[]> {
+    const through = candles.at(-1)?.timestamp;
+    const unseen = cursor === undefined ? [] : candles.filter(c => c.timestamp > cursor);
+    const gap = cursor !== undefined && unseen.some((c,i) => c.timestamp !== cursor + (i+1)*900_000);
+    if (!trader.hasOpenPosition || cursor === undefined || through === undefined || !gap ||
+      typeof this.market.fetchRecoveryCandles !== 'function') return candles;
+    const now = Date.now();
+    if (now - (this.historyRecoveryAttempts.get(symbol) ?? 0) < 300_000) return candles;
+    this.historyRecoveryAttempts.set(symbol, now);
+    try {
+      const recovered = await this.market.fetchRecoveryCandles(symbol, cursor, through);
+      await this.recordOperationalEvent('PAPER_HISTORY_RECOVERED', 'INFO', { symbol, from: cursor, through, candles: recovered.length });
+      return recovered;
+    } catch { return candles; }
+  }
+
   private async paperHistoryGap(trader: PaperTrader, symbol: string, cursor: number | undefined, candles: Candle[]): Promise<boolean> {
     if (!trader.hasOpenPosition || cursor === undefined) return false;
     let last = cursor;
@@ -822,7 +846,13 @@ export class TradingBot {
     }
   }
 
-  private async supervisePaperPositions(principalCandles: Candle[], controlRevision?: string): Promise<void> {
+  /** Recovery-only path before an automatic resume. Never submits exchange orders. */
+  async reconcilePaperOnly(controlRevision?: string): Promise<void> {
+    const candles = await this.market.fetchClosedCandles(this.options.symbol, this.options.candleLimit);
+    await this.supervisePaperPositions(candles, controlRevision, true);
+  }
+
+  private async supervisePaperPositions(principalCandles: Candle[], controlRevision?: string, paperOnly = false): Promise<void> {
     const positions = [...(this.options.tradeManager?.activePositions ?? [])];
     const principal = this.options.paperTrader.exportState().position;
     if (principal && !positions.some(position => position.symbol === this.options.symbol)) {
@@ -830,9 +860,10 @@ export class TradingBot {
     }
     for (const position of positions) {
       const trader = await this.getPaperTrader(position.symbol);
-      const candles = position.symbol === this.options.symbol
+      let candles = position.symbol === this.options.symbol
         ? principalCandles : await this.market.fetchClosedCandles(position.symbol, this.options.candleLimit);
       const last = this.lastProcessedCandleBySymbol.get(position.symbol) ?? position.openedAt;
+      candles = await this.recoverPaperCandles(trader, position.symbol, last, candles);
       const unseen = candles.filter(c => c.timestamp > last);
       if (await this.paperHistoryGap(trader, position.symbol, last, unseen)) continue;
       for (const candle of unseen) {
@@ -854,8 +885,10 @@ export class TradingBot {
         }
         this.supervisedPaper.set(position.symbol, { timestamp: candle.timestamp, result });
         this.logPaperResult(candle, result, replayed, position.symbol);
-        await this.sendTradeAlerts(position.symbol, result.events, replayed);
-        if (!replayed) await this.executeContraryDemoSell(position.symbol, candle.timestamp, result);
+        if (!paperOnly) {
+          await this.sendTradeAlerts(position.symbol, result.events, replayed);
+          if (!replayed) await this.executeContraryDemoSell(position.symbol, candle.timestamp, result);
+        }
         this.lastProcessedCandleBySymbol.set(position.symbol, candle.timestamp);
         if (result.events.some(e => e.type === "CLOSED")) {
           this.options.tradeManager?.recordExit(position.symbol);
@@ -935,7 +968,23 @@ export class TradingBot {
         return [];
       });
     }
-    const entryAllowed = (symbol: string) => !symbolEntryBlock(symbol, this.options.marketEligibility) &&
+    let accountSymbols: Set<string> | undefined;
+    if (this.options.eligibleDemoSymbols) {
+      try {
+        accountSymbols = await this.options.eligibleDemoSymbols();
+        if (this.lastAccessFailureCandle !== undefined) {
+          await this.recordOperationalEvent('SIGNAL_ACCOUNT_AVAILABILITY_RECOVERED', 'INFO', { candleTimestamp: timestamp, availableSymbols: accountSymbols.size });
+          this.lastAccessFailureCandle = undefined;
+        }
+      } catch {
+        accountSymbols = new Set();
+        if (this.lastAccessFailureCandle !== timestamp) {
+          await this.recordOperationalEvent('SIGNAL_ACCOUNT_AVAILABILITY_BLOCKED', 'WARN', { reason: 'demo_account_instruments_unconfirmed', candleTimestamp: timestamp });
+          this.lastAccessFailureCandle = timestamp;
+        }
+      }
+    }
+    const entryAllowed = (symbol: string) => (accountSymbols === undefined || accountSymbols.has(symbol)) && !symbolEntryBlock(symbol, this.options.marketEligibility) &&
       (typeof this.market.screenSpotSymbols !== "function" || Boolean(cache.screening?.eligible.includes(symbol)));
     this.activeUniverse = this.activeUniverse.filter(entryAllowed);
     const allowedConfigured = configuredSymbols.filter(entryAllowed);
@@ -1170,7 +1219,7 @@ export class TradingBot {
         eventType,
         severity,
         symbol: this.options.symbol,
-        details,
+        details: { ...details, ...(this.options.configurationHash ? { configurationHash: this.options.configurationHash } : {}) },
       });
     } catch (error) {
       console.error(JSON.stringify({

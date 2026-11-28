@@ -1,0 +1,22 @@
+{
+  "protocol": "volatility-exit-development-v1",
+  "referenceStudySha256": "d09d84a1df93330abaf253d203c4acc11ec96d7c5c74e2b42609dc8a9c647919",
+  "sourceStudySha256": "d2b600cf11f0b0c06ff9b7743f682f55c37676f064d64ae7ab76430533e31856",
+  "sizes": [
+    10,
+    30
+  ],
+  "variants": [
+    "reference",
+    "atr-floor-0.75",
+    "net-trailing-with-target",
+    "net-trailing-no-target"
+  ],
+  "rules": {
+    "minimumAtrRate": 0.0075,
+    "netActivationRate": 0.012,
+    "trailingMultiplier": 1.5,
+    "activationBasis": "surviving_candle_close"
+  },
+  "minimumClosedTradesPerRun": 30
+}
