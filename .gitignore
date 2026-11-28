@@ -39,3 +39,8 @@ coverage/
 .maker-pullback-reproduction/
 .maker-hour-source-artifact/
 .maker-frozen-artifact/
+
+.compression-minute-source/
+.compression-retest-results/
+.compression-retest-reproduction/
+.compression-frozen-artifact/
