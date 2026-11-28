@@ -47,7 +47,8 @@
     "strategy:trend-horizon": "node dist/trend-horizon-cli.js",
     "session:export": "node dist/session-export-cli.js",
     "strategy:opportunities": "node dist/opportunity-diagnosis-cli.js",
-    "strategy:channel-continuation": "node dist/channel-continuation-cli.js"
+    "strategy:channel-continuation": "node dist/channel-continuation-cli.js",
+    "strategy:maker-pullback": "node dist/maker-pullback-cli.js"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
