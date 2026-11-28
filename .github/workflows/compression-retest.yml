@@ -48,10 +48,34 @@ jobs:
         with:
           path: .compression-minute-source
           key: compression-minutes-v1-${{ hashFiles('examples/compression-retest.plan.json') }}
+      - uses: actions/download-artifact@v4
+        if: hashFiles('.compression-minute-source/minutes.json') == '' && hashFiles('docs/compression-retest-results.json') != ''
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 46170768079
+          name: compression-retest-research
+          path: .compression-frozen-artifact
+      - name: Restore and verify exact minute source before replay instead of silently recollecting
+        if: hashFiles('docs/compression-retest-results.json') != ''
+        run: |
+          if [ ! -f .compression-minute-source/minutes.json ]; then
+            mkdir -p .compression-minute-source
+            cp .compression-frozen-artifact/.compression-minute-source/minutes.json .compression-minute-source/minutes.json
+          fi
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {semanticHash} from './dist/cost-experiments.js';
+          const expected=JSON.parse(fs.readFileSync('docs/compression-retest-results.json','utf8'));
+          const micro=JSON.parse(fs.readFileSync('.compression-minute-source/minutes.json','utf8'));
+          if(semanticHash(micro)!==expected.minuteSourceSha256)throw new Error('Frozen compression minute source changed');
+          JS
       - name: Collect only requested public confirmed entry-hour minutes and evaluate frozen hypothesis
         run: |
           mkdir -p .compression-minute-source
           npm run strategy:compression-retest -- --collect .trend-horizon-source/normalized-data.json .compression-minute-source/minutes.json .compression-retest-results
+      - name: Reconcile fills, expiry, costs, owned excursions and trailing feasibility without retuning
+        run: node scripts/compression-retest-diagnosis.mjs .trend-horizon-source/normalized-data.json .compression-minute-source/minutes.json .compression-retest-results .compression-retest-results/diagnosis.json
       - name: Reproduce same minute source and ledger without network access
         run: |
           npm run strategy:compression-retest -- --replay .trend-horizon-source/normalized-data.json .compression-minute-source/minutes.json .compression-retest-reproduction

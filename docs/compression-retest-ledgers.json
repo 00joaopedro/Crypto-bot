@@ -1,0 +1,232 @@
+{
+  "protocol": "compression-retest-development-v1",
+  "protocolFrozenCommit": "a8a5dd973db08685725cd79546e222d88a625793",
+  "minuteSourceSha256": "41597bafcc228485d6c92223463f3becbf22379c8e7d6a32f429c341bf2a5092",
+  "runs": [
+    {
+      "scenario": "maker-taker-reference",
+      "orders": [
+        {
+          "id": "BTC/USDT:1787821200000",
+          "symbol": "BTC/USDT",
+          "placedAt": 1787821200000,
+          "expiresAt": 1787821500000,
+          "limit": 79172.6,
+          "quantity": 0.0000322,
+          "cashBeforeUsdt": 17,
+          "initialReservedUsdt": 2.5493577199999997,
+          "freeCashAfterReservationUsdt": 14.45064228,
+          "projectedNetRewardRisk": 1.6250424446621707
+        },
+        {
+          "id": "SOL/USDT:1788015600000",
+          "symbol": "SOL/USDT",
+          "placedAt": 1788015600000,
+          "expiresAt": 1788015900000,
+          "limit": 104.4,
+          "quantity": 0.016283,
+          "cashBeforeUsdt": 17,
+          "initialReservedUsdt": 1.6999452,
+          "freeCashAfterReservationUsdt": 15.3000548,
+          "projectedNetRewardRisk": 1.717229128688648
+        },
+        {
+          "id": "SOL/USDT:1788094800000",
+          "symbol": "SOL/USDT",
+          "placedAt": 1788094800000,
+          "expiresAt": 1788095100000,
+          "limit": 105.71,
+          "quantity": 0.016081,
+          "cashBeforeUsdt": 17,
+          "initialReservedUsdt": 1.6999225100000002,
+          "freeCashAfterReservationUsdt": 15.30007749,
+          "projectedNetRewardRisk": 1.6198239726243842
+        },
+        {
+          "id": "BTC/USDT:1788109200000",
+          "symbol": "BTC/USDT",
+          "placedAt": 1788109200000,
+          "expiresAt": 1788109500000,
+          "limit": 78967.9,
+          "quantity": 0.00003229,
+          "cashBeforeUsdt": 17,
+          "initialReservedUsdt": 2.5498734909999996,
+          "freeCashAfterReservationUsdt": 14.450126509,
+          "projectedNetRewardRisk": 1.6350231910873079
+        },
+        {
+          "id": "SOL/USDT:1788631200000",
+          "symbol": "SOL/USDT",
+          "placedAt": 1788631200000,
+          "expiresAt": 1788631500000,
+          "limit": 103.52,
+          "quantity": 0.016421,
+          "cashBeforeUsdt": 17,
+          "initialReservedUsdt": 1.69990192,
+          "freeCashAfterReservationUsdt": 15.30009808,
+          "projectedNetRewardRisk": 1.9791080842497641
+        },
+        {
+          "id": "ETH/USDT:1788660000000",
+          "symbol": "ETH/USDT",
+          "placedAt": 1788660000000,
+          "expiresAt": 1788660300000,
+          "limit": 2493.3,
+          "quantity": 0.000681,
+          "cashBeforeUsdt": 17,
+          "initialReservedUsdt": 1.6979373,
+          "freeCashAfterReservationUsdt": 15.3020627,
+          "projectedNetRewardRisk": 1.8758106574714661
+        },
+        {
+          "id": "SOL/USDT:1790438400000",
+          "symbol": "SOL/USDT",
+          "placedAt": 1790438400000,
+          "expiresAt": 1790438700000,
+          "limit": 121.61,
+          "quantity": 0.013979,
+          "cashBeforeUsdt": 17,
+          "initialReservedUsdt": 1.69998619,
+          "freeCashAfterReservationUsdt": 15.30001381,
+          "projectedNetRewardRisk": 1.8106575463571744
+        },
+        {
+          "id": "ETH/USDT:1790474400000",
+          "symbol": "ETH/USDT",
+          "placedAt": 1790474400000,
+          "expiresAt": 1790474700000,
+          "limit": 2696.73,
+          "quantity": 0.00063,
+          "cashBeforeUsdt": 17,
+          "initialReservedUsdt": 1.6989399,
+          "freeCashAfterReservationUsdt": 15.3010601,
+          "projectedNetRewardRisk": 1.5382635370071684
+        },
+        {
+          "id": "SOL/USDT:1791108000000",
+          "symbol": "SOL/USDT",
+          "placedAt": 1791108000000,
+          "expiresAt": 1791108300000,
+          "limit": 121.31,
+          "quantity": 0.014013,
+          "cashBeforeUsdt": 17,
+          "initialReservedUsdt": 1.69991703,
+          "freeCashAfterReservationUsdt": 15.30008297,
+          "projectedNetRewardRisk": 1.7831035529369863
+        }
+      ],
+      "events": [
+        {
+          "type": "order_terminal",
+          "id": "BTC/USDT:1787821200000",
+          "status": "canceled",
+          "filledQuantity": 0,
+          "receivedBase": 0,
+          "reservedUsdt": 0
+        },
+        {
+          "type": "order_terminal",
+          "id": "SOL/USDT:1788015600000",
+          "status": "canceled",
+          "filledQuantity": 0,
+          "receivedBase": 0,
+          "reservedUsdt": 0
+        },
+        {
+          "type": "order_terminal",
+          "id": "SOL/USDT:1788094800000",
+          "status": "canceled",
+          "filledQuantity": 0,
+          "receivedBase": 0,
+          "reservedUsdt": 0
+        },
+        {
+          "type": "order_terminal",
+          "id": "BTC/USDT:1788109200000",
+          "status": "canceled",
+          "filledQuantity": 0,
+          "receivedBase": 0,
+          "reservedUsdt": 0
+        },
+        {
+          "type": "order_terminal",
+          "id": "SOL/USDT:1788631200000",
+          "status": "canceled",
+          "filledQuantity": 0,
+          "receivedBase": 0,
+          "reservedUsdt": 0
+        },
+        {
+          "type": "order_terminal",
+          "id": "ETH/USDT:1788660000000",
+          "status": "canceled",
+          "filledQuantity": 0,
+          "receivedBase": 0,
+          "reservedUsdt": 0
+        },
+        {
+          "type": "order_terminal",
+          "id": "SOL/USDT:1790438400000",
+          "status": "canceled",
+          "filledQuantity": 0,
+          "receivedBase": 0,
+          "reservedUsdt": 0
+        },
+        {
+          "type": "order_terminal",
+          "id": "ETH/USDT:1790474400000",
+          "status": "canceled",
+          "filledQuantity": 0,
+          "receivedBase": 0,
+          "reservedUsdt": 0
+        },
+        {
+          "type": "maker_fill",
+          "id": "SOL/USDT:1791108000000",
+          "timestamp": 1791108060000,
+          "quantity": 0.014013,
+          "status": "filled",
+          "cashUsdt": 15.30008297,
+          "reservedUsdt": 0,
+          "freeCashUsdt": 15.30008297
+        },
+        {
+          "type": "order_terminal",
+          "id": "SOL/USDT:1791108000000",
+          "status": "filled",
+          "filledQuantity": 0.014013,
+          "receivedBase": 0.013998987,
+          "reservedUsdt": 0
+        },
+        {
+          "type": "position_closed",
+          "symbol": "SOL/USDT",
+          "timestamp": 1791208800000,
+          "reservedUsdt": 0
+        }
+      ],
+      "closedTradeLedger": [
+        {
+          "symbol": "SOL/USDT",
+          "entryTimestamp": 1791108060000,
+          "exitTimestamp": 1791208800000,
+          "entryNotionalUsdt": 1.69991703,
+          "netPnlUsdt": -0.0381557058784161,
+          "feesUsdt": 0.008373657287516401,
+          "quantity": 0.013998,
+          "entryPrice": 121.31,
+          "exitPrice": 119.19096045,
+          "reason": "STOP_LOSS",
+          "dustQuantity": 9.86999999999169e-7,
+          "holdingMinutesUpperBound": 1739
+        }
+      ]
+    },
+    {
+      "scenario": "maker-taker-adverse",
+      "orders": [],
+      "events": [],
+      "closedTradeLedger": []
+    }
+  ]
+}
