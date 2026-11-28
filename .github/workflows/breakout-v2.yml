@@ -4,10 +4,14 @@ on:
     paths:
       - 'src/breakout-v2-*.ts'
       - 'src/swing-v2-ledger.ts'
+      - 'src/final-round-decision.ts'
+      - 'tests/final-round-decision.test.ts'
       - 'examples/breakout-v2*.json'
       - 'tests/breakout-v2*.test.ts'
       - 'docs/breakout-v2*'
       - 'scripts/breakout-v2-diagnosis.mjs'
+      - 'scripts/final-round-decision.mjs'
+      - 'docs/final-round-decision*'
       - '.github/workflows/breakout-v2.yml'
 permissions:
   contents: read
@@ -31,7 +35,7 @@ jobs:
           path: .breakout-v2-data
           key: breakout-v2-final-${{ hashFiles('examples/breakout-v2.plan.json') }}
       - uses: actions/download-artifact@v4
-        if: hashFiles('.breakout-v2-data/development-hours.json') == ''
+        if: hashFiles('.breakout-v2-data/development-hours.json') == '' && hashFiles('docs/breakout-v2-results.json') == ''
         with:
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -39,12 +43,37 @@ jobs:
           name: swing-v2-research
           path: .breakout-v2-hour-artifact
       - name: Reuse first180day source without changing historical evidence
-        if: hashFiles('.breakout-v2-data/development-hours.json') == ''
+        if: hashFiles('.breakout-v2-data/development-hours.json') == '' && hashFiles('docs/breakout-v2-results.json') == ''
         run: |
           mkdir -p .breakout-v2-data
           cp .breakout-v2-hour-artifact/.swing-v2-data/development-hours.json .breakout-v2-data/development-hours.json
+      - uses: actions/download-artifact@v4
+        if: hashFiles('docs/breakout-v2-results.json') != '' && (hashFiles('.breakout-v2-data/development-hours.json') == '' || hashFiles('.breakout-v2-data/development-minutes.json') == '')
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 46180273417
+          name: breakout-v2-research
+          path: .breakout-v2-frozen-artifact
+      - name: Restore and verify first source before replay, never silently recollect
+        if: hashFiles('docs/breakout-v2-results.json') != ''
+        run: |
+          mkdir -p .breakout-v2-data
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {semanticHash} from './dist/cost-experiments.js';
+          const expected=JSON.parse(fs.readFileSync('docs/breakout-v2-results.json','utf8'));
+          for(const phase of expected.phases)for(const kind of ['hours','minutes']){
+            const name=phase.name+'-'+kind+'.json',p='.breakout-v2-data/'+name;
+            if(!fs.existsSync(p))fs.copyFileSync('.breakout-v2-frozen-artifact/.breakout-v2-data/'+name,p);
+            if(semanticHash(JSON.parse(fs.readFileSync(p,'utf8')))!==phase[kind+'Sha256'])throw new Error('Frozen breakout source changed: '+name);
+          }
+          if(!expected.independentDataCollected&&['hours','minutes'].some(k=>fs.existsSync('.breakout-v2-data/independent-'+k+'.json')))throw new Error('Reserved independent data must remain unopened');
+          JS
       - name: Collect only confirmed public signal/event minutes and replay frozen rules
         run: npm run strategy:breakout-v2 -- --collect .breakout-v2-data .breakout-v2-results
+      - name: Reconcile every fill, fee, excursion and trailing event without retuning
+        run: node scripts/breakout-v2-diagnosis.mjs .breakout-v2-data .breakout-v2-results .breakout-v2-results/diagnosis.json
       - name: Reproduce source and ledger offline
         run: |
           npm run strategy:breakout-v2 -- --replay .breakout-v2-data .breakout-v2-reproduction
@@ -53,6 +82,13 @@ jobs:
           if [ -f docs/breakout-v2-results.json ]; then
             diff -u docs/breakout-v2-results.json .breakout-v2-results/summary.json
             diff -u docs/breakout-v2-ledgers.json .breakout-v2-results/ledgers.json
+            diff -u docs/breakout-v2-diagnosis.json .breakout-v2-results/diagnosis.json
+          fi
+      - name: Reproduce final-round decision without changing operating services
+        run: |
+          node scripts/final-round-decision.mjs .breakout-v2-results/summary.json .breakout-v2-results/final-decision.json
+          if [ -f docs/final-round-decision.json ]; then
+            diff -u docs/final-round-decision.json .breakout-v2-results/final-decision.json
           fi
       - uses: actions/upload-artifact@v4
         if: always()

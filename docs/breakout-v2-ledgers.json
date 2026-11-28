@@ -1,0 +1,1297 @@
+{
+  "protocol": "compression-breakout-v2-final-round-v1",
+  "protocolFrozenCommit": "4b95763f1f57d5ab1bdf89c69e5ceb44116bf76a",
+  "phases": [
+    {
+      "name": "development",
+      "hoursSha256": "2448736721b5c165f789d13737cc07d675fd79d4c76afae018e059e4f8fc8310",
+      "minutesSha256": "c8256d448774fcecf23dbbfd85e18843017fd0e84c28f93036430723128a785f",
+      "runs": [
+        {
+          "scenario": "maker-target-standard",
+          "orders": [
+            {
+              "id": "ETH/USDT:1781208000000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1781208000000,
+              "expiresAt": 1781222400000,
+              "limit": 1676.01,
+              "initialStop": 1632.69,
+              "quantity": 0.001014,
+              "projectedTarget": 1852.15,
+              "projectedNetRiskUsdt": 0.05668215138890309,
+              "projectedNetRR": 3.000096603296664,
+              "initialReserveUsdt": 1.69947414
+            },
+            {
+              "id": "SOL/USDT:1781942400000",
+              "symbol": "SOL/USDT",
+              "placedAt": 1781942400000,
+              "expiresAt": 1781956800000,
+              "limit": 70.22,
+              "initialStop": 68.54,
+              "quantity": 0.02441,
+              "projectedTarget": 76.93,
+              "projectedNetRiskUsdt": 0.052322099486581175,
+              "projectedNetRR": 3.0004721730941424,
+              "initialReserveUsdt": 1.7140702
+            },
+            {
+              "id": "ETH/USDT:1781971200000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1781971200000,
+              "expiresAt": 1781985600000,
+              "limit": 1736.23,
+              "initialStop": 1704.15,
+              "quantity": 0.000987,
+              "projectedTarget": 1873.8,
+              "projectedNetRiskUsdt": 0.043018281559749516,
+              "projectedNetRR": 3.000120646590371,
+              "initialReserveUsdt": 1.71365901
+            },
+            {
+              "id": "ETH/USDT:1782763200000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1782763200000,
+              "expiresAt": 1782777600000,
+              "limit": 1599.39,
+              "initialStop": 1566.24,
+              "quantity": 0.001069,
+              "projectedTarget": 1742.37,
+              "projectedNetRiskUsdt": 0.048168654083466045,
+              "projectedNetRR": 3.000051232616232,
+              "initialReserveUsdt": 1.7097479100000001
+            },
+            {
+              "id": "ETH/USDT:1782921600000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1782921600000,
+              "expiresAt": 1782936000000,
+              "limit": 1606.4,
+              "initialStop": 1569.4,
+              "quantity": 0.001064,
+              "projectedTarget": 1761.13,
+              "projectedNetRiskUsdt": 0.05207991920739152,
+              "projectedNetRR": 3.0001532953727033,
+              "initialReserveUsdt": 1.7092096
+            },
+            {
+              "id": "BTC/USDT:1783296000000",
+              "symbol": "BTC/USDT",
+              "placedAt": 1783296000000,
+              "expiresAt": 1783310400000,
+              "limit": 63564.5,
+              "initialStop": 62890.4,
+              "quantity": 0.00004034,
+              "projectedTarget": 67164.7,
+              "projectedNetRiskUsdt": 0.04489153155158698,
+              "projectedNetRR": 3.000087178152691,
+              "initialReserveUsdt": 2.56419193
+            },
+            {
+              "id": "ETH/USDT:1785960000000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1785960000000,
+              "expiresAt": 1785974400000,
+              "limit": 1888.11,
+              "initialStop": 1860.41,
+              "quantity": 0.000903,
+              "projectedTarget": 2016.97,
+              "projectedNetRiskUsdt": 0.0365120333693556,
+              "projectedNetRR": 3.0000886940999134,
+              "initialReserveUsdt": 1.70496333
+            },
+            {
+              "id": "SOL/USDT:1787788800000",
+              "symbol": "SOL/USDT",
+              "placedAt": 1787788800000,
+              "expiresAt": 1787803200000,
+              "limit": 98.97,
+              "initialStop": 95.67,
+              "quantity": 0.01723,
+              "projectedTarget": 111.22,
+              "projectedNetRiskUsdt": 0.06803912758973385,
+              "projectedNetRR": 3.0007108663453956,
+              "initialReserveUsdt": 1.7052531
+            },
+            {
+              "id": "ETH/USDT:1788940800000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1788940800000,
+              "expiresAt": 1788955200000,
+              "limit": 2511.76,
+              "initialStop": 2474.82,
+              "quantity": 0.000678,
+              "projectedTarget": 2687.16,
+              "projectedNetRiskUsdt": 0.037143518946515686,
+              "projectedNetRR": 3.0000752586338564,
+              "initialReserveUsdt": 1.7029732800000001
+            },
+            {
+              "id": "ETH/USDT:1790337600000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1790337600000,
+              "expiresAt": 1790352000000,
+              "limit": 2710.05,
+              "initialStop": 2656.94,
+              "quantity": 0.000627,
+              "projectedTarget": 2940.18,
+              "projectedNetRiskUsdt": 0.0455101652625165,
+              "projectedNetRR": 3.000118759598141,
+              "initialReserveUsdt": 1.69920135
+            },
+            {
+              "id": "ETH/USDT:1790928000000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1790928000000,
+              "expiresAt": 1790942400000,
+              "limit": 2731.94,
+              "initialStop": 2692.48,
+              "quantity": 0.000621,
+              "projectedTarget": 2922.06,
+              "projectedNetRiskUsdt": 0.03678539283198745,
+              "projectedNetRR": 3.000119506892378,
+              "initialReserveUsdt": 1.6965347400000002
+            },
+            {
+              "id": "ETH/USDT:1791158400000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1791158400000,
+              "expiresAt": 1791172800000,
+              "limit": 2712.31,
+              "initialStop": 2692.12,
+              "quantity": 0.000625,
+              "projectedTarget": 2844.26,
+              "projectedNetRiskUsdt": 0.024959692252351617,
+              "projectedNetRR": 3.0001095584474795,
+              "initialReserveUsdt": 1.69519375
+            },
+            {
+              "id": "ETH/USDT:1793116800000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1793116800000,
+              "expiresAt": 1793131200000,
+              "limit": 2348.05,
+              "initialStop": 2310,
+              "quantity": 0.000722,
+              "projectedTarget": 2521.67,
+              "projectedNetRiskUsdt": 0.03934836806597031,
+              "projectedNetRR": 3.000018020773129,
+              "initialReserveUsdt": 1.6952921
+            },
+            {
+              "id": "ETH/USDT:1793592000000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1793592000000,
+              "expiresAt": 1793606400000,
+              "limit": 2281.07,
+              "initialStop": 2259.45,
+              "quantity": 0.000742,
+              "projectedTarget": 2403.58,
+              "projectedNetRiskUsdt": 0.02791797248693051,
+              "projectedNetRR": 3.000022600092235,
+              "initialReserveUsdt": 1.6925539400000003
+            }
+          ],
+          "events": [
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1781208000000",
+              "timestamp": 1781209620000,
+              "quantity": 0.001014,
+              "price": 1676.01,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1781209680000,
+              "target": 1852.15,
+              "quantity": 0.001012
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1781208000000",
+              "status": "filled",
+              "filledQuantity": 0.001014,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "protection_updated",
+              "symbol": "ETH/USDT",
+              "timestamp": 1781522760000,
+              "effectiveFrom": 1781522760000,
+              "oldStop": 1632.69,
+              "newStop": 1700.3,
+              "initialNetRiskUsdt": 0.05668215138890309
+            },
+            {
+              "type": "trailing_armed",
+              "symbol": "ETH/USDT",
+              "timestamp": 1781529420000,
+              "initialNetRiskUsdt": 0.05668215138890309
+            },
+            {
+              "type": "trailing_updated",
+              "symbol": "ETH/USDT",
+              "timestamp": 1781539200000,
+              "effectiveFrom": 1781539200000,
+              "oldStop": 1700.3,
+              "newStop": 1828.88,
+              "highestClosedHigh": 1849.4
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1781542980000,
+              "net": 1.84019588049848,
+              "fee": 0.007390344901600321,
+              "reserve": 0,
+              "quantity": 0.001012,
+              "price": 1825.6780883400002,
+              "role": "taker"
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "SOL/USDT:1781942400000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1781971200000",
+              "timestamp": 1781971260000,
+              "quantity": 0.000987,
+              "price": 1736.23,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1781971320000,
+              "target": 1873.8,
+              "quantity": 0.000986
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1781971200000",
+              "status": "filled",
+              "filledQuantity": 0.000987,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1782076140000,
+              "net": 1.6706407284402505,
+              "fee": 0.0067094005158243,
+              "reserve": 0,
+              "quantity": 0.000986,
+              "price": 1701.1664593875,
+              "role": "taker"
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1782763200000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1782921600000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_fill",
+              "id": "BTC/USDT:1783296000000",
+              "timestamp": 1783296060000,
+              "quantity": 0.00004034,
+              "price": 63564.5,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "BTC/USDT",
+              "effectiveFrom": 1783296120000,
+              "target": 67164.7,
+              "quantity": 0.00004029
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "BTC/USDT:1783296000000",
+              "status": "filled",
+              "filledQuantity": 0.00004034,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "BTC/USDT",
+              "timestamp": 1783326960000,
+              "net": 2.519300398448413,
+              "fee": 0.010117672282925353,
+              "reserve": 0,
+              "quantity": 0.00004029,
+              "price": 62780.2946322,
+              "role": "taker"
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1785960000000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "SOL/USDT:1787788800000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1788940800000",
+              "timestamp": 1788940800000,
+              "quantity": 0.000678,
+              "price": 2511.76,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1788940860000,
+              "target": 2687.16,
+              "quantity": 0.000677
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1788940800000",
+              "status": "filled",
+              "filledQuantity": 0.000678,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1788967320000,
+              "net": 1.6658297610534845,
+              "fee": 0.006690079361660581,
+              "reserve": 0,
+              "quantity": 0.000677,
+              "price": 2470.487208885,
+              "role": "taker"
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1790337600000",
+              "timestamp": 1790338380000,
+              "quantity": 0.000627,
+              "price": 2710.05,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1790338440000,
+              "target": 2940.18,
+              "quantity": 0.000626
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1790337600000",
+              "status": "filled",
+              "filledQuantity": 0.000627,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1790560140000,
+              "net": 1.6536911847374833,
+              "fee": 0.006641330059186681,
+              "reserve": 0,
+              "quantity": 0.000626,
+              "price": 2652.288362295,
+              "role": "taker"
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1790928000000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1791158400000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1793116800000",
+              "timestamp": 1793116800000,
+              "quantity": 0.000722,
+              "price": 2348.05,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1793116860000,
+              "target": 2521.67,
+              "quantity": 0.000721
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1793116800000",
+              "status": "filled",
+              "filledQuantity": 0.000722,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1793239200000,
+              "net": 1.65594373193403,
+              "fee": 0.00665037643347,
+              "reserve": 0,
+              "quantity": 0.000721,
+              "price": 2305.9557675,
+              "role": "taker"
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1793592000000",
+              "timestamp": 1793604900000,
+              "quantity": 0.000742,
+              "price": 2281.07,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1793604960000,
+              "target": 2403.58,
+              "quantity": 0.000741
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1793592000000",
+              "status": "filled",
+              "filledQuantity": 0.000742,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1793640360000,
+              "net": 1.6646359675130695,
+              "fee": 0.006685285010092649,
+              "reserve": 0,
+              "quantity": 0.000741,
+              "price": 2255.4942679124997,
+              "role": "taker"
+            }
+          ],
+          "closedTradeLedger": [
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1781209620000,
+              "exitTimestamp": 1781542980000,
+              "entryPrice": 1676.01,
+              "initialStop": 1632.69,
+              "finalStop": 1828.88,
+              "target": 1852.15,
+              "entryNotionalUsdt": 1.69947414,
+              "initialQuantity": 0.001012,
+              "netPnlUsdt": 0.14072174049847996,
+              "feesUsdt": 0.009089819041600321,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 9.859999999999123e-7,
+              "initialNetRiskUsdt": 0.05668215138890309,
+              "reason": "TRAILING_STOP",
+              "protectionActivated": true,
+              "trailingArmed": true,
+              "trailingUpdated": true,
+              "entryOrderId": "ETH/USDT:1781208000000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1781971260000,
+              "exitTimestamp": 1782076140000,
+              "entryPrice": 1736.23,
+              "initialStop": 1704.15,
+              "finalStop": 1704.15,
+              "target": 1873.8,
+              "entryNotionalUsdt": 1.71365901,
+              "initialQuantity": 0.000986,
+              "netPnlUsdt": -0.043018281559749516,
+              "feesUsdt": 0.0084230595258243,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 1.3000000000096268e-8,
+              "initialNetRiskUsdt": 0.043018281559749516,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1781971200000"
+            },
+            {
+              "symbol": "BTC/USDT",
+              "entryTimestamp": 1783296060000,
+              "exitTimestamp": 1783326960000,
+              "entryPrice": 63564.5,
+              "initialStop": 62890.4,
+              "finalStop": 62890.4,
+              "target": 67164.7,
+              "entryNotionalUsdt": 2.56419193,
+              "initialQuantity": 0.00004029,
+              "netPnlUsdt": -0.04489153155158698,
+              "feesUsdt": 0.012681864212925352,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 9.659999999998142e-9,
+              "initialNetRiskUsdt": 0.04489153155158698,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "BTC/USDT:1783296000000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1788940800000,
+              "exitTimestamp": 1788967320000,
+              "entryPrice": 2511.76,
+              "initialStop": 2474.82,
+              "finalStop": 2474.82,
+              "target": 2687.16,
+              "entryNotionalUsdt": 1.7029732800000001,
+              "initialQuantity": 0.000677,
+              "netPnlUsdt": -0.037143518946515686,
+              "feesUsdt": 0.00839305264166058,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 3.219999999999742e-7,
+              "initialNetRiskUsdt": 0.037143518946515686,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1788940800000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1790338380000,
+              "exitTimestamp": 1790560140000,
+              "entryPrice": 2710.05,
+              "initialStop": 2656.94,
+              "finalStop": 2656.94,
+              "target": 2940.18,
+              "entryNotionalUsdt": 1.69920135,
+              "initialQuantity": 0.000626,
+              "netPnlUsdt": -0.04551016526251672,
+              "feesUsdt": 0.008340531409186681,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 3.7299999999990986e-7,
+              "initialNetRiskUsdt": 0.0455101652625165,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1790337600000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1793116800000,
+              "exitTimestamp": 1793239200000,
+              "entryPrice": 2348.05,
+              "initialStop": 2310,
+              "finalStop": 2310,
+              "target": 2521.67,
+              "entryNotionalUsdt": 1.6952921,
+              "initialQuantity": 0.000721,
+              "netPnlUsdt": -0.039348368065970085,
+              "feesUsdt": 0.00834566853347,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 2.7800000000004037e-7,
+              "initialNetRiskUsdt": 0.03934836806597031,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1793116800000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1793604900000,
+              "exitTimestamp": 1793640360000,
+              "entryPrice": 2281.07,
+              "initialStop": 2259.45,
+              "finalStop": 2259.45,
+              "target": 2403.58,
+              "entryNotionalUsdt": 1.6925539400000003,
+              "initialQuantity": 0.000741,
+              "netPnlUsdt": -0.02791797248693073,
+              "feesUsdt": 0.008377838950092649,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 2.579999999999423e-7,
+              "initialNetRiskUsdt": 0.02791797248693051,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1793592000000"
+            }
+          ]
+        },
+        {
+          "scenario": "maker-target-adverse",
+          "orders": [
+            {
+              "id": "ETH/USDT:1781208000000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1781208000000,
+              "expiresAt": 1781222400000,
+              "limit": 1676.01,
+              "initialStop": 1632.69,
+              "quantity": 0.001014,
+              "projectedTarget": 1891.75,
+              "projectedNetRiskUsdt": 0.06776571442965995,
+              "projectedNetRR": 3.000141521397373,
+              "initialReserveUsdt": 1.69947414
+            },
+            {
+              "id": "SOL/USDT:1781942400000",
+              "symbol": "SOL/USDT",
+              "placedAt": 1781942400000,
+              "expiresAt": 1781956800000,
+              "limit": 70.22,
+              "initialStop": 68.54,
+              "quantity": 0.024392,
+              "projectedTarget": 78.59,
+              "projectedNetRiskUsdt": 0.0634826642562385,
+              "projectedNetRR": 3.0005662054827975,
+              "initialReserveUsdt": 1.71280624
+            },
+            {
+              "id": "ETH/USDT:1781971200000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1781971200000,
+              "expiresAt": 1781985600000,
+              "limit": 1736.23,
+              "initialStop": 1704.15,
+              "quantity": 0.000986,
+              "projectedTarget": 1915.18,
+              "projectedNetRiskUsdt": 0.054281379064793356,
+              "projectedNetRR": 3.0000785364586107,
+              "initialReserveUsdt": 1.7119227799999999
+            },
+            {
+              "id": "ETH/USDT:1782763200000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1782763200000,
+              "expiresAt": 1782777600000,
+              "limit": 1599.39,
+              "initialStop": 1566.24,
+              "quantity": 0.001067,
+              "projectedTarget": 1779.98,
+              "projectedNetRiskUsdt": 0.0591925806604956,
+              "projectedNetRR": 3.0001015156976774,
+              "initialReserveUsdt": 1.7065491300000002
+            },
+            {
+              "id": "ETH/USDT:1782921600000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1782921600000,
+              "expiresAt": 1782936000000,
+              "limit": 1606.4,
+              "initialStop": 1569.4,
+              "quantity": 0.001062,
+              "projectedTarget": 1798.88,
+              "projectedNetRiskUsdt": 0.06307354814712962,
+              "projectedNetRR": 3.0001639503169724,
+              "initialReserveUsdt": 1.7059968
+            },
+            {
+              "id": "BTC/USDT:1783296000000",
+              "symbol": "BTC/USDT",
+              "placedAt": 1783296000000,
+              "expiresAt": 1783310400000,
+              "limit": 63564.5,
+              "initialStop": 62890.4,
+              "quantity": 0.00004029,
+              "projectedTarget": 68681.6,
+              "projectedNetRiskUsdt": 0.06183059139134217,
+              "projectedNetRR": 3.000026025585756,
+              "initialReserveUsdt": 2.561013705
+            },
+            {
+              "id": "ETH/USDT:1785960000000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1785960000000,
+              "expiresAt": 1785974400000,
+              "limit": 1888.11,
+              "initialStop": 1860.41,
+              "quantity": 0.000901,
+              "projectedTarget": 2062.82,
+              "projectedNetRiskUsdt": 0.04787051593004388,
+              "projectedNetRR": 3.000173664381443,
+              "initialReserveUsdt": 1.70118711
+            },
+            {
+              "id": "SOL/USDT:1787788800000",
+              "symbol": "SOL/USDT",
+              "placedAt": 1787788800000,
+              "expiresAt": 1787803200000,
+              "limit": 98.97,
+              "initialStop": 95.67,
+              "quantity": 0.017189,
+              "projectedTarget": 113.55,
+              "projectedNetRiskUsdt": 0.07890399910354384,
+              "projectedNetRR": 3.000943070683663,
+              "initialReserveUsdt": 1.70119533
+            },
+            {
+              "id": "ETH/USDT:1788940800000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1788940800000,
+              "expiresAt": 1788955200000,
+              "limit": 2511.76,
+              "initialStop": 2474.82,
+              "quantity": 0.000677,
+              "projectedTarget": 2751.88,
+              "projectedNetRiskUsdt": 0.049127007570416215,
+              "projectedNetRR": 3.0000957229927874,
+              "initialReserveUsdt": 1.7004615200000002
+            },
+            {
+              "id": "ETH/USDT:1790337600000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1790337600000,
+              "expiresAt": 1790352000000,
+              "limit": 2710.05,
+              "initialStop": 2656.94,
+              "quantity": 0.000625,
+              "projectedTarget": 3011.2,
+              "projectedNetRiskUsdt": 0.05750185506293337,
+              "projectedNetRR": 3.000095890688104,
+              "initialReserveUsdt": 1.6937812500000002
+            },
+            {
+              "id": "ETH/USDT:1790928000000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1790928000000,
+              "expiresAt": 1790942400000,
+              "limit": 2731.94,
+              "initialStop": 2692.48,
+              "quantity": 0.000618,
+              "projectedTarget": 2994.08,
+              "projectedNetRiskUsdt": 0.048803264322375695,
+              "projectedNetRR": 3.0000329739441685,
+              "initialReserveUsdt": 1.6883389199999999
+            },
+            {
+              "id": "ETH/USDT:1791158400000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1791158400000,
+              "expiresAt": 1791172800000,
+              "limit": 2712.31,
+              "initialStop": 2692.12,
+              "quantity": 0.000623,
+              "projectedTarget": 2915.87,
+              "projectedNetRiskUsdt": 0.037146549693643616,
+              "projectedNetRR": 3.0001539609122894,
+              "initialReserveUsdt": 1.68976913
+            },
+            {
+              "id": "ETH/USDT:1793116800000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1793116800000,
+              "expiresAt": 1793131200000,
+              "limit": 2348.05,
+              "initialStop": 2310,
+              "quantity": 0.000719,
+              "projectedTarget": 2581.34,
+              "projectedNetRiskUsdt": 0.05098360849952055,
+              "projectedNetRR": 3.0001261262742545,
+              "initialReserveUsdt": 1.6882479500000003
+            },
+            {
+              "id": "ETH/USDT:1793592000000",
+              "symbol": "ETH/USDT",
+              "placedAt": 1793592000000,
+              "expiresAt": 1793606400000,
+              "limit": 2281.07,
+              "initialStop": 2259.45,
+              "quantity": 0.000738,
+              "projectedTarget": 2461.45,
+              "projectedNetRiskUsdt": 0.0395568310090757,
+              "projectedNetRR": 3.00017034918168,
+              "initialReserveUsdt": 1.6834296600000003
+            }
+          ],
+          "events": [
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1781208000000",
+              "timestamp": 1781209620000,
+              "quantity": 0.001014,
+              "price": 1676.01,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1781209680000,
+              "target": 1891.75,
+              "quantity": 0.001011
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1781208000000",
+              "status": "filled",
+              "filledQuantity": 0.001014,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "protection_updated",
+              "symbol": "ETH/USDT",
+              "timestamp": 1781528820000,
+              "effectiveFrom": 1781528820000,
+              "oldStop": 1632.69,
+              "newStop": 1714.06,
+              "initialNetRiskUsdt": 0.06776571442965995
+            },
+            {
+              "type": "trailing_armed",
+              "symbol": "ETH/USDT",
+              "timestamp": 1781538420000,
+              "initialNetRiskUsdt": 0.06776571442965995
+            },
+            {
+              "type": "trailing_updated",
+              "symbol": "ETH/USDT",
+              "timestamp": 1781539200000,
+              "effectiveFrom": 1781539200000,
+              "oldStop": 1714.06,
+              "newStop": 1828.88,
+              "highestClosedHigh": 1849.4
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1781542980000,
+              "net": 1.8277804759979441,
+              "fee": 0.01474016512901568,
+              "reserve": 0,
+              "quantity": 0.001011,
+              "price": 1822.47343336,
+              "role": "taker"
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "SOL/USDT:1781942400000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1781971200000",
+              "timestamp": 1781971260000,
+              "quantity": 0.000986,
+              "price": 1736.23,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1781971320000,
+              "target": 1915.18,
+              "quantity": 0.000984
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1781971200000",
+              "status": "filled",
+              "filledQuantity": 0.000986,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1782076140000,
+              "net": 1.6576414009352065,
+              "fee": 0.013368075813993602,
+              "reserve": 0,
+              "quantity": 0.000984,
+              "price": 1698.18036255,
+              "role": "taker"
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1782763200000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1782921600000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_fill",
+              "id": "BTC/USDT:1783296000000",
+              "timestamp": 1783296060000,
+              "quantity": 0.00004029,
+              "price": 63564.5,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "BTC/USDT",
+              "effectiveFrom": 1783296120000,
+              "target": 68681.6,
+              "quantity": 0.0000402
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "BTC/USDT:1783296000000",
+              "status": "filled",
+              "filledQuantity": 0.00004029,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "BTC/USDT",
+              "timestamp": 1783326960000,
+              "net": 2.499183113608658,
+              "fee": 0.02015470252910208,
+              "reserve": 0,
+              "quantity": 0.0000402,
+              "price": 62670.0949288,
+              "role": "taker"
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1785960000000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "SOL/USDT:1787788800000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1788940800000",
+              "timestamp": 1788940800000,
+              "quantity": 0.000677,
+              "price": 2511.76,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1788940860000,
+              "target": 2751.88,
+              "quantity": 0.000675
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1788940800000",
+              "status": "filled",
+              "filledQuantity": 0.000677,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1788967320000,
+              "net": 1.6513345124295842,
+              "fee": 0.013317213809916002,
+              "reserve": 0,
+              "quantity": 0.000675,
+              "price": 2466.15070554,
+              "role": "taker"
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1790337600000",
+              "timestamp": 1790338380000,
+              "quantity": 0.000625,
+              "price": 2710.05,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1790338440000,
+              "target": 3011.2,
+              "quantity": 0.000623
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1790337600000",
+              "status": "filled",
+              "filledQuantity": 0.000625,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1790560140000,
+              "net": 1.6362793949370666,
+              "fee": 0.01319580157207312,
+              "reserve": 0,
+              "quantity": 0.000623,
+              "price": 2647.63273918,
+              "role": "taker"
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1790928000000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1791158400000",
+              "status": "canceled",
+              "filledQuantity": 0,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1793116800000",
+              "timestamp": 1793116800000,
+              "quantity": 0.000719,
+              "price": 2348.05,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1793116860000,
+              "target": 2581.34,
+              "quantity": 0.000717
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1793116800000",
+              "status": "filled",
+              "filledQuantity": 0.000719,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1793239200000,
+              "net": 1.63726434150048,
+              "fee": 0.013203744689519998,
+              "reserve": 0,
+              "quantity": 0.000717,
+              "price": 2301.90807,
+              "role": "taker"
+            },
+            {
+              "type": "buy_fill",
+              "id": "ETH/USDT:1793592000000",
+              "timestamp": 1793604900000,
+              "quantity": 0.000738,
+              "price": 2281.07,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "target_posted",
+              "symbol": "ETH/USDT",
+              "effectiveFrom": 1793604960000,
+              "target": 2461.45,
+              "quantity": 0.000736
+            },
+            {
+              "type": "buy_order_terminal",
+              "id": "ETH/USDT:1793592000000",
+              "status": "filled",
+              "filledQuantity": 0.000738,
+              "reservedUsdt": 0
+            },
+            {
+              "type": "stop_fill",
+              "symbol": "ETH/USDT",
+              "timestamp": 1793640360000,
+              "net": 1.6438728289909246,
+              "fee": 0.013257038943475198,
+              "reserve": 0,
+              "quantity": 0.000736,
+              "price": 2251.5351466499997,
+              "role": "taker"
+            }
+          ],
+          "closedTradeLedger": [
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1781209620000,
+              "exitTimestamp": 1781542980000,
+              "entryPrice": 1676.01,
+              "initialStop": 1632.69,
+              "finalStop": 1828.88,
+              "target": 1891.75,
+              "entryNotionalUsdt": 1.69947414,
+              "initialQuantity": 0.001011,
+              "netPnlUsdt": 0.12830633599794417,
+              "feesUsdt": 0.01813911340901568,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 9.720000000001255e-7,
+              "initialNetRiskUsdt": 0.06776571442965995,
+              "reason": "TRAILING_STOP",
+              "protectionActivated": true,
+              "trailingArmed": true,
+              "trailingUpdated": true,
+              "entryOrderId": "ETH/USDT:1781208000000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1781971260000,
+              "exitTimestamp": 1782076140000,
+              "entryPrice": 1736.23,
+              "initialStop": 1704.15,
+              "finalStop": 1704.15,
+              "target": 1915.18,
+              "entryNotionalUsdt": 1.7119227799999999,
+              "initialQuantity": 0.000984,
+              "netPnlUsdt": -0.054281379064793356,
+              "feesUsdt": 0.0167919213739936,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 2.8000000000007186e-8,
+              "initialNetRiskUsdt": 0.054281379064793356,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1781971200000"
+            },
+            {
+              "symbol": "BTC/USDT",
+              "entryTimestamp": 1783296060000,
+              "exitTimestamp": 1783326960000,
+              "entryPrice": 63564.5,
+              "initialStop": 62890.4,
+              "finalStop": 62890.4,
+              "target": 68681.6,
+              "entryNotionalUsdt": 2.561013705,
+              "initialQuantity": 0.0000402,
+              "netPnlUsdt": -0.06183059139134217,
+              "feesUsdt": 0.025276729939102082,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 9.420000000001682e-9,
+              "initialNetRiskUsdt": 0.06183059139134217,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "BTC/USDT:1783296000000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1788940800000,
+              "exitTimestamp": 1788967320000,
+              "entryPrice": 2511.76,
+              "initialStop": 2474.82,
+              "finalStop": 2474.82,
+              "target": 2751.88,
+              "entryNotionalUsdt": 1.7004615200000002,
+              "initialQuantity": 0.000675,
+              "netPnlUsdt": -0.04912700757041599,
+              "feesUsdt": 0.016718136849916004,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 6.459999999999799e-7,
+              "initialNetRiskUsdt": 0.049127007570416215,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1788940800000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1790338380000,
+              "exitTimestamp": 1790560140000,
+              "entryPrice": 2710.05,
+              "initialStop": 2656.94,
+              "finalStop": 2656.94,
+              "target": 3011.2,
+              "entryNotionalUsdt": 1.6937812500000002,
+              "initialQuantity": 0.000623,
+              "netPnlUsdt": -0.05750185506293359,
+              "feesUsdt": 0.01658336407207312,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 7.499999999999911e-7,
+              "initialNetRiskUsdt": 0.05750185506293337,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1790337600000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1793116800000,
+              "exitTimestamp": 1793239200000,
+              "entryPrice": 2348.05,
+              "initialStop": 2310,
+              "finalStop": 2310,
+              "target": 2581.34,
+              "entryNotionalUsdt": 1.6882479500000003,
+              "initialQuantity": 0.000717,
+              "netPnlUsdt": -0.05098360849952033,
+              "feesUsdt": 0.01658024058952,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 5.620000000000668e-7,
+              "initialNetRiskUsdt": 0.05098360849952055,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1793116800000"
+            },
+            {
+              "symbol": "ETH/USDT",
+              "entryTimestamp": 1793604900000,
+              "exitTimestamp": 1793640360000,
+              "entryPrice": 2281.07,
+              "initialStop": 2259.45,
+              "finalStop": 2259.45,
+              "target": 2461.45,
+              "entryNotionalUsdt": 1.6834296600000003,
+              "initialQuantity": 0.000736,
+              "netPnlUsdt": -0.0395568310090757,
+              "feesUsdt": 0.016623898263475198,
+              "modeledBufferUsdt": 0,
+              "dustQuantity": 5.240000000000106e-7,
+              "initialNetRiskUsdt": 0.0395568310090757,
+              "reason": "STOP_LOSS",
+              "protectionActivated": false,
+              "trailingArmed": false,
+              "trailingUpdated": false,
+              "entryOrderId": "ETH/USDT:1793592000000"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

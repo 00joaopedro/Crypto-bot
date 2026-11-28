@@ -1,0 +1,85 @@
+{
+  "protocol": "two-v2-final-decision-v1",
+  "status": "research_archived_no_approved_candidate",
+  "researchCycleClosed": true,
+  "noV3Authorized": true,
+  "noAutomaticWindowExtension": true,
+  "results": [
+    {
+      "hypothesis": 1,
+      "resultSha256": "ff22ecd6812ccebf1585782814089c068e457b46b2b5fc9d2362560fc3c7ed4e",
+      "protocolFrozenCommit": "6eaf3c19a9cc4f95ecb816899d2f2cf6fafd781e",
+      "economicGo": false,
+      "independentDataCollected": false,
+      "phases": [
+        {
+          "name": "development",
+          "signals": 23,
+          "hoursSha256": "2448736721b5c165f789d13737cc07d675fd79d4c76afae018e059e4f8fc8310",
+          "minutesSha256": "4c695f9124867de1b22812f48da66162620de03326dc2cc086b84bd98f126bfe",
+          "runs": [
+            {
+              "scenario": "maker-target-standard",
+              "closedTrades": 6,
+              "netReturnUsdt": -0.18500755201378283,
+              "profitFactor": 0,
+              "expectancyUsdt": -0.030834592002296657,
+              "maxDrawdownPercent": 1.0882797177281343,
+              "openPosition": null
+            },
+            {
+              "scenario": "maker-target-adverse",
+              "closedTrades": 8,
+              "netReturnUsdt": -0.338387060796169,
+              "profitFactor": 0,
+              "expectancyUsdt": -0.042298382599520956,
+              "maxDrawdownPercent": 1.9905121223304059,
+              "openPosition": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hypothesis": 2,
+      "resultSha256": "2e143f986b7a5b8d8495a42c10f5abb9c01ffa1d829fc2b44b0243944117ca87",
+      "protocolFrozenCommit": "4b95763f1f57d5ab1bdf89c69e5ceb44116bf76a",
+      "economicGo": false,
+      "independentDataCollected": false,
+      "phases": [
+        {
+          "name": "development",
+          "signals": 15,
+          "hoursSha256": "2448736721b5c165f789d13737cc07d675fd79d4c76afae018e059e4f8fc8310",
+          "minutesSha256": "c8256d448774fcecf23dbbfd85e18843017fd0e84c28f93036430723128a785f",
+          "runs": [
+            {
+              "scenario": "maker-target-standard",
+              "closedTrades": 7,
+              "netReturnUsdt": -0.09710809737478598,
+              "profitFactor": 0.591690856609275,
+              "expectancyUsdt": -0.01387258533925568,
+              "maxDrawdownPercent": 1.484263626687536,
+              "openPosition": null
+            },
+            {
+              "scenario": "maker-target-adverse",
+              "closedTrades": 7,
+              "netReturnUsdt": -0.1849749366001383,
+              "profitFactor": 0.4095563546900953,
+              "expectancyUsdt": -0.02642499094287671,
+              "maxDrawdownPercent": 1.9247635387701818,
+              "openPosition": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "recommendedNextAction": "Stop this strategy-development cycle; preserve code/evidence; do not deploy these candidates or fund real trading. Any operational shutdown requires identifying the exact service and reconciling existing positions first.",
+  "repositoryArchived": false,
+  "railwayChanged": false,
+  "ordersSent": 0,
+  "paidAiCalls": false,
+  "realMoneyApproved": false
+}

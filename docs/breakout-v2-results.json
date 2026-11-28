@@ -1,0 +1,413 @@
+{
+  "protocol": "compression-breakout-v2-final-round-v1",
+  "protocolFileSha256": "ad5ddfc5c473dce35189a280784aaf19173005f62940573ce017d4f3f34921ec",
+  "protocolFrozenCommit": "4b95763f1f57d5ab1bdf89c69e5ceb44116bf76a",
+  "status": "no_go_final_round_closed",
+  "economicGo": false,
+  "finalRound": {
+    "thisHypothesis": 2,
+    "secondHypothesisV2Executed": true,
+    "priorH1EconomicGo": false,
+    "priorH1ResultSha256": "ff22ecd6812ccebf1585782814089c068e457b46b2b5fc9d2362560fc3c7ed4e",
+    "researchCycleClosed": true,
+    "archiveResearch": true,
+    "repositoryArchived": false,
+    "operationalServicesChanged": false,
+    "noV3Authorized": true
+  },
+  "phases": [
+    {
+      "name": "development",
+      "window": {
+        "evaluationStartUtc": "2026-05-26T00:00:00Z",
+        "endExclusiveUtc": "2026-11-22T00:00:00Z",
+        "days": 180,
+        "warmupHours": 1000
+      },
+      "signalCount": 15,
+      "funnel": [
+        {
+          "symbol": "BTC/USDT",
+          "decisions": 1080,
+          "rawSignals": 2,
+          "transitions": 2,
+          "signals": 2,
+          "invalidStopRejected": 0,
+          "passed": {
+            "compression": 264,
+            "relative_atr": 543,
+            "breakout": 92,
+            "volume": 288,
+            "body": 167,
+            "atr_valid": 1080
+          }
+        },
+        {
+          "symbol": "ETH/USDT",
+          "decisions": 1080,
+          "rawSignals": 11,
+          "transitions": 11,
+          "signals": 11,
+          "invalidStopRejected": 0,
+          "passed": {
+            "compression": 269,
+            "relative_atr": 555,
+            "breakout": 69,
+            "volume": 266,
+            "body": 164,
+            "atr_valid": 1080
+          }
+        },
+        {
+          "symbol": "SOL/USDT",
+          "decisions": 1080,
+          "rawSignals": 2,
+          "transitions": 2,
+          "signals": 2,
+          "invalidStopRejected": 0,
+          "passed": {
+            "compression": 227,
+            "relative_atr": 580,
+            "breakout": 79,
+            "volume": 255,
+            "body": 178,
+            "atr_valid": 1080
+          }
+        }
+      ],
+      "hoursSha256": "2448736721b5c165f789d13737cc07d675fd79d4c76afae018e059e4f8fc8310",
+      "minutesSha256": "c8256d448774fcecf23dbbfd85e18843017fd0e84c28f93036430723128a785f",
+      "minuteCoverage": {
+        "completeWindows": 70,
+        "missingWindows": 0,
+        "catalogueMatchedFrozenRules": true
+      },
+      "status": "no_go",
+      "economicPassed": false,
+      "checks": [
+        {
+          "scenario": "maker-target-standard",
+          "complete": true,
+          "sample": false,
+          "pf": false,
+          "net": false,
+          "ev": false,
+          "blocks": false,
+          "drawdown": true,
+          "withoutTop3": false
+        },
+        {
+          "scenario": "maker-target-adverse",
+          "complete": true,
+          "sample": false,
+          "pf": false,
+          "net": false,
+          "ev": false,
+          "blocks": false,
+          "drawdown": true,
+          "withoutTop3": false
+        }
+      ],
+      "runs": [
+        {
+          "status": "modeled_replay_complete",
+          "scenario": "maker-target-standard",
+          "closedTrades": 7,
+          "realizedPnlUsdt": -0.09710809737478976,
+          "grossWinsUsdt": 0.14072174049847996,
+          "grossLossesUsdt": 0.23782983787326972,
+          "profitFactor": 0.591690856609275,
+          "profitFactorKind": "finite",
+          "expectancyUsdt": -0.01387258533925568,
+          "winRatePercent": 14.285714285714286,
+          "topWinningTradePnLsUsdt": [
+            0.14072174049847996
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.23782983787326972,
+          "top3ProfitConcentrationWarning": true,
+          "netReturnUsdt": -0.09710809737478598,
+          "finalEquityUsdt": 16.902891902625214,
+          "maxDrawdownUsdt": 0.25466335187130795,
+          "maxDrawdownPercent": 1.484263626687536,
+          "recoveryFactor": -0.38131948182264863,
+          "blocks": [
+            {
+              "name": "D1-D60",
+              "complete": true,
+              "netReturnUsdt": 0.05281192738714324,
+              "closedTrades": 3,
+              "realizedPnlUsdt": 0.052811927387143465,
+              "grossWinsUsdt": 0.14072174049847996,
+              "grossLossesUsdt": 0.0879098131113365,
+              "profitFactor": 1.6007512189823214,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": 0.017603975795714488,
+              "winRatePercent": 33.333333333333336,
+              "topWinningTradePnLsUsdt": [
+                0.14072174049847996
+              ],
+              "top3TradesProfitSharePercent": 100,
+              "realizedPnlWithoutTop3Usdt": -0.0879098131113365,
+              "top3ProfitConcentrationWarning": true
+            },
+            {
+              "name": "D61-D120",
+              "complete": true,
+              "netReturnUsdt": -0.037143518946514575,
+              "closedTrades": 1,
+              "realizedPnlUsdt": -0.037143518946515686,
+              "grossWinsUsdt": 0,
+              "grossLossesUsdt": 0.037143518946515686,
+              "profitFactor": 0,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": -0.037143518946515686,
+              "winRatePercent": 0,
+              "topWinningTradePnLsUsdt": [],
+              "top3TradesProfitSharePercent": null,
+              "realizedPnlWithoutTop3Usdt": -0.037143518946515686,
+              "top3ProfitConcentrationWarning": false
+            },
+            {
+              "name": "D121-D180",
+              "complete": true,
+              "netReturnUsdt": -0.11277650581541465,
+              "closedTrades": 3,
+              "realizedPnlUsdt": -0.11277650581541754,
+              "grossWinsUsdt": 0,
+              "grossLossesUsdt": 0.11277650581541754,
+              "profitFactor": 0,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": -0.03759216860513918,
+              "winRatePercent": 0,
+              "topWinningTradePnLsUsdt": [],
+              "top3TradesProfitSharePercent": null,
+              "realizedPnlWithoutTop3Usdt": -0.11277650581541754,
+              "top3ProfitConcentrationWarning": false
+            }
+          ],
+          "bySymbol": [
+            {
+              "symbol": "BTC/USDT",
+              "closedTrades": 1,
+              "realizedPnlUsdt": -0.04489153155158698,
+              "grossWinsUsdt": 0,
+              "grossLossesUsdt": 0.04489153155158698,
+              "profitFactor": 0,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": -0.04489153155158698,
+              "winRatePercent": 0,
+              "topWinningTradePnLsUsdt": [],
+              "top3TradesProfitSharePercent": null,
+              "realizedPnlWithoutTop3Usdt": -0.04489153155158698,
+              "top3ProfitConcentrationWarning": false
+            },
+            {
+              "symbol": "ETH/USDT",
+              "closedTrades": 6,
+              "realizedPnlUsdt": -0.052216565823202776,
+              "grossWinsUsdt": 0.14072174049847996,
+              "grossLossesUsdt": 0.19293830632168274,
+              "profitFactor": 0.7293613341036436,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": -0.008702760970533796,
+              "winRatePercent": 16.666666666666668,
+              "topWinningTradePnLsUsdt": [
+                0.14072174049847996
+              ],
+              "top3TradesProfitSharePercent": 100,
+              "realizedPnlWithoutTop3Usdt": -0.19293830632168274,
+              "top3ProfitConcentrationWarning": true
+            },
+            {
+              "symbol": "SOL/USDT",
+              "closedTrades": 0,
+              "realizedPnlUsdt": 0,
+              "grossWinsUsdt": 0,
+              "grossLossesUsdt": 0,
+              "profitFactor": null,
+              "profitFactorKind": "undefined",
+              "expectancyUsdt": null,
+              "winRatePercent": null,
+              "topWinningTradePnLsUsdt": [],
+              "top3TradesProfitSharePercent": null,
+              "realizedPnlWithoutTop3Usdt": 0,
+              "top3ProfitConcentrationWarning": false
+            }
+          ],
+          "ordersPlaced": 14,
+          "ordersWithFills": 7,
+          "closedMakerTargets": 0,
+          "closedTakerStops": 7,
+          "feesUsdt": 0.06365183431475988,
+          "modeledBufferUsdt": 0,
+          "rejected": {
+            "position_occupied": 1
+          },
+          "openPosition": null,
+          "ordersSent": 0,
+          "realMoneyApproved": false
+        },
+        {
+          "status": "modeled_replay_complete",
+          "scenario": "maker-target-adverse",
+          "closedTrades": 7,
+          "realizedPnlUsdt": -0.18497493660013697,
+          "grossWinsUsdt": 0.12830633599794417,
+          "grossLossesUsdt": 0.31328127259808114,
+          "profitFactor": 0.4095563546900953,
+          "profitFactorKind": "finite",
+          "expectancyUsdt": -0.02642499094287671,
+          "winRatePercent": 14.285714285714286,
+          "topWinningTradePnLsUsdt": [
+            0.12830633599794417
+          ],
+          "top3TradesProfitSharePercent": 100,
+          "realizedPnlWithoutTop3Usdt": -0.31328127259808114,
+          "top3ProfitConcentrationWarning": true,
+          "netReturnUsdt": -0.1849749366001383,
+          "finalEquityUsdt": 16.81502506339986,
+          "maxDrawdownUsdt": 0.33000121450977105,
+          "maxDrawdownPercent": 1.9247635387701818,
+          "recoveryFactor": -0.5605280479798397,
+          "blocks": [
+            {
+              "name": "D1-D60",
+              "complete": true,
+              "netReturnUsdt": 0.012194365541809304,
+              "closedTrades": 3,
+              "realizedPnlUsdt": 0.012194365541808638,
+              "grossWinsUsdt": 0.12830633599794417,
+              "grossLossesUsdt": 0.11611197045613553,
+              "profitFactor": 1.1050224666234167,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": 0.004064788513936213,
+              "winRatePercent": 33.333333333333336,
+              "topWinningTradePnLsUsdt": [
+                0.12830633599794417
+              ],
+              "top3TradesProfitSharePercent": 100,
+              "realizedPnlWithoutTop3Usdt": -0.11611197045613553,
+              "top3ProfitConcentrationWarning": true
+            },
+            {
+              "name": "D61-D120",
+              "complete": true,
+              "netReturnUsdt": -0.04912700757041577,
+              "closedTrades": 1,
+              "realizedPnlUsdt": -0.04912700757041599,
+              "grossWinsUsdt": 0,
+              "grossLossesUsdt": 0.04912700757041599,
+              "profitFactor": 0,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": -0.04912700757041599,
+              "winRatePercent": 0,
+              "topWinningTradePnLsUsdt": [],
+              "top3TradesProfitSharePercent": null,
+              "realizedPnlWithoutTop3Usdt": -0.04912700757041599,
+              "top3ProfitConcentrationWarning": false
+            },
+            {
+              "name": "D121-D180",
+              "complete": true,
+              "netReturnUsdt": -0.14804229457153184,
+              "closedTrades": 3,
+              "realizedPnlUsdt": -0.14804229457152962,
+              "grossWinsUsdt": 0,
+              "grossLossesUsdt": 0.14804229457152962,
+              "profitFactor": 0,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": -0.04934743152384321,
+              "winRatePercent": 0,
+              "topWinningTradePnLsUsdt": [],
+              "top3TradesProfitSharePercent": null,
+              "realizedPnlWithoutTop3Usdt": -0.14804229457152962,
+              "top3ProfitConcentrationWarning": false
+            }
+          ],
+          "bySymbol": [
+            {
+              "symbol": "BTC/USDT",
+              "closedTrades": 1,
+              "realizedPnlUsdt": -0.06183059139134217,
+              "grossWinsUsdt": 0,
+              "grossLossesUsdt": 0.06183059139134217,
+              "profitFactor": 0,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": -0.06183059139134217,
+              "winRatePercent": 0,
+              "topWinningTradePnLsUsdt": [],
+              "top3TradesProfitSharePercent": null,
+              "realizedPnlWithoutTop3Usdt": -0.06183059139134217,
+              "top3ProfitConcentrationWarning": false
+            },
+            {
+              "symbol": "ETH/USDT",
+              "closedTrades": 6,
+              "realizedPnlUsdt": -0.1231443452087948,
+              "grossWinsUsdt": 0.12830633599794417,
+              "grossLossesUsdt": 0.25145068120673897,
+              "profitFactor": 0.5102644199736831,
+              "profitFactorKind": "finite",
+              "expectancyUsdt": -0.020524057534799134,
+              "winRatePercent": 16.666666666666668,
+              "topWinningTradePnLsUsdt": [
+                0.12830633599794417
+              ],
+              "top3TradesProfitSharePercent": 100,
+              "realizedPnlWithoutTop3Usdt": -0.25145068120673897,
+              "top3ProfitConcentrationWarning": true
+            },
+            {
+              "symbol": "SOL/USDT",
+              "closedTrades": 0,
+              "realizedPnlUsdt": 0,
+              "grossWinsUsdt": 0,
+              "grossLossesUsdt": 0,
+              "profitFactor": null,
+              "profitFactorKind": "undefined",
+              "expectancyUsdt": null,
+              "winRatePercent": null,
+              "topWinningTradePnLsUsdt": [],
+              "top3TradesProfitSharePercent": null,
+              "realizedPnlWithoutTop3Usdt": 0,
+              "top3ProfitConcentrationWarning": false
+            }
+          ],
+          "ordersPlaced": 14,
+          "ordersWithFills": 7,
+          "closedMakerTargets": 0,
+          "closedTakerStops": 7,
+          "feesUsdt": 0.1267134044970957,
+          "modeledBufferUsdt": 0,
+          "rejected": {
+            "position_occupied": 1
+          },
+          "openPosition": null,
+          "ordersSent": 0,
+          "realMoneyApproved": false
+        }
+      ]
+    }
+  ],
+  "independentDataCollected": false,
+  "independentReservation": {
+    "evaluationStartUtc": "2025-10-01T00:00:00Z",
+    "endExclusiveUtc": "2025-12-30T00:00:00Z",
+    "days": 90,
+    "warmupHours": 1000
+  },
+  "limitations": [
+    "180-day development includes previously consulted90days; it is not independent. Separate earlier historical holdout is consulted only on a predeclared development pass, and is not chronological forward validation or certification of all outside human consultation history.",
+    "Maker0.1% entry/target and taker0.4% stops are user-reported account quotes applied as model rates, not authenticated historical fills. Actual queue, maker role, latency and native protection are unverified.",
+    "Maker target executes at its resting limit. A separate modeled execution reserve is charged for uncertainty and explicitly excluded from actual exchange fee claims. Stop friction is modeled in the taker price.",
+    "Entry and event-hour1m use trade-through/participation assumptions; touch is no fill. Stop-first, no target on new-fill minute, and minute-close protection/closed4h trailing effective next minute are conventions, not a rigorous portfolio lower bound.",
+    "Current/public quantity/tick rules do not certify historical minima, minimum notional, private access or real available funds. Partial residual below protectable minimum blocks the model.",
+    "Projected+0.2R protected stop is not a guaranteed profit under gaps, failures or slippage. Real balance0;17USDT is simulated. No real order, paid AI, merge, deployment, Railway change or current configuration promotion."
+  ],
+  "demoIntegrationApproved": false,
+  "configurationPromoted": false,
+  "realMoneyApproved": false,
+  "ordersSent": 0,
+  "paidAiCalls": false
+}
