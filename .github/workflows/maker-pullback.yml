@@ -1,0 +1,71 @@
+name: Maker pullback (frozen public minute research)
+on:
+  pull_request:
+    paths:
+      - 'src/maker-*.ts'
+      - 'examples/maker-*.json'
+      - 'tests/maker-*.test.ts'
+      - 'docs/maker-*.json'
+      - '.github/workflows/maker-pullback.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: maker-pullback-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  research:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/cache@v4
+        with:
+          path: .trend-horizon-source
+          key: trend-horizon-v1-${{ hashFiles('examples/trend-horizon.plan.json') }}
+      - uses: actions/download-artifact@v4
+        if: hashFiles('.trend-horizon-source/normalized-data.json') == ''
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 45722652141
+          name: okx-hybrid-research
+          path: .maker-hour-source-artifact
+      - name: Restore exact known1h source without new history collection
+        if: hashFiles('.trend-horizon-source/normalized-data.json') == ''
+        run: |
+          mkdir -p .trend-horizon-source
+          cp .maker-hour-source-artifact/.trend-horizon-source/normalized-data.json .trend-horizon-source/normalized-data.json
+      - uses: actions/cache@v4
+        with:
+          path: .maker-minute-source
+          key: maker-minutes-v1-${{ hashFiles('examples/maker-pullback.plan.json') }}
+      - name: Collect only requested public confirmed entry-hour minutes and evaluate frozen hypothesis
+        run: |
+          mkdir -p .maker-minute-source
+          npm run strategy:maker-pullback -- --collect .trend-horizon-source/normalized-data.json .maker-minute-source/minutes.json .maker-pullback-results
+      - name: Reproduce same minute source and ledger without network access
+        run: |
+          npm run strategy:maker-pullback -- --replay .trend-horizon-source/normalized-data.json .maker-minute-source/minutes.json .maker-pullback-reproduction
+          diff -u .maker-pullback-results/summary.json .maker-pullback-reproduction/summary.json
+          diff -u .maker-pullback-results/ledgers.json .maker-pullback-reproduction/ledgers.json
+          if [ -f docs/maker-pullback-results.json ]; then
+            diff -u docs/maker-pullback-results.json .maker-pullback-results/summary.json
+            diff -u docs/maker-pullback-ledgers.json .maker-pullback-results/ledgers.json
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maker-pullback-research
+          path: |
+            .maker-minute-source/
+            .maker-pullback-results/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error

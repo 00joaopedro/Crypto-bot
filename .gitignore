@@ -33,3 +33,9 @@ coverage/
 .trend-frozen-artifact/
 
 .channel-continuation-results/
+
+.maker-minute-source/
+.maker-pullback-results/
+.maker-pullback-reproduction/
+.maker-hour-source-artifact/
+.maker-frozen-artifact/
