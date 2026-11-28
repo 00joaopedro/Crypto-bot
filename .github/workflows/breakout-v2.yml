@@ -1,0 +1,66 @@
+name: Compression breakout v2 (final frozen hypothesis)
+on:
+  pull_request:
+    paths:
+      - 'src/breakout-v2-*.ts'
+      - 'src/swing-v2-ledger.ts'
+      - 'examples/breakout-v2*.json'
+      - 'tests/breakout-v2*.test.ts'
+      - 'docs/breakout-v2*'
+      - 'scripts/breakout-v2-diagnosis.mjs'
+      - '.github/workflows/breakout-v2.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: breakout-v2-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/cache@v4
+        with:
+          path: .breakout-v2-data
+          key: breakout-v2-final-${{ hashFiles('examples/breakout-v2.plan.json') }}
+      - uses: actions/download-artifact@v4
+        if: hashFiles('.breakout-v2-data/development-hours.json') == ''
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 46175882160
+          name: swing-v2-research
+          path: .breakout-v2-hour-artifact
+      - name: Reuse first180day source without changing historical evidence
+        if: hashFiles('.breakout-v2-data/development-hours.json') == ''
+        run: |
+          mkdir -p .breakout-v2-data
+          cp .breakout-v2-hour-artifact/.swing-v2-data/development-hours.json .breakout-v2-data/development-hours.json
+      - name: Collect only confirmed public signal/event minutes and replay frozen rules
+        run: npm run strategy:breakout-v2 -- --collect .breakout-v2-data .breakout-v2-results
+      - name: Reproduce source and ledger offline
+        run: |
+          npm run strategy:breakout-v2 -- --replay .breakout-v2-data .breakout-v2-reproduction
+          diff -u .breakout-v2-results/summary.json .breakout-v2-reproduction/summary.json
+          diff -u .breakout-v2-results/ledgers.json .breakout-v2-reproduction/ledgers.json
+          if [ -f docs/breakout-v2-results.json ]; then
+            diff -u docs/breakout-v2-results.json .breakout-v2-results/summary.json
+            diff -u docs/breakout-v2-ledgers.json .breakout-v2-results/ledgers.json
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: breakout-v2-research
+          path: |
+            .breakout-v2-data/
+            .breakout-v2-results/
+          include-hidden-files: true
+          retention-days: 90
+          if-no-files-found: error

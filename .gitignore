@@ -48,3 +48,8 @@ coverage/
 .swing-v2-results/
 .swing-v2-reproduction/
 .swing-v2-frozen-artifact/
+.breakout-v2-data/
+.breakout-v2-results/
+.breakout-v2-reproduction/
+.breakout-v2-hour-artifact/
+.breakout-v2-frozen-artifact/
