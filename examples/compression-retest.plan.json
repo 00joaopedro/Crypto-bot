@@ -1,0 +1,86 @@
+{
+  "protocol": "compression-retest-development-v1",
+  "experimentBudget": {
+    "strategies": 1,
+    "parameterVariants": 1,
+    "costScenarios": 2,
+    "retuneAfterResults": false
+  },
+  "sourceDatasetSha256": "c86e45083ffbee12859819abe1e9584a5a72b397fe10863c5df458b755ec6dde",
+  "universe": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT"
+  ],
+  "window": {
+    "evaluationStartUtc": "2026-08-24T00:00:00Z",
+    "endExclusiveUtc": "2026-11-22T00:00:00Z",
+    "warmupHours": 1000
+  },
+  "rules": {
+    "BTC/USDT": {
+      "minimumQuantity": 1e-05,
+      "quantityStep": 1e-08,
+      "priceTick": 0.1
+    },
+    "ETH/USDT": {
+      "minimumQuantity": 0.0001,
+      "quantityStep": 1e-06,
+      "priceTick": 0.01
+    },
+    "SOL/USDT": {
+      "minimumQuantity": 0.01,
+      "quantityStep": 1e-06,
+      "priceTick": 0.01
+    }
+  },
+  "rulesSource": "Dated real-account/public rules previously supplied 23Nov2026; missing minimum notional remains unknown. Public catalogue will be checked separately, never silently rewritten.",
+  "feeSource": "User-transcribed real Spot screenshots reported28Nov2026: maker0.10%,taker0.40% in all3pairs. Not authenticated fills/historical rates; real cash0, no deposit required for Paper.",
+  "signal": "Closed4h EMA50>EMA200 and last3 EMA50 increments positive. In1h, each of previous4 ATR14 values <75%of mean of its own previous50 ATR observations. Current close>highestHIGH previous12bars, volume>=1.5*mean previous20volumes, bullish body>=0.5*previousATR14. false->true1h. Limit=floor prior12high; stop=floor prior12low-0.25*previousATR14; target=floor limit+3*(limit-stop).",
+  "execution": "Post at following1h open proxy; limit must be below open*(1+spread/2) else cancel post_only-cross proxy. Expiry5minutes [placedAt,placedAt+300000), no chase/taker conversion. Use confirmed1m throughout entry hour. Fill only low<limit-penetrationTicks*tick, capped by minute base-volume*participation, quantized downward. Touch is no fill. No native book/queue guarantee.",
+  "partial": "Reserve unfilled cash, protect filled inventory immediately in simulation, cancel remainder on exit/timeout. If net sellable partial is below minimum, cancel remainder and block replay with inventory unresolved; no invented subminimum sale. Fees in base on buy, quote on taker sell; dust explicit conservative writeoff.",
+  "intrabar": "Stop-first/gaps; no take-profit credit in a minute containing a new fill. Other entry-hour minutes allow target. Later candles use frozen1h OHLC stop-first/gap model. No same-hour portfolio reuse. Compression trailing never acts on the candle used to propose its update; initial stop remains until a valid future proposal.",
+  "netGate": "Projected netRR>=1.5 and net gain>=2*roundtrip modeled cost; round-down and after-base-fee sellable quantity included. Plannedstoprisk<=1%equity.",
+  "bankUsdt": 17,
+  "lotCeilingUsdt": 10,
+  "riskLimits": {
+    "riskPerTrade": 0.01,
+    "maxExposure": 0.25,
+    "maxAltExposure": 0.1,
+    "maxSymbolExposure": 0.15
+  },
+  "portfolioGuards": "Existing3%daily,10%drawdown new-entry halts and1h cooldown after3losses; no claim of native kill-switch validation.",
+  "scenarios": [
+    {
+      "name": "maker-taker-reference",
+      "makerRate": 0.001,
+      "takerRate": 0.004,
+      "slippageRate": 0.001,
+      "spreadRate": 0.0015,
+      "penetrationTicks": 1,
+      "participationRate": 0.001
+    },
+    {
+      "name": "maker-taker-adverse",
+      "makerRate": 0.002,
+      "takerRate": 0.008,
+      "slippageRate": 0.002,
+      "spreadRate": 0.003,
+      "penetrationTicks": 2,
+      "participationRate": 0.0005
+    }
+  ],
+  "criteria": {
+    "closedTradesEachScenario": 30,
+    "profitFactorGreaterThan": 1.25,
+    "positiveNetAndEV": true,
+    "allThree30DayBlocksPositive": true,
+    "maxDrawdownPercentBelow": 10,
+    "positiveRealizedWithoutTop3": true,
+    "noUnprotectablePartials": true,
+    "completeRequestedMinutes": true
+  },
+  "dataPolicy": "Collect only60confirmed1m bars for each raw signal execution hour inside known development window; duplicate/conflict/gap/hour disagreement blocked. Freeze source before performance replay. Missing minutes =>no90dportfolio result, not zero trades. Candles cannot authenticate maker role, queue/side or exact intrabar path.",
+  "promotion": "Any favorable modeled result is only conditional research screening. No independent-data collection, Demo/real approval, native order, deployment or production parameter change in this execution.",
+  "trailing": "Only after net liquidation PnL at a fully closed1h bar>=2*initial net stop risk of actual filled/sellable position: arm trailing. Use highest closed1h CLOSE since entry minus2*current closed1h ATR14, rounded down. Never lower stop; crossed/invalid proposals ignored; update effective following hour only. No partial exit or independent breakeven."
+}

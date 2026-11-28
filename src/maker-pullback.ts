@@ -6,6 +6,7 @@ import { semanticHash } from './cost-experiments.js';
 import { tradeProfitConcentration } from './backtest-performance.js';
 import { ResearchMakerOrder,type MakerRules } from './maker-research-order.js';
 import { Precise } from 'ccxt';
+import { compressionTrailUpdate } from './compression-trailing.js';
 import type { Candle } from './types.js';
 import type { HybridInstrument } from './hybrid-research-replay.js';
 export const MAKER_CORE=['BTC/USDT','ETH/USDT','SOL/USDT'] as const;
@@ -57,11 +58,12 @@ type Closed={symbol:string;entryTimestamp:number;exitTimestamp:number;entryNotio
 function stats(trades:Closed[]){const gains=trades.reduce((s,t)=>s+Math.max(0,t.netPnlUsdt),0),losses=trades.reduce((s,t)=>s+Math.max(0,-t.netPnlUsdt),0),net=gains-losses;return {closedTrades:trades.length,realizedPnlUsdt:net,profitFactor:losses>0?gains/losses:null,expectancyUsdt:trades.length?net/trades.length:null,winRatePercent:trades.length?100*trades.filter(t=>t.netPnlUsdt>0).length/trades.length:null,...tradeProfitConcentration(trades.map(t=>t.netPnlUsdt),gains,net)};}
 
 /** Minute execution is a declared OHLC/participation model, never proof of queue priority or native fills. */
-export function replayMakerPullback(data:{instruments:HybridInstrument[]},signals:MakerSignal[],micro:MakerMicro,protocol:any,scenario:any){
+export function replayMakerPullback(data:{instruments:HybridInstrument[]},signals:MakerSignal[],micro:MakerMicro,protocol:any,scenario:any,exitPolicy:'fixed'|'compression'='fixed'){
+ if(!['fixed','compression'].includes(exitPolicy))throw new Error('Explicit research exit policy required');
  const missing=validateMakerMicro(data,signals,micro);if(missing.length)return {status:'blocked_missing_minute_data',missingWindows:missing.length,closedTrades:null,ordersSent:0,realMoneyApproved:false};
  const hours=data.instruments.find(d=>d.symbol===MAKER_CORE[0])!.candles15m,windows=new Map(micro.windows.map(w=>[w.symbol+':'+w.hour,w.candles]));
  let cash=17,equity=17,peak=17,dd=0,ddPct=0,fees=0,day=-1,dayStart=17,halted=false;
- type Active={order:ResearchMakerOrder;signal:MakerSignal;entryTimestamp:number};let active:Active|undefined;
+ type Active={order:ResearchMakerOrder;signal:MakerSignal;entryTimestamp:number;stop:number;peakClose:number;armed:boolean};let active:Active|undefined;
  const closed:Closed[]=[],orders:Array<Record<string,unknown>>=[],events:Array<Record<string,unknown>>=[],marks:number[]=[],rejected:Record<string,number>={};
  const reject=(reason:string)=>{rejected[reason]=(rejected[reason]??0)+1;};
  const friction=(1+scenario.slippageRate)*(1+scenario.spreadRate/2)-1;
@@ -69,10 +71,10 @@ export function replayMakerPullback(data:{instruments:HybridInstrument[]},signal
   if(!active)return;const {signal:s,order:o}=active;
   if(o.unprotectablePartial){o.cancel();halted=true;events.push({type:'unprotectable_partial',symbol:s.symbol,timestamp:bar.timestamp,receivedBase:o.receivedBase});return;}
   if(o.receivedBase<=0)return;
-  const stop=bar.low<=s.stop,target=allowTarget&&bar.high>=s.target;
+  const stop=bar.low<=active.stop,target=allowTarget&&bar.high>=s.target;
   if(!stop&&!target)return;
-  const reference=stop?Math.min(bar.open,s.stop):s.target,out=o.close(reference,scenario.takerRate,friction);cash+=out.proceedsUsdt;fees+=out.feesUsdt-o.buyFeesUsdt;
-  closed.push({symbol:s.symbol,entryTimestamp:active.entryTimestamp,exitTimestamp:bar.timestamp,entryNotionalUsdt:o.spentUsdt,netPnlUsdt:out.netPnlUsdt,feesUsdt:out.feesUsdt,quantity:out.quantity,entryPrice:o.limit,exitPrice:out.exitPrice,reason:stop?'STOP_LOSS':'TAKE_PROFIT',dustQuantity:out.dustQuantity,holdingMinutesUpperBound:(bar.timestamp-active.entryTimestamp)/60000+barDuration/60000});
+  const raised=active.stop>s.stop,reference=stop?Math.min(bar.open,active.stop):s.target,out=o.close(reference,scenario.takerRate,friction);cash+=out.proceedsUsdt;fees+=out.feesUsdt-o.buyFeesUsdt;
+  closed.push({symbol:s.symbol,entryTimestamp:active.entryTimestamp,exitTimestamp:bar.timestamp,entryNotionalUsdt:o.spentUsdt,netPnlUsdt:out.netPnlUsdt,feesUsdt:out.feesUsdt,quantity:out.quantity,entryPrice:o.limit,exitPrice:out.exitPrice,reason:stop?(raised?'TRAILING_STOP':'STOP_LOSS'):'TAKE_PROFIT',dustQuantity:out.dustQuantity,holdingMinutesUpperBound:(bar.timestamp-active.entryTimestamp)/60000+barDuration/60000});
   events.push({type:'position_closed',symbol:s.symbol,timestamp:bar.timestamp,reservedUsdt:o.reservedUsdt});active=undefined;
  };
  for(let i=1000;i<hours.length;i++){
@@ -98,7 +100,7 @@ export function replayMakerPullback(data:{instruments:HybridInstrument[]},signal
      o.expire(bar.timestamp);let filledNow=false;
      if((o.status==='live'||o.status==='partially_filled')&&bar.low<s.limit-rules.priceTick*scenario.penetrationTicks){
       const cap=Math.min(o.remainingQuantity,bar.volume*scenario.participationRate),q=cap>0?quantizeQuantityDown(cap,1,rules.quantityStep).quantity:0;
-      if(q>0&&o.fill(o.id+':'+bar.timestamp,q,bar.timestamp)){cash-=q*o.limit;fees+=q*o.limit*scenario.makerRate;filledNow=true;if(!active)active={order:o,signal:s,entryTimestamp:bar.timestamp};events.push({type:'maker_fill',id:o.id,timestamp:bar.timestamp,quantity:q,status:o.status,cashUsdt:cash,reservedUsdt:o.reservedUsdt,freeCashUsdt:cash-o.reservedUsdt});}
+      if(q>0&&o.fill(o.id+':'+bar.timestamp,q,bar.timestamp)){cash-=q*o.limit;fees+=q*o.limit*scenario.makerRate;filledNow=true;if(!active)active={order:o,signal:s,entryTimestamp:bar.timestamp,stop:s.stop,peakClose:o.limit,armed:false};events.push({type:'maker_fill',id:o.id,timestamp:bar.timestamp,quantity:q,status:o.status,cashUsdt:cash,reservedUsdt:o.reservedUsdt,freeCashUsdt:cash-o.reservedUsdt});}
      }
      if(active)closePosition(bar,!filledNow,60000);
      if(halted||o.status==='canceled'&&active===undefined)break;
@@ -107,11 +109,18 @@ export function replayMakerPullback(data:{instruments:HybridInstrument[]},signal
     break;
    }
   }
-  if(active){const bar=data.instruments.find(d=>d.symbol===active!.signal.symbol)!.candles15m[i]!;equity=cash+active.order.sellableQuantity*bar.close*(1-friction)*(1-scenario.takerRate);}else equity=cash;
+  if(active){const d=data.instruments.find(d=>d.symbol===active!.signal.symbol)!,bar=d.candles15m[i]!;
+   if(exitPolicy==='compression'&&!halted){
+    const before=active.stop,next=compressionTrailUpdate({armed:active.armed,stop:active.stop,initialStop:active.signal.stop,peakClose:active.peakClose,close:bar.close,atr:averageTrueRange(d.candles15m.slice(Math.max(0,i-99),i+1),14),quantity:active.order.sellableQuantity,cost:active.order.spentUsdt,taker:scenario.takerRate,friction,tick:protocol.rules[d.symbol].priceTick});
+    active.stop=next.stop;active.peakClose=next.peakClose;active.armed=next.armed;
+    if(next.stop>before)events.push({type:'trailing_stop_updated',symbol:d.symbol,timestamp:bar.timestamp+3600000,effectiveFrom:bar.timestamp+3600000,oldStop:before,newStop:next.stop});
+   }
+   equity=cash+active.order.sellableQuantity*bar.close*(1-friction)*(1-scenario.takerRate);
+  }else equity=cash;
   marks.push(equity);peak=Math.max(peak,equity);dd=Math.max(dd,peak-equity);ddPct=Math.max(ddPct,100*(peak-equity)/peak);
   if(halted)break;
  }
  const blocks=[0,1,2].map(b=>{const from=1000+b*720,to=Math.min(hours.length,from+720),selected=closed.filter(t=>t.exitTimestamp>=hours[from]!.timestamp&&t.exitTimestamp<hours[to-1]!.timestamp+3600000),begin=marks[b*720-1]??17,end=marks[(b+1)*720-1];return {name:`D${b*30+1}-D${b*30+30}`,complete:end!==undefined,netReturnUsdt:end===undefined?null:end-begin,...stats(selected)};});
- return {status:halted?'blocked_unprotectable_partial':'modeled_replay_complete',scenario:scenario.name,...stats(closed),netReturnUsdt:equity-17,finalEquityUsdt:equity,feesUsdt:fees,maxDrawdownUsdt:dd,maxDrawdownPercent:ddPct,recoveryFactor:dd>0?(equity-17)/dd:null,ordersPlaced:orders.length,ordersWithFills:orders.filter(o=>events.some(e=>e.id===o.id&&e.type==='maker_fill')).length,fillEvents:events.filter(e=>e.type==='maker_fill').length,blocks,bySymbol:MAKER_CORE.map(symbol=>({symbol,...stats(closed.filter(t=>t.symbol===symbol))})),rejected,openPosition:active?{symbol:active.signal.symbol,receivedBase:active.order.receivedBase,sellableQuantity:active.order.sellableQuantity,stop:active.signal.stop,target:active.signal.target}:null,closedTradeLedger:closed,orders,events,ordersSent:0,realMoneyApproved:false};
+ return {status:halted?'blocked_unprotectable_partial':'modeled_replay_complete',scenario:scenario.name,...stats(closed),netReturnUsdt:equity-17,finalEquityUsdt:equity,feesUsdt:fees,maxDrawdownUsdt:dd,maxDrawdownPercent:ddPct,recoveryFactor:dd>0?(equity-17)/dd:null,ordersPlaced:orders.length,ordersWithFills:orders.filter(o=>events.some(e=>e.id===o.id&&e.type==='maker_fill')).length,fillEvents:events.filter(e=>e.type==='maker_fill').length,blocks,bySymbol:MAKER_CORE.map(symbol=>({symbol,...stats(closed.filter(t=>t.symbol===symbol))})),rejected,openPosition:active?{symbol:active.signal.symbol,receivedBase:active.order.receivedBase,sellableQuantity:active.order.sellableQuantity,stop:active.stop,target:active.signal.target}:null,closedTradeLedger:closed,orders,events,ordersSent:0,realMoneyApproved:false};
 }
 export function makerSource(data:{instruments:HybridInstrument[]},protocol:any){if(semanticHash(data)!==protocol.sourceDatasetSha256)throw new Error('Frozen maker source identity mismatch');return scanMakerPullbacks(data,protocol);}
