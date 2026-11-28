@@ -44,3 +44,7 @@ coverage/
 .compression-retest-results/
 .compression-retest-reproduction/
 .compression-frozen-artifact/
+.swing-v2-data/
+.swing-v2-results/
+.swing-v2-reproduction/
+.swing-v2-frozen-artifact/
