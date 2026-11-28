@@ -1,0 +1,332 @@
+{
+  "protocol": "maker-pullback-development-v1",
+  "protocolFileSha256": "3ae37a9f920c1c42b1a1e30ab5aa39d8c2e29c3c20d00a57ae6d74aeb2839f62",
+  "protocolFrozenCommit": "23f0627759ba3476604d81901fb137ff20ae90a5",
+  "sourceDatasetSha256": "c86e45083ffbee12859819abe1e9584a5a72b397fe10863c5df458b755ec6dde",
+  "minuteSourceSha256": "44b9ef6de474a1ad83861d141538d10afced695a25f4088fc7f4dc5d0d60890b",
+  "window": {
+    "evaluationStartUtc": "2026-08-24T00:00:00Z",
+    "endExclusiveUtc": "2026-11-22T00:00:00Z",
+    "warmupHours": 1000
+  },
+  "bankUsdt": 17,
+  "lotCeilingUsdt": 10,
+  "signalCount": 59,
+  "funnel": [
+    {
+      "symbol": "BTC/USDT",
+      "decisions": 2159,
+      "rawSignals": 17,
+      "transitions": 16,
+      "signals": 16,
+      "passed": {
+        "regime": 739,
+        "previous_above": 973,
+        "touch": 1498,
+        "recovery": 973,
+        "green": 1060,
+        "rejection": 821,
+        "atr_valid": 2159
+      }
+    },
+    {
+      "symbol": "ETH/USDT",
+      "decisions": 2159,
+      "rawSignals": 25,
+      "transitions": 23,
+      "signals": 23,
+      "passed": {
+        "regime": 747,
+        "previous_above": 987,
+        "touch": 1507,
+        "recovery": 987,
+        "green": 1074,
+        "rejection": 871,
+        "atr_valid": 2159
+      }
+    },
+    {
+      "symbol": "SOL/USDT",
+      "decisions": 2159,
+      "rawSignals": 21,
+      "transitions": 20,
+      "signals": 20,
+      "passed": {
+        "regime": 743,
+        "previous_above": 943,
+        "touch": 1521,
+        "recovery": 943,
+        "green": 1025,
+        "rejection": 798,
+        "atr_valid": 2159
+      }
+    }
+  ],
+  "minuteCoverage": {
+    "requestedWindows": 59,
+    "completeWindows": 59,
+    "missingWindows": 0,
+    "catalogueMatchedFrozenRules": true
+  },
+  "checks": [
+    {
+      "scenario": "maker-taker-reference",
+      "complete": true,
+      "sample": false,
+      "pf": false,
+      "ev": false,
+      "net": false,
+      "blocks": false,
+      "drawdown": true,
+      "withoutTop3": false
+    },
+    {
+      "scenario": "maker-taker-adverse",
+      "complete": true,
+      "sample": false,
+      "pf": false,
+      "ev": false,
+      "net": false,
+      "blocks": false,
+      "drawdown": true,
+      "withoutTop3": false
+    }
+  ],
+  "economicScreenPassed": false,
+  "status": "blocked_no_eligible_candidate",
+  "limitations": [
+    "Maker/taker rates are user-reported real-account quotes, not authenticated historical fills. Real cash is0, planned bank17. No private account queries.",
+    "Minute trade-through, posting spread proxy and volume participation are fill assumptions; candles do not show side, queue priority, latency or actual maker execution. Not a native Demo test.",
+    "Five-minute order life, partials/cancel/reservations/fees and unprotectable inventory are simulated. Stop-first and no target in a new-fill minute are intrabar conventions, not a rigorous lower bound on portfolio profit.",
+    "Current matched public quantity/tick rules do not certify historical rules, minimum notional or account instrument access. Dust is recorded and conservatively written off, never treated as a new position sale.",
+    "Development data already consulted; no selection/retuning after results, no independent period collected. Favorable simulation would still require separate data and native execution validation."
+  ],
+  "independentDataCollected": false,
+  "demoIntegrationApproved": false,
+  "configurationPromoted": false,
+  "realMoneyApproved": false,
+  "ordersSent": 0,
+  "paidAiCalls": false,
+  "runs": [
+    {
+      "status": "modeled_replay_complete",
+      "scenario": "maker-taker-reference",
+      "closedTrades": 0,
+      "realizedPnlUsdt": 0,
+      "profitFactor": null,
+      "expectancyUsdt": null,
+      "winRatePercent": null,
+      "topWinningTradePnLsUsdt": [],
+      "top3TradesProfitSharePercent": null,
+      "realizedPnlWithoutTop3Usdt": 0,
+      "top3ProfitConcentrationWarning": false,
+      "netReturnUsdt": 0,
+      "finalEquityUsdt": 17,
+      "feesUsdt": 0,
+      "maxDrawdownUsdt": 0,
+      "maxDrawdownPercent": 0,
+      "recoveryFactor": null,
+      "ordersPlaced": 0,
+      "ordersWithFills": 0,
+      "fillEvents": 0,
+      "blocks": [
+        {
+          "name": "D1-D30",
+          "complete": true,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D31-D60",
+          "complete": true,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D61-D90",
+          "complete": true,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "bySymbol": [
+        {
+          "symbol": "BTC/USDT",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "symbol": "ETH/USDT",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "symbol": "SOL/USDT",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "net_payoff_margin": 59
+      },
+      "openPosition": null,
+      "ordersSent": 0,
+      "realMoneyApproved": false
+    },
+    {
+      "status": "modeled_replay_complete",
+      "scenario": "maker-taker-adverse",
+      "closedTrades": 0,
+      "realizedPnlUsdt": 0,
+      "profitFactor": null,
+      "expectancyUsdt": null,
+      "winRatePercent": null,
+      "topWinningTradePnLsUsdt": [],
+      "top3TradesProfitSharePercent": null,
+      "realizedPnlWithoutTop3Usdt": 0,
+      "top3ProfitConcentrationWarning": false,
+      "netReturnUsdt": 0,
+      "finalEquityUsdt": 17,
+      "feesUsdt": 0,
+      "maxDrawdownUsdt": 0,
+      "maxDrawdownPercent": 0,
+      "recoveryFactor": null,
+      "ordersPlaced": 0,
+      "ordersWithFills": 0,
+      "fillEvents": 0,
+      "blocks": [
+        {
+          "name": "D1-D30",
+          "complete": true,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D31-D60",
+          "complete": true,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "name": "D61-D90",
+          "complete": true,
+          "netReturnUsdt": 0,
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "bySymbol": [
+        {
+          "symbol": "BTC/USDT",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "symbol": "ETH/USDT",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        },
+        {
+          "symbol": "SOL/USDT",
+          "closedTrades": 0,
+          "realizedPnlUsdt": 0,
+          "profitFactor": null,
+          "expectancyUsdt": null,
+          "winRatePercent": null,
+          "topWinningTradePnLsUsdt": [],
+          "top3TradesProfitSharePercent": null,
+          "realizedPnlWithoutTop3Usdt": 0,
+          "top3ProfitConcentrationWarning": false
+        }
+      ],
+      "rejected": {
+        "net_payoff_margin": 59
+      },
+      "openPosition": null,
+      "ordersSent": 0,
+      "realMoneyApproved": false
+    }
+  ]
+}

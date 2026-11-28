@@ -5,6 +5,7 @@ import { quantizeQuantityDown } from './decimal-quantity.js';
 import { semanticHash } from './cost-experiments.js';
 import { tradeProfitConcentration } from './backtest-performance.js';
 import { ResearchMakerOrder,type MakerRules } from './maker-research-order.js';
+import { Precise } from 'ccxt';
 import type { Candle } from './types.js';
 import type { HybridInstrument } from './hybrid-research-replay.js';
 export const MAKER_CORE=['BTC/USDT','ETH/USDT','SOL/USDT'] as const;
@@ -48,7 +49,8 @@ export function validateMakerMicro(data:{instruments:HybridInstrument[]},signals
  return [...expected.keys()].filter(k=>!seen.has(k));
 }
 export function makerPayoff(quantity:number,s:MakerSignal,maker:number,taker:number,friction:number,step:number){
- const sellable=quantizeQuantityDown(quantity*(1-maker),1,step).quantity,cost=quantity*s.limit,proceeds=(p:number)=>sellable*p*(1-friction)*(1-taker),gain=proceeds(s.target)-cost,loss=cost-proceeds(s.stop),roundtrip=cost-proceeds(s.limit);
+ const afterBaseFee=Number(new Precise(String(quantity)).mul(new Precise('1').sub(new Precise(String(maker)))).toString());
+ const sellable=quantizeQuantityDown(afterBaseFee,1,step).quantity,cost=quantity*s.limit,proceeds=(p:number)=>sellable*p*(1-friction)*(1-taker),gain=proceeds(s.target)-cost,loss=cost-proceeds(s.stop),roundtrip=cost-proceeds(s.limit);
  return {sellable,gain,loss,roundtrip,passed:gain>0&&loss>0&&gain/loss>=1.5&&roundtrip>=0&&gain>=2*roundtrip};
 }
 type Closed={symbol:string;entryTimestamp:number;exitTimestamp:number;entryNotionalUsdt:number;netPnlUsdt:number;feesUsdt:number;quantity:number;entryPrice:number;exitPrice:number;reason:string;dustQuantity:number;holdingMinutesUpperBound:number};

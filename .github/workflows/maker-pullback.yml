@@ -6,6 +6,7 @@ on:
       - 'examples/maker-*.json'
       - 'tests/maker-*.test.ts'
       - 'docs/maker-*.json'
+      - 'scripts/maker-pullback-diagnosis.mjs'
       - '.github/workflows/maker-pullback.yml'
 permissions:
   contents: read
@@ -46,10 +47,34 @@ jobs:
         with:
           path: .maker-minute-source
           key: maker-minutes-v1-${{ hashFiles('examples/maker-pullback.plan.json') }}
+      - uses: actions/download-artifact@v4
+        if: hashFiles('.maker-minute-source/minutes.json') == '' && hashFiles('docs/maker-pullback-results.json') != ''
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 46167958759
+          name: maker-pullback-research
+          path: .maker-frozen-artifact
+      - name: Restore the original minute source and verify its frozen identity before replay
+        if: hashFiles('docs/maker-pullback-results.json') != ''
+        run: |
+          if [ ! -f .maker-minute-source/minutes.json ]; then
+            mkdir -p .maker-minute-source
+            cp .maker-frozen-artifact/.maker-minute-source/minutes.json .maker-minute-source/minutes.json
+          fi
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {semanticHash} from './dist/cost-experiments.js';
+          const expected=JSON.parse(fs.readFileSync('docs/maker-pullback-results.json','utf8'));
+          const micro=JSON.parse(fs.readFileSync('.maker-minute-source/minutes.json','utf8'));
+          if(semanticHash(micro)!==expected.minuteSourceSha256)throw new Error('Frozen minute source changed; no silent recollection permitted');
+          JS
       - name: Collect only requested public confirmed entry-hour minutes and evaluate frozen hypothesis
         run: |
           mkdir -p .maker-minute-source
           npm run strategy:maker-pullback -- --collect .trend-horizon-source/normalized-data.json .maker-minute-source/minutes.json .maker-pullback-results
+      - name: Explain rejected starting-bank quotes without retuning or inventing fills
+        run: node scripts/maker-pullback-diagnosis.mjs .trend-horizon-source/normalized-data.json .maker-minute-source/minutes.json .maker-pullback-results .maker-pullback-results/diagnosis.json
       - name: Reproduce same minute source and ledger without network access
         run: |
           npm run strategy:maker-pullback -- --replay .trend-horizon-source/normalized-data.json .maker-minute-source/minutes.json .maker-pullback-reproduction
@@ -58,6 +83,7 @@ jobs:
           if [ -f docs/maker-pullback-results.json ]; then
             diff -u docs/maker-pullback-results.json .maker-pullback-results/summary.json
             diff -u docs/maker-pullback-ledgers.json .maker-pullback-results/ledgers.json
+            diff -u docs/maker-pullback-diagnosis.json .maker-pullback-results/diagnosis.json
           fi
       - uses: actions/upload-artifact@v4
         if: always()

@@ -1,13 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { expect,it } from 'vitest';
 import { ResearchMakerOrder } from '../src/maker-research-order.js';
-import { makerPullbackChecks,validateMakerMicro,replayMakerPullback,type MakerMicro,type MakerSignal } from '../src/maker-pullback.js';
+import { makerPullbackChecks,makerPayoff,validateMakerMicro,replayMakerPullback,type MakerMicro,type MakerSignal } from '../src/maker-pullback.js';
 import { parseMakerMinutePage,collectMakerMinutes } from '../src/maker-public-minutes.js';
 import { aggregateFourHours } from '../src/trend-horizon.js';
 import type { HybridInstrument } from '../src/hybrid-research-replay.js';
 const protocol=JSON.parse(readFileSync(new URL('../examples/maker-pullback.plan.json',import.meta.url),'utf8'));
 const rules={minimumQuantity:.01,quantityStep:.001,priceTick:.01},time=1000*3600000;
 const order=()=>new ResearchMakerOrder('one',100,1,0,300000,.001,rules);
+it('does not confuse gross2R with net payoff after maker/taker costs and projects the same sellable amount as the fill ledger',()=>{
+ const s={symbol:'BTC/USDT',decisionTimestamp:0,entryHour:3600000,limit:100,stop:99.5,target:101};
+ const q=makerPayoff(1,s,.001,.004,.00175,.001);expect(q.passed).toBe(false);
+ const o=order();o.fill('full',1,0);expect(q.sellable).toBe(o.sellableQuantity);expect(makerPayoff(1,{...s,stop:95,target:110},.001,.004,.00175,.001).passed).toBe(true);
+});
 it('rejects off-step/off-tick values without epsilon promotion and preserves decimal partial remainders',()=>{
  expect(()=>new ResearchMakerOrder('bad',100,.010000000001,0,300000,.001,{...rules,quantityStep:1e-8})).toThrow(/increment/);
  expect(()=>new ResearchMakerOrder('bad',100.001,1,0,300000,.001,rules)).toThrow(/increment/);
