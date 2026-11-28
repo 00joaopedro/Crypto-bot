@@ -7,6 +7,7 @@ on:
       - 'examples/swing-v2*.json'
       - 'tests/swing-v2*.test.ts'
       - 'docs/swing-v2*'
+      - 'scripts/swing-v2-diagnosis.mjs'
       - '.github/workflows/swing-v2.yml'
 permissions:
   contents: read
@@ -29,8 +30,33 @@ jobs:
         with:
           path: .swing-v2-data
           key: swing-v2-final-${{ hashFiles('examples/swing-v2.plan.json') }}
+      - uses: actions/download-artifact@v4
+        if: hashFiles('docs/swing-v2-results.json') != '' && (hashFiles('.swing-v2-data/development-hours.json') == '' || hashFiles('.swing-v2-data/development-minutes.json') == '')
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 46175882160
+          name: swing-v2-research
+          path: .swing-v2-frozen-artifact
+      - name: Restore and verify first source before replay; never silently replace historical evidence
+        if: hashFiles('docs/swing-v2-results.json') != ''
+        run: |
+          mkdir -p .swing-v2-data
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {semanticHash} from './dist/cost-experiments.js';
+          const expected=JSON.parse(fs.readFileSync('docs/swing-v2-results.json','utf8'));
+          for(const phase of expected.phases)for(const kind of ['hours','minutes']){
+            const name=phase.name+'-'+kind+'.json',p='.swing-v2-data/'+name;
+            if(!fs.existsSync(p))fs.copyFileSync('.swing-v2-frozen-artifact/.swing-v2-data/'+name,p);
+            if(semanticHash(JSON.parse(fs.readFileSync(p,'utf8')))!==phase[kind+'Sha256'])throw new Error('Frozen swing source changed: '+name);
+          }
+          if(!expected.independentDataCollected&&['hours','minutes'].some(k=>fs.existsSync('.swing-v2-data/independent-'+k+'.json')))throw new Error('Reserved independent data must remain unopened');
+          JS
       - name: Collect public closed candles and replay frozen rules (no private access or orders)
         run: npm run strategy:swing-v2 -- --collect .swing-v2-data .swing-v2-results
+      - name: Reconcile costs, fill statistics and owned excursions without retuning
+        run: node scripts/swing-v2-diagnosis.mjs .swing-v2-data .swing-v2-results .swing-v2-results/diagnosis.json
       - name: Reproduce source and ledgers without network
         run: |
           npm run strategy:swing-v2 -- --replay .swing-v2-data .swing-v2-reproduction
@@ -39,6 +65,7 @@ jobs:
           if [ -f docs/swing-v2-results.json ]; then
             diff -u docs/swing-v2-results.json .swing-v2-results/summary.json
             diff -u docs/swing-v2-ledgers.json .swing-v2-results/ledgers.json
+            diff -u docs/swing-v2-diagnosis.json .swing-v2-results/diagnosis.json
           fi
       - uses: actions/upload-artifact@v4
         if: always()
